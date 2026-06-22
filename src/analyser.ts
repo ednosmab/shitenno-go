@@ -1,0 +1,219 @@
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
+export interface ProjectAnalysis {
+  rootDir: string;
+  hasGit: boolean;
+  hasPackageJson: boolean;
+  hasNexus: boolean;
+  stack: string[];
+  packageManager: "pnpm" | "npm" | "yarn" | "unknown";
+  monorepo: boolean;
+  packageCount: number;
+  appCount: number;
+  dependencyCount: number;
+  sourceFileCount: number;
+  hasTests: boolean;
+  hasLinter: boolean;
+  hasCI: boolean;
+  hasTypeScript: boolean;
+}
+
+export function analyseProject(rootDir: string): ProjectAnalysis {
+  return {
+    rootDir,
+    hasGit: existsSync(join(rootDir, ".git")),
+    hasPackageJson: existsSync(join(rootDir, "package.json")),
+    hasNexus: existsSync(join(rootDir, "opencode.json")),
+    stack: detectStack(rootDir),
+    packageManager: detectPackageManager(rootDir),
+    monorepo: detectMonorepo(rootDir),
+    packageCount: countPackages(rootDir),
+    appCount: countApps(rootDir),
+    dependencyCount: countDependencies(rootDir),
+    sourceFileCount: countSourceFiles(rootDir),
+    hasTests: detectTests(rootDir),
+    hasLinter: detectLinter(rootDir),
+    hasCI: detectCI(rootDir),
+    hasTypeScript: detectTypeScript(rootDir),
+  };
+}
+
+function detectStack(rootDir: string): string[] {
+  const stack: string[] = [];
+  const pkg = readPackageJson(rootDir);
+  if (!pkg) return stack;
+
+  const allDeps = {
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+  };
+
+  const stackMap: Record<string, string[]> = {
+    react: ["react", "react-dom"],
+    nextjs: ["next"],
+    vue: ["vue"],
+    nuxt: ["nuxt"],
+    svelte: ["svelte"],
+    sveltekit: ["@sveltejs/kit"],
+    expo: ["expo"],
+    "react-native": ["react-native"],
+    angular: ["@angular/core"],
+    tailwindcss: ["tailwindcss"],
+    styledcomponents: ["styled-components"],
+    emotion: ["@emotion/react"],
+    zod: ["zod"],
+    jotai: ["jotai"],
+    zustand: ["zustand"],
+    redux: ["@reduxjs/toolkit"],
+    prisma: ["@prisma/client"],
+    drizzle: ["drizzle-orm"],
+    typeorm: ["typeorm"],
+    mongoose: ["mongoose"],
+    trpc: ["@trpc/server"],
+    graphql: ["graphql"],
+    axios: ["axios"],
+    vite: ["vite"],
+    webpack: ["webpack"],
+    esbuild: ["esbuild"],
+    turborepo: ["turbo"],
+    nx: ["nx"],
+  };
+
+  for (const [name, deps] of Object.entries(stackMap)) {
+    if (deps.some((d) => d in allDeps)) {
+      stack.push(name);
+    }
+  }
+
+  return stack;
+}
+
+function detectPackageManager(rootDir: string): "pnpm" | "npm" | "yarn" | "unknown" {
+  if (existsSync(join(rootDir, "pnpm-lock.yaml"))) return "pnpm";
+  if (existsSync(join(rootDir, "yarn.lock"))) return "yarn";
+  if (existsSync(join(rootDir, "package-lock.json"))) return "npm";
+  return "unknown";
+}
+
+function detectMonorepo(rootDir: string): boolean {
+  if (existsSync(join(rootDir, "pnpm-workspace.yaml"))) return true;
+  if (existsSync(join(rootDir, "lerna.json"))) return true;
+  const pkg = readPackageJson(rootDir);
+  if (pkg?.workspaces) return true;
+  return false;
+}
+
+function countPackages(rootDir: string): number {
+  let count = 0;
+  const packagesDir = join(rootDir, "packages");
+  if (existsSync(packagesDir)) {
+    count += readdirSync(packagesDir).filter((d) =>
+      existsSync(join(packagesDir, d, "package.json"))
+    ).length;
+  }
+  return count;
+}
+
+function countApps(rootDir: string): number {
+  let count = 0;
+  const appsDir = join(rootDir, "apps");
+  if (existsSync(appsDir)) {
+    count += readdirSync(appsDir).filter((d) =>
+      existsSync(join(appsDir, d, "package.json"))
+    ).length;
+  }
+  return count;
+}
+
+function countDependencies(rootDir: string): number {
+  const pkg = readPackageJson(rootDir);
+  if (!pkg) return 0;
+  const deps = new Set([
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.devDependencies || {}),
+  ]);
+  return deps.size;
+}
+
+function countSourceFiles(rootDir: string): number {
+  let count = 0;
+  const extensions = [".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte"];
+  const ignore = ["node_modules", ".git", "dist", "build", ".next", ".nuxt"];
+
+  function walk(dir: string) {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (ignore.includes(entry.name)) continue;
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+          count++;
+        }
+      }
+    } catch {
+      // skip inaccessible dirs
+    }
+  }
+
+  walk(rootDir);
+  return count;
+}
+
+function detectTests(rootDir: string): boolean {
+  const pkg = readPackageJson(rootDir);
+  if (!pkg) return false;
+  const testDeps = ["jest", "vitest", "playwright", "mocha", "ava", "cypress"];
+  const allDeps = {
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+  };
+  return testDeps.some((d) => d in allDeps) || !!pkg.scripts?.test;
+}
+
+function detectLinter(rootDir: string): boolean {
+  const configs = [
+    ".eslintrc",
+    ".eslintrc.js",
+    ".eslintrc.json",
+    ".eslintrc.yml",
+    "eslint.config.js",
+    "eslint.config.mjs",
+    "biome.json",
+  ];
+  if (configs.some((c) => existsSync(join(rootDir, c)))) return true;
+  const pkg = readPackageJson(rootDir);
+  if (!pkg) return false;
+  const allDeps = {
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+  };
+  return "eslint" in allDeps || "@biomejs/biome" in allDeps;
+}
+
+function detectCI(rootDir: string): boolean {
+  const ciPaths = [
+    ".github/workflows",
+    ".gitlab-ci.yml",
+    "Jenkinsfile",
+    ".circleci",
+    ".travis.yml",
+  ];
+  return ciPaths.some((p) => existsSync(join(rootDir, p)));
+}
+
+function detectTypeScript(rootDir: string): boolean {
+  return existsSync(join(rootDir, "tsconfig.json"));
+}
+
+function readPackageJson(rootDir: string): Record<string, any> | null {
+  const path = join(rootDir, "package.json");
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8"));
+  } catch {
+    return null;
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/[modelo-principal]",
+  "default_agent": "plan",
+
+  "agent": {
+    "plan": {
+      "role": "planner",
+      "model": "opencode/[modelo-principal]",
+      "description": "Planning agent. Reads project context and produces atomic, fragmented plans tailored for the build executor. MANDATORY: every plan must be broken into small, verifiable, single-action steps (Edit + grep verify cycle) so the executor does not skip or merge steps. Include safeguards table (S1..S6), explicit G-01 pause points for commits, and reference to AGENTS.md rule 15 for full protocol. Plans for complex tasks (>= 5 steps) are archived in docs/plans/."
+    },
+    "build": {
+      "role": "executor",
+      "model": "opencode/[modelo-executor]",
+      "description": "Build/executor agent. Runs the user-approved plan step-by-step. MANDATORY: execute ONLY what the plan specifies — no autonomous refactors, no JSDoc additions, no renames, no 'improvements'. If you spot something outside the plan, STOP and report (do not fix it). Allowed exceptions: (1) minimal fixes (< 5 lines) to make the current step's build pass; (2) recording out-of-scope findings in the buffer's 'technical_debt' section. See AGENTS.md rule 16 for full protocol."
+    },
+    "review": {
+      "role": "auditor",
+      "mode": "primary",
+      "model": "opencode/[modelo-principal]",
+      "description": "Reviewer agent. Audits code produced by build. MAY run test/lint commands and read-only git commands, but NEVER edits production code. MANDATORY: validate that executed work matches the user-approved plan (compare each step, metrics, files, deviations). For plans archived in docs/plans/, compare the template's checkboxes against the actual git diff. See AGENTS.md rule 14 for full protocol.",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "pnpm run test": "allow",
+          "pnpm run lint": "allow",
+          "pnpm run verify": "allow",
+          "pnpm ls *": "allow",
+          "git status": "allow",
+          "git diff": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "*": "ask"
+        }
+      }
+    }
+  },
+
+  "instructions": [
+    "./docs/AGENTS.md",
+    "./governance/context/context_buffer.yaml"
+  ],
+  "skills": {
+    "paths": ["docs/skills"]
+  },
+  "mcp": {
+    "local-filesystem": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ],
+      "enabled": true
+    }
+  }
+}

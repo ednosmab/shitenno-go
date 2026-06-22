@@ -1,0 +1,17 @@
+{
+  "name": "nexus-system",
+  "version": "1.0.0",
+  "description": "Reusable AI governance framework for opencode-based monorepos",
+  "scripts": {
+    "validate:session": "npx tsx scripts/validate-session.ts",
+    "close:session": "npx tsx scripts/close-session.ts",
+    "verify:ui": "npx tsx scripts/verify-ui-rules.ts",
+    "premortem:check": "npx tsx scripts/premortem-check.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.3"
+  }
+}

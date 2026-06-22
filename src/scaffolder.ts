@@ -1,0 +1,176 @@
+import fse from "fs-extra";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { UserAnswers } from "./prompts.js";
+
+const { copySync, ensureDirSync, readFileSync, writeFileSync } = fse;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const TEMPLATES_DIR = join(__dirname, "templates");
+
+export interface ScaffoldResult {
+  filesCreated: string[];
+  directoriesCreated: string[];
+}
+
+export function scaffoldL1(
+  targetDir: string,
+  answers: UserAnswers
+): ScaffoldResult {
+  const result: ScaffoldResult = {
+    filesCreated: [],
+    directoriesCreated: [],
+  };
+
+  const l1Dir = join(TEMPLATES_DIR, "l1");
+
+  // Create directories
+  const dirs = [
+    "docs",
+    "docs/adrs",
+    "docs/plans",
+    "docs/skills",
+    "scripts",
+  ];
+  for (const dir of dirs) {
+    const fullPath = join(targetDir, dir);
+    ensureDirSync(fullPath);
+    result.directoriesCreated.push(dir);
+  }
+
+  // Copy and customize files
+  const filesToCopy: Array<{ src: string; dest: string; customize?: boolean }> = [
+    { src: "package.json", dest: "package.json", customize: true },
+    { src: ".gitignore", dest: ".gitignore" },
+    { src: "docs/AGENTS.md", dest: "docs/AGENTS.md", customize: true },
+    { src: "docs/opencode-context.md", dest: "docs/opencode-context.md", customize: true },
+    { src: "docs/Nexus-System_GUIDE.md", dest: "docs/Nexus-System_GUIDE.md", customize: true },
+    { src: "scripts/validate-session.ts", dest: "scripts/validate-session.ts" },
+    { src: "scripts/close-session.ts", dest: "scripts/close-session.ts" },
+    { src: "scripts/premortem-check.ts", dest: "scripts/premortem-check.ts" },
+  ];
+
+  for (const file of filesToCopy) {
+    const srcPath = join(l1Dir, file.src);
+    const destPath = join(targetDir, file.dest);
+
+    if (file.customize) {
+      let content = readFileSync(srcPath, "utf-8");
+      content = fillPlaceholders(content, answers);
+      writeFileSync(destPath, content, "utf-8");
+    } else {
+      copySync(srcPath, destPath);
+    }
+
+    result.filesCreated.push(file.dest);
+  }
+
+  // Generate opencode.json with customized models
+  const opencodeTemplate = readFileSync(
+    join(l1Dir, "opencode.json"),
+    "utf-8"
+  );
+  const opencodeContent = opencodeTemplate
+    .replace(/\[modelo-principal\]/g, answers.principalModel.replace(/^opencode\//, ""))
+    .replace(/\[modelo-executor\]/g, answers.executorModel.replace(/^opencode\//, ""));
+  writeFileSync(join(targetDir, "opencode.json"), opencodeContent, "utf-8");
+  result.filesCreated.push("opencode.json");
+
+  // Copy selected skills
+  const skillsDir = join(l1Dir, "docs/skills");
+  const selectedSkills = selectSkills(answers);
+  for (const skill of selectedSkills) {
+    const srcPath = join(skillsDir, `${skill}.md`);
+    const destPath = join(targetDir, "docs", "skills", `${skill}.md`);
+    copySync(srcPath, destPath);
+    result.filesCreated.push(`docs/skills/${skill}.md`);
+  }
+
+  return result;
+}
+
+function fillPlaceholders(content: string, answers: UserAnswers): string {
+  const stackStr = answers.stack.join(", ") || "a definir";
+  const dbStr = answers.database || "a definir";
+  const stylingStr = answers.styling || "a definir";
+
+  return content
+    .replace(
+      /\[PERSONALIZAR: linguagens, frameworks e tecnologias usados\]/g,
+      stackStr
+    )
+    .replace(
+      /\[PERSONALIZAR: regras de estilização do projecto\]/g,
+      `Usar apenas ${stylingStr} para estilização`
+    )
+    .replace(
+      /\[PERSONALIZAR: SGBD e convenções usados\]/g,
+      dbStr
+    )
+    .replace(
+      /\[PERSONALIZAR: biblioteca de validação usada\]/g,
+      "Validação de dados na camada de entrada"
+    )
+    .replace(
+      /\[PERSONALIZAR: referência ao roadmap do projecto, se existir\]/g,
+      "[Adicionar referência ao roadmap se existir]"
+    )
+    .replace(
+      /\[PERSONALIZAR: regras específicas de ambiente de teste e deploy, se aplicável\]/g,
+      "[Adicionar regras de ambiente se aplicável]"
+    )
+    .replace(
+      /\[PERSONALIZAR: regras específicas do design system do projecto[\s\S]*?\]/g,
+      `[Adicionar regras do design system: ${stylingStr}]`
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: T-shaped\]/g,
+      "T-shaped"
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: senior\]/g,
+      answers.teamLevel === "junior" ? "pleno" : answers.teamLevel
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: junior-pleno\]/g,
+      answers.teamLevel
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: peer \(par a par\)\]/g,
+      "peer"
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: mentor \(explicativo\)\]/g,
+      answers.teamLevel === "junior" ? "mentor" : "peer"
+    )
+    .replace(
+      /\[PERSONALIZAR: ex: calibrado por camada\]/g,
+      "calibrado por camada"
+    )
+    .replace(
+      /opencode\/\[modelo-principal\]/g,
+      `opencode/${answers.principalModel.replace(/^opencode\//, "")}`
+    )
+    .replace(
+      /opencode\/\[modelo-executor\]/g,
+      `opencode/${answers.executorModel.replace(/^opencode\//, "")}`
+    );
+}
+
+function selectSkills(answers: UserAnswers): string[] {
+  // Base skills always included
+  const skills = [
+    "senior-engineer",
+    "tdd_workflow",
+    "clean_code_standards",
+    "solid_principles",
+    "architectural_integrity",
+    "design_patterns",
+    "error_handling_observability",
+    "pnpm_management",
+    "optimistic_ui",
+  ];
+
+  return skills;
+}
