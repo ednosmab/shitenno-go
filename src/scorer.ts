@@ -3,24 +3,26 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectAnalysis } from "./analyser.js";
 
-// ── Interfaces ──────────────────────────────────────────────────────────────
+// ── Types (aligned with nexus-system/core/complexity/types.ts) ───────────────
 
-export interface UserBehavior {
-  // Governance
-  validateFailures: number;
-  sessionsWithoutClose: number;
-  bufferUpdates: number;
-  adrCount: number;
-
-  // Code patterns
-  openBranches: number;
-  commitsPerWeek: number;
-  bugFixesInSameFile: number;
-
-  // Team
-  agentCount: number;
-  skillCount: number;
+/** Resultado de uma métrica estática calculada para o projecto. */
+export interface StaticMetric {
+  metric: string;
+  value: number;
+  score: number;
+  evidence: string;
 }
+
+/** Resultado de uma métrica comportamental calculada a partir de acções do utilizador. */
+export interface BehavioralMetric {
+  signal: string;
+  value: number;
+  score: number;
+  evidence: string;
+  suggestion?: string;
+}
+
+// ── CLI ComplexityReport (extends core with display-friendly fields) ─────────
 
 export interface ComplexityReport {
   score: number;
@@ -29,6 +31,9 @@ export interface ComplexityReport {
   behaviorScore: number;
   reasons: string[];
   suggestions: string[];
+  staticMetrics: StaticMetric[];
+  behavioralMetrics: BehavioralMetric[];
+  computedAt: string;
 }
 
 // ── Main Scoring Function ───────────────────────────────────────────────────
@@ -38,35 +43,273 @@ export function calculateComplexityScore(
   nexusDir: string,
   analysis: ProjectAnalysis
 ): ComplexityReport {
-  const behavior = collectBehaviorMetrics(projectRoot, nexusDir);
-  return scoreProject(analysis, behavior);
+  const staticMetrics = collectStaticMetrics(analysis);
+  const behavioralMetrics = collectBehavioralMetrics(projectRoot, nexusDir);
+  return scoreProject(analysis, staticMetrics, behavioralMetrics);
 }
 
-// ── Behavior Metrics Collection ──────────────────────────────────────────────
+// ── Static Metrics ───────────────────────────────────────────────────────────
 
-function collectBehaviorMetrics(
+function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
+  const metrics: StaticMetric[] = [];
+
+  // Packages
+  if (analysis.packageCount >= 5) {
+    metrics.push({
+      metric: "packages",
+      value: analysis.packageCount,
+      score: 2,
+      evidence: `${analysis.packageCount} packages detected — monorepo with multiple modules`,
+    });
+  } else if (analysis.packageCount >= 3) {
+    metrics.push({
+      metric: "packages",
+      value: analysis.packageCount,
+      score: 1,
+      evidence: `${analysis.packageCount} packages detected — growing monorepo`,
+    });
+  } else {
+    metrics.push({
+      metric: "packages",
+      value: analysis.packageCount,
+      score: 0,
+      evidence: `${analysis.packageCount} packages — simple structure`,
+    });
+  }
+
+  // Apps
+  if (analysis.appCount >= 3) {
+    metrics.push({
+      metric: "apps",
+      value: analysis.appCount,
+      score: 3,
+      evidence: `${analysis.appCount} apps detected — multi-app project needs coordination`,
+    });
+  } else if (analysis.appCount >= 2) {
+    metrics.push({
+      metric: "apps",
+      value: analysis.appCount,
+      score: 2,
+      evidence: `${analysis.appCount} apps detected — multi-app project`,
+    });
+  } else {
+    metrics.push({
+      metric: "apps",
+      value: analysis.appCount,
+      score: 0,
+      evidence: `${analysis.appCount} apps — single app or no apps`,
+    });
+  }
+
+  // Source files
+  if (analysis.sourceFileCount >= 300) {
+    metrics.push({
+      metric: "files",
+      value: analysis.sourceFileCount,
+      score: 2,
+      evidence: `${analysis.sourceFileCount} source files — large codebase`,
+    });
+  } else if (analysis.sourceFileCount >= 150) {
+    metrics.push({
+      metric: "files",
+      value: analysis.sourceFileCount,
+      score: 1,
+      evidence: `${analysis.sourceFileCount} source files — medium codebase`,
+    });
+  } else {
+    metrics.push({
+      metric: "files",
+      value: analysis.sourceFileCount,
+      score: 0,
+      evidence: `${analysis.sourceFileCount} source files — small codebase`,
+    });
+  }
+
+  // Dependencies
+  if (analysis.dependencyCount >= 100) {
+    metrics.push({
+      metric: "dependencies",
+      value: analysis.dependencyCount,
+      score: 2,
+      evidence: `${analysis.dependencyCount} dependencies — complex dependency tree`,
+    });
+  } else if (analysis.dependencyCount >= 50) {
+    metrics.push({
+      metric: "dependencies",
+      value: analysis.dependencyCount,
+      score: 1,
+      evidence: `${analysis.dependencyCount} dependencies — moderate dependency count`,
+    });
+  } else {
+    metrics.push({
+      metric: "dependencies",
+      value: analysis.dependencyCount,
+      score: 0,
+      evidence: `${analysis.dependencyCount} dependencies — simple dependency tree`,
+    });
+  }
+
+  // Monorepo
+  if (analysis.monorepo) {
+    metrics.push({
+      metric: "monorepo",
+      value: 1,
+      score: 1,
+      evidence: "Monorepo detected — cross-package coordination needed",
+    });
+  }
+
+  return metrics;
+}
+
+// ── Behavioral Metrics ──────────────────────────────────────────────────────
+
+function collectBehavioralMetrics(
   projectRoot: string,
   nexusDir: string
-): UserBehavior {
-  return {
-    // Governance
-    validateFailures: countValidateFailures(nexusDir),
-    sessionsWithoutClose: countSessionsWithoutClose(nexusDir),
-    bufferUpdates: countBufferUpdates(nexusDir),
-    adrCount: countAdrs(nexusDir),
+): BehavioralMetric[] {
+  const metrics: BehavioralMetric[] = [];
 
-    // Code patterns
-    openBranches: countOpenBranches(projectRoot),
-    commitsPerWeek: countCommitsPerWeek(projectRoot),
-    bugFixesInSameFile: countBugFixes(projectRoot),
+  // Validate failures
+  const validateFailures = countValidateFailures(nexusDir);
+  if (validateFailures >= 3) {
+    metrics.push({
+      signal: "validate-failures",
+      value: validateFailures,
+      score: 3,
+      evidence: `${validateFailures} validate failures in history — structural gaps`,
+      suggestion: "Run 'nexus upgrade' to add governance components",
+    });
+  } else if (validateFailures >= 1) {
+    metrics.push({
+      signal: "validate-failures",
+      value: validateFailures,
+      score: 1,
+      evidence: `${validateFailures} validate failure(s) detected`,
+    });
+  }
 
-    // Team
-    agentCount: countAgents(projectRoot),
-    skillCount: countSkills(nexusDir),
-  };
+  // ADR count
+  const adrCount = countAdrs(nexusDir);
+  if (adrCount >= 3) {
+    metrics.push({
+      signal: "adr-count",
+      value: adrCount,
+      score: 3,
+      evidence: `${adrCount} ADRs created — active architectural decisions`,
+      suggestion: "Consider adding governance/agents/ for role separation",
+    });
+  } else if (adrCount >= 1) {
+    metrics.push({
+      signal: "adr-count",
+      value: adrCount,
+      score: 2,
+      evidence: `${adrCount} ADR(s) created`,
+    });
+  }
+
+  // Open branches
+  const openBranches = countOpenBranches(projectRoot);
+  if (openBranches >= 5) {
+    metrics.push({
+      signal: "open-branches",
+      value: openBranches,
+      score: 2,
+      evidence: `${openBranches} feat branches open — parallel development`,
+      suggestion: "Add governance/context/ for session persistence",
+    });
+  } else if (openBranches >= 3) {
+    metrics.push({
+      signal: "open-branches",
+      value: openBranches,
+      score: 1,
+      evidence: `${openBranches} feat branches open`,
+    });
+  }
+
+  // Commits per week
+  const commitsPerWeek = countCommitsPerWeek(projectRoot);
+  if (commitsPerWeek >= 20) {
+    metrics.push({
+      signal: "commits-per-week",
+      value: commitsPerWeek,
+      score: 2,
+      evidence: `${commitsPerWeek} commits/week — high velocity`,
+    });
+  } else if (commitsPerWeek >= 10) {
+    metrics.push({
+      signal: "commits-per-week",
+      value: commitsPerWeek,
+      score: 1,
+      evidence: `${commitsPerWeek} commits/week`,
+    });
+  }
+
+  // Sessions without close
+  const sessionsWithoutClose = countSessionsWithoutClose(nexusDir);
+  if (sessionsWithoutClose >= 2) {
+    metrics.push({
+      signal: "sessions-without-close",
+      value: sessionsWithoutClose,
+      score: 2,
+      evidence: `${sessionsWithoutClose} sessions without close — needs automation`,
+      suggestion: "Add scripts/close-session.ts for session management",
+    });
+  } else if (sessionsWithoutClose >= 1) {
+    metrics.push({
+      signal: "sessions-without-close",
+      value: sessionsWithoutClose,
+      score: 1,
+      evidence: `${sessionsWithoutClose} unclosed session(s)`,
+    });
+  }
+
+  // Bug fixes
+  const bugFixes = countBugFixes(projectRoot);
+  if (bugFixes >= 5) {
+    metrics.push({
+      signal: "bug-fixes",
+      value: bugFixes,
+      score: 2,
+      evidence: `${bugFixes} bug fixes — code instability`,
+      suggestion: "Add tests and governance for affected modules",
+    });
+  } else if (bugFixes >= 3) {
+    metrics.push({
+      signal: "bug-fixes",
+      value: bugFixes,
+      score: 1,
+      evidence: `${bugFixes} bug fixes detected`,
+    });
+  }
+
+  // Agent count
+  const agentCount = countAgents(projectRoot);
+  if (agentCount >= 4) {
+    metrics.push({
+      signal: "agent-count",
+      value: agentCount,
+      score: 2,
+      evidence: `${agentCount} agents configured — needs orchestrator`,
+      suggestion: "Add governance/agents/ with AI contracts",
+    });
+  }
+
+  // Skill count
+  const skillCount = countSkills(nexusDir);
+  if (skillCount >= 6) {
+    metrics.push({
+      signal: "skill-count",
+      value: skillCount,
+      score: 1,
+      evidence: `${skillCount} skills installed — multi-domain project`,
+    });
+  }
+
+  return metrics;
 }
 
-// ── Governance Metrics ───────────────────────────────────────────────────────
+// ── Raw Count Functions ─────────────────────────────────────────────────────
 
 function countValidateFailures(nexusDir: string): number {
   const historyDir = join(nexusDir, "docs", "history");
@@ -99,33 +342,9 @@ function countSessionsWithoutClose(nexusDir: string): number {
 
   try {
     const content = readFileSync(bufferPath, "utf-8");
-    // If session is not idle but no close happened
     if (content.includes('status: "in_progress"')) return 1;
     if (content.includes('status: "active"')) return 1;
     return 0;
-  } catch {
-    return 0;
-  }
-}
-
-function countBufferUpdates(nexusDir: string): number {
-  const bufferPath = join(
-    nexusDir,
-    "governance",
-    "context",
-    "context_buffer.yaml"
-  );
-  if (!existsSync(bufferPath)) return 0;
-
-  try {
-    const output = execSync(
-      `git log --oneline --follow -- "${bufferPath}" 2>/dev/null | wc -l`,
-      {
-        encoding: "utf-8",
-        timeout: 5000,
-      }
-    );
-    return parseInt(output.trim(), 10) || 0;
   } catch {
     return 0;
   }
@@ -136,11 +355,10 @@ function countAdrs(nexusDir: string): number {
   if (!existsSync(adrDir)) return 0;
 
   return readdirSync(adrDir).filter(
-    (f) => f.endsWith(".md") && !f.startsWith("README") && !f.startsWith("ADR-TEMPLATE")
+    (f) =>
+      f.endsWith(".md") && !f.startsWith("README") && !f.startsWith("ADR-TEMPLATE")
   ).length;
 }
-
-// ── Code Pattern Metrics ─────────────────────────────────────────────────────
 
 function countOpenBranches(projectRoot: string): number {
   try {
@@ -187,8 +405,6 @@ function countBugFixes(projectRoot: string): number {
   }
 }
 
-// ── Team Metrics ─────────────────────────────────────────────────────────────
-
 function countAgents(projectRoot: string): number {
   const configPath = join(projectRoot, "opencode.json");
   if (!existsSync(configPath)) return 0;
@@ -212,160 +428,33 @@ function countSkills(nexusDir: string): number {
 
 function scoreProject(
   analysis: ProjectAnalysis,
-  behavior: UserBehavior
+  staticMetrics: StaticMetric[],
+  behavioralMetrics: BehavioralMetric[]
 ): ComplexityReport {
-  let staticScore = 0;
-  let behaviorScore = 0;
-  const reasons: string[] = [];
-  const suggestions: string[] = [];
-
-  // ── Static Metrics (Project Structure) ─────────────────────────────────
-
-  if (analysis.packageCount >= 5) {
-    staticScore += 2;
-    reasons.push(`${analysis.packageCount} packages detected (+2)`);
-  } else if (analysis.packageCount >= 3) {
-    staticScore += 1;
-    reasons.push(`${analysis.packageCount} packages detected (+1)`);
-  }
-
-  if (analysis.appCount >= 3) {
-    staticScore += 3;
-    reasons.push(`${analysis.appCount} apps detected (+3)`);
-  } else if (analysis.appCount >= 2) {
-    staticScore += 2;
-    reasons.push(`${analysis.appCount} apps detected (+2)`);
-  }
-
-  if (analysis.sourceFileCount >= 300) {
-    staticScore += 2;
-    reasons.push(`${analysis.sourceFileCount} source files (+2)`);
-  } else if (analysis.sourceFileCount >= 150) {
-    staticScore += 1;
-    reasons.push(`${analysis.sourceFileCount} source files (+1)`);
-  }
-
-  if (analysis.dependencyCount >= 100) {
-    staticScore += 2;
-    reasons.push(`${analysis.dependencyCount} dependencies (+2)`);
-  } else if (analysis.dependencyCount >= 50) {
-    staticScore += 1;
-    reasons.push(`${analysis.dependencyCount} dependencies (+1)`);
-  }
-
-  if (analysis.monorepo) {
-    staticScore += 1;
-    reasons.push("Monorepo detected (+1)");
-  }
-
-  // ── Behavioral Metrics (User Actions) ──────────────────────────────────
-
-  if (behavior.validateFailures >= 3) {
-    behaviorScore += 3;
-    reasons.push(
-      `${behavior.validateFailures} validate failures — precisa de mais estrutura (+3)`
-    );
-    suggestions.push(
-      "Run 'nexus upgrade' to add governance components"
-    );
-  } else if (behavior.validateFailures >= 1) {
-    behaviorScore += 1;
-    reasons.push(`${behavior.validateFailures} validate failure(s) (+1)`);
-  }
-
-  if (behavior.adrCount >= 3) {
-    behaviorScore += 3;
-    reasons.push(
-      `${behavior.adrCount} ADRs created — active architectural decisions (+3)`
-    );
-    suggestions.push(
-      "Consider adding governance/agents/ for role separation"
-    );
-  } else if (behavior.adrCount >= 1) {
-    behaviorScore += 2;
-    reasons.push(`${behavior.adrCount} ADR(s) created (+2)`);
-  }
-
-  if (behavior.openBranches >= 5) {
-    behaviorScore += 2;
-    reasons.push(
-      `${behavior.openBranches} feat branches open — parallel development (+2)`
-    );
-    suggestions.push(
-      "Add governance/context/ for session persistence"
-    );
-  } else if (behavior.openBranches >= 3) {
-    behaviorScore += 1;
-    reasons.push(`${behavior.openBranches} feat branches open (+1)`);
-  }
-
-  if (behavior.commitsPerWeek >= 20) {
-    behaviorScore += 2;
-    reasons.push(
-      `${behavior.commitsPerWeek} commits/week — high velocity (+2)`
-    );
-  } else if (behavior.commitsPerWeek >= 10) {
-    behaviorScore += 1;
-    reasons.push(`${behavior.commitsPerWeek} commits/week (+1)`);
-  }
-
-  if (behavior.sessionsWithoutClose >= 2) {
-    behaviorScore += 2;
-    reasons.push(
-      `${behavior.sessionsWithoutClose} sessions without close — needs automation (+2)`
-    );
-    suggestions.push(
-      "Add scripts/close-session.ts for session management"
-    );
-  } else if (behavior.sessionsWithoutClose >= 1) {
-    behaviorScore += 1;
-    reasons.push(`${behavior.sessionsWithoutClose} unclosed session(s) (+1)`);
-  }
-
-  if (behavior.bugFixesInSameFile >= 5) {
-    behaviorScore += 2;
-    reasons.push(
-      `${behavior.bugFixesInSameFile} bug fixes — code instability (+2)`
-    );
-    suggestions.push(
-      "Add tests and governance for affected modules"
-    );
-  } else if (behavior.bugFixesInSameFile >= 3) {
-    behaviorScore += 1;
-    reasons.push(
-      `${behavior.bugFixesInSameFile} bug fixes detected (+1)`
-    );
-  }
-
-  if (behavior.agentCount >= 4) {
-    behaviorScore += 2;
-    reasons.push(
-      `${behavior.agentCount} agents configured — needs orchestrator (+2)`
-    );
-    suggestions.push(
-      "Add governance/agents/ with AI contracts"
-    );
-  }
-
-  if (behavior.skillCount >= 6) {
-    behaviorScore += 1;
-    reasons.push(
-      `${behavior.skillCount} skills installed — multi-domain project (+1)`
-    );
-  }
-
-  // ── Calculate Final Score ──────────────────────────────────────────────
-
+  const staticScore = staticMetrics.reduce((sum, m) => sum + m.score, 0);
+  const behaviorScore = behavioralMetrics.reduce((sum, m) => sum + m.score, 0);
   const totalScore = staticScore + behaviorScore;
-  let level: "junior" | "pleno" | "senior" = "junior";
 
+  // Build reasons from metrics
+  const reasons: string[] = [
+    ...staticMetrics.filter((m) => m.score > 0).map((m) => m.evidence),
+    ...behavioralMetrics.filter((m) => m.score > 0).map((m) => m.evidence),
+  ];
+
+  // Build suggestions from behavioral metrics
+  const suggestions: string[] = behavioralMetrics
+    .filter((m) => m.suggestion)
+    .map((m) => m.suggestion!);
+
+  // Determine level
+  let level: "junior" | "pleno" | "senior" = "junior";
   if (totalScore >= 10) {
     level = "senior";
   } else if (totalScore >= 5) {
     level = "pleno";
   }
 
-  // Auto-generate suggestions based on level
+  // Add level-based suggestion
   if (level === "pleno" && !suggestions.some((s) => s.includes("upgrade"))) {
     suggestions.push(
       "Your project complexity suggests L2 (Pleno). Run: nexus upgrade --level pleno"
@@ -384,5 +473,8 @@ function scoreProject(
     behaviorScore,
     reasons,
     suggestions,
+    staticMetrics,
+    behavioralMetrics,
+    computedAt: new Date().toISOString(),
   };
 }

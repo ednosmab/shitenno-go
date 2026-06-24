@@ -3,7 +3,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { UserAnswers } from "./prompts.js";
 
-const { copySync, ensureDirSync, readFileSync, writeFileSync, existsSync } = fse;
+const { copySync, ensureDirSync, readFileSync, writeFileSync, existsSync, readdirSync, removeSync } = fse;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,23 +16,24 @@ export interface ScaffoldResult {
 }
 
 function getDirectoriesForLevel(level: string): string[] {
-  // L1 Base: Junior - docs + scripts
+  // L1 Base: Junior - docs + scripts + core + governance + profile
   const junior = [
     "nexus-system",
     "nexus-system/docs",
     "nexus-system/docs/skills",
     "nexus-system/scripts",
+    "nexus-system/core",
+    "nexus-system/core/complexity",
+    "nexus-system/governance",
+    "nexus-system/governance/agents",
+    "nexus-system/governance/context",
+    "nexus-profile",
   ];
 
   if (level === "junior") return junior;
 
-  // L2 Intermediária: Pleno - + governance
-  const pleno = [
-    ...junior,
-    "nexus-system/governance",
-    "nexus-system/governance/context",
-    "nexus-system/governance/agents",
-  ];
+  // L2 Intermediária: Pleno - governance already in junior
+  const pleno = [...junior];
 
   if (level === "pleno") return pleno;
 
@@ -67,6 +68,13 @@ function getFilesForLevel(level: string): Array<{ src: string; dest: string; cus
     { src: "scripts/validate-session.ts", dest: "nexus-system/scripts/validate-session.ts" },
     { src: "scripts/close-session.ts", dest: "nexus-system/scripts/close-session.ts" },
     { src: "scripts/premortem-check.ts", dest: "nexus-system/scripts/premortem-check.ts" },
+    // Core complexity types
+    { src: "core/complexity/types.ts", dest: "nexus-system/core/complexity/types.ts" },
+    // Agent contracts (all 4 roles)
+    { src: "governance/agents/AI-CONTRACT-planner-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-planner-v1.yaml" },
+    { src: "governance/agents/AI-CONTRACT-executor-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-executor-v1.yaml" },
+    { src: "governance/agents/AI-CONTRACT-reviewer-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-reviewer-v1.yaml" },
+    { src: "governance/agents/AI-CONTRACT-orchestrator-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-orchestrator-v1.yaml" },
   ];
 
   if (level === "junior") return baseFiles;
@@ -139,6 +147,28 @@ export function scaffoldNexusSystem(
     .replace(/\[modelo-executor\]/g, answers.executorModel.replace(/^opencode\//, ""));
   writeFileSync(join(targetDir, "opencode.json"), opencodeContent, "utf-8");
   result.filesCreated.push("opencode.json");
+
+  // Generate ProjectProfile (auto-detected from analysis)
+  const profileTemplate = readFileSync(
+    join(l1Dir, "nexus-profile", "_template.config.ts"),
+    "utf-8"
+  );
+  const dirName = targetDir.split(/[/\\]/).pop() || "my-project";
+  const projectName = dirName.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const areas = detectAreas(targetDir);
+  const areasStr = areas.map((a) => `    "${a}",`).join("\n");
+  const profileContent = profileTemplate
+    .replace(/\[PROJECT_NAME\]/g, projectName)
+    .replace(/areas: \[.*?\]/s, `areas: [\n${areasStr}\n  ]`);
+  const profilePath = join(targetDir, "nexus-profile", `${projectName}.config.ts`);
+  writeFileSync(profilePath, profileContent, "utf-8");
+  result.filesCreated.push(`nexus-profile/${projectName}.config.ts`);
+
+  // Remove template file (user only needs the generated config)
+  const templatePath = join(targetDir, "nexus-profile", "_template.config.ts");
+  if (existsSync(templatePath)) {
+    removeSync(templatePath);
+  }
 
   // Copy selected skills (only if docs/skills exists)
   if (dirs.includes("nexus-system/docs/skills")) {
@@ -223,8 +253,34 @@ function fillPlaceholders(content: string, answers: UserAnswers): string {
     );
 }
 
+function detectAreas(targetDir: string): string[] {
+  const candidates = ["src", "packages", "apps"];
+  const areas: string[] = [];
+
+  for (const base of candidates) {
+    const basePath = join(targetDir, base);
+    if (!existsSync(basePath)) continue;
+
+    try {
+      const entries = readdirSync(basePath, { withFileTypes: true });
+      const subdirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
+
+      if (subdirs.length === 0) {
+        areas.push(base);
+      } else {
+        for (const dir of subdirs) {
+          areas.push(`${base}/${dir.name}`);
+        }
+      }
+    } catch {
+      // skip inaccessible dirs
+    }
+  }
+
+  return areas.length > 0 ? areas : ["src"];
+}
+
 function selectSkills(answers: UserAnswers): string[] {
-  // Base skills always included
   const skills = [
     "senior-engineer",
     "tdd_workflow",
