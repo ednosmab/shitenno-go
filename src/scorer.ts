@@ -22,6 +22,26 @@ export interface BehavioralMetric {
   suggestion?: string;
 }
 
+/** Score de complexidade para uma área específica do projecto. */
+export interface AreaScore {
+  /** Nome da área (ex: "src/services", "packages/core"). */
+  area: string;
+  /** Score composto da área (0-10). */
+  score: number;
+  /** Nível recomendado para esta área. */
+  level: "junior" | "pleno" | "senior";
+  /** Número de ficheiros na área. */
+  fileCount: number;
+  /** Churn: commits que afectaram esta área nos últimos N dias. */
+  churn: number;
+  /** Número de keywords sensíveis encontradas nos ficheiros da área. */
+  sensitiveSurface: number;
+  /** Número de keywords de violação encontradas no histórico desta área. */
+  violations: number;
+  /** Evidência legível. */
+  evidence: string;
+}
+
 // ── CLI ComplexityReport (extends core with display-friendly fields) ─────────
 
 export interface ComplexityReport {
@@ -34,6 +54,66 @@ export interface ComplexityReport {
   staticMetrics: StaticMetric[];
   behavioralMetrics: BehavioralMetric[];
   computedAt: string;
+  /** Scores por área — vazio se ProjectProfile não disponível. */
+  areaScores: AreaScore[];
+}
+
+// ── Project Profile (minimal, loaded from nexus-profile/) ────────────────────
+
+interface ProjectProfile {
+  projectName: string;
+  areas: string[];
+  sensitiveKeywords: string[];
+  churnWindowDays: number;
+  weights: Record<string, number>;
+  violationKeywords: string[];
+  feedbackPath?: string;
+}
+
+// ── Profile Loader ───────────────────────────────────────────────────────────
+
+function loadProjectProfile(projectRoot: string): ProjectProfile | null {
+  const profileDir = join(projectRoot, "nexus-profile");
+  if (!existsSync(profileDir)) return null;
+
+  const files = readdirSync(profileDir).filter(
+    (f) => f.endsWith(".config.ts") && !f.startsWith("_")
+  );
+  if (files.length === 0) return null;
+
+  // Read the first profile file and extract values via regex
+  const content = readFileSync(join(profileDir, files[0]), "utf-8");
+
+  const projectNameMatch = content.match(/projectName:\s*["']([^"']+)["']/);
+  const areasMatch = content.match(/areas:\s*\[([\s\S]*?)\]/);
+  const sensitiveMatch = content.match(
+    /sensitiveKeywords:\s*\[([\s\S]*?)\]/
+  );
+  const churnMatch = content.match(/churnWindowDays:\s*(\d+)/);
+  const violationMatch = content.match(
+    /violationKeywords:\s*\[([\s\S]*?)\]/
+  );
+
+  if (!projectNameMatch || !areasMatch) return null;
+
+  const parseStringArray = (raw: string): string[] =>
+    raw
+      .split(",")
+      .map((s) => s.trim().replace(/["']/g, ""))
+      .filter(Boolean);
+
+  return {
+    projectName: projectNameMatch[1],
+    areas: parseStringArray(areasMatch[1]),
+    sensitiveKeywords: sensitiveMatch
+      ? parseStringArray(sensitiveMatch[1])
+      : ["auth", "payment", "session", "security"],
+    churnWindowDays: churnMatch ? parseInt(churnMatch[1], 10) : 90,
+    weights: { churn: 1.0, violationRate: 1.0, sensitiveSurface: 1.0 },
+    violationKeywords: violationMatch
+      ? parseStringArray(violationMatch[1])
+      : ["erro", "bug", "corrigi", "falhou", "rollback"],
+  };
 }
 
 // ── Main Scoring Function ───────────────────────────────────────────────────
@@ -45,7 +125,181 @@ export function calculateComplexityScore(
 ): ComplexityReport {
   const staticMetrics = collectStaticMetrics(analysis);
   const behavioralMetrics = collectBehavioralMetrics(projectRoot, nexusDir);
-  return scoreProject(analysis, staticMetrics, behavioralMetrics);
+
+  // Per-area scoring
+  const profile = loadProjectProfile(projectRoot);
+  const areaScores = profile
+    ? calculateAreaScores(projectRoot, profile)
+    : [];
+
+  return scoreProject(analysis, staticMetrics, behavioralMetrics, areaScores);
+}
+
+// ── Per-Area Scoring ────────────────────────────────────────────────────────
+
+function calculateAreaScores(
+  projectRoot: string,
+  profile: ProjectProfile
+): AreaScore[] {
+  return profile.areas.map((area) => {
+    const areaPath = join(projectRoot, area);
+    const fileCount = countFilesInArea(areaPath);
+    const churn = countChurnPerArea(projectRoot, area, profile.churnWindowDays);
+    const sensitiveSurface = countSensitivePerArea(areaPath, profile.sensitiveKeywords);
+    const violations = countViolationsPerArea(projectRoot, area, profile.violationKeywords);
+
+    // Compose score: normalize each component to 0-3, then weighted sum (max ~10)
+    const w = profile.weights;
+
+    // Normalize churn: 0→0, 1-5→1, 6-20→2, 21+→3
+    const churnNorm = churn === 0 ? 0 : churn <= 5 ? 1 : churn <= 20 ? 2 : 3;
+    // Normalize violations: 0→0, 1→1, 2-3→2, 4+→3
+    const violationsNorm = violations === 0 ? 0 : violations === 1 ? 1 : violations <= 3 ? 2 : 3;
+    // Normalize sensitive: 0→0, 1-2→1, 3-5→2, 6+→3
+    const sensitiveNorm = sensitiveSurface === 0 ? 0 : sensitiveSurface <= 2 ? 1 : sensitiveSurface <= 5 ? 2 : 3;
+    // File count bonus: 0→0, 1-29→0, 30-99→1, 100+→2
+    const filesNorm = fileCount >= 100 ? 2 : fileCount >= 30 ? 1 : 0;
+
+    const rawScore =
+      churnNorm * (w.churn || 1) +
+      violationsNorm * (w.violationRate || 1) +
+      sensitiveNorm * (w.sensitiveSurface || 1) +
+      filesNorm;
+
+    const score = Math.min(10, Math.round(rawScore * 10) / 10);
+
+    let level: "junior" | "pleno" | "senior" = "junior";
+    if (score >= 6) level = "senior";
+    else if (score >= 3) level = "pleno";
+
+    const evidenceParts: string[] = [];
+    if (fileCount > 0) evidenceParts.push(`${fileCount} files`);
+    if (churn > 0) evidenceParts.push(`${churn} commits/${profile.churnWindowDays}d`);
+    if (sensitiveSurface > 0) evidenceParts.push(`${sensitiveSurface} sensitive keywords`);
+    if (violations > 0) evidenceParts.push(`${violations} violations`);
+
+    return {
+      area,
+      score,
+      level,
+      fileCount,
+      churn,
+      sensitiveSurface,
+      violations,
+      evidence: evidenceParts.join(", ") || "no activity detected",
+    };
+  });
+}
+
+function countFilesInArea(areaPath: string): number {
+  if (!existsSync(areaPath)) return 0;
+  let count = 0;
+  const extensions = [".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte"];
+  const ignore = ["node_modules", ".git", "dist", "build", ".next", ".nuxt"];
+
+  function walk(dir: string) {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (ignore.includes(entry.name)) continue;
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+          count++;
+        }
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  walk(areaPath);
+  return count;
+}
+
+function countChurnPerArea(
+  projectRoot: string,
+  area: string,
+  windowDays: number
+): number {
+  try {
+    const output = execSync(
+      `git log --since="${windowDays} days ago" --oneline -- "${area}" 2>/dev/null | wc -l`,
+      { encoding: "utf-8", cwd: projectRoot, timeout: 5000 }
+    );
+    return parseInt(output.trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function countSensitivePerArea(areaPath: string, keywords: string[]): number {
+  if (!existsSync(areaPath)) return 0;
+  let count = 0;
+  const ignore = ["node_modules", ".git", "dist", "build"];
+  const extensions = [".ts", ".tsx", ".js", ".jsx", ".json", ".yaml", ".yml"];
+
+  function walk(dir: string) {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (ignore.includes(entry.name)) continue;
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+          try {
+            const content = readFileSync(fullPath, "utf-8").toLowerCase();
+            for (const kw of keywords) {
+              if (content.includes(kw.toLowerCase())) {
+                count++;
+                break; // one match per file
+              }
+            }
+          } catch {
+            // skip unreadable
+          }
+        }
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  walk(areaPath);
+  return count;
+}
+
+function countViolationsPerArea(
+  projectRoot: string,
+  area: string,
+  violationKeywords: string[]
+): number {
+  const nexusDir = join(projectRoot, "nexus-system");
+  const historyDir = join(nexusDir, "docs", "history");
+  if (!existsSync(historyDir)) return 0;
+
+  let count = 0;
+  const files = readdirSync(historyDir).filter((f) => f.endsWith(".md"));
+
+  for (const file of files) {
+    try {
+      const content = readFileSync(join(historyDir, file), "utf-8").toLowerCase();
+      // Check if this history entry mentions the area AND a violation keyword
+      if (content.includes(area.toLowerCase())) {
+        for (const kw of violationKeywords) {
+          if (content.includes(kw.toLowerCase())) {
+            count++;
+            break; // one violation per history entry
+          }
+        }
+      }
+    } catch {
+      // skip
+    }
+  }
+  return count;
 }
 
 // ── Static Metrics ───────────────────────────────────────────────────────────
@@ -53,7 +307,6 @@ export function calculateComplexityScore(
 function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
   const metrics: StaticMetric[] = [];
 
-  // Packages
   if (analysis.packageCount >= 5) {
     metrics.push({
       metric: "packages",
@@ -77,7 +330,6 @@ function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
     });
   }
 
-  // Apps
   if (analysis.appCount >= 3) {
     metrics.push({
       metric: "apps",
@@ -101,7 +353,6 @@ function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
     });
   }
 
-  // Source files
   if (analysis.sourceFileCount >= 300) {
     metrics.push({
       metric: "files",
@@ -125,7 +376,6 @@ function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
     });
   }
 
-  // Dependencies
   if (analysis.dependencyCount >= 100) {
     metrics.push({
       metric: "dependencies",
@@ -149,7 +399,6 @@ function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
     });
   }
 
-  // Monorepo
   if (analysis.monorepo) {
     metrics.push({
       metric: "monorepo",
@@ -170,7 +419,6 @@ function collectBehavioralMetrics(
 ): BehavioralMetric[] {
   const metrics: BehavioralMetric[] = [];
 
-  // Validate failures
   const validateFailures = countValidateFailures(nexusDir);
   if (validateFailures >= 3) {
     metrics.push({
@@ -189,7 +437,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // ADR count
   const adrCount = countAdrs(nexusDir);
   if (adrCount >= 3) {
     metrics.push({
@@ -208,7 +455,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Open branches
   const openBranches = countOpenBranches(projectRoot);
   if (openBranches >= 5) {
     metrics.push({
@@ -227,7 +473,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Commits per week
   const commitsPerWeek = countCommitsPerWeek(projectRoot);
   if (commitsPerWeek >= 20) {
     metrics.push({
@@ -245,7 +490,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Sessions without close
   const sessionsWithoutClose = countSessionsWithoutClose(nexusDir);
   if (sessionsWithoutClose >= 2) {
     metrics.push({
@@ -264,7 +508,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Bug fixes
   const bugFixes = countBugFixes(projectRoot);
   if (bugFixes >= 5) {
     metrics.push({
@@ -283,7 +526,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Agent count
   const agentCount = countAgents(projectRoot);
   if (agentCount >= 4) {
     metrics.push({
@@ -295,7 +537,6 @@ function collectBehavioralMetrics(
     });
   }
 
-  // Skill count
   const skillCount = countSkills(nexusDir);
   if (skillCount >= 6) {
     metrics.push({
@@ -429,24 +670,22 @@ function countSkills(nexusDir: string): number {
 function scoreProject(
   analysis: ProjectAnalysis,
   staticMetrics: StaticMetric[],
-  behavioralMetrics: BehavioralMetric[]
+  behavioralMetrics: BehavioralMetric[],
+  areaScores: AreaScore[]
 ): ComplexityReport {
   const staticScore = staticMetrics.reduce((sum, m) => sum + m.score, 0);
   const behaviorScore = behavioralMetrics.reduce((sum, m) => sum + m.score, 0);
   const totalScore = staticScore + behaviorScore;
 
-  // Build reasons from metrics
   const reasons: string[] = [
     ...staticMetrics.filter((m) => m.score > 0).map((m) => m.evidence),
     ...behavioralMetrics.filter((m) => m.score > 0).map((m) => m.evidence),
   ];
 
-  // Build suggestions from behavioral metrics
   const suggestions: string[] = behavioralMetrics
     .filter((m) => m.suggestion)
     .map((m) => m.suggestion!);
 
-  // Determine level
   let level: "junior" | "pleno" | "senior" = "junior";
   if (totalScore >= 10) {
     level = "senior";
@@ -454,7 +693,6 @@ function scoreProject(
     level = "pleno";
   }
 
-  // Add level-based suggestion
   if (level === "pleno" && !suggestions.some((s) => s.includes("upgrade"))) {
     suggestions.push(
       "Your project complexity suggests L2 (Pleno). Run: nexus upgrade --level pleno"
@@ -463,6 +701,14 @@ function scoreProject(
   if (level === "senior" && !suggestions.some((s) => s.includes("upgrade"))) {
     suggestions.push(
       "Your project complexity suggests L3 (Senior). Run: nexus upgrade --level senior"
+    );
+  }
+
+  // Add per-area suggestions
+  const hotAreas = areaScores.filter((a) => a.score >= 6);
+  if (hotAreas.length > 0) {
+    suggestions.push(
+      `High-complexity areas: ${hotAreas.map((a) => `${a.area} (${a.score})`).join(", ")} — consider governance focus here`
     );
   }
 
@@ -476,6 +722,7 @@ function scoreProject(
     staticMetrics,
     behavioralMetrics,
     computedAt: new Date().toISOString(),
+    areaScores,
   };
 }
 
@@ -517,6 +764,7 @@ export function writeComplexityReport(
     behaviorScore: report.behaviorScore,
     staticMetrics: report.staticMetrics,
     behavioralMetrics: report.behavioralMetrics,
+    areaScores: report.areaScores,
     reasons: report.reasons,
     suggestions: report.suggestions,
   };
