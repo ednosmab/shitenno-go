@@ -1,10 +1,13 @@
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = resolve(import.meta.dirname, '..');
-const GOV = resolve(ROOT, 'governance');
-const DOCS = resolve(ROOT, 'docs');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const ROOT = resolve(__dirname, '..', '..');
+const GOV = resolve(ROOT, 'nexus-system', 'governance');
+const DOCS = resolve(ROOT, 'nexus-system', 'docs');
 
 let exitCode = 0;
 

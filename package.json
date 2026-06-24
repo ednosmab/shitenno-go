@@ -7,7 +7,7 @@
     "nexus": "./dist/nexus.js"
   },
   "scripts": {
-    "build": "tsup bin/nexus.ts --format esm --dts",
+    "build": "tsup bin/nexus.ts --format esm --dts && cp -r src/templates dist/templates",
     "dev": "tsx bin/nexus.ts",
     "typecheck": "tsc --noEmit"
   },

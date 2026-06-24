@@ -1,8 +1,11 @@
 import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = resolve(import.meta.dirname, '..');
-const ADR_DIR = resolve(ROOT, 'docs/adrs');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const ROOT = resolve(__dirname, '..', '..');
+const ADR_DIR = resolve(ROOT, 'nexus-system', 'docs', 'adrs');
 
 let exitCode = 0;
 
@@ -27,14 +30,14 @@ warn('BREAKAGE', 'Consulte o WORKFLOW.md para o tipo de operação e use git dif
 
 // ── 2. Related ADR? ───────────────────────────────────────────────────────
 if (existsSync(ADR_DIR)) {
-  pass('ADR_CHECK', 'Diretório docs/adrs/ existe — consulte manualmente para decisões relacionadas');
+  pass('ADR_CHECK', 'Diretório nexus-system/docs/adrs/ existe — consulte manualmente para decisões relacionadas');
 } else {
-  fail('ADR_CHECK', 'Diretório docs/adrs/ não encontrado');
+  fail('ADR_CHECK', 'Diretório nexus-system/docs/adrs/ não encontrado');
 }
 
 // ── 3. Insufficient context? ──────────────────────────────────────────────
 warn('CONTEXT', 'Verifique se o plano cobre todos os cenários e se há ambiguidades');
-warn('CONTEXT', 'Consulte context_buffer.yaml e o plano activo em docs/plans/');
+warn('CONTEXT', 'Consulte context_buffer.yaml e o plano activo em nexus-system/docs/plans/');
 
 // ── 4. Regression risk? ───────────────────────────────────────────────────
 warn('REGRESSION', 'Identifique testes existentes que podem falhar');

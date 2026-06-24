@@ -37,11 +37,11 @@
   },
 
   "instructions": [
-    "./docs/AGENTS.md",
-    "./governance/context/context_buffer.yaml"
+    "./nexus-system/docs/AGENTS.md",
+    "./nexus-system/governance/context/context_buffer.yaml"
   ],
   "skills": {
-    "paths": ["docs/skills"]
+    "paths": ["nexus-system/docs/skills"]
   },
   "mcp": {
     "local-filesystem": {

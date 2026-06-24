@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
@@ -12,10 +12,10 @@ interface ValidationResult {
 
 export const validateCommand = new Command("validate")
   .description("Validate session integrity")
-  .option("-d, --dir <path>", "Project directory (default: current)", ".")
+  .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("--fix", "Attempt to fix issues automatically")
   .action((options) => {
-    const targetDir = resolve(options.dir);
+    const targetDir = resolve(options.dir || ".");
 
     console.log("");
     console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
@@ -37,27 +37,42 @@ export const validateCommand = new Command("validate")
       return;
     }
 
+    // Check if nexus-system exists
+    if (!existsSync(resolve(targetDir, "nexus-system"))) {
+      console.log(
+        chalk.yellow(
+          "  ⚠ nexus-system/ directory not found."
+        )
+      );
+      console.log(
+        chalk.gray("  Run 'nexus init' to create governance structure.")
+      );
+      console.log("");
+      return;
+    }
+
     const results = runValidationChecks(targetDir);
     displayValidationResults(results, options.fix, targetDir);
   });
 
 function runValidationChecks(targetDir: string): ValidationResult[] {
   const results: ValidationResult[] = [];
+  const nexusDir = join(targetDir, "nexus-system");
 
   // 1. Check context buffer
-  results.push(checkContextBuffer(targetDir));
+  results.push(checkContextBuffer(nexusDir));
 
   // 2. Check ADR directory
-  results.push(checkAdrDirectory(targetDir));
+  results.push(checkAdrDirectory(nexusDir));
 
   // 3. Check opencode.json consistency
   results.push(checkOpencodeConsistency(targetDir));
 
   // 4. Check agent contracts
-  results.push(checkAgentContracts(targetDir));
+  results.push(checkAgentContracts(nexusDir));
 
   // 5. Check if session is in progress
-  results.push(checkSessionStatus(targetDir));
+  results.push(checkSessionStatus(nexusDir));
 
   // 6. Check git status
   results.push(checkGitStatus(targetDir));
@@ -65,14 +80,14 @@ function runValidationChecks(targetDir: string): ValidationResult[] {
   return results;
 }
 
-function checkContextBuffer(targetDir: string): ValidationResult {
-  const bufferPath = join(targetDir, "governance", "context", "context_buffer.yaml");
+function checkContextBuffer(nexusDir: string): ValidationResult {
+  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
 
   if (!existsSync(bufferPath)) {
     return {
       name: "Context Buffer",
       status: "warn",
-      message: "context_buffer.yaml not found (optional)",
+      message: "nexus-system/governance/context/context_buffer.yaml not found",
     };
   }
 
@@ -109,18 +124,18 @@ function checkContextBuffer(targetDir: string): ValidationResult {
   }
 }
 
-function checkAdrDirectory(targetDir: string): ValidationResult {
-  const adrDir = join(targetDir, "docs", "adrs");
+function checkAdrDirectory(nexusDir: string): ValidationResult {
+  const adrDir = join(nexusDir, "docs", "adrs");
 
   if (!existsSync(adrDir)) {
     return {
       name: "ADR Directory",
       status: "warn",
-      message: "docs/adrs/ not found",
+      message: "nexus-system/docs/adrs/ not found",
     };
   }
 
-  const adrFiles = require("fs").readdirSync(adrDir).filter((f: string) =>
+  const adrFiles = readdirSync(adrDir).filter((f: string) =>
     f.endsWith(".md")
   );
 
@@ -199,18 +214,18 @@ function checkOpencodeConsistency(targetDir: string): ValidationResult {
   }
 }
 
-function checkAgentContracts(targetDir: string): ValidationResult {
-  const contractsDir = join(targetDir, "governance", "agents");
+function checkAgentContracts(nexusDir: string): ValidationResult {
+  const contractsDir = join(nexusDir, "governance", "agents");
 
   if (!existsSync(contractsDir)) {
     return {
       name: "Agent Contracts",
       status: "warn",
-      message: "governance/agents/ not found",
+      message: "nexus-system/governance/agents/ not found",
     };
   }
 
-  const yamlFiles = require("fs").readdirSync(contractsDir).filter((f: string) =>
+  const yamlFiles = readdirSync(contractsDir).filter((f: string) =>
     f.endsWith(".yaml") || f.endsWith(".yml")
   );
 
@@ -246,8 +261,8 @@ function checkAgentContracts(targetDir: string): ValidationResult {
   };
 }
 
-function checkSessionStatus(targetDir: string): ValidationResult {
-  const bufferPath = join(targetDir, "governance", "context", "context_buffer.yaml");
+function checkSessionStatus(nexusDir: string): ValidationResult {
+  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
 
   if (!existsSync(bufferPath)) {
     return {
@@ -402,6 +417,7 @@ function displayValidationResults(
 
 function attemptFixes(targetDir: string, results: ValidationResult[]): string[] {
   const fixes: string[] = [];
+  const nexusDir = join(targetDir, "nexus-system");
 
   for (const result of results) {
     if (result.status !== "fail") continue;
@@ -420,30 +436,72 @@ function attemptFixes(targetDir: string, results: ValidationResult[]): string[] 
         },
       };
 
-      require("fs").writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+      writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
       fixes.push("Created default opencode.json");
     }
 
     // Fix missing context buffer
     if (result.name === "Context Buffer" && result.message.includes("not found")) {
-      const bufferDir = join(targetDir, "governance", "context");
-      require("fs").mkdirSync(bufferDir, { recursive: true });
+      const bufferDir = join(nexusDir, "governance", "context");
+      mkdirSync(bufferDir, { recursive: true });
 
-      const defaultBuffer = `session:
-  id: "new"
-  status: "initialized"
+      const defaultBuffer = `# CONTEXT_BUFFER — Memória RAM do Sistema
+
+quick_board_required: true
+
+quick_board:
+  em_curso: null
+  parado: []
+  proximo: []
+  p1_paralelas: []
+
+reminders: []
+
+milestone:
+  status: "NO_SESSION"
+  closed_at: null
+  adr_reference: null
+  commits: []
+  next_phase: null
+
+session:
+  id: null
+  branch: null
+  operation_type: null
+  last_commit: null
+  status: "idle"
+  closed_at: null
+  reminder: null
 
 current_task:
-  status: "pending"
+  id: null
+  type: null
+  description: null
+  status: "idle"
+  plan_file: null
+  current_step: null
+  model_assignments: []
+  adr: null
+
+adr:
+  last: null
+  created: null
 
 blockers: []
+
 next_steps: []
+
+last_decision:
+  adr: null
+  description: null
+
 technical_debt: []
+
 documents_loaded: []
 `;
 
-      require("fs").writeFileSync(join(bufferDir, "context_buffer.yaml"), defaultBuffer);
-      fixes.push("Created default context_buffer.yaml");
+      writeFileSync(join(bufferDir, "context_buffer.yaml"), defaultBuffer);
+      fixes.push("Created default context_buffer.yaml in nexus-system/governance/context/");
     }
   }
 

@@ -1,0 +1,54 @@
+# CONTEXT_BUFFER — Memória RAM do Sistema
+# Actualizado: [DATE]
+
+quick_board_required: true
+
+quick_board:
+  em_curso: null
+  parado: []
+  proximo: []
+  p1_paralelas: []
+
+reminders: []
+
+milestone:
+  status: "NO_SESSION"
+  closed_at: null
+  adr_reference: null
+  commits: []
+  next_phase: null
+
+session:
+  id: null
+  branch: null
+  operation_type: null
+  last_commit: null
+  status: "idle"
+  closed_at: null
+  reminder: null
+
+current_task:
+  id: null
+  type: null
+  description: null
+  status: "idle"
+  plan_file: null
+  current_step: null
+  model_assignments: []
+  adr: null
+
+adr:
+  last: null
+  created: null
+
+blockers: []
+
+next_steps: []
+
+last_decision:
+  adr: null
+  description: null
+
+technical_debt: []
+
+documents_loaded: []

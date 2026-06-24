@@ -8,7 +8,6 @@ export interface UserAnswers {
   database: string;
   styling: string;
   teamLevel: "junior" | "pleno" | "senior";
-  installGovernance: boolean;
 }
 
 export async function askQuestions(
@@ -81,18 +80,12 @@ export async function askQuestions(
     {
       type: "list",
       name: "teamLevel",
-      message: "Nível da equipa:",
+      message: "Nível da equipa (determina nível de governança):",
       choices: [
-        { name: "Junior (precisa de mais guia)", value: "junior" },
-        { name: "Pleno (equilibrado)", value: "pleno" },
-        { name: "Senior (menos supervisão necessária)", value: "senior" },
+        { name: "Junior (governança mínima: docs + scripts)", value: "junior" },
+        { name: "Pleno (governança intermediária: + governance)", value: "pleno" },
+        { name: "Senior (governança completa: + cognition + todos os sub-directórios)", value: "senior" },
       ],
-    },
-    {
-      type: "confirm",
-      name: "installGovernance",
-      message: "Instalar governance completa (context_buffer, contratos, templates)?",
-      default: false,
     },
   ]);
 

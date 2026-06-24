@@ -1,9 +1,12 @@
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = resolve(import.meta.dirname, '..');
-const GOV = resolve(ROOT, 'governance');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const ROOT = resolve(__dirname, '..', '..');
+const GOV = resolve(ROOT, 'nexus-system', 'governance');
 
 let exitCode = 0;
 let warnings: string[] = [];
@@ -68,7 +71,7 @@ function checkBuffer() {
 
 // ── 4. Backlog updated? ───────────────────────────────────────────────────
 function checkBacklog() {
-  const backlogPath = resolve(ROOT, 'docs/BACKLOG.md');
+  const backlogPath = resolve(ROOT, 'nexus-system', 'docs', 'BACKLOG.md');
   if (!existsSync(backlogPath)) {
     warn('BACKLOG', 'BACKLOG.md not found');
     return;

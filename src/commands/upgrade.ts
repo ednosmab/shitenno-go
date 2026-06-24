@@ -1,78 +1,100 @@
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { existsSync } from "node:fs";
+import { resolve, join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
 
-const { copySync, ensureDirSync, readdirSync } = fse;
+const { copySync, ensureDirSync } = fse;
 
-interface UpgradeOption {
-  id: string;
+const LEVEL_ORDER = ["junior", "pleno", "senior"];
+
+interface LevelUpgrade {
+  level: string;
   name: string;
   description: string;
-  files: string[];
+  directories: string[];
+  files: Array<{ src: string; dest: string }>;
 }
 
-const UPGRADE_OPTIONS: UpgradeOption[] = [
+const LEVEL_UPGRADES: LevelUpgrade[] = [
   {
-    id: "governance-full",
-    name: "Full Governance",
-    description: "Add complete governance structure (context buffer, contracts, premortem)",
+    level: "pleno",
+    name: "L2 (Intermediária)",
+    description: "Governança completa para equipas pleno",
+    directories: [
+      "nexus-system/governance",
+      "nexus-system/governance/context",
+      "nexus-system/governance/agents",
+    ],
     files: [
-      "governance/context/context_buffer.yaml",
-      "governance/agents/AI-CONTRACT-planner-v1.yaml",
-      "governance/agents/AI-CONTRACT-reviewer-v1.yaml",
-      "governance/contracts/CONTRACTS_INDEX.md",
-      "governance/premortem/PREMORTEM.md",
-      "governance/reviews/SESSION_REVIEW.md",
+      { src: "governance/context/context_buffer.yaml", dest: "nexus-system/governance/context/context_buffer.yaml" },
     ],
   },
   {
-    id: "scripts-full",
-    name: "Full Scripts",
-    description: "Add all governance scripts (close-session, premortem-check)",
-    files: [
-      "scripts/close-session.ts",
-      "scripts/premortem-check.ts",
+    level: "senior",
+    name: "L3 (Completa)",
+    description: "Governança completa para equipas senior",
+    directories: [
+      "nexus-system/cognition",
+      "nexus-system/cognition/context",
+      "nexus-system/cognition/memory",
+      "nexus-system/cognition/prompts",
+      "nexus-system/governance/contracts",
+      "nexus-system/governance/handoffs",
+      "nexus-system/governance/policies",
+      "nexus-system/governance/premortem",
+      "nexus-system/governance/reviews",
+      "nexus-system/docs/adrs",
+      "nexus-system/docs/feedback",
+      "nexus-system/docs/history",
+      "nexus-system/docs/layers",
+      "nexus-system/docs/plans",
+      "nexus-system/docs/roadmaps",
+      "nexus-system/docs/sdr",
     ],
-  },
-  {
-    id: "templates",
-    name: "Templates",
-    description: "Add ADR, SDR, and Plan templates",
     files: [
-      "docs/adrs/ADR-TEMPLATE.md",
-      "docs/sdr/SDR-TEMPLATE.md",
-      "docs/plans/TEMPLATE.md",
-      "docs/plans/README.md",
-    ],
-  },
-  {
-    id: "skills-advanced",
-    name: "Advanced Skills",
-    description: "Add advanced engineering skills",
-    files: [
-      "docs/skills/architectural_integrity.md",
-      "docs/skills/design_patterns.md",
-      "docs/skills/error_handling_observability.md",
+      { src: "cognition/context/CONTEXT_HIERARCHY.md", dest: "nexus-system/cognition/context/CONTEXT_HIERARCHY.md" },
+      { src: "cognition/memory/MEM-operational-state-v1.json", dest: "nexus-system/cognition/memory/MEM-operational-state-v1.json" },
     ],
   },
 ];
 
+function getCurrentLevel(targetDir: string): string {
+  const nexusDir = join(targetDir, "nexus-system");
+
+  // Check for L3 indicators (cognition)
+  if (existsSync(join(nexusDir, "cognition"))) {
+    return "senior";
+  }
+
+  // Check for L2 indicators (governance)
+  if (existsSync(join(nexusDir, "governance"))) {
+    return "pleno";
+  }
+
+  // Default to L1
+  return "junior";
+}
+
+function getTemplatesDir(): string {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  return join(__dirname, "..", "templates", "l1");
+}
+
 export const upgradeCommand = new Command("upgrade")
-  .description("Upgrade governance capabilities")
-  .option("-d, --dir <path>", "Project directory (default: current)", ".")
-  .option("-n, --nexus-path <path>", "Path to nexus-system directory")
-  .option("--all", "Install all optional components")
+  .description("Upgrade governance level")
+  .option("-d, --dir <path>", "Project root directory (default: current)")
+  .option("-l, --level <level>", "Target level (junior, pleno, senior)")
   .option("--list", "List available upgrades")
   .action(async (options) => {
-    const targetDir = resolve(options.dir);
-    const nexusPath = options.nexusPath || process.env.NEXUS_SYSTEM_PATH;
+    const targetDir = resolve(options.dir || ".");
 
     console.log("");
     console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║     nexus upgrade — Add Capabilities ║"));
+    console.log(chalk.bold.cyan("  ║     nexus upgrade — Add Governance  ║"));
     console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
     console.log("");
 
@@ -90,111 +112,121 @@ export const upgradeCommand = new Command("upgrade")
       return;
     }
 
+    const currentLevel = getCurrentLevel(targetDir);
+
     // List available upgrades
     if (options.list) {
-      displayUpgradeOptions(targetDir);
+      displayUpgradeOptions(targetDir, currentLevel);
       return;
     }
 
-    // Validate nexus-system path
-    if (!nexusPath) {
-      console.log(
-        chalk.red(
-          "  ✘ nexus-system path not specified."
-        )
+    // Determine target level
+    let targetLevel = options.level;
+
+    if (!targetLevel) {
+      // Interactive selection
+      const { select } = await import("inquirer").then((mod) =>
+        mod.default.prompt([
+          {
+            type: "list",
+            name: "select",
+            message: "Select target governance level:",
+            choices: LEVEL_UPGRADES
+              .filter((upgrade) => {
+                // Only show levels higher than current
+                return LEVEL_ORDER.indexOf(upgrade.level) > LEVEL_ORDER.indexOf(currentLevel);
+              })
+              .map((upgrade) => ({
+                name: `${upgrade.name} - ${upgrade.description}`,
+                value: upgrade.level,
+              })),
+          },
+        ])
       );
-      console.log(
-        chalk.gray(
-          "  Use --nexus-path <path> or set NEXUS_SYSTEM_PATH environment variable."
-        )
-      );
-      console.log("");
-      console.log(
-        chalk.gray("  Example: nexus upgrade --nexus-path ../nexus-system")
-      );
-      console.log("");
-      return;
+      targetLevel = select;
     }
 
-    const nexusDir = resolve(nexusPath);
-    if (!existsSync(nexusDir)) {
+    // Validate target level
+    const upgrade = LEVEL_UPGRADES.find((u) => u.level === targetLevel);
+    if (!upgrade) {
       console.log(
         chalk.red(
-          `  ✘ nexus-system directory not found: ${nexusDir}`
+          `  ✘ Invalid level: ${targetLevel}. Valid levels: junior, pleno, senior`
         )
       );
       process.exit(1);
     }
 
-    // Select what to install
-    let selectedOptions: UpgradeOption[];
-
-    if (options.all) {
-      selectedOptions = UPGRADE_OPTIONS;
-    } else {
-      const { select } = await import("inquirer").then((mod) =>
-        mod.default.prompt([
-          {
-            type: "checkbox",
-            name: "select",
-            message: "Select components to install:",
-            choices: UPGRADE_OPTIONS.map((opt) => {
-              const existing = checkExistingFiles(targetDir, opt.files);
-              return {
-                name: `${opt.name} - ${opt.description}${existing > 0 ? ` (${existing} files exist)` : ""}`,
-                value: opt.id,
-                checked: existing === 0,
-              };
-            }),
-          },
-        ])
+    // Check if already at this level
+    if (currentLevel === targetLevel) {
+      console.log(
+        chalk.yellow(
+          `  ⚠ Already at ${upgrade.name} level.`
+        )
       );
-
-      selectedOptions = UPGRADE_OPTIONS.filter((opt) =>
-        select.includes(opt.id)
-      );
-
-      if (selectedOptions.length === 0) {
-        console.log(chalk.gray("  No components selected."));
-        console.log("");
-        return;
-      }
+      console.log("");
+      return;
     }
 
-    // Install selected components
-    const spinner = ora("Installing components...").start();
+    // Check if trying to downgrade
+    if (LEVEL_ORDER.indexOf(targetLevel) < LEVEL_ORDER.indexOf(currentLevel)) {
+      console.log(
+        chalk.red(
+          `  ✘ Cannot downgrade from ${currentLevel} to ${targetLevel}.`
+        )
+      );
+      console.log("");
+      return;
+    }
+
+    // Install upgrade
+    const spinner = ora(`Upgrading to ${upgrade.name}...`).start();
 
     try {
+      const templatesDir = getTemplatesDir();
+      let directoriesCreated = 0;
       let filesInstalled = 0;
 
-      for (const option of selectedOptions) {
-        for (const file of option.files) {
-          const nexusFile = join(nexusDir, file);
-          const targetFile = join(targetDir, file);
-
-          if (existsSync(targetFile)) {
-            continue; // Skip existing files
-          }
-
-          if (!existsSync(nexusFile)) {
-            continue; // Skip if not in nexus-system
-          }
-
-          ensureDirSync(resolve(targetFile, ".."));
-          copySync(nexusFile, targetFile);
-          filesInstalled++;
+      // Create directories
+      for (const dir of upgrade.directories) {
+        const fullPath = join(targetDir, dir);
+        if (!existsSync(fullPath)) {
+          ensureDirSync(fullPath);
+          directoriesCreated++;
         }
       }
 
-      spinner.succeed(`Installed ${filesInstalled} files`);
+      // Copy files
+      for (const file of upgrade.files) {
+        const srcPath = join(templatesDir, file.src);
+        const destPath = join(targetDir, file.dest);
+
+        if (existsSync(destPath)) {
+          continue; // Skip existing files
+        }
+
+        if (!existsSync(srcPath)) {
+          continue; // Skip if template not found
+        }
+
+        ensureDirSync(resolve(destPath, ".."));
+        copySync(srcPath, destPath);
+        filesInstalled++;
+      }
+
+      spinner.succeed(`Upgraded to ${upgrade.name}`);
 
       console.log("");
       console.log(chalk.green("  ✔ Upgrade complete!"));
       console.log("");
-      console.log(chalk.gray("  Installed components:"));
-      for (const option of selectedOptions) {
-        console.log(chalk.gray(`    - ${option.name}`));
-      }
+      console.log(chalk.bold("  Changes:"));
+      console.log(chalk.gray(`    Directories created: ${directoriesCreated}`));
+      console.log(chalk.gray(`    Files installed: ${filesInstalled}`));
+      console.log("");
+      console.log(chalk.bold("  Next steps:"));
+      console.log(chalk.gray("    1. Review the new governance files"));
+      console.log(chalk.gray("    2. Customise as needed"));
+      console.log(chalk.gray("    3. Run 'nexus status' to verify"));
       console.log("");
     } catch (error) {
       spinner.fail("Upgrade failed");
@@ -203,39 +235,32 @@ export const upgradeCommand = new Command("upgrade")
     }
   });
 
-function checkExistingFiles(targetDir: string, files: string[]): number {
-  let count = 0;
-  for (const file of files) {
-    if (existsSync(join(targetDir, file))) {
-      count++;
-    }
-  }
-  return count;
-}
+function displayUpgradeOptions(targetDir: string, currentLevel: string): void {
+  console.log(chalk.bold("  Current level:"));
+  console.log(chalk.cyan(`    ${currentLevel.toUpperCase()}`));
+  console.log("");
 
-function displayUpgradeOptions(targetDir: string): void {
   console.log(chalk.bold("  Available upgrades:"));
   console.log("");
 
-  for (const option of UPGRADE_OPTIONS) {
-    const existing = checkExistingFiles(targetDir, option.files);
-    const total = option.files.length;
+  for (const upgrade of LEVEL_UPGRADES) {
+    const canUpgrade = LEVEL_ORDER.indexOf(upgrade.level) > LEVEL_ORDER.indexOf(currentLevel);
 
     let status: string;
-    if (existing === total) {
-      status = chalk.green("installed");
-    } else if (existing > 0) {
-      status = chalk.yellow(`${existing}/${total} installed`);
+    if (currentLevel === upgrade.level) {
+      status = chalk.green("current");
+    } else if (canUpgrade) {
+      status = chalk.yellow("available");
     } else {
-      status = chalk.gray("not installed");
+      status = chalk.gray("not available");
     }
 
-    console.log(`    ${chalk.bold(option.id)}`);
-    console.log(`      ${option.description}`);
+    console.log(`    ${chalk.bold(upgrade.level.toUpperCase())}`);
+    console.log(`      ${upgrade.description}`);
     console.log(`      Status: ${status}`);
     console.log("");
   }
 
-  console.log(chalk.gray("  Use 'nexus upgrade --all' to install all components."));
+  console.log(chalk.gray("  Use 'nexus upgrade --level <level>' to upgrade."));
   console.log("");
 }

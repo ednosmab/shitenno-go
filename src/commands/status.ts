@@ -1,8 +1,10 @@
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { resolve, join, dirname } from "node:path";
 import chalk from "chalk";
 import fse from "fs-extra";
+import { calculateComplexityScore, type ComplexityReport } from "../scorer.js";
+import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 
 interface StatusCheck {
   name: string;
@@ -10,23 +12,70 @@ interface StatusCheck {
   message: string;
 }
 
+function detectNexusProject(startDir: string): { root: string; nexusDir: string } | null {
+  let current = startDir;
+
+  while (true) {
+    // Check for opencode.json at this level
+    const hasOpencode = existsSync(join(current, "opencode.json"));
+
+    // Check for nexus-system/ directory
+    const hasNexusSystem = existsSync(join(current, "nexus-system"));
+
+    if (hasOpencode || hasNexusSystem) {
+      return {
+        root: current,
+        nexusDir: join(current, "nexus-system"),
+      };
+    }
+
+    // Walk up
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
 export const statusCommand = new Command("status")
   .description("Check governance health status")
-  .option("-d, --dir <path>", "Project directory (default: current)", ".")
+  .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .action((options) => {
-    const targetDir = resolve(options.dir);
-
     console.log("");
     console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
     console.log(chalk.bold.cyan("  ║      nexus status — Health Check     ║"));
     console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
     console.log("");
 
-    // Check if project is initialized
-    if (!existsSync(resolve(targetDir, "opencode.json"))) {
+    // Auto-detect or use provided directory
+    let projectRoot: string;
+    let nexusDir: string;
+
+    if (options.dir) {
+      projectRoot = resolve(options.dir);
+      nexusDir = join(projectRoot, "nexus-system");
+    } else {
+      const detected = detectNexusProject(process.cwd());
+      if (!detected) {
+        console.log(
+          chalk.yellow(
+            "  ⚠ This project is not initialized with nexus."
+          )
+        );
+        console.log(
+          chalk.gray("  Run 'nexus init' to initialize governance.")
+        );
+        console.log("");
+        return;
+      }
+      projectRoot = detected.root;
+      nexusDir = detected.nexusDir;
+    }
+
+    // Check if opencode.json exists at project root
+    if (!existsSync(resolve(projectRoot, "opencode.json"))) {
       console.log(
         chalk.yellow(
-          "  ⚠ This project is not initialized with nexus."
+          "  ⚠ opencode.json not found at project root."
         )
       );
       console.log(
@@ -36,39 +85,62 @@ export const statusCommand = new Command("status")
       return;
     }
 
-    const checks = runHealthChecks(targetDir);
+    // Check if nexus-system/ exists
+    if (!existsSync(nexusDir)) {
+      console.log(
+        chalk.yellow(
+          "  ⚠ nexus-system/ directory not found."
+        )
+      );
+      console.log(
+        chalk.gray("  Run 'nexus init' to initialize governance.")
+      );
+      console.log("");
+      return;
+    }
+
+    console.log(chalk.bold("  Project root:"));
+    console.log(chalk.gray(`    ${projectRoot}`));
+    console.log("");
+
+    const checks = runHealthChecks(projectRoot, nexusDir);
     displayResults(checks);
+
+    // Complexity analysis
+    const analysis = analyseProject(projectRoot);
+    const complexity = calculateComplexityScore(projectRoot, nexusDir, analysis);
+    displayComplexityReport(complexity, analysis);
   });
 
-function runHealthChecks(targetDir: string): StatusCheck[] {
+function runHealthChecks(projectRoot: string, nexusDir: string): StatusCheck[] {
   const checks: StatusCheck[] = [];
 
-  // 1. Check opencode.json
-  checks.push(checkOpencodeConfig(targetDir));
+  // 1. Check opencode.json at project root
+  checks.push(checkOpencodeConfig(projectRoot));
 
-  // 2. Check AGENTS.md
-  checks.push(checkAgentsFile(targetDir));
+  // 2. Check AGENTS.md in nexus-system/docs/
+  checks.push(checkAgentsFile(nexusDir));
 
-  // 3. Check skills directory
-  checks.push(checkSkillsDirectory(targetDir));
+  // 3. Check skills directory in nexus-system/docs/skills/
+  checks.push(checkSkillsDirectory(nexusDir));
 
-  // 4. Check governance directory
-  checks.push(checkGovernanceDirectory(targetDir));
+  // 4. Check governance directory in nexus-system/governance/
+  checks.push(checkGovernanceDirectory(nexusDir));
 
-  // 5. Check context buffer
-  checks.push(checkContextBuffer(targetDir));
+  // 5. Check context buffer in nexus-system/governance/context/
+  checks.push(checkContextBuffer(nexusDir));
 
-  // 6. Check scripts
-  checks.push(checkScripts(targetDir));
+  // 6. Check scripts in nexus-system/scripts/
+  checks.push(checkScripts(nexusDir));
 
-  // 7. Check agent contracts
-  checks.push(checkAgentContracts(targetDir));
+  // 7. Check agent contracts in nexus-system/governance/agents/
+  checks.push(checkAgentContracts(nexusDir));
 
   return checks;
 }
 
-function checkOpencodeConfig(targetDir: string): StatusCheck {
-  const configPath = join(targetDir, "opencode.json");
+function checkOpencodeConfig(projectRoot: string): StatusCheck {
+  const configPath = join(projectRoot, "opencode.json");
 
   if (!existsSync(configPath)) {
     return { name: "opencode.json", status: "fail", message: "File not found" };
@@ -97,11 +169,11 @@ function checkOpencodeConfig(targetDir: string): StatusCheck {
   }
 }
 
-function checkAgentsFile(targetDir: string): StatusCheck {
-  const agentsPath = join(targetDir, "docs", "AGENTS.md");
+function checkAgentsFile(nexusDir: string): StatusCheck {
+  const agentsPath = join(nexusDir, "docs", "AGENTS.md");
 
   if (!existsSync(agentsPath)) {
-    return { name: "docs/AGENTS.md", status: "fail", message: "File not found" };
+    return { name: "nexus-system/docs/AGENTS.md", status: "fail", message: "File not found" };
   }
 
   const content = readFileSync(agentsPath, "utf-8");
@@ -109,24 +181,24 @@ function checkAgentsFile(targetDir: string): StatusCheck {
 
   if (ruleCount < 10) {
     return {
-      name: "docs/AGENTS.md",
+      name: "nexus-system/docs/AGENTS.md",
       status: "warn",
       message: `Only ${ruleCount} rules found (expected 22+)`,
     };
   }
 
   return {
-    name: "docs/AGENTS.md",
+    name: "nexus-system/docs/AGENTS.md",
     status: "pass",
     message: `${ruleCount} rules configured`,
   };
 }
 
-function checkSkillsDirectory(targetDir: string): StatusCheck {
-  const skillsDir = join(targetDir, "docs", "skills");
+function checkSkillsDirectory(nexusDir: string): StatusCheck {
+  const skillsDir = join(nexusDir, "docs", "skills");
 
   if (!existsSync(skillsDir)) {
-    return { name: "docs/skills/", status: "warn", message: "Directory not found" };
+    return { name: "nexus-system/docs/skills/", status: "warn", message: "Directory not found" };
   }
 
   const skillFiles = fse.readdirSync(skillsDir).filter((f: string) =>
@@ -134,21 +206,21 @@ function checkSkillsDirectory(targetDir: string): StatusCheck {
   );
 
   if (skillFiles.length === 0) {
-    return { name: "docs/skills/", status: "warn", message: "No skills found" };
+    return { name: "nexus-system/docs/skills/", status: "warn", message: "No skills found" };
   }
 
   return {
-    name: "docs/skills/",
+    name: "nexus-system/docs/skills/",
     status: "pass",
     message: `${skillFiles.length} skills installed`,
   };
 }
 
-function checkGovernanceDirectory(targetDir: string): StatusCheck {
-  const govDir = join(targetDir, "governance");
+function checkGovernanceDirectory(nexusDir: string): StatusCheck {
+  const govDir = join(nexusDir, "governance");
 
   if (!existsSync(govDir)) {
-    return { name: "governance/", status: "warn", message: "Directory not found (optional)" };
+    return { name: "nexus-system/governance/", status: "warn", message: "Directory not found" };
   }
 
   const hasContext = existsSync(join(govDir, "context"));
@@ -159,17 +231,17 @@ function checkGovernanceDirectory(targetDir: string): StatusCheck {
   if (hasAgents) parts.push("agents");
 
   return {
-    name: "governance/",
+    name: "nexus-system/governance/",
     status: "pass",
     message: `Contains: ${parts.join(", ") || "empty"}`,
   };
 }
 
-function checkContextBuffer(targetDir: string): StatusCheck {
-  const bufferPath = join(targetDir, "governance", "context", "context_buffer.yaml");
+function checkContextBuffer(nexusDir: string): StatusCheck {
+  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
 
   if (!existsSync(bufferPath)) {
-    return { name: "context_buffer.yaml", status: "warn", message: "Not found (optional)" };
+    return { name: "context_buffer.yaml", status: "warn", message: "Not found" };
   }
 
   const content = readFileSync(bufferPath, "utf-8");
@@ -181,11 +253,11 @@ function checkContextBuffer(targetDir: string): StatusCheck {
   return { name: "context_buffer.yaml", status: "pass", message: "Valid" };
 }
 
-function checkScripts(targetDir: string): StatusCheck {
-  const scriptsDir = join(targetDir, "scripts");
+function checkScripts(nexusDir: string): StatusCheck {
+  const scriptsDir = join(nexusDir, "scripts");
 
   if (!existsSync(scriptsDir)) {
-    return { name: "scripts/", status: "warn", message: "Directory not found" };
+    return { name: "nexus-system/scripts/", status: "warn", message: "Directory not found" };
   }
 
   const scriptFiles = fse.readdirSync(scriptsDir).filter((f: string) =>
@@ -193,21 +265,21 @@ function checkScripts(targetDir: string): StatusCheck {
   );
 
   if (scriptFiles.length === 0) {
-    return { name: "scripts/", status: "warn", message: "No scripts found" };
+    return { name: "nexus-system/scripts/", status: "warn", message: "No scripts found" };
   }
 
   return {
-    name: "scripts/",
+    name: "nexus-system/scripts/",
     status: "pass",
     message: `${scriptFiles.length} scripts installed`,
   };
 }
 
-function checkAgentContracts(targetDir: string): StatusCheck {
-  const contractsDir = join(targetDir, "governance", "agents");
+function checkAgentContracts(nexusDir: string): StatusCheck {
+  const contractsDir = join(nexusDir, "governance", "agents");
 
   if (!existsSync(contractsDir)) {
-    return { name: "agent contracts", status: "warn", message: "Not found (optional)" };
+    return { name: "agent contracts", status: "warn", message: "Not found" };
   }
 
   const yamlFiles = fse.readdirSync(contractsDir).filter((f: string) =>
@@ -277,6 +349,57 @@ function displayResults(checks: StatusCheck[]): void {
     console.log(
       chalk.green("  Governance is healthy!")
     );
+  }
+
+  console.log("");
+}
+
+function displayComplexityReport(
+  complexity: ComplexityReport,
+  analysis: ProjectAnalysis
+): void {
+  const levelColors: Record<string, typeof chalk.green> = {
+    junior: chalk.green,
+    pleno: chalk.yellow,
+    senior: chalk.red,
+  };
+  const levelNames: Record<string, string> = {
+    junior: "L1 (Base)",
+    pleno: "L2 (Intermediária)",
+    senior: "L3 (Completa)",
+  };
+
+  const color = levelColors[complexity.level] || chalk.gray;
+
+  console.log(chalk.bold("  📊 Complexity Analysis:"));
+  console.log("");
+  console.log(chalk.gray("    Project Metrics:"));
+  console.log(chalk.gray(`      Packages:      ${analysis.packageCount}`));
+  console.log(chalk.gray(`      Apps:          ${analysis.appCount}`));
+  console.log(chalk.gray(`      Source files:  ${analysis.sourceFileCount}`));
+  console.log(chalk.gray(`      Dependencies:  ${analysis.dependencyCount}`));
+  console.log(chalk.gray(`      Monorepo:      ${analysis.monorepo ? "yes" : "no"}`));
+  console.log("");
+  console.log(chalk.gray("    Score Breakdown:"));
+  console.log(chalk.gray(`      Static score:  ${complexity.staticScore}`));
+  console.log(chalk.gray(`      Behavior score: ${complexity.behaviorScore}`));
+  console.log(chalk.bold(`      Total score:   ${complexity.score}`));
+  console.log("");
+  console.log(chalk.gray("    Current level:"));
+  console.log(color(`      ${levelNames[complexity.level] || complexity.level}`));
+  console.log("");
+  console.log(chalk.gray("    Factors:"));
+
+  for (const reason of complexity.reasons) {
+    console.log(chalk.gray(`      • ${reason}`));
+  }
+
+  if (complexity.suggestions.length > 0) {
+    console.log("");
+    console.log(chalk.bold("    💡 Suggestions:"));
+    for (const suggestion of complexity.suggestions) {
+      console.log(chalk.cyan(`      → ${suggestion}`));
+    }
   }
 
   console.log("");
