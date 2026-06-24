@@ -127,10 +127,10 @@ export function calculateComplexityScore(
   const staticMetrics = collectStaticMetrics(analysis);
   const behavioralMetrics = collectBehavioralMetrics(projectRoot, nexusDir);
 
-  // Per-area scoring
+  // Per-area scoring (with shared cache for file reads)
   const profile = loadProjectProfile(projectRoot);
   const areaScores = profile
-    ? calculateAreaScores(projectRoot, profile)
+    ? calculateAreaScores(projectRoot, profile, new FileContentCache())
     : [];
 
   return scoreProject(analysis, staticMetrics, behavioralMetrics, areaScores);
@@ -138,21 +138,17 @@ export function calculateComplexityScore(
 
 // ── Per-Area Scoring ────────────────────────────────────────────────────────
 
-/** Shared cache for file content reads across all areas. */
-let _fileCache: FileContentCache | null = null;
-
 function calculateAreaScores(
   projectRoot: string,
-  profile: ProjectProfile
+  profile: ProjectProfile,
+  cache: FileContentCache
 ): AreaScore[] {
-  // Create a shared cache so overlapping areas don't re-read files
-  _fileCache = new FileContentCache();
 
   const results = profile.areas.map((area) => {
     const areaPath = join(projectRoot, area);
     const fileCount = countSourceFilesInDir(areaPath);
     const churn = countChurnPerArea(projectRoot, area, profile.churnWindowDays);
-    const sensitiveSurface = countSensitivePerAreaCached(areaPath, profile.sensitiveKeywords);
+    const sensitiveSurface = countSensitivePerAreaCached(areaPath, profile.sensitiveKeywords, cache);
     const violations = countViolationsPerArea(projectRoot, area, profile.violationKeywords);
 
     // Compose score: normalize each component to 0-3, then weighted sum (max ~10)
@@ -197,15 +193,13 @@ function calculateAreaScores(
     };
   });
 
-  _fileCache = null; // release memory
   return results;
 }
 
 /** Counts sensitive keywords in an area using shared cache. */
-function countSensitivePerAreaCached(areaPath: string, keywords: string[]): number {
+function countSensitivePerAreaCached(areaPath: string, keywords: string[], cache: FileContentCache): number {
   if (!existsSync(areaPath)) return 0;
   let count = 0;
-  const cache = _fileCache!;
 
   walkSourceFiles(
     areaPath,
@@ -241,8 +235,6 @@ function countChurnPerArea(
     return 0;
   }
 }
-
-
 
 function countViolationsPerArea(
   projectRoot: string,
