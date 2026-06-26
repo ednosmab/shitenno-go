@@ -45,6 +45,9 @@ function getDirectoriesForLevel(level: string): string[] {
     "nexus-system/cognition/context",
     "nexus-system/cognition/memory",
     "nexus-system/cognition/prompts",
+    "nexus-system/cognition/prompts/executor",
+    "nexus-system/cognition/prompts/planner",
+    "nexus-system/cognition/prompts/reviewer",
     "nexus-system/governance/contracts",
     "nexus-system/governance/handoffs",
     "nexus-system/governance/policies",
@@ -93,8 +96,24 @@ function getFilesForLevel(level: string): Array<{ src: string; dest: string; cus
   // Senior adds all files
   return [
     ...plenoFiles,
+    // Cognition
     { src: "cognition/context/CONTEXT_HIERARCHY.md", dest: "nexus-system/cognition/context/CONTEXT_HIERARCHY.md" },
     { src: "cognition/memory/MEM-operational-state-v1.json", dest: "nexus-system/cognition/memory/MEM-operational-state-v1.json" },
+    { src: "cognition/prompts/executor/README.md", dest: "nexus-system/cognition/prompts/executor/README.md" },
+    { src: "cognition/prompts/planner/README.md", dest: "nexus-system/cognition/prompts/planner/README.md" },
+    { src: "cognition/prompts/reviewer/README.md", dest: "nexus-system/cognition/prompts/reviewer/README.md" },
+    // Governance — contracts, handoffs, premortem, reviews
+    { src: "governance/contracts/CONTRACTS_INDEX.md", dest: "nexus-system/governance/contracts/CONTRACTS_INDEX.md" },
+    { src: "governance/handoffs/TEMPLATE.md", dest: "nexus-system/governance/handoffs/TEMPLATE.md" },
+    { src: "governance/premortem/PREMORTEM.md", dest: "nexus-system/governance/premortem/PREMORTEM.md" },
+    { src: "governance/reviews/SESSION_REVIEW.md", dest: "nexus-system/governance/reviews/SESSION_REVIEW.md" },
+    // Docs — ADRs, SDRs, plans, session, runbooks
+    { src: "docs/adrs/ADR-TEMPLATE.md", dest: "nexus-system/docs/adrs/ADR-TEMPLATE.md" },
+    { src: "docs/sdr/SDR-TEMPLATE.md", dest: "nexus-system/docs/sdr/SDR-TEMPLATE.md" },
+    { src: "docs/plans/TEMPLATE.md", dest: "nexus-system/docs/plans/TEMPLATE.md" },
+    { src: "docs/session-template.md", dest: "nexus-system/docs/session-template.md" },
+    { src: "docs/runbooks/merge.md", dest: "nexus-system/docs/runbooks/merge.md" },
+    // Reports
     { src: "docs/reports/README.md", dest: "nexus-system/reports/README.md" },
   ];
 }
