@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
+import { invalidateCache } from "../cache.js";
 
 const { copySync, ensureDirSync } = fse;
 
@@ -237,6 +238,9 @@ export const upgradeCommand = new Command("upgrade")
       console.log(chalk.gray(`    Directories created: ${directoriesCreated}`));
       console.log(chalk.gray(`    Files installed: ${filesInstalled}`));
       console.log("");
+      // Invalidate cache since project structure changed
+      invalidateCache(targetDir);
+
       console.log(chalk.bold("  Next steps:"));
       console.log(chalk.gray("    1. Review the new governance files"));
       console.log(chalk.gray("    2. Customise as needed"));

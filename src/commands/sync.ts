@@ -4,6 +4,7 @@ import { resolve, join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
+import { invalidateCache } from "../cache.js";
 
 const { copySync, ensureDirSync, readFileSync: fseReadFileSync, writeFileSync } = fse;
 
@@ -194,6 +195,9 @@ export const syncCommand = new Command("sync")
       }
 
       applySpinner.stop();
+
+      // Invalidate cache since nexus-system/ may have changed
+      invalidateCache(targetDir);
 
       console.log("");
       console.log(chalk.green("  ✔ Sync complete!"));

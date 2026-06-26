@@ -6,6 +6,7 @@ import ora from "ora";
 import { analyseProject } from "../analyser.js";
 import { askQuestions } from "../prompts.js";
 import { scaffoldNexusSystem } from "../scaffolder.js";
+import { invalidateCache } from "../cache.js";
 
 function getLevelInfo(level: string): { name: string; description: string } {
   switch (level) {
@@ -163,6 +164,9 @@ export const initCommand = new Command("init")
       console.log(chalk.gray("    2. Edit opencode.json to set your AI models"));
       console.log(chalk.gray("    3. Run 'nexus status' to check governance health"));
       console.log("");
+      // Invalidate cache since project structure changed
+      invalidateCache(targetDir);
+
       if (result.level !== "senior") {
         console.log(
           chalk.gray(

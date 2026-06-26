@@ -65,6 +65,9 @@ export const auditCommand = new Command("audit")
       }
       spinner.succeed(`Audit complete — health score: ${report.healthScore}/100`);
 
+      if (cacheHit) {
+        console.log(chalk.gray("  📦 Used cached results"));
+      }
       console.log("");
       console.log(chalk.bold("  🏥 Health Audit Results:"));
       console.log("");

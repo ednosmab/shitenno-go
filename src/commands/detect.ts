@@ -65,6 +65,9 @@ export const detectCommand = new Command("detect")
       }
       spinner.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
 
+      if (cacheHit) {
+        console.log(chalk.gray("  📦 Used cached results"));
+      }
       console.log("");
       console.log(chalk.bold("  📊 Detection Results:"));
       console.log("");

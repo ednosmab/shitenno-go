@@ -224,13 +224,13 @@ export function invalidateCache(
 
   if (key) {
     delete cache[key];
+    writeCache(projectRoot, cache);
   } else {
     // Remove entire cache file
-  try {
-    unlinkSync(join(projectRoot, CACHE_FILENAME));
-  } catch {}
-    return;
+    try {
+      unlinkSync(join(projectRoot, CACHE_FILENAME));
+    } catch {
+      // file may not exist
+    }
   }
-
-  writeCache(projectRoot, cache);
 }
