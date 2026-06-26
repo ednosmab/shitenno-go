@@ -67,42 +67,41 @@ export const auditCommand = new Command("audit")
       if (report.issues.length === 0) {
         console.log(chalk.green("  ✔ No issues found. Governance is healthy!"));
         console.log("");
-        return;
-      }
-
-      // Display issues
-      console.log(chalk.bold("  🔍 Issues Found:"));
-      console.log("");
-
-      for (const issue of report.issues) {
-        const icon = issue.severity === 3 ? "🔴" : issue.severity === 2 ? "🟡" : "⚪";
-        const sevLabel = issue.severity === 3 ? "CRITICAL" : issue.severity === 2 ? "WARNING" : "INFO";
-        const sevColor = issue.severity === 3 ? chalk.red : issue.severity === 2 ? chalk.yellow : chalk.gray;
-
-        console.log(`    ${icon} ${sevColor(`[${sevLabel}]`)} ${issue.description}`);
-        console.log(chalk.gray(`       Location: ${issue.location}`));
-        console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
-        console.log("");
-      }
-
-      // Display optimizations
-      if (report.optimizations.length > 0) {
-        console.log(chalk.bold("  🔧 Proposed Optimizations (require Tech Lead approval):"));
+      } else {
+        // Display issues
+        console.log(chalk.bold("  🔍 Issues Found:"));
         console.log("");
 
-        for (const opt of report.optimizations) {
-          console.log(chalk.cyan(`    ${opt.id}: ${opt.title}`));
-          console.log(chalk.gray(`      Action: ${opt.action}`));
-          console.log(chalk.gray(`      ${opt.description}`));
+        for (const issue of report.issues) {
+          const icon = issue.severity === 3 ? "🔴" : issue.severity === 2 ? "🟡" : "⚪";
+          const sevLabel = issue.severity === 3 ? "CRITICAL" : issue.severity === 2 ? "WARNING" : "INFO";
+          const sevColor = issue.severity === 3 ? chalk.red : issue.severity === 2 ? chalk.yellow : chalk.gray;
+
+          console.log(`    ${icon} ${sevColor(`[${sevLabel}]`)} ${issue.description}`);
+          console.log(chalk.gray(`       Location: ${issue.location}`));
+          console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
           console.log("");
         }
 
-        console.log(chalk.yellow("  ⚠ These are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
+        // Display optimizations
+        if (report.optimizations.length > 0) {
+          console.log(chalk.bold("  🔧 Proposed Optimizations (require Tech Lead approval):"));
+          console.log("");
+
+          for (const opt of report.optimizations) {
+            console.log(chalk.cyan(`    ${opt.id}: ${opt.title}`));
+            console.log(chalk.gray(`      Action: ${opt.action}`));
+            console.log(chalk.gray(`      ${opt.description}`));
+            console.log("");
+          }
+
+          console.log(chalk.yellow("  ⚠ These are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
+        }
+
+        console.log("");
       }
 
-      console.log("");
-
-      // Write report
+      // Write report (always, even with 0 issues)
       const reportFile = writeHealthReport(nexusDir, report);
       if (reportFile) {
         console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
