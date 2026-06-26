@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from 
 import { resolve, join } from "node:path";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
+import { outputJson, statusIcon } from "../formatting.js";
 
 interface ValidationResult {
   name: string;
@@ -14,44 +15,61 @@ export const validateCommand = new Command("validate")
   .description("Validate session integrity")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("--fix", "Attempt to fix issues automatically")
+  .option("--json", "Output results as JSON")
   .action((options) => {
     const targetDir = resolve(options.dir || ".");
+    const isJson = options.json === true;
 
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║    nexus validate — Session Check    ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║    nexus validate — Session Check    ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     // Check if project is initialized
     if (!existsSync(resolve(targetDir, "opencode.json"))) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ This project is not initialized with nexus."
-        )
-      );
-      console.log(
-        chalk.gray("  Run 'nexus init' first.")
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
+      } else {
+        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+        console.log(chalk.gray("  Run 'nexus init' first."));
+        console.log("");
+      }
       return;
     }
 
     // Check if nexus-system exists
     if (!existsSync(resolve(targetDir, "nexus-system"))) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ nexus-system/ directory not found."
-        )
-      );
-      console.log(
-        chalk.gray("  Run 'nexus init' to create governance structure.")
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init' to create governance structure." });
+      } else {
+        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
+        console.log(chalk.gray("  Run 'nexus init' to create governance structure."));
+        console.log("");
+      }
       return;
     }
 
     const results = runValidationChecks(targetDir);
+
+    // JSON output
+    if (isJson) {
+      const passCount = results.filter((r) => r.status === "pass").length;
+      const warnCount = results.filter((r) => r.status === "warn").length;
+      const failCount = results.filter((r) => r.status === "fail").length;
+      outputJson({
+        projectRoot: targetDir,
+        results: results.map((r) => ({ name: r.name, status: r.status, message: r.message })),
+        passCount,
+        warnCount,
+        failCount,
+        summary: `${passCount} passed, ${warnCount} warnings, ${failCount} failed`,
+      });
+      return;
+    }
+
     displayValidationResults(results, options.fix, targetDir);
   });
 
@@ -351,26 +369,10 @@ function displayValidationResults(
   let failCount = 0;
 
   for (const result of results) {
-    let icon: string;
-    let color: typeof chalk.green;
-
-    switch (result.status) {
-      case "pass":
-        icon = "✔";
-        color = chalk.green;
-        passCount++;
-        break;
-      case "warn":
-        icon = "⚠";
-        color = chalk.yellow;
-        warnCount++;
-        break;
-      case "fail":
-        icon = "✘";
-        color = chalk.red;
-        failCount++;
-        break;
-    }
+    const { icon, color } = statusIcon(result.status);
+    if (result.status === "pass") passCount++;
+    else if (result.status === "warn") warnCount++;
+    else failCount++;
 
     console.log(`    ${color(icon)} ${chalk.bold(result.name)}: ${color(result.message)}`);
   }
@@ -386,7 +388,6 @@ function displayValidationResults(
     console.log(chalk.yellow("  Attempting to fix issues..."));
     console.log("");
 
-    // Try to fix common issues
     const fixResults = attemptFixes(targetDir, results);
 
     if (fixResults.length > 0) {
@@ -399,17 +400,11 @@ function displayValidationResults(
   }
 
   if (failCount > 0) {
-    console.log(
-      chalk.red("  Some checks failed. Run 'nexus validate --fix' to attempt repairs.")
-    );
+    console.log(chalk.red("  Some checks failed. Run 'nexus validate --fix' to attempt repairs."));
   } else if (warnCount > 0) {
-    console.log(
-      chalk.yellow("  Session is valid with warnings.")
-    );
+    console.log(chalk.yellow("  Session is valid with warnings."));
   } else {
-    console.log(
-      chalk.green("  Session is valid!")
-    );
+    console.log(chalk.green("  Session is valid!"));
   }
 
   console.log("");

@@ -5,8 +5,9 @@ import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
 import { invalidateCache } from "../cache.js";
+import { outputJson } from "../formatting.js";
 
-const { copySync, ensureDirSync, readFileSync: fseReadFileSync, writeFileSync } = fse;
+const { copySync, ensureDirSync, writeFileSync } = fse;
 
 interface SyncOptions {
   nexusPath?: string;
@@ -26,63 +27,51 @@ export const syncCommand = new Command("sync")
   .option("-n, --nexus-path <path>", "Path to nexus-system directory")
   .option("--dry-run", "Show what would be changed without making changes")
   .option("--force", "Overwrite all files without asking")
+  .option("--json", "Output results as JSON")
   .action(async (options) => {
     const targetDir = resolve(options.dir);
     const nexusPath = options.nexusPath || process.env.NEXUS_SYSTEM_PATH;
+    const isJson = options.json === true;
 
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║      nexus sync — Update Project     ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║      nexus sync — Update Project     ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     // Validate nexus-system path
     if (!nexusPath) {
-      console.log(
-        chalk.red(
-          "  ✘ nexus-system path not specified."
-        )
-      );
-      console.log(
-        chalk.gray(
-          "  Use --nexus-path <path> or set NEXUS_SYSTEM_PATH environment variable."
-        )
-      );
-      console.log(
-        chalk.gray(
-          "  Example: nexus sync --nexus-path /path/to/nexus-system"
-        )
-      );
-      console.log(
-        chalk.gray(
-          "  Or: NEXUS_SYSTEM_PATH=/path/to/nexus-system nexus sync"
-        )
-      );
+      if (isJson) {
+        outputJson({ error: "missing_path", message: "nexus-system path not specified. Use --nexus-path or NEXUS_SYSTEM_PATH env var." });
+      } else {
+        console.log(chalk.red("  ✘ nexus-system path not specified."));
+        console.log(chalk.gray("  Use --nexus-path <path> or set NEXUS_SYSTEM_PATH environment variable."));
+        console.log(chalk.gray("  Example: nexus sync --nexus-path /path/to/nexus-system"));
+        console.log(chalk.gray("  Or: NEXUS_SYSTEM_PATH=/path/to/nexus-system nexus sync"));
+      }
       process.exit(1);
     }
 
     const nexusDir = resolve(nexusPath);
     if (!existsSync(nexusDir)) {
-      console.log(
-        chalk.red(
-          `  ✘ nexus-system directory not found: ${nexusDir}`
-        )
-      );
+      if (isJson) {
+        outputJson({ error: "missing_nexus_dir", message: `nexus-system directory not found: ${nexusDir}` });
+      } else {
+        console.log(chalk.red(`  ✘ nexus-system directory not found: ${nexusDir}`));
+      }
       process.exit(1);
     }
 
     // Check if target project has opencode.json (initialized)
     if (!existsSync(resolve(targetDir, "opencode.json"))) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ This project doesn't seem to be initialized with nexus."
-        )
-      );
-      console.log(
-        chalk.gray(
-          "  Run 'nexus init' first, then 'nexus sync' to update."
-        )
-      );
+      if (isJson) {
+        outputJson({ error: "not_initialized", message: "Run 'nexus init' first, then 'nexus sync' to update." });
+      } else {
+        console.log(chalk.yellow("  ⚠ This project doesn't seem to be initialized with nexus."));
+        console.log(chalk.gray("  Run 'nexus init' first, then 'nexus sync' to update."));
+      }
       process.exit(1);
     }
 
@@ -143,8 +132,12 @@ export const syncCommand = new Command("sync")
       }
 
       if (options.dryRun) {
-        console.log("");
-        console.log(chalk.gray("  Dry run complete. No files were modified."));
+        if (isJson) {
+          outputJson({ dryRun: true, createCount, updateCount, skipCount, changes: changes.map((c) => ({ path: c.path, action: c.action })) });
+        } else {
+          console.log("");
+          console.log(chalk.gray("  Dry run complete. No files were modified."));
+        }
         process.exit(0);
       }
 
@@ -199,16 +192,26 @@ export const syncCommand = new Command("sync")
       // Invalidate cache since nexus-system/ may have changed
       invalidateCache(targetDir);
 
-      console.log("");
-      console.log(chalk.green("  ✔ Sync complete!"));
-      console.log("");
-      console.log(chalk.gray("  Updated files:"));
-      for (const change of changes) {
-        if (change.action !== "skip") {
-          console.log(chalk.gray(`    - ${change.path}`));
+      if (isJson) {
+        outputJson({
+          dryRun: false,
+          createCount,
+          updateCount,
+          skipCount,
+          updated: changes.filter((c) => c.action !== "skip").map((c) => c.path),
+        });
+      } else {
+        console.log("");
+        console.log(chalk.green("  ✔ Sync complete!"));
+        console.log("");
+        console.log(chalk.gray("  Updated files:"));
+        for (const change of changes) {
+          if (change.action !== "skip") {
+            console.log(chalk.gray(`    - ${change.path}`));
+          }
         }
+        console.log("");
       }
-      console.log("");
     } catch (error) {
       spinner.stop();
       console.error(chalk.red("  ✘ Sync failed:"), error);

@@ -1,0 +1,18 @@
+# Source
+src/
+bin/
+tsconfig.json
+vitest.config.ts
+.gitignore
+.npmignore
+
+# Tests
+__tests__/
+*.test.ts
+*.bench.ts
+
+# Build artifacts that should not be in package
+*.tsbuildinfo
+
+# Development
+node_modules/

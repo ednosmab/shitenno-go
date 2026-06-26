@@ -6,17 +6,23 @@ import ora from "ora";
 import { detectPatterns, writePatternReport, type PatternDetectionReport } from "../pattern-detector.js";
 import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
+import { outputJson } from "../formatting.js";
 
 export const detectCommand = new Command("detect")
   .description("Detect patterns in history and propose candidate rules (Phase 2)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
+  .option("--json", "Output results as JSON")
   .action(async (options) => {
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║   nexus detect — Pattern Detection   ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    const isJson = options.json === true;
+
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║   nexus detect — Pattern Detection   ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     let projectRoot: string;
     let nexusDir: string;
@@ -27,9 +33,13 @@ export const detectCommand = new Command("detect")
     } else {
       const detected = detectNexusProject(process.cwd());
       if (!detected) {
-        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
+        if (isJson) {
+          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
+        } else {
+          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+          console.log("");
+        }
         return;
       }
       projectRoot = detected.root;
@@ -37,9 +47,13 @@ export const detectCommand = new Command("detect")
     }
 
     if (!existsSync(nexusDir)) {
-      console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-      console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
+      } else {
+        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
+        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+        console.log("");
+      }
       return;
     }
 
@@ -63,8 +77,31 @@ export const detectCommand = new Command("detect")
       } else {
         report = detectPatterns(projectRoot, nexusDir);
       }
-      spinner.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
 
+      // Write report
+      const reportFile = writePatternReport(nexusDir, report);
+
+      if (!isJson) {
+        spinner.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
+      }
+
+      // JSON output
+      if (isJson) {
+        outputJson({
+          projectRoot,
+          historyEntriesAnalyzed: report.historyEntriesAnalyzed,
+          reportsAnalyzed: report.reportsAnalyzed,
+          patterns: report.patterns,
+          candidateRules: report.candidateRules,
+          summary: report.summary,
+          cacheHit,
+          reportFile: reportFile || null,
+          detectedAt: report.detectedAt,
+        });
+        return;
+      }
+
+      // Human-readable output
       if (cacheHit) {
         console.log(chalk.gray("  📦 Used cached results"));
       }
@@ -123,8 +160,6 @@ export const detectCommand = new Command("detect")
 
       console.log("");
 
-      // Write report
-      const reportFile = writePatternReport(nexusDir, report);
       if (reportFile) {
         console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
         console.log("");
@@ -136,8 +171,12 @@ export const detectCommand = new Command("detect")
       console.log("");
 
     } catch (error) {
-      spinner.fail("Pattern detection failed");
-      console.log(chalk.red(`  Error: ${error}`));
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "detection_failed", message: String(error) });
+      } else {
+        spinner.fail("Pattern detection failed");
+        console.log(chalk.red(`  Error: ${error}`));
+        console.log("");
+      }
     }
   });

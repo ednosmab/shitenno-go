@@ -8,13 +8,18 @@ import { upgradeCommand } from "../src/commands/upgrade.js";
 import { validateCommand } from "../src/commands/validate.js";
 import { detectCommand } from "../src/commands/detect.js";
 import { auditCommand } from "../src/commands/audit.js";
+import { cleanCommand } from "../src/commands/clean.js";
+
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 const program = new Command();
 
 program
   .name("nexus")
   .description("AI governance framework that grows with your project")
-  .version("0.1.0");
+  .version(version);
 
 program.addCommand(initCommand);
 program.addCommand(syncCommand);
@@ -23,5 +28,6 @@ program.addCommand(upgradeCommand);
 program.addCommand(validateCommand);
 program.addCommand(detectCommand);
 program.addCommand(auditCommand);
+program.addCommand(cleanCommand);
 
 program.parse();

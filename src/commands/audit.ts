@@ -6,17 +6,23 @@ import ora from "ora";
 import { auditHealth, writeHealthReport, type HealthAuditReport } from "../health-auditor.js";
 import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
+import { healthBar, outputJson } from "../formatting.js";
 
 export const auditCommand = new Command("audit")
   .description("Audit Nexus governance health (Phase 3)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
+  .option("--json", "Output results as JSON")
   .action(async (options) => {
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║    nexus audit — Health Audit        ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    const isJson = options.json === true;
+
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║    nexus audit — Health Audit        ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     let projectRoot: string;
     let nexusDir: string;
@@ -27,9 +33,13 @@ export const auditCommand = new Command("audit")
     } else {
       const detected = detectNexusProject(process.cwd());
       if (!detected) {
-        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
+        if (isJson) {
+          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
+        } else {
+          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+          console.log("");
+        }
         return;
       }
       projectRoot = detected.root;
@@ -37,13 +47,17 @@ export const auditCommand = new Command("audit")
     }
 
     if (!existsSync(nexusDir)) {
-      console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-      console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
+      } else {
+        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
+        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+        console.log("");
+      }
       return;
     }
 
-    const spinner = ora("Auditing governance health...").start();
+    const spinner = isJson ? null : ora("Auditing governance health...").start();
 
     try {
       // Check cache first
@@ -63,8 +77,33 @@ export const auditCommand = new Command("audit")
       } else {
         report = auditHealth(projectRoot, nexusDir);
       }
-      spinner.succeed(`Audit complete — health score: ${report.healthScore}/100`);
 
+      // Write report (always, even with 0 issues)
+      const reportFile = writeHealthReport(nexusDir, report);
+
+      if (spinner) {
+        spinner.succeed(`Audit complete — health score: ${report.healthScore}/100`);
+      }
+
+      // JSON output
+      if (isJson) {
+        outputJson({
+          projectRoot,
+          healthScore: report.healthScore,
+          totalRules: report.totalRules,
+          historyEntries: report.historyEntries,
+          sessionsAnalyzed: report.sessionsAnalyzed,
+          issues: report.issues,
+          optimizations: report.optimizations,
+          summary: report.summary,
+          cacheHit,
+          reportFile: reportFile || null,
+          auditedAt: report.auditedAt,
+        });
+        return;
+      }
+
+      // Human-readable output
       if (cacheHit) {
         console.log(chalk.gray("  📦 Used cached results"));
       }
@@ -77,12 +116,9 @@ export const auditCommand = new Command("audit")
       console.log(chalk.gray(`    Optimizations:   ${report.optimizations.length}`));
       console.log("");
 
-      // Health score
-      const scoreColor =
-        report.healthScore >= 80 ? chalk.green :
-        report.healthScore >= 50 ? chalk.yellow : chalk.red;
+      // Health score with bar
       console.log(chalk.bold("    Health Score:"));
-      console.log(scoreColor(`      ${report.healthScore}/100`));
+      console.log(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
       console.log("");
 
       if (report.issues.length === 0) {
@@ -122,8 +158,6 @@ export const auditCommand = new Command("audit")
         console.log("");
       }
 
-      // Write report (always, even with 0 issues)
-      const reportFile = writeHealthReport(nexusDir, report);
       if (reportFile) {
         console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
         console.log("");
@@ -135,8 +169,12 @@ export const auditCommand = new Command("audit")
       console.log("");
 
     } catch (error) {
-      spinner.fail("Health audit failed");
-      console.log(chalk.red(`  Error: ${error}`));
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "audit_failed", message: String(error) });
+      } else {
+        if (spinner) spinner.fail("Health audit failed");
+        console.log(chalk.red(`  Error: ${error}`));
+        console.log("");
+      }
     }
   });

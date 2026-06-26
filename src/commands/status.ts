@@ -7,6 +7,7 @@ import { calculateComplexityScore, writeComplexityReport, type ComplexityReport 
 import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
+import { healthBar, miniBar, outputJson, statusIcon } from "../formatting.js";
 
 interface StatusCheck {
   name: string;
@@ -18,12 +19,17 @@ export const statusCommand = new Command("status")
   .description("Check governance health status")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
+  .option("--json", "Output results as JSON")
   .action(async (options) => {
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║      nexus status — Health Check     ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    const isJson = options.json === true;
+
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║      nexus status — Health Check     ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     // Auto-detect or use provided directory
     let projectRoot: string;
@@ -35,15 +41,13 @@ export const statusCommand = new Command("status")
     } else {
       const detected = detectNexusProject(process.cwd());
       if (!detected) {
-        console.log(
-          chalk.yellow(
-            "  ⚠ This project is not initialized with nexus."
-          )
-        );
-        console.log(
-          chalk.gray("  Run 'nexus init' to initialize governance.")
-        );
-        console.log("");
+        if (isJson) {
+          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
+        } else {
+          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+          console.log("");
+        }
         return;
       }
       projectRoot = detected.root;
@@ -52,38 +56,29 @@ export const statusCommand = new Command("status")
 
     // Check if opencode.json exists at project root
     if (!existsSync(resolve(projectRoot, "opencode.json"))) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ opencode.json not found at project root."
-        )
-      );
-      console.log(
-        chalk.gray("  Run 'nexus init' to initialize governance.")
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "missing_config", message: "opencode.json not found at project root. Run 'nexus init'." });
+      } else {
+        console.log(chalk.yellow("  ⚠ opencode.json not found at project root."));
+        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+        console.log("");
+      }
       return;
     }
 
     // Check if nexus-system/ exists
     if (!existsSync(nexusDir)) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ nexus-system/ directory not found."
-        )
-      );
-      console.log(
-        chalk.gray("  Run 'nexus init' to initialize governance.")
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
+      } else {
+        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
+        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
+        console.log("");
+      }
       return;
     }
 
-    console.log(chalk.bold("  Project root:"));
-    console.log(chalk.gray(`    ${projectRoot}`));
-    console.log("");
-
     const checks = runHealthChecks(projectRoot, nexusDir);
-    displayResults(checks);
 
     // Complexity analysis (with cache)
     const analysis = analyseProject(projectRoot);
@@ -105,14 +100,52 @@ export const statusCommand = new Command("status")
       complexity = await calculateComplexityScore(projectRoot, nexusDir, analysis);
     }
 
+    // Write report to reports/
+    const reportFile = writeComplexityReport(projectRoot, nexusDir, complexity);
+
+    // JSON output
+    if (isJson) {
+      outputJson({
+        projectRoot,
+        checks: checks.map((c) => ({ name: c.name, status: c.status, message: c.message })),
+        complexity: {
+          score: complexity.score,
+          level: complexity.level,
+          staticScore: complexity.staticScore,
+          behaviorScore: complexity.behaviorScore,
+          reasons: complexity.reasons,
+          suggestions: complexity.suggestions,
+          areaScores: complexity.areaScores,
+        },
+        analysis: {
+          packageCount: analysis.packageCount,
+          appCount: analysis.appCount,
+          sourceFileCount: analysis.sourceFileCount,
+          dependencyCount: analysis.dependencyCount,
+          monorepo: analysis.monorepo,
+          hasTypeScript: analysis.hasTypeScript,
+          hasTests: analysis.hasTests,
+        },
+        cacheHit,
+        reportFile: reportFile || null,
+        computedAt: complexity.computedAt,
+      });
+      return;
+    }
+
+    // Human-readable output
+    console.log(chalk.bold("  Project root:"));
+    console.log(chalk.gray(`    ${projectRoot}`));
+    console.log("");
+
+    displayResults(checks);
     displayComplexityReport(complexity, analysis);
+
     if (cacheHit) {
       console.log(chalk.gray("  📦 Used cached results"));
       console.log("");
     }
 
-    // Write report to reports/
-    const reportFile = writeComplexityReport(projectRoot, nexusDir, complexity);
     if (reportFile) {
       console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
       console.log("");
@@ -313,26 +346,10 @@ function displayResults(checks: StatusCheck[]): void {
   let failCount = 0;
 
   for (const check of checks) {
-    let icon: string;
-    let color: typeof chalk.green;
-
-    switch (check.status) {
-      case "pass":
-        icon = "✔";
-        color = chalk.green;
-        passCount++;
-        break;
-      case "warn":
-        icon = "⚠";
-        color = chalk.yellow;
-        warnCount++;
-        break;
-      case "fail":
-        icon = "✘";
-        color = chalk.red;
-        failCount++;
-        break;
-    }
+    const { icon, color } = statusIcon(check.status);
+    if (check.status === "pass") passCount++;
+    else if (check.status === "warn") warnCount++;
+    else failCount++;
 
     console.log(`    ${color(icon)} ${chalk.bold(check.name)}: ${color(check.message)}`);
   }
@@ -345,17 +362,11 @@ function displayResults(checks: StatusCheck[]): void {
   console.log("");
 
   if (failCount > 0) {
-    console.log(
-      chalk.red("  Run 'nexus init' to fix failed checks.")
-    );
+    console.log(chalk.red("  Run 'nexus init' to fix failed checks."));
   } else if (warnCount > 0) {
-    console.log(
-      chalk.yellow("  Some optional components are missing. Run 'nexus upgrade' to add them.")
-    );
+    console.log(chalk.yellow("  Some optional components are missing. Run 'nexus upgrade' to add them."));
   } else {
-    console.log(
-      chalk.green("  Governance is healthy!")
-    );
+    console.log(chalk.green("  Governance is healthy!"));
   }
 
   console.log("");
@@ -390,7 +401,7 @@ function displayComplexityReport(
   console.log(chalk.gray("    Score Breakdown:"));
   console.log(chalk.gray(`      Static score:  ${complexity.staticScore}`));
   console.log(chalk.gray(`      Behavior score: ${complexity.behaviorScore}`));
-  console.log(chalk.bold(`      Total score:   ${complexity.score}`));
+  console.log(chalk.bold(`      Total score:   ${complexity.score}  ${healthBar(complexity.score, 20)}`));
   console.log("");
   console.log(chalk.gray("    Current level:"));
   console.log(color(`      ${levelNames[complexity.level] || complexity.level}`));
@@ -406,8 +417,8 @@ function displayComplexityReport(
     console.log("");
     console.log(chalk.bold("    📍 Area Breakdown:"));
     console.log("");
-    console.log(chalk.gray("      Area                    Score  Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
-    console.log(chalk.gray("      ─────────────────────── ────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
+    console.log(chalk.gray("      Area                    Score  Bar      Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
+    console.log(chalk.gray("      ─────────────────────── ────── ──────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
 
     for (const area of complexity.areaScores.sort((a, b) => b.score - a.score)) {
       const areaColor = levelColors[area.level] || chalk.gray;
@@ -422,7 +433,7 @@ function displayComplexityReport(
       const age = String(area.incidentFreeAge).padStart(4);
       const ctx = String(area.contextPressure).padStart(4);
 
-      console.log(`      ${areaColor(areaName)} ${chalk.bold(score)}  ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
+      console.log(`      ${areaColor(areaName)} ${chalk.bold(score)} ${miniBar(area.score)} ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
     }
   }
 

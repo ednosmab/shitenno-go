@@ -6,6 +6,7 @@ import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
 import { invalidateCache } from "../cache.js";
+import { outputJson } from "../formatting.js";
 
 const { copySync, ensureDirSync } = fse;
 
@@ -104,26 +105,28 @@ export const upgradeCommand = new Command("upgrade")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("-l, --level <level>", "Target level (junior, pleno, senior)")
   .option("--list", "List available upgrades")
+  .option("--json", "Output results as JSON")
   .action(async (options) => {
     const targetDir = resolve(options.dir || ".");
+    const isJson = options.json === true;
 
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║     nexus upgrade — Add Governance  ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    if (!isJson) {
+      console.log("");
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║     nexus upgrade — Add Governance  ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log("");
+    }
 
     // Check if project is initialized
     if (!existsSync(resolve(targetDir, "opencode.json"))) {
-      console.log(
-        chalk.yellow(
-          "  ⚠ This project is not initialized with nexus."
-        )
-      );
-      console.log(
-        chalk.gray("  Run 'nexus init' first.")
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
+      } else {
+        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+        console.log(chalk.gray("  Run 'nexus init' first."));
+        console.log("");
+      }
       return;
     }
 
@@ -131,7 +134,17 @@ export const upgradeCommand = new Command("upgrade")
 
     // List available upgrades
     if (options.list) {
-      displayUpgradeOptions(targetDir, currentLevel);
+      if (isJson) {
+        const upgrades = LEVEL_UPGRADES.map((u) => ({
+          level: u.level,
+          name: u.name,
+          description: u.description,
+          status: currentLevel === u.level ? "current" : LEVEL_ORDER.indexOf(u.level) > LEVEL_ORDER.indexOf(currentLevel) ? "available" : "not_available",
+        }));
+        outputJson({ projectRoot: targetDir, currentLevel, upgrades });
+      } else {
+        displayUpgradeOptions(targetDir, currentLevel);
+      }
       return;
     }
 
@@ -164,33 +177,33 @@ export const upgradeCommand = new Command("upgrade")
     // Validate target level
     const upgrade = LEVEL_UPGRADES.find((u) => u.level === targetLevel);
     if (!upgrade) {
-      console.log(
-        chalk.red(
-          `  ✘ Invalid level: ${targetLevel}. Valid levels: junior, pleno, senior`
-        )
-      );
+      if (isJson) {
+        outputJson({ error: "invalid_level", message: `Invalid level: ${targetLevel}. Valid: junior, pleno, senior` });
+      } else {
+        console.log(chalk.red(`  ✘ Invalid level: ${targetLevel}. Valid levels: junior, pleno, senior`));
+      }
       process.exit(1);
     }
 
     // Check if already at this level
     if (currentLevel === targetLevel) {
-      console.log(
-        chalk.yellow(
-          `  ⚠ Already at ${upgrade.name} level.`
-        )
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "already_at_level", message: `Already at ${upgrade.name} level.`, currentLevel });
+      } else {
+        console.log(chalk.yellow(`  ⚠ Already at ${upgrade.name} level.`));
+        console.log("");
+      }
       return;
     }
 
     // Check if trying to downgrade
     if (LEVEL_ORDER.indexOf(targetLevel) < LEVEL_ORDER.indexOf(currentLevel)) {
-      console.log(
-        chalk.red(
-          `  ✘ Cannot downgrade from ${currentLevel} to ${targetLevel}.`
-        )
-      );
-      console.log("");
+      if (isJson) {
+        outputJson({ error: "downgrade_not_allowed", message: `Cannot downgrade from ${currentLevel} to ${targetLevel}.` });
+      } else {
+        console.log(chalk.red(`  ✘ Cannot downgrade from ${currentLevel} to ${targetLevel}.`));
+        console.log("");
+      }
       return;
     }
 
@@ -231,24 +244,38 @@ export const upgradeCommand = new Command("upgrade")
 
       spinner.succeed(`Upgraded to ${upgrade.name}`);
 
-      console.log("");
-      console.log(chalk.green("  ✔ Upgrade complete!"));
-      console.log("");
-      console.log(chalk.bold("  Changes:"));
-      console.log(chalk.gray(`    Directories created: ${directoriesCreated}`));
-      console.log(chalk.gray(`    Files installed: ${filesInstalled}`));
-      console.log("");
       // Invalidate cache since project structure changed
       invalidateCache(targetDir);
 
-      console.log(chalk.bold("  Next steps:"));
-      console.log(chalk.gray("    1. Review the new governance files"));
-      console.log(chalk.gray("    2. Customise as needed"));
-      console.log(chalk.gray("    3. Run 'nexus status' to verify"));
-      console.log("");
+      if (isJson) {
+        outputJson({
+          currentLevel,
+          targetLevel: upgrade.level,
+          levelName: upgrade.name,
+          directoriesCreated,
+          filesInstalled,
+        });
+      } else {
+        console.log("");
+        console.log(chalk.green("  ✔ Upgrade complete!"));
+        console.log("");
+        console.log(chalk.bold("  Changes:"));
+        console.log(chalk.gray(`    Directories created: ${directoriesCreated}`));
+        console.log(chalk.gray(`    Files installed: ${filesInstalled}`));
+        console.log("");
+        console.log(chalk.bold("  Next steps:"));
+        console.log(chalk.gray("    1. Review the new governance files"));
+        console.log(chalk.gray("    2. Customise as needed"));
+        console.log(chalk.gray("    3. Run 'nexus status' to verify"));
+        console.log("");
+      }
     } catch (error) {
-      spinner.fail("Upgrade failed");
-      console.error(chalk.red(`  Error: ${error}`));
+      if (isJson) {
+        outputJson({ error: "upgrade_failed", message: String(error) });
+      } else {
+        spinner.fail("Upgrade failed");
+        console.error(chalk.red(`  Error: ${error}`));
+      }
       process.exit(1);
     }
   });

@@ -360,6 +360,85 @@ describe("CLI Integration Tests", () => {
   });
 
   // ──────────────────────────────────────────────
+  // --json flag
+  // ──────────────────────────────────────────────
+  describe("--json flag", () => {
+    const dirs: string[] = [];
+
+    afterEach(() => {
+      for (const d of dirs) rmSync(d, { recursive: true, force: true });
+      dirs.length = 0;
+    });
+
+    it("should output valid JSON on status --json", async () => {
+      const { dir } = scaffoldTestProject("json-status", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("status --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("projectRoot");
+      expect(json).toHaveProperty("complexity");
+      expect(json.complexity).toHaveProperty("score");
+      expect(json.complexity).toHaveProperty("level");
+      expect(json).toHaveProperty("cacheHit");
+    });
+
+    it("should output valid JSON on status --json when not initialized", async () => {
+      const dir = join(tmpdir(), `nexus-e2e-json-status-empty-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("status --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("error");
+      expect(json.error).toBe("not_initialized");
+    });
+
+    it("should output valid JSON on detect --json", async () => {
+      const { dir } = scaffoldTestProject("json-detect", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("detect --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("projectRoot");
+      expect(json).toHaveProperty("patterns");
+      expect(json).toHaveProperty("candidateRules");
+      expect(json).toHaveProperty("summary");
+    });
+
+    it("should output valid JSON on audit --json", async () => {
+      const { dir } = scaffoldTestProject("json-audit", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("audit --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("projectRoot");
+      expect(json).toHaveProperty("healthScore");
+      expect(json).toHaveProperty("issues");
+      expect(json).toHaveProperty("optimizations");
+      expect(typeof json.healthScore).toBe("number");
+    });
+
+    it("should output valid JSON on validate --json", async () => {
+      const { dir } = scaffoldTestProject("json-validate", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("validate --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("results");
+      expect(json).toHaveProperty("passCount");
+      expect(json).toHaveProperty("warnCount");
+      expect(json).toHaveProperty("failCount");
+      expect(Array.isArray(json.results)).toBe(true);
+    });
+  });
+
+  // ──────────────────────────────────────────────
   // Error handling
   // ──────────────────────────────────────────────
   describe("Error handling", () => {
