@@ -16,7 +16,7 @@ interface StatusCheck {
 export const statusCommand = new Command("status")
   .description("Check governance health status")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
-  .action((options) => {
+  .action(async (options) => {
     console.log("");
     console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
     console.log(chalk.bold.cyan("  ║      nexus status — Health Check     ║"));
@@ -85,7 +85,7 @@ export const statusCommand = new Command("status")
 
     // Complexity analysis
     const analysis = analyseProject(projectRoot);
-    const complexity = calculateComplexityScore(projectRoot, nexusDir, analysis);
+    const complexity = await calculateComplexityScore(projectRoot, nexusDir, analysis);
     displayComplexityReport(complexity, analysis);
 
     // Write report to reports/

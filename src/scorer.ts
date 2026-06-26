@@ -125,18 +125,18 @@ function loadProjectProfile(projectRoot: string): ProjectProfile | null {
 
 // ── Main Scoring Function ───────────────────────────────────────────────────
 
-export function calculateComplexityScore(
+export async function calculateComplexityScore(
   projectRoot: string,
   nexusDir: string,
   analysis: ProjectAnalysis
-): ComplexityReport {
+): Promise<ComplexityReport> {
   const staticMetrics = collectStaticMetrics(analysis);
   const behavioralMetrics = collectBehavioralMetrics(projectRoot, nexusDir);
 
   // Per-area scoring (with shared cache for file reads)
   const profile = loadProjectProfile(projectRoot);
   const areaScores = profile
-    ? calculateAreaScores(projectRoot, nexusDir, profile, new FileContentCache())
+    ? await calculateAreaScores(projectRoot, nexusDir, profile, new FileContentCache())
     : [];
 
   return scoreProject(analysis, staticMetrics, behavioralMetrics, areaScores);
@@ -252,29 +252,107 @@ function preReadHistory(
   return result;
 }
 
-// ── Per-Area Scoring ────────────────────────────────────────────────────────
+// ── Per-Area Scoring (single walk per area + Promise.all parallel) ──────────
 
-function calculateAreaScores(
+interface AreaMetrics {
+  fileCount: number;
+  sensitiveSurface: number;
+  dependencyDepth: number;
+}
+
+/** Single walk per area: counts files, sensitive keywords, and cross-area imports in one pass. */
+function batchScoreArea(
+  areaPath: string,
+  allAreas: string[],
+  sensitiveKeywords: string[],
+  cache: FileContentCache
+): AreaMetrics {
+  const result: AreaMetrics = { fileCount: 0, sensitiveSurface: 0, dependencyDepth: 0 };
+  if (!existsSync(areaPath)) return result;
+
+  // Pre-compute other areas for import matching
+  const otherAreas = allAreas
+    .filter((a) => !areaPath.includes(a))
+    .map((a) => ({ full: a, short: a.split("/").pop()! }));
+
+  const importRegex = /^(?:import|from)\s+.*["'](.*)["']/;
+
+  walkSourceFiles(
+    areaPath,
+    (fullPath) => {
+      result.fileCount++;
+      const content = cache.get(fullPath);
+      if (content === null) return;
+
+      // Sensitive keywords check
+      const lower = content.toLowerCase();
+      for (const kw of sensitiveKeywords) {
+        if (lower.includes(kw.toLowerCase())) {
+          result.sensitiveSurface++;
+          break;
+        }
+      }
+
+      // Cross-area imports check
+      for (const line of content.split("\n")) {
+        const match = line.match(importRegex);
+        if (!match) continue;
+        const importPath = match[1];
+        for (const { full, short } of otherAreas) {
+          if (
+            importPath.includes(`../${short}/`) ||
+            importPath.includes(`./${short}/`) ||
+            importPath.includes(`../${full}/`) ||
+            importPath.includes(`./${full}/`) ||
+            importPath.startsWith(full + "/")
+          ) {
+            result.dependencyDepth++;
+            break;
+          }
+        }
+      }
+    },
+    { includeAll: true }
+  );
+
+  return result;
+}
+
+async function calculateAreaScores(
   projectRoot: string,
   nexusDir: string,
   profile: ProjectProfile,
   cache: FileContentCache
-): AreaScore[] {
+): Promise<AreaScore[]> {
 
   // ── Batch pre-computation: single I/O pass for all areas ──
   const churnMap = batchGitChurn(projectRoot, profile.areas, profile.churnWindowDays);
   const history = preReadHistory(nexusDir, profile.areas, profile.violationKeywords);
 
-  const results = profile.areas.map((area) => {
+  // ── Parallel per-area scoring: each area walks its directory independently ──
+  const areaMetricsPromises = profile.areas.map((area) => {
     const areaPath = join(projectRoot, area);
-    const fileCount = countSourceFilesInDir(areaPath);
+    return new Promise<{ area: string; metrics: AreaMetrics }>((resolve) => {
+      // Yield to event loop between areas to allow I/O interleaving
+      setImmediate(() => {
+        resolve({
+          area,
+          metrics: batchScoreArea(areaPath, profile.areas, profile.sensitiveKeywords, cache),
+        });
+      });
+    });
+  });
+
+  const areaMetrics = await Promise.all(areaMetricsPromises);
+  const metricsMap = new Map(areaMetrics.map(({ area, metrics }) => [area, metrics]));
+
+  const results = profile.areas.map((area) => {
+    const m = metricsMap.get(area)!;
     const churn = churnMap.get(area) || 0;
-    const sensitiveSurface = countSensitivePerAreaCached(areaPath, profile.sensitiveKeywords, cache);
     const violations = history.violationsByArea.get(area) || 0;
-    // Fase 1.1 signals
-    const dependencyDepth = countDependencyDepth(areaPath, profile.areas, cache);
     const incidentFreeAge = history.incidentFreeAgeByArea.get(area) || 0;
     const contextPressure = countContextPressure(projectRoot, area);
+    const { fileCount, sensitiveSurface, dependencyDepth } = m;
 
     // Compose score: normalize each component to 0-3, then weighted sum (max ~10)
     const w = profile.weights;
@@ -336,69 +414,7 @@ function calculateAreaScores(
   return results;
 }
 
-/** Counts sensitive keywords in an area using shared cache. */
-function countSensitivePerAreaCached(areaPath: string, keywords: string[], cache: FileContentCache): number {
-  if (!existsSync(areaPath)) return 0;
-  let count = 0;
-
-  walkSourceFiles(
-    areaPath,
-    (fullPath) => {
-      const content = cache.get(fullPath);
-      if (content === null) return;
-      const lower = content.toLowerCase();
-      for (const kw of keywords) {
-        if (lower.includes(kw.toLowerCase())) {
-          count++;
-          break; // one match per file
-        }
-      }
-    },
-    { includeAll: true }
-  );
-
-  return count;
-}
-
-// ── Fase 1.1: Additional Signals ─────────────────────────────────────────────
-
-/** Counts cross-area imports using shared FileContentCache (avoids re-reading files). */
-function countDependencyDepth(areaPath: string, allAreas: string[], cache: FileContentCache): number {
-  if (!existsSync(areaPath)) return 0;
-
-  // Build other areas with both full path and short name
-  const otherAreas = allAreas
-    .filter((a) => !areaPath.includes(a))
-    .map((a) => ({ full: a, short: a.split("/").pop()! }));
-  if (otherAreas.length === 0) return 0;
-
-  let depth = 0;
-  const importRegex = /^(?:import|from)\s+.*["'](.*)["']/;
-
-  walkSourceFiles(areaPath, (fullPath) => {
-    const content = cache.get(fullPath);
-    if (content === null) return;
-    for (const line of content.split("\n")) {
-      const match = line.match(importRegex);
-      if (!match) continue;
-      const importPath = match[1];
-      for (const { full, short } of otherAreas) {
-        if (
-          importPath.includes(`../${short}/`) ||
-          importPath.includes(`./${short}/`) ||
-          importPath.includes(`../${full}/`) ||
-          importPath.includes(`./${full}/`) ||
-          importPath.startsWith(full + "/")
-        ) {
-          depth++;
-          break;
-        }
-      }
-    }
-  }, { includeAll: true });
-
-  return depth;
-}
+// (countSensitivePerAreaCached and countDependencyDepth consolidated into batchScoreArea above)
 
 /** Measures context pressure: total size (KB) of P2 docs for a layer. */
 function countContextPressure(projectRoot: string, area: string): number {

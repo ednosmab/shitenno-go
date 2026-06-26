@@ -192,19 +192,19 @@ afterAll(() => {
 // ── Benchmarks: calculateComplexityScore ─────────────────────────────────────
 
 describe("calculateComplexityScore", () => {
-  bench("small project (20 files, 3 areas)", () => {
+  bench("small project (20 files, 3 areas)", async () => {
     const analysis = analyseProject(small.dir);
-    calculateComplexityScore(small.dir, small.nexusDir, analysis);
+    await calculateComplexityScore(small.dir, small.nexusDir, analysis);
   });
 
-  bench("medium project (100 files, 8 areas)", () => {
+  bench("medium project (100 files, 8 areas)", async () => {
     const analysis = analyseProject(medium.dir);
-    calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
+    await calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
   });
 
-  bench("large project (500 files, 20 areas)", () => {
+  bench("large project (500 files, 20 areas)", async () => {
     const analysis = analyseProject(large.dir);
-    calculateComplexityScore(large.dir, large.nexusDir, analysis);
+    await calculateComplexityScore(large.dir, large.nexusDir, analysis);
   });
 
   bench("analyseProject alone (small)", () => {
@@ -251,22 +251,21 @@ describe("auditHealth", () => {
 // ── Benchmarks: Full Pipeline (status command simulation) ────────────────────
 
 describe("Full Pipeline (status command)", () => {
-  bench("small — analyse + score + write report", () => {
+  bench("small — analyse + score + write report", async () => {
     const analysis = analyseProject(small.dir);
-    const report = calculateComplexityScore(small.dir, small.nexusDir, analysis);
-    // Simulate report writing (we don't write in benchmarks to keep them fast)
+    const report = await calculateComplexityScore(small.dir, small.nexusDir, analysis);
     JSON.stringify(report);
   });
 
-  bench("medium — analyse + score + write report", () => {
+  bench("medium — analyse + score + write report", async () => {
     const analysis = analyseProject(medium.dir);
-    const report = calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
+    const report = await calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
     JSON.stringify(report);
   });
 
-  bench("large — analyse + score + write report", () => {
+  bench("large — analyse + score + write report", async () => {
     const analysis = analyseProject(large.dir);
-    const report = calculateComplexityScore(large.dir, large.nexusDir, analysis);
+    const report = await calculateComplexityScore(large.dir, large.nexusDir, analysis);
     JSON.stringify(report);
   });
 });
@@ -274,23 +273,23 @@ describe("Full Pipeline (status command)", () => {
 // ── Benchmarks: All three engines together ───────────────────────────────────
 
 describe("All Engines (audit command simulation)", () => {
-  bench("small — score + detect + audit", () => {
+  bench("small — score + detect + audit", async () => {
     const analysis = analyseProject(small.dir);
-    calculateComplexityScore(small.dir, small.nexusDir, analysis);
+    await calculateComplexityScore(small.dir, small.nexusDir, analysis);
     detectPatterns(small.dir, small.nexusDir);
     auditHealth(small.dir, small.nexusDir);
   });
 
-  bench("medium — score + detect + audit", () => {
+  bench("medium — score + detect + audit", async () => {
     const analysis = analyseProject(medium.dir);
-    calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
+    await calculateComplexityScore(medium.dir, medium.nexusDir, analysis);
     detectPatterns(medium.dir, medium.nexusDir);
     auditHealth(medium.dir, medium.nexusDir);
   });
 
-  bench("large — score + detect + audit", () => {
+  bench("large — score + detect + audit", async () => {
     const analysis = analyseProject(large.dir);
-    calculateComplexityScore(large.dir, large.nexusDir, analysis);
+    await calculateComplexityScore(large.dir, large.nexusDir, analysis);
     detectPatterns(large.dir, large.nexusDir);
     auditHealth(large.dir, large.nexusDir);
   });
@@ -324,9 +323,9 @@ describe("Scaling: source files (fixed 5 history, 3 areas)", () => {
   });
 
   for (const { label, fixture } of scalingFixtures) {
-    bench(`score with ${label}`, () => {
+    bench(`score with ${label}`, async () => {
       const analysis = analyseProject(fixture.dir);
-      calculateComplexityScore(fixture.dir, fixture.nexusDir, analysis);
+      await calculateComplexityScore(fixture.dir, fixture.nexusDir, analysis);
     });
   }
 });

@@ -42,8 +42,8 @@ function makeAnalysis(overrides: Partial<ProjectAnalysis> = {}): ProjectAnalysis
 // ── calculateComplexityScore ─────────────────────────────────────────────────
 
 describe("calculateComplexityScore", () => {
-  it("returns junior level for empty project", () => {
-    const report = calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
+  it("returns junior level for empty project", async () => {
+    const report = await calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
     expect(report.level).toBe("junior");
     expect(report.score).toBe(0);
     expect(report.staticMetrics.length).toBeGreaterThan(0);
@@ -51,19 +51,19 @@ describe("calculateComplexityScore", () => {
     expect(report.areaScores).toHaveLength(0);
   });
 
-  it("returns pleno level for medium complexity", () => {
+  it("returns pleno level for medium complexity", async () => {
     const analysis = makeAnalysis({
       packageCount: 4,
       appCount: 2,
       sourceFileCount: 200,
       dependencyCount: 80,
     });
-    const report = calculateComplexityScore(tempDir, nexusDir, analysis);
+    const report = await calculateComplexityScore(tempDir, nexusDir, analysis);
     expect(report.score).toBeGreaterThanOrEqual(5);
     expect(report.level).toBe("pleno");
   });
 
-  it("returns senior level for high complexity", () => {
+  it("returns senior level for high complexity", async () => {
     mkdirSync(join(nexusDir, "docs", "adrs"), { recursive: true });
     mkdirSync(join(nexusDir, "docs", "history"), { recursive: true });
     writeFileSync(join(nexusDir, "docs", "adrs", "ADR-001.md"), "# ADR-001");
@@ -77,19 +77,19 @@ describe("calculateComplexityScore", () => {
       dependencyCount: 120,
       monorepo: true,
     });
-    const report = calculateComplexityScore(tempDir, nexusDir, analysis);
+    const report = await calculateComplexityScore(tempDir, nexusDir, analysis);
     expect(report.score).toBeGreaterThanOrEqual(10);
     expect(report.level).toBe("senior");
   });
 
-  it("includes computedAt timestamp", () => {
-    const report = calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
+  it("includes computedAt timestamp", async () => {
+    const report = await calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
     expect(report.computedAt).toBeTruthy();
     expect(new Date(report.computedAt).getTime()).toBeGreaterThan(0);
   });
 
-  it("populates staticMetrics with evidence", () => {
-    const report = calculateComplexityScore(
+  it("populates staticMetrics with evidence", async () => {
+    const report = await calculateComplexityScore(
       tempDir,
       nexusDir,
       makeAnalysis({ packageCount: 1 })
@@ -104,15 +104,15 @@ describe("calculateComplexityScore", () => {
 // ── writeComplexityReport ────────────────────────────────────────────────────
 
 describe("writeComplexityReport", () => {
-  it("returns null when reports/ doesn't exist", () => {
-    const report = calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
+  it("returns null when reports/ doesn't exist", async () => {
+    const report = await calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
     const result = writeComplexityReport(tempDir, nexusDir, report);
     expect(result).toBeNull();
   });
 
-  it("writes JSON report when reports/ exists", () => {
+  it("writes JSON report when reports/ exists", async () => {
     mkdirSync(join(nexusDir, "reports"), { recursive: true });
-    const report = calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
+    const report = await calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
     const filename = writeComplexityReport(tempDir, nexusDir, report);
 
     expect(filename).toBeTruthy();
@@ -125,9 +125,9 @@ describe("writeComplexityReport", () => {
     expect(reports.length).toBe(1);
   });
 
-  it("increments session number on multiple writes", () => {
+  it("increments session number on multiple writes", async () => {
     mkdirSync(join(nexusDir, "reports"), { recursive: true });
-    const report = calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
+    const report = await calculateComplexityScore(tempDir, nexusDir, makeAnalysis());
 
     const f1 = writeComplexityReport(tempDir, nexusDir, report);
     const f2 = writeComplexityReport(tempDir, nexusDir, report);
