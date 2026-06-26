@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectAnalysis } from "./analyser.js";
 import { walkSourceFiles, countSourceFilesInDir, FileContentCache } from "./utils.js";
@@ -39,6 +39,12 @@ export interface AreaScore {
   sensitiveSurface: number;
   /** Número de keywords de violação encontradas no histórico desta área. */
   violations: number;
+  /** Fase 1.1: Número de imports cruzados (dependências de/para outras áreas). */
+  dependencyDepth: number;
+  /** Fase 1.1: Sessões desde a última violação nesta área. */
+  incidentFreeAge: number;
+  /** Fase 1.1: Tamanho total dos docs P2 referenciados para esta camada (KB). */
+  contextPressure: number;
   /** Evidência legível. */
   evidence: string;
 }
@@ -150,6 +156,10 @@ function calculateAreaScores(
     const churn = countChurnPerArea(projectRoot, area, profile.churnWindowDays);
     const sensitiveSurface = countSensitivePerAreaCached(areaPath, profile.sensitiveKeywords, cache);
     const violations = countViolationsPerArea(projectRoot, area, profile.violationKeywords);
+    // Fase 1.1 signals
+    const dependencyDepth = countDependencyDepth(projectRoot, area, profile.areas);
+    const incidentFreeAge = countIncidentFreeAge(projectRoot, area);
+    const contextPressure = countContextPressure(projectRoot, area);
 
     // Compose score: normalize each component to 0-3, then weighted sum (max ~10)
     const w = profile.weights;
@@ -162,12 +172,21 @@ function calculateAreaScores(
     const sensitiveNorm = sensitiveSurface === 0 ? 0 : sensitiveSurface <= 2 ? 1 : sensitiveSurface <= 5 ? 2 : 3;
     // File count bonus: 0→0, 1-29→0, 30-99→1, 100+→2
     const filesNorm = fileCount >= 100 ? 2 : fileCount >= 30 ? 1 : 0;
+    // Fase 1.1: dependency depth: 0→0, 1-5→1, 6-15→2, 16+→3
+    const depsNorm = dependencyDepth === 0 ? 0 : dependencyDepth <= 5 ? 1 : dependencyDepth <= 15 ? 2 : 3;
+    // Fase 1.1: incident-free age: 0→3 (recent), 1-3→2, 4-10→1, 11+→0 (stable)
+    const ageNorm = incidentFreeAge === 0 ? 3 : incidentFreeAge <= 3 ? 2 : incidentFreeAge <= 10 ? 1 : 0;
+    // Fase 1.1: context pressure: 0→0, 1-50KB→1, 51-200KB→2, 201+→3
+    const pressureNorm = contextPressure === 0 ? 0 : contextPressure <= 50 ? 1 : contextPressure <= 200 ? 2 : 3;
 
     const rawScore =
       churnNorm * (w.churn || 1) +
       violationsNorm * (w.violationRate || 1) +
       sensitiveNorm * (w.sensitiveSurface || 1) +
-      filesNorm;
+      filesNorm +
+      depsNorm * 0.5 +
+      ageNorm * 0.5 +
+      pressureNorm * 0.5;
 
     const score = Math.min(10, Math.round(rawScore * 10) / 10);
 
@@ -180,6 +199,9 @@ function calculateAreaScores(
     if (churn > 0) evidenceParts.push(`${churn} commits/${profile.churnWindowDays}d`);
     if (sensitiveSurface > 0) evidenceParts.push(`${sensitiveSurface} sensitive keywords`);
     if (violations > 0) evidenceParts.push(`${violations} violations`);
+    if (dependencyDepth > 0) evidenceParts.push(`${dependencyDepth} cross-area imports`);
+    if (incidentFreeAge > 0) evidenceParts.push(`${incidentFreeAge} sessions since last incident`);
+    if (contextPressure > 0) evidenceParts.push(`${contextPressure}KB P2 docs`);
 
     return {
       area,
@@ -189,6 +211,9 @@ function calculateAreaScores(
       churn,
       sensitiveSurface,
       violations,
+      dependencyDepth,
+      incidentFreeAge,
+      contextPressure,
       evidence: evidenceParts.join(", ") || "no activity detected",
     };
   });
@@ -265,6 +290,108 @@ function countViolationsPerArea(
     }
   }
   return count;
+}
+
+// ── Fase 1.1: Additional Signals ─────────────────────────────────────────────
+
+/** Counts cross-area imports (dependency depth). Scans import/from statements. */
+function countDependencyDepth(projectRoot: string, area: string, allAreas: string[]): number {
+  const areaPath = join(projectRoot, area);
+  if (!existsSync(areaPath)) return 0;
+
+  const otherAreas = allAreas.filter((a) => a !== area);
+  if (otherAreas.length === 0) return 0;
+
+  let depth = 0;
+  const importRegex = /^(?:import|from)\s+.*["'](.*)["']/;
+
+  walkSourceFiles(areaPath, (fullPath) => {
+    try {
+      const content = readFileSync(fullPath, "utf-8");
+      for (const line of content.split("\n")) {
+        const match = line.match(importRegex);
+        if (!match) continue;
+        const importPath = match[1];
+        for (const other of otherAreas) {
+          // Check if import resolves to another area (relative or alias)
+          if (
+            importPath.includes(`../${other}/`) ||
+            importPath.includes(`./${other}/`) ||
+            importPath.startsWith(other + "/")
+          ) {
+            depth++;
+            break;
+          }
+        }
+      }
+    } catch {
+      // skip
+    }
+  });
+
+  return depth;
+}
+
+/** Counts sessions since last violation for an area. Reads history files. */
+function countIncidentFreeAge(projectRoot: string, area: string): number {
+  const nexusDir = join(projectRoot, "nexus-system");
+  const historyDir = join(nexusDir, "docs", "history");
+  if (!existsSync(historyDir)) return 0;
+
+  const files = readdirSync(historyDir)
+    .filter((f) => f.endsWith(".md"))
+    .sort(); // chronological
+
+  const violationKeywords = ["erro", "bug", "corrigi", "falhou", "rollback", "violação"];
+  let sessionsSinceLastViolation = 0;
+  let found = false;
+
+  // Walk from newest to oldest
+  for (let i = files.length - 1; i >= 0; i--) {
+    try {
+      const content = readFileSync(join(historyDir, files[i]), "utf-8").toLowerCase();
+      if (content.includes(area.toLowerCase())) {
+        for (const kw of violationKeywords) {
+          if (content.includes(kw)) {
+            found = true;
+            break;
+          }
+        }
+      }
+      if (found) break;
+      sessionsSinceLastViolation++;
+    } catch {
+      sessionsSinceLastViolation++;
+    }
+  }
+
+  return sessionsSinceLastViolation;
+}
+
+/** Measures context pressure: total size (KB) of P2 docs for a layer. */
+function countContextPressure(projectRoot: string, area: string): number {
+  const nexusDir = join(projectRoot, "nexus-system");
+  const layersDir = join(nexusDir, "docs", "layers");
+  if (!existsSync(layersDir)) return 0;
+
+  // Map area to potential layer name (e.g., "src/services" → "services")
+  const areaParts = area.split("/");
+  const layerName = areaParts[areaParts.length - 1];
+  const layerDir = join(layersDir, layerName);
+
+  if (!existsSync(layerDir)) return 0;
+
+  let totalBytes = 0;
+  walkSourceFiles(layerDir, (fullPath) => {
+    try {
+      const stats = statSync(fullPath);
+      totalBytes += stats.size;
+    } catch {
+      // skip
+    }
+  });
+
+  return Math.round(totalBytes / 1024); // KB
 }
 
 // ── Static Metrics ───────────────────────────────────────────────────────────

@@ -406,20 +406,23 @@ function displayComplexityReport(
     console.log("");
     console.log(chalk.bold("    📍 Area Breakdown:"));
     console.log("");
-    console.log(chalk.gray("      Area                         Score  Level     Files  Churn  Sensitive  Violations"));
-    console.log(chalk.gray("      ──────────────────────────── ────── ───────── ────── ────── ────────── ──────────"));
+    console.log(chalk.gray("      Area                    Score  Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
+    console.log(chalk.gray("      ─────────────────────── ────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
 
     for (const area of complexity.areaScores.sort((a, b) => b.score - a.score)) {
       const areaColor = levelColors[area.level] || chalk.gray;
-      const areaName = area.area.padEnd(28);
+      const areaName = area.area.padEnd(23);
       const score = String(area.score).padStart(5);
-      const level = (levelNames[area.level] || area.level).padEnd(9);
-      const files = String(area.fileCount).padStart(5);
-      const churn = String(area.churn).padStart(5);
-      const sensitive = String(area.sensitiveSurface).padStart(9);
-      const violations = String(area.violations).padStart(9);
+      const level = (area.level).padEnd(7);
+      const files = String(area.fileCount).padStart(4);
+      const churn = String(area.churn).padStart(4);
+      const sensitive = String(area.sensitiveSurface).padStart(5);
+      const violations = String(area.violations).padStart(4);
+      const deps = String(area.dependencyDepth).padStart(4);
+      const age = String(area.incidentFreeAge).padStart(4);
+      const ctx = String(area.contextPressure).padStart(4);
 
-      console.log(`      ${areaColor(areaName)} ${chalk.bold(score)}  ${areaColor(level)} ${chalk.gray(files)}  ${chalk.gray(churn)}  ${chalk.gray(sensitive)}  ${chalk.gray(violations)}`);
+      console.log(`      ${areaColor(areaName)} ${chalk.bold(score)}  ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
     }
   }
 
