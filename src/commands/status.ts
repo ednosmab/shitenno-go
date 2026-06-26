@@ -1,39 +1,16 @@
 import { Command } from "commander";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { resolve, join, dirname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve, join } from "node:path";
 import chalk from "chalk";
 import fse from "fs-extra";
 import { calculateComplexityScore, writeComplexityReport, type ComplexityReport } from "../scorer.js";
 import { analyseProject, type ProjectAnalysis } from "../analyser.js";
+import { detectNexusProject } from "../utils.js";
 
 interface StatusCheck {
   name: string;
   status: "pass" | "warn" | "fail";
   message: string;
-}
-
-function detectNexusProject(startDir: string): { root: string; nexusDir: string } | null {
-  let current = startDir;
-
-  while (true) {
-    // Check for opencode.json at this level
-    const hasOpencode = existsSync(join(current, "opencode.json"));
-
-    // Check for nexus-system/ directory
-    const hasNexusSystem = existsSync(join(current, "nexus-system"));
-
-    if (hasOpencode || hasNexusSystem) {
-      return {
-        root: current,
-        nexusDir: join(current, "nexus-system"),
-      };
-    }
-
-    // Walk up
-    const parent = dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
 }
 
 export const statusCommand = new Command("status")
