@@ -20,6 +20,7 @@ import {
   loadMaturityProfile,
   type Capability,
 } from "../maturity-profile.js";
+import { getCapabilityFiles } from "../capability-mapping.js";
 
 const { copySync, ensureDirSync } = fse;
 
@@ -240,50 +241,8 @@ function installCapabilities(
   let directoriesCreated = 0;
   let filesInstalled = 0;
 
-  // Simplified capability → file mapping for upgrade
-  const capabilityFiles: Record<string, Array<{ src: string; dest: string }>> = {
-    knowledge: [
-      // Skills are copied from skills directory
-    ],
-    architecture: [
-      { src: "docs/adrs/ADR-TEMPLATE.md", dest: "nexus-system/docs/adrs/ADR-TEMPLATE.md" },
-      { src: "docs/sdr/SDR-TEMPLATE.md", dest: "nexus-system/docs/sdr/SDR-TEMPLATE.md" },
-      { src: "docs/plans/TEMPLATE.md", dest: "nexus-system/docs/plans/TEMPLATE.md" },
-      { src: "docs/session-template.md", dest: "nexus-system/docs/session-template.md" },
-    ],
-    governance: [
-      { src: "governance/WORKFLOW.md", dest: "nexus-system/governance/WORKFLOW.md" },
-      { src: "governance/context/context_buffer.yaml", dest: "nexus-system/governance/context/context_buffer.yaml" },
-    ],
-    ai: [
-      { src: "governance/agents/AI-CONTRACT-planner-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-planner-v1.yaml" },
-      { src: "governance/agents/AI-CONTRACT-executor-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-executor-v1.yaml" },
-      { src: "governance/agents/AI-CONTRACT-reviewer-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-reviewer-v1.yaml" },
-      { src: "governance/agents/AI-CONTRACT-orchestrator-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-orchestrator-v1.yaml" },
-      { src: "governance/contracts/CONTRACTS_INDEX.md", dest: "nexus-system/governance/contracts/CONTRACTS_INDEX.md" },
-      { src: "governance/handoffs/TEMPLATE.md", dest: "nexus-system/governance/handoffs/TEMPLATE.md" },
-      { src: "cognition/context/CONTEXT_HIERARCHY.md", dest: "nexus-system/cognition/context/CONTEXT_HIERARCHY.md" },
-      { src: "cognition/memory/MEM-operational-state-v1.json", dest: "nexus-system/cognition/memory/MEM-operational-state-v1.json" },
-    ],
-    quality: [
-      { src: "scripts/validate-session.ts", dest: "nexus-system/scripts/validate-session.ts" },
-    ],
-    metrics: [
-      { src: "docs/reports/README.md", dest: "nexus-system/reports/README.md" },
-    ],
-    operations: [
-      { src: "scripts/close-session.ts", dest: "nexus-system/scripts/close-session.ts" },
-      { src: "scripts/premortem-check.ts", dest: "nexus-system/scripts/premortem-check.ts" },
-      { src: "docs/runbooks/merge.md", dest: "nexus-system/docs/runbooks/merge.md" },
-    ],
-    compliance: [
-      { src: "governance/premortem/PREMORTEM.md", dest: "nexus-system/governance/premortem/PREMORTEM.md" },
-      { src: "governance/reviews/SESSION_REVIEW.md", dest: "nexus-system/governance/reviews/SESSION_REVIEW.md" },
-    ],
-  };
-
   for (const cap of capabilities) {
-    const files = capabilityFiles[cap] || [];
+    const files = getCapabilityFiles(cap);
     for (const file of files) {
       const srcPath = join(templatesDir, file.src);
       const destPath = join(targetDir, file.dest);

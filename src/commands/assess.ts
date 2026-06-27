@@ -19,7 +19,6 @@ import {
   recordMaturitySnapshot,
   loadMaturityProfile,
   readMaturityHistory,
-  detectInstalledCapabilities,
   type MaturityProfile,
 } from "../maturity-profile.js";
 import { outputJson, healthBar } from "../formatting.js";
@@ -52,7 +51,6 @@ function displayEvolution(history: Array<{ timestamp: string; overallScore: numb
   console.log("");
 
   const maxScore = Math.max(...history.map((h) => h.overallScore));
-  const sparkWidth = 30;
 
   // Simple ASCII sparkline
   const scores = history.map((h) => h.overallScore);
@@ -127,18 +125,67 @@ export const assessCommand = new Command("assess")
     const analysis = analyseProject(projectRoot);
     analyseSpinner.succeed("Project analysis complete");
 
-    // Run questionnaire
-    if (!isJson) {
+    let newProfile: MaturityProfile;
+
+    if (isJson) {
+      // In JSON mode, if a previous profile exists, re-analyze with existing data
+      // If not, use a default questionnaire based on project analysis
+      const calcSpinner = ora("Calculating maturity profile...").start();
+      if (previousProfile) {
+        // Re-analyze: keep previous answers but update from project analysis
+        const syntheticAnswers = {
+          usedNexusBefore: previousProfile.installedCapabilities.length > 1,
+          isFirstProject: false,
+          projectAge: "established" as const,
+          teamSize: "small" as const,
+          hasDedicatedTeam: previousProfile.installedCapabilities.length > 3,
+          hasArchitectureDocs: previousProfile.installedCapabilities.includes("architecture"),
+          hasADRs: previousProfile.installedCapabilities.includes("architecture"),
+          hasTechnicalReviews: previousProfile.installedCapabilities.includes("governance"),
+          hasCICD: previousProfile.dimensions.automation > 30,
+          hasAutomatedTests: previousProfile.dimensions.quality > 30,
+          hasValidationPipeline: previousProfile.dimensions.automation > 50,
+          intendsToUseAI: previousProfile.dimensions.ai > 20,
+          aiWillImplement: previousProfile.dimensions.ai > 50,
+          requiresHumanReview: previousProfile.dimensions.governance > 30,
+          hasDefinedPatterns: previousProfile.dimensions.governance > 25,
+          hasReviewProcess: previousProfile.dimensions.governance > 40,
+          hasDecisionControl: previousProfile.dimensions.governance > 50,
+        };
+        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, nexusDir);
+      } else {
+        // No previous profile — use neutral defaults based on analysis
+        const syntheticAnswers = {
+          usedNexusBefore: false,
+          isFirstProject: false,
+          projectAge: "new" as const,
+          teamSize: "solo" as const,
+          hasDedicatedTeam: false,
+          hasArchitectureDocs: false,
+          hasADRs: false,
+          hasTechnicalReviews: false,
+          hasCICD: analysis.hasCI,
+          hasAutomatedTests: analysis.hasTests,
+          hasValidationPipeline: false,
+          intendsToUseAI: true,
+          aiWillImplement: true,
+          requiresHumanReview: true,
+          hasDefinedPatterns: false,
+          hasReviewProcess: false,
+          hasDecisionControl: false,
+        };
+        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, nexusDir);
+      }
+      calcSpinner.succeed("Maturity profile calculated");
+    } else {
+      // Interactive mode: run the full questionnaire
       console.log(chalk.bold("  Re-evaluate your maturity profile:"));
       console.log("");
+      const answers = await askQuestions(analysis);
+      const calcSpinner = ora("Calculating maturity profile...").start();
+      newProfile = calculateMaturityProfile(answers.maturity, analysis, nexusDir);
+      calcSpinner.succeed("Maturity profile calculated");
     }
-
-    const answers = await askQuestions(analysis);
-
-    // Calculate new profile
-    const calcSpinner = ora("Calculating maturity profile...").start();
-    const newProfile = calculateMaturityProfile(answers.maturity, analysis, nexusDir);
-    calcSpinner.succeed("Maturity profile calculated");
 
     // Save and record
     saveMaturityProfile(nexusDir, newProfile);
