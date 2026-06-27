@@ -9,7 +9,7 @@
  * Novos comportamentos sem alterar código — apenas adicionar regras.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
@@ -34,6 +34,7 @@ export type TriggerType =
   | "maturity_change"
   | "knowledge_debt_detected"
   | "pattern_detected"
+  | "pipeline_complete"
   | "manual";
 
 /** Operadores para condições. */
@@ -183,7 +184,7 @@ export function loadRules(nexusDir: string): Rule[] {
 export function saveRule(nexusDir: string, rule: Rule): void {
   const rulesPath = join(nexusDir, RULES_DIR);
   if (!existsSync(rulesPath)) {
-    return;
+    mkdirSync(rulesPath, { recursive: true });
   }
 
   const filepath = join(rulesPath, `${rule.id}.json`);
@@ -542,6 +543,65 @@ export function getDefaultRules(): Rule[] {
       enabled: true,
       tags: ["pattern", "logging"],
     },
+    {
+      id: "RULE-007",
+      description: "Remind to improve health when pipeline score is low",
+      trigger: "session_start",
+      conditions: [
+        { field: "eventData.healthScore", operator: "less_than", value: 50 },
+      ],
+      actions: [
+        { type: "create_reminder", params: { message: "Health score is below 50 — run 'nexus audit' to improve" } },
+      ],
+      priority: 2,
+      dependencies: [],
+      enabled: true,
+      tags: ["health", "reminder", "pipeline"],
+    },
+    {
+      id: "RULE-008",
+      description: "Log ADR creation and suggest skill extraction",
+      trigger: "adr_created",
+      conditions: [],
+      actions: [
+        { type: "log_event", params: { event: "adr_created", message: "New ADR created — consider extracting skills" } },
+      ],
+      priority: 3,
+      dependencies: [],
+      enabled: true,
+      tags: ["adr", "skill", "logging"],
+    },
+    {
+      id: "RULE-009",
+      description: "Log successful full validation",
+      trigger: "validation_pass",
+      conditions: [
+        { field: "eventData.passRate", operator: "equals", value: 100 },
+      ],
+      actions: [
+        { type: "log_event", params: { event: "validation_complete", message: "All validations passed — system is healthy" } },
+      ],
+      priority: 4,
+      dependencies: [],
+      enabled: true,
+      tags: ["validation", "logging", "success"],
+    },
+    {
+      id: "RULE-010",
+      description: "Remind about knowledge debt on session start",
+      trigger: "session_start",
+      conditions: [
+        { field: "eventData.knowledgeDebt", operator: "greater_than", value: 5 },
+      ],
+      actions: [
+        { type: "create_reminder", params: { message: "Knowledge debt is high — address gaps in ADRs and skills" } },
+        { type: "update_backlog", params: { item: "Reduce knowledge debt" } },
+      ],
+      priority: 1,
+      dependencies: [],
+      enabled: true,
+      tags: ["knowledge", "debt", "session"],
+    },
   ];
 }
 
@@ -550,7 +610,9 @@ export function getDefaultRules(): Rule[] {
 /** Inicializa o directório de regras com regras padrão se vazio. */
 export function initializeRules(nexusDir: string): void {
   const rulesPath = join(nexusDir, RULES_DIR);
-  if (!existsSync(rulesPath)) return;
+  if (!existsSync(rulesPath)) {
+    mkdirSync(rulesPath, { recursive: true });
+  }
 
   const existingRules = loadRules(nexusDir);
   if (existingRules.length > 0) return;
@@ -558,5 +620,46 @@ export function initializeRules(nexusDir: string): void {
   const defaultRules = getDefaultRules();
   for (const rule of defaultRules) {
     saveRule(nexusDir, rule);
+  }
+}
+
+// ── Event Bus Integration ──────────────────────────────────────────────────
+
+import { getEventBus, type NexusEventType } from "./event-bus.js";
+
+/** Map event bus events to rule engine triggers. */
+const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
+  "session.start": "session_start",
+  "session.end": "session_end",
+  "validation.completed": "validation_fail",
+  "maturity.changed": "maturity_change",
+  "pattern.detected": "pattern_detected",
+  "health.checked": "health_check",
+  "pipeline.complete": "pipeline_complete",
+  "adr.created": "adr_created",
+};
+
+/** Subscribe to event bus events and execute matching rules. */
+export function initializeRuleEngine(
+  projectRoot: string,
+  nexusDir: string
+): void {
+  const bus = getEventBus();
+
+  for (const [eventType, trigger] of Object.entries(EVENT_TO_TRIGGER)) {
+    bus.subscribe(eventType as NexusEventType, (payload: unknown) => {
+      const rules = loadRules(nexusDir);
+      if (rules.length === 0) return;
+
+      const context: RuleContext = {
+        trigger,
+        eventData: payload as Record<string, unknown>,
+        projectRoot,
+        nexusDir,
+        timestamp: new Date().toISOString(),
+      };
+
+      executeRules(rules, context);
+    });
   }
 }

@@ -637,3 +637,32 @@ export function graphToText(
 
   return lines.join("\n");
 }
+
+// ── Event Bus Integration ──────────────────────────────────────────────────
+
+import { getEventBus, type NexusEventType } from "./event-bus.js";
+
+/** Rebuild the knowledge graph from disk. */
+function rebuildGraph(nexusDir: string): void {
+  const artifacts = discoverArtifacts(nexusDir);
+  const relations = discoverRelations(artifacts);
+  saveArtifacts(nexusDir, artifacts);
+  saveRelations(nexusDir, relations);
+}
+
+/** Subscribe to event bus events that should trigger graph rebuilds. */
+export function initializeKnowledgeGraph(nexusDir: string): void {
+  const bus = getEventBus();
+
+  const eventTypes: NexusEventType[] = [
+    "adr.created",
+    "skill.created",
+    "capability.installed",
+  ];
+
+  for (const eventType of eventTypes) {
+    bus.subscribe(eventType, () => {
+      rebuildGraph(nexusDir);
+    });
+  }
+}

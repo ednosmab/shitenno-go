@@ -4,6 +4,8 @@ import { resolve, join } from "node:path";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
 import { outputJson, statusIcon } from "../formatting.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
 
 interface ValidationResult {
   name: string;
@@ -17,7 +19,6 @@ export const validateCommand = new Command("validate")
   .option("--fix", "Attempt to fix issues automatically")
   .option("--json", "Output results as JSON")
   .action((options) => {
-    const targetDir = resolve(options.dir || ".");
     const isJson = options.json === true;
 
     if (!isJson) {
@@ -28,39 +29,28 @@ export const validateCommand = new Command("validate")
       console.log("");
     }
 
-    // Check if project is initialized
-    if (!existsSync(resolve(targetDir, "opencode.json"))) {
-      if (isJson) {
-        outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
-      } else {
-        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' first."));
-        console.log("");
-      }
-      return;
-    }
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    // Check if nexus-system exists
-    if (!existsSync(resolve(targetDir, "nexus-system"))) {
-      if (isJson) {
-        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init' to create governance structure." });
-      } else {
-        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-        console.log(chalk.gray("  Run 'nexus init' to create governance structure."));
-        console.log("");
-      }
-      return;
-    }
+    if (!checkLifecycleGate("validate", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
-    const results = runValidationChecks(targetDir);
+    const results = runValidationChecks(ctx.projectRoot);
+
+    // Publish event
+    const passCount = results.filter((r) => r.status === "pass").length;
+    const warnCount = results.filter((r) => r.status === "warn").length;
+    const failCount = results.filter((r) => r.status === "fail").length;
+    getEventBus().publish("validation.completed", {
+      projectRoot: ctx.projectRoot,
+      passCount,
+      warnCount,
+      failCount,
+    });
 
     // JSON output
     if (isJson) {
-      const passCount = results.filter((r) => r.status === "pass").length;
-      const warnCount = results.filter((r) => r.status === "warn").length;
-      const failCount = results.filter((r) => r.status === "fail").length;
       outputJson({
-        projectRoot: targetDir,
+        projectRoot: ctx.projectRoot,
         results: results.map((r) => ({ name: r.name, status: r.status, message: r.message })),
         passCount,
         warnCount,
@@ -70,7 +60,7 @@ export const validateCommand = new Command("validate")
       return;
     }
 
-    displayValidationResults(results, options.fix, targetDir);
+    displayValidationResults(results, options.fix, ctx.projectRoot);
   });
 
 function runValidationChecks(targetDir: string): ValidationResult[] {

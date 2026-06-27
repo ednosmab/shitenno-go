@@ -1,12 +1,13 @@
 import { Command } from "commander";
-import { existsSync } from "node:fs";
-import { resolve, join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { auditHealth, writeHealthReport, type HealthAuditReport } from "../health-auditor.js";
-import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, outputJson } from "../formatting.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
+import { getHookBus } from "../plugin-system.js";
+import { discoverArtifacts, discoverRelations, analyzeGraph, type GraphAnalysis } from "../knowledge-graph.js";
 
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")
@@ -24,38 +25,10 @@ export const auditCommand = new Command("audit")
       console.log("");
     }
 
-    let projectRoot: string;
-    let nexusDir: string;
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
-
-    if (!existsSync(nexusDir)) {
-      if (isJson) {
-        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
-      } else {
-        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
-      }
-      return;
-    }
+    if (!checkLifecycleGate("audit", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     const spinner = isJson ? null : ora("Auditing governance health...").start();
 
@@ -64,22 +37,34 @@ export const auditCommand = new Command("audit")
       let report: HealthAuditReport;
       let cacheHit = false;
       if (options.cache !== false) {
-        const cached = getCached<HealthAuditReport>(projectRoot, nexusDir, "health",
-          () => computeKeyChecksums(projectRoot, nexusDir));
+        const cached = getCached<HealthAuditReport>(ctx.projectRoot, ctx.nexusDir, "health",
+          () => computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
         if (cached) {
           report = cached;
           cacheHit = true;
         } else {
-          report = auditHealth(projectRoot, nexusDir);
-          setCache(projectRoot, nexusDir, "health", report,
-            computeKeyChecksums(projectRoot, nexusDir));
+          report = auditHealth(ctx.projectRoot, ctx.nexusDir);
+          setCache(ctx.projectRoot, ctx.nexusDir, "health", report,
+            computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
         }
       } else {
-        report = auditHealth(projectRoot, nexusDir);
+        report = auditHealth(ctx.projectRoot, ctx.nexusDir);
       }
 
       // Write report (always, even with 0 issues)
-      const reportFile = writeHealthReport(nexusDir, report);
+      const reportFile = writeHealthReport(ctx.nexusDir, report);
+
+      // Knowledge graph analysis
+      const artifacts = discoverArtifacts(ctx.nexusDir);
+      const relations = discoverRelations(artifacts);
+      const graphAnalysis = analyzeGraph(artifacts, relations);
+
+      // Publish knowledge graph event
+      getEventBus().publish("knowledge.analyzed" as never, {
+        totalArtifacts: graphAnalysis.totalArtifacts,
+        totalRelations: graphAnalysis.totalRelations,
+        healthScore: graphAnalysis.healthScore,
+      });
 
       if (spinner) {
         spinner.succeed(`Audit complete — health score: ${report.healthScore}/100`);
@@ -88,7 +73,7 @@ export const auditCommand = new Command("audit")
       // JSON output
       if (isJson) {
         outputJson({
-          projectRoot,
+          projectRoot: ctx.projectRoot,
           healthScore: report.healthScore,
           totalRules: report.totalRules,
           historyEntries: report.historyEntries,
@@ -96,6 +81,14 @@ export const auditCommand = new Command("audit")
           issues: report.issues,
           optimizations: report.optimizations,
           summary: report.summary,
+          knowledgeGraph: {
+            totalArtifacts: graphAnalysis.totalArtifacts,
+            totalRelations: graphAnalysis.totalRelations,
+            healthScore: graphAnalysis.healthScore,
+            orphanCount: graphAnalysis.orphanArtifacts.length,
+            hubCount: graphAnalysis.hubArtifacts.length,
+            suggestions: graphAnalysis.suggestions,
+          },
           cacheHit,
           reportFile: reportFile || null,
           auditedAt: report.auditedAt,
@@ -120,6 +113,39 @@ export const auditCommand = new Command("audit")
       console.log(chalk.bold("    Health Score:"));
       console.log(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
       console.log("");
+
+      // Knowledge Graph section
+      console.log(chalk.bold("  📊 Knowledge Graph:"));
+      console.log("");
+      const graphColor = graphAnalysis.healthScore >= 70 ? chalk.green
+        : graphAnalysis.healthScore >= 40 ? chalk.yellow : chalk.red;
+      console.log(`    Health:  ${graphColor(graphAnalysis.healthScore + "/100")}  ${healthBar(graphAnalysis.healthScore, 100)}`);
+      console.log(`    Artifacts: ${graphAnalysis.totalArtifacts} | Relations: ${graphAnalysis.totalRelations}`);
+      console.log("");
+
+      if (graphAnalysis.orphanArtifacts.length > 0) {
+        console.log(chalk.yellow(`    ⚠ ${graphAnalysis.orphanArtifacts.length} orphaned artifact(s):`));
+        for (const orphan of graphAnalysis.orphanArtifacts.slice(0, 5)) {
+          console.log(chalk.gray(`      - ${orphan.name} (${orphan.type})`));
+        }
+        console.log("");
+      }
+
+      if (graphAnalysis.hubArtifacts.length > 0) {
+        console.log(chalk.cyan("    🔗 Top Hubs:"));
+        for (const hub of graphAnalysis.hubArtifacts.slice(0, 5)) {
+          console.log(chalk.gray(`      - ${hub.artifact.name}: ${hub.connectionCount} connection(s)`));
+        }
+        console.log("");
+      }
+
+      if (graphAnalysis.suggestions.length > 0) {
+        console.log(chalk.blue("    💡 Suggestions:"));
+        for (const suggestion of graphAnalysis.suggestions) {
+          console.log(chalk.gray(`      - ${suggestion}`));
+        }
+        console.log("");
+      }
 
       if (report.issues.length === 0) {
         console.log(chalk.green("  ✔ No issues found. Governance is healthy!"));
@@ -167,6 +193,34 @@ export const auditCommand = new Command("audit")
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
       console.log("");
+
+      // Publish event
+      getEventBus().publish("health.checked", {
+        projectRoot: ctx.projectRoot,
+        healthScore: report.healthScore,
+        issues: report.issues.length,
+        optimizations: report.optimizations.length,
+      });
+
+      // Execute custom check hooks from plugins
+      const hookBus = getHookBus();
+      const customResults = await hookBus.collectHook("custom-check", async (plugin) => {
+        if (plugin.hooks?.["custom-check"]) {
+          return await plugin.hooks["custom-check"]({
+            projectRoot: ctx.projectRoot,
+            nexusDir: ctx.nexusDir,
+            healthReport: report,
+          });
+        }
+        return null;
+      });
+      if (customResults.length > 0 && !isJson) {
+        console.log(chalk.bold("  🔌 Custom Checks:"));
+        for (const result of customResults) {
+          if (result) console.log(chalk.gray(`    ${result}`));
+        }
+        console.log("");
+      }
 
     } catch (error) {
       if (isJson) {

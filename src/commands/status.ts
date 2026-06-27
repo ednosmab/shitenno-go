@@ -1,14 +1,15 @@
 import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import fse from "fs-extra";
 import { calculateComplexityScore, writeComplexityReport, type ComplexityReport } from "../scorer.js";
 import { analyseProject, type ProjectAnalysis } from "../analyser.js";
-import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, miniBar, outputJson, statusIcon } from "../formatting.js";
 import { loadMaturityProfile, detectInstalledCapabilities, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
+import { guardNotInitialized, type ProjectContext, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
 
 interface StatusCheck {
   name: string;
@@ -32,86 +33,44 @@ export const statusCommand = new Command("status")
       console.log("");
     }
 
-    // Auto-detect or use provided directory
-    let projectRoot: string;
-    let nexusDir: string;
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
+    if (!checkLifecycleGate("status", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
-    // Check if opencode.json exists at project root
-    if (!existsSync(resolve(projectRoot, "opencode.json"))) {
-      if (isJson) {
-        outputJson({ error: "missing_config", message: "opencode.json not found at project root. Run 'nexus init'." });
-      } else {
-        console.log(chalk.yellow("  ⚠ opencode.json not found at project root."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
-      }
-      return;
-    }
-
-    // Check if nexus-system/ exists
-    if (!existsSync(nexusDir)) {
-      if (isJson) {
-        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
-      } else {
-        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
-      }
-      return;
-    }
-
-    const checks = runHealthChecks(projectRoot, nexusDir);
+    const checks = runHealthChecks(ctx.projectRoot, ctx.nexusDir);
 
     // Complexity analysis (with cache)
-    const analysis = analyseProject(projectRoot);
+    const analysis = analyseProject(ctx.projectRoot);
     let complexity: ComplexityReport;
     let cacheHit = false;
 
     if (options.cache !== false) {
-      const cached = getCached<ComplexityReport>(projectRoot, nexusDir, "complexity",
-        () => computeKeyChecksums(projectRoot, nexusDir));
+      const cached = getCached<ComplexityReport>(ctx.projectRoot, ctx.nexusDir, "complexity",
+        () => computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
       if (cached) {
         complexity = cached;
         cacheHit = true;
       } else {
-        complexity = await calculateComplexityScore(projectRoot, nexusDir, analysis);
-        setCache(projectRoot, nexusDir, "complexity", complexity,
-          computeKeyChecksums(projectRoot, nexusDir));
+        complexity = await calculateComplexityScore(ctx.projectRoot, ctx.nexusDir, analysis);
+        setCache(ctx.projectRoot, ctx.nexusDir, "complexity", complexity,
+          computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
       }
     } else {
-      complexity = await calculateComplexityScore(projectRoot, nexusDir, analysis);
+      complexity = await calculateComplexityScore(ctx.projectRoot, ctx.nexusDir, analysis);
     }
 
     // Write report to reports/
-    const reportFile = writeComplexityReport(projectRoot, nexusDir, complexity);
+    const reportFile = writeComplexityReport(ctx.projectRoot, ctx.nexusDir, complexity);
 
     // Load maturity profile
-    const maturityProfile = loadMaturityProfile(nexusDir);
-    const installedCapabilities = detectInstalledCapabilities(nexusDir);
+    const maturityProfile = loadMaturityProfile(ctx.nexusDir);
+    const installedCapabilities = detectInstalledCapabilities(ctx.nexusDir);
 
     // JSON output
     if (isJson) {
       outputJson({
-        projectRoot,
+        projectRoot: ctx.projectRoot,
         checks: checks.map((c) => ({ name: c.name, status: c.status, message: c.message })),
         complexity: {
           score: complexity.score,
@@ -147,7 +106,7 @@ export const statusCommand = new Command("status")
 
     // Human-readable output
     console.log(chalk.bold("  Project root:"));
-    console.log(chalk.gray(`    ${projectRoot}`));
+    console.log(chalk.gray(`    ${ctx.projectRoot}`));
     console.log("");
 
     displayResults(checks);
@@ -163,6 +122,14 @@ export const statusCommand = new Command("status")
       console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
       console.log("");
     }
+
+    // Publish event
+    getEventBus().publish("analysis.complete", {
+      projectRoot: ctx.projectRoot,
+      score: complexity.score,
+      level: complexity.level,
+      healthChecks: checks.length,
+    });
   });
 
 function runHealthChecks(projectRoot: string, nexusDir: string): StatusCheck[] {

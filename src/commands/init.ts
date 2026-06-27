@@ -17,6 +17,7 @@ import { analyseProject } from "../analyser.js";
 import { askQuestions } from "../prompts.js";
 import { scaffoldNexusSystem } from "../scaffolder.js";
 import { invalidateCache } from "../cache.js";
+import { loadPlugins, getHookBus } from "../plugin-system.js";
 import {
   calculateMaturityProfile,
   saveMaturityProfile,
@@ -194,6 +195,16 @@ export const initCommand = new Command("init")
 
       // Invalidate cache
       invalidateCache(targetDir);
+
+      // Load and register plugins
+      const plugins = await loadPlugins(targetDir);
+      const hookBus = getHookBus();
+      for (const plugin of plugins) {
+        hookBus.registerPlugin(plugin);
+      }
+      if (plugins.length > 0) {
+        console.log(chalk.gray(`  🔌 Loaded ${plugins.length} plugin(s)`));
+      }
 
       // Suggest future capabilities
       if (profile.futureCapabilities.length > 0) {

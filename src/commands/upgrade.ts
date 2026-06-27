@@ -21,6 +21,9 @@ import {
   type Capability,
 } from "../maturity-profile.js";
 import { getCapabilityFiles } from "../capability-mapping.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
+import { recordFeedback } from "../feedback-loops.js";
 
 const { copySync, ensureDirSync } = fse;
 
@@ -38,8 +41,8 @@ export const upgradeCommand = new Command("upgrade")
   .option("--accept-recommended", "Install all recommended capabilities from maturity profile")
   .option("--json", "Output results as JSON")
   .action(async (options) => {
-    const targetDir = resolve(options.dir || ".");
     const isJson = options.json === true;
+    const targetDir = resolve(options.dir || ".");
     const nexusDir = join(targetDir, "nexus-system");
 
     if (!isJson) {
@@ -50,19 +53,12 @@ export const upgradeCommand = new Command("upgrade")
       console.log("");
     }
 
-    // Check if project is initialized
-    if (!existsSync(resolve(targetDir, "opencode.json"))) {
-      if (isJson) {
-        outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
-      } else {
-        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' first."));
-        console.log("");
-      }
-      return;
-    }
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    const installed = detectInstalledCapabilities(nexusDir);
+    if (!checkLifecycleGate("upgrade", ctx.projectRoot, ctx.nexusDir, isJson)) return;
+
+    const installed = detectInstalledCapabilities(ctx.nexusDir);
 
     // List capabilities
     if (options.list) {
@@ -74,7 +70,7 @@ export const upgradeCommand = new Command("upgrade")
           status: installed.includes(cap.id) ? "installed" : "available",
           alwaysInstalled: cap.alwaysInstalled,
         }));
-        outputJson({ projectRoot: targetDir, installed, capabilities });
+        outputJson({ projectRoot: ctx.projectRoot, installed, capabilities });
       } else {
         displayCapabilityStatus(installed);
       }
@@ -83,7 +79,7 @@ export const upgradeCommand = new Command("upgrade")
 
     // Accept recommended capabilities
     if (options.acceptRecommended) {
-      const profile = loadMaturityProfile(nexusDir);
+      const profile = loadMaturityProfile(ctx.nexusDir);
       if (!profile) {
         if (isJson) {
           outputJson({ error: "no_profile", message: "No maturity profile found. Run 'nexus init' first." });
@@ -114,6 +110,16 @@ export const upgradeCommand = new Command("upgrade")
       spinner.succeed(`Installed ${result.filesInstalled} file(s) in ${result.directoriesCreated} directory(ies)`);
 
       invalidateCache(targetDir);
+
+      // Publish event
+      for (const cap of toInstall) {
+        getEventBus().publish("capability.installed", { capability: cap, projectRoot: ctx.projectRoot });
+        recordFeedback(ctx.nexusDir, {
+          recommendationId: `cap-${cap}`,
+          action: "accepted",
+          context: { maturityScore: 0, installedCapabilities: installed, knowledgeDebt: 0 },
+        });
+      }
 
       if (isJson) {
         outputJson({ installed: toInstall, filesInstalled: result.filesInstalled, directoriesCreated: result.directoriesCreated });
@@ -208,6 +214,14 @@ export const upgradeCommand = new Command("upgrade")
       spinner.succeed(`Installed ${capInfo.name}`);
 
       invalidateCache(targetDir);
+
+      // Publish event
+      getEventBus().publish("capability.installed", { capability: targetCapability, projectRoot: ctx.projectRoot });
+      recordFeedback(ctx.nexusDir, {
+        recommendationId: `cap-${targetCapability}`,
+        action: "accepted",
+        context: { maturityScore: 0, installedCapabilities: installed, knowledgeDebt: 0 },
+      });
 
       if (isJson) {
         outputJson({ capability: targetCapability, filesInstalled: result.filesInstalled, directoriesCreated: result.directoriesCreated });

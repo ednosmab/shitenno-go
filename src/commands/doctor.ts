@@ -11,13 +11,15 @@
 
 import { Command } from "commander";
 import { existsSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
-import { detectNexusProject } from "../utils.js";
 import { consolidateState, type NexusState } from "../state-manager.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "../knowledge-debt.js";
 import { healthBar, outputJson } from "../formatting.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
+import { recordFeedback } from "../feedback-loops.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -281,38 +283,20 @@ export const doctorCommand = new Command("doctor")
       console.log("");
     }
 
-    // Find project
-    let projectRoot: string;
-    let nexusDir: string;
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' first."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
+    if (!checkLifecycleGate("doctor", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     const spinner = ora("Analyzing project health...").start();
 
     try {
-      const report = runDoctorAnalysis(projectRoot, nexusDir);
+      const report = runDoctorAnalysis(ctx.projectRoot, ctx.nexusDir);
       spinner.stop();
 
       if (isJson) {
         outputJson({
-          projectRoot,
+          projectRoot: ctx.projectRoot,
           overallHealth: report.overallHealth,
           healthScore: report.healthScore,
           findings: report.findings,
@@ -381,6 +365,25 @@ export const doctorCommand = new Command("doctor")
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
       console.log("");
+
+      // Publish event
+      getEventBus().publish("health.checked", {
+        projectRoot: ctx.projectRoot,
+        healthScore: report.healthScore,
+        overallHealth: report.overallHealth,
+        findings: report.findings.length,
+      });
+
+      // Record feedback for improvement findings
+      for (const finding of report.findings) {
+        if (finding.category === "improvement") {
+          recordFeedback(ctx.nexusDir, {
+            recommendationId: `doctor-${finding.title}`,
+            action: "deferred",
+            context: { maturityScore: report.healthScore, installedCapabilities: [], knowledgeDebt: 0 },
+          });
+        }
+      }
 
     } catch (error) {
       spinner.fail("Doctor analysis failed");

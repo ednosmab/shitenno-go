@@ -1,12 +1,12 @@
 import { Command } from "commander";
-import { existsSync } from "node:fs";
-import { resolve, join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { detectPatterns, writePatternReport, type PatternDetectionReport } from "../pattern-detector.js";
-import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { outputJson } from "../formatting.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
+import { recordFeedback } from "../feedback-loops.js";
 
 export const detectCommand = new Command("detect")
   .description("Detect patterns in history and propose candidate rules (Phase 2)")
@@ -24,38 +24,10 @@ export const detectCommand = new Command("detect")
       console.log("");
     }
 
-    let projectRoot: string;
-    let nexusDir: string;
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
-
-    if (!existsSync(nexusDir)) {
-      if (isJson) {
-        outputJson({ error: "missing_nexus_dir", message: "nexus-system/ directory not found. Run 'nexus init'." });
-      } else {
-        console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-        console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-        console.log("");
-      }
-      return;
-    }
+    if (!checkLifecycleGate("detect", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     const spinner = ora("Analyzing history and reports...").start();
 
@@ -64,22 +36,22 @@ export const detectCommand = new Command("detect")
       let report: PatternDetectionReport;
       let cacheHit = false;
       if (options.cache !== false) {
-        const cached = getCached<PatternDetectionReport>(projectRoot, nexusDir, "patterns",
-          () => computeKeyChecksums(projectRoot, nexusDir));
+        const cached = getCached<PatternDetectionReport>(ctx.projectRoot, ctx.nexusDir, "patterns",
+          () => computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
         if (cached) {
           report = cached;
           cacheHit = true;
         } else {
-          report = detectPatterns(projectRoot, nexusDir);
-          setCache(projectRoot, nexusDir, "patterns", report,
-            computeKeyChecksums(projectRoot, nexusDir));
+          report = detectPatterns(ctx.projectRoot, ctx.nexusDir);
+          setCache(ctx.projectRoot, ctx.nexusDir, "patterns", report,
+            computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
         }
       } else {
-        report = detectPatterns(projectRoot, nexusDir);
+        report = detectPatterns(ctx.projectRoot, ctx.nexusDir);
       }
 
       // Write report
-      const reportFile = writePatternReport(nexusDir, report);
+      const reportFile = writePatternReport(ctx.nexusDir, report);
 
       if (!isJson) {
         spinner.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
@@ -88,7 +60,7 @@ export const detectCommand = new Command("detect")
       // JSON output
       if (isJson) {
         outputJson({
-          projectRoot,
+          projectRoot: ctx.projectRoot,
           historyEntriesAnalyzed: report.historyEntriesAnalyzed,
           reportsAnalyzed: report.reportsAnalyzed,
           patterns: report.patterns,
@@ -169,6 +141,22 @@ export const detectCommand = new Command("detect")
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
       console.log("");
+
+      // Publish event
+      getEventBus().publish("pattern.detected", {
+        projectRoot: ctx.projectRoot,
+        patterns: report.patterns.length,
+        candidateRules: report.candidateRules.length,
+      });
+
+      // Record feedback for candidate rules
+      for (const rule of report.candidateRules) {
+        recordFeedback(ctx.nexusDir, {
+          recommendationId: `rule-${rule.id}`,
+          action: "deferred",
+          context: { maturityScore: 0, installedCapabilities: [], knowledgeDebt: 0 },
+        });
+      }
 
     } catch (error) {
       if (isJson) {

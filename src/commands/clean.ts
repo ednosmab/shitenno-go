@@ -2,9 +2,10 @@ import { Command } from "commander";
 import { existsSync, unlinkSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import chalk from "chalk";
-import { detectNexusProject } from "../utils.js";
 import { invalidateCache } from "../cache.js";
 import { outputJson } from "../formatting.js";
+import { guardNotInitialized } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
 
 export const cleanCommand = new Command("clean")
   .description("Clear nexus cache and temporary files")
@@ -13,39 +14,8 @@ export const cleanCommand = new Command("clean")
   .action((options) => {
     const isJson = options.json === true;
 
-    let projectRoot: string;
-    let nexusDir: string;
-
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
-
-    // Verify project is initialized
-    if (!existsSync(resolve(projectRoot, "opencode.json"))) {
-      if (isJson) {
-        outputJson({ error: "missing_config", message: "opencode.json not found. Run 'nexus init' first." });
-      } else {
-        console.log(chalk.yellow("  ⚠ opencode.json not found at project root."));
-        console.log(chalk.gray("  Run 'nexus init' first."));
-        console.log("");
-      }
-      return;
-    }
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
     if (!isJson) {
       console.log("");
@@ -58,7 +28,7 @@ export const cleanCommand = new Command("clean")
     const itemsRemoved: string[] = [];
 
     // 1. Remove .nexus-cache.json
-    const cachePath = join(projectRoot, ".nexus-cache.json");
+    const cachePath = join(ctx.projectRoot, ".nexus-cache.json");
     if (existsSync(cachePath)) {
       try {
         unlinkSync(cachePath);
@@ -69,12 +39,12 @@ export const cleanCommand = new Command("clean")
     }
 
     // 2. Remove *.tsbuildinfo
-    if (existsSync(projectRoot)) {
+    if (existsSync(ctx.projectRoot)) {
       try {
-        const files = readdirSync(projectRoot);
+        const files = readdirSync(ctx.projectRoot);
         for (const file of files) {
           if (file.endsWith(".tsbuildinfo")) {
-            const filePath = join(projectRoot, file);
+            const filePath = join(ctx.projectRoot, file);
             try {
               unlinkSync(filePath);
               itemsRemoved.push(file);
@@ -89,11 +59,17 @@ export const cleanCommand = new Command("clean")
     }
 
     // 3. Invalidate cache
-    invalidateCache(projectRoot);
+    invalidateCache(ctx.projectRoot);
+
+    // Publish event
+    getEventBus().publish("analysis.complete", {
+      projectRoot: ctx.projectRoot,
+      itemsRemoved: itemsRemoved.length,
+    });
 
     if (isJson) {
       outputJson({
-        projectRoot,
+        projectRoot: ctx.projectRoot,
         itemsRemoved,
         count: itemsRemoved.length,
       });

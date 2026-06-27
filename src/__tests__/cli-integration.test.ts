@@ -70,7 +70,7 @@ function scaffoldTestProject(
   };
 
   const capsByLevel: Record<string, Capability[]> = {
-    junior: ["core", "knowledge"],
+    junior: ["core", "knowledge", "governance"],
     pleno: ["core", "knowledge", "governance"],
     senior: ["core", "knowledge", "architecture", "governance", "ai", "quality", "metrics", "operations", "compliance"],
   };
@@ -85,6 +85,30 @@ function scaffoldTestProject(
   };
 
   const result = scaffoldNexusSystem(dir, answers, capsByLevel[level]);
+
+  // Create maturity-profile.json so lifecycle state reaches "assessed"
+  const maturityPath = join(dir, "nexus-system", "maturity-profile.json");
+  const dimScores = level === "senior" ? 85 : level === "pleno" ? 55 : 25;
+  writeFileSync(
+    maturityPath,
+    JSON.stringify({
+      dimensions: {
+        architecture: dimScores,
+        governance: dimScores,
+        quality: dimScores,
+        automation: dimScores,
+        ai: dimScores,
+        documentation: dimScores,
+        observability: dimScores,
+      },
+      overallScore: dimScores,
+      recommendedCapabilities: [],
+      installedCapabilities: capsByLevel[level],
+      futureCapabilities: [],
+      computedAt: new Date().toISOString(),
+    }, null, 2)
+  );
+
   return { dir, result };
 }
 
@@ -104,6 +128,7 @@ describe("CLI Integration Tests", () => {
       expect(stdout).toContain("audit");
       expect(stdout).toContain("upgrade");
       expect(stdout).toContain("validate");
+      expect(stdout).toContain("run");
       expect(stdout).toContain("sync");
     });
 
@@ -167,13 +192,13 @@ describe("CLI Integration Tests", () => {
       expect(stdout).toContain("not initialized");
     });
 
-    it("should show 'opencode.json not found' when only nexus-system exists", async () => {
+    it("should show 'not initialized' when only nexus-system exists", async () => {
       const dir = join(tmpdir(), `nexus-e2e-status-partial-${Date.now()}`);
       mkdirSync(join(dir, "nexus-system"), { recursive: true });
       dirs.push(dir);
 
       const { stdout } = await runNexus("status", dir);
-      expect(stdout).toContain("opencode.json not found");
+      expect(stdout).toContain("not initialized");
     });
 
     it("should show health check for a scaffolded junior project", async () => {
@@ -373,6 +398,47 @@ describe("CLI Integration Tests", () => {
   });
 
   // ──────────────────────────────────────────────
+  // nexus run
+  // ──────────────────────────────────────────────
+  describe("nexus run", () => {
+    const dirs: string[] = [];
+
+    afterEach(() => {
+      for (const d of dirs) rmSync(d, { recursive: true, force: true });
+      dirs.length = 0;
+    });
+
+    it("should run the full analysis pipeline", async () => {
+      const { dir } = scaffoldTestProject("run-junior", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("run", dir);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Full Analysis");
+      expect(stdout).toContain("Pipeline Results");
+      expect(stdout).toContain("analyze");
+      expect(stdout).toContain("score");
+      expect(stdout).toContain("detect");
+      expect(stdout).toContain("audit");
+    });
+
+    it("should output valid JSON on run --json", async () => {
+      const { dir } = scaffoldTestProject("run-json", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("run --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("projectRoot");
+      expect(json).toHaveProperty("stages");
+      expect(json).toHaveProperty("complexity");
+      expect(json).toHaveProperty("patterns");
+      expect(json).toHaveProperty("health");
+      expect(json).toHaveProperty("duration");
+    });
+  });
+
+  // ──────────────────────────────────────────────
   // --json flag
   // ──────────────────────────────────────────────
   describe("--json flag", () => {
@@ -464,6 +530,84 @@ describe("CLI Integration Tests", () => {
     it("should handle missing directory gracefully", async () => {
       const { stdout } = await runNexus("status -d /nonexistent/path-12345");
       expect(stdout).toMatch(/not found|not initialized|Warning|opencode.json not found/);
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // Event Bus Integration
+  // ──────────────────────────────────────────────
+  describe("Event Bus Integration", () => {
+    const dirs: string[] = [];
+
+    afterEach(() => {
+      for (const d of dirs) rmSync(d, { recursive: true, force: true });
+      dirs.length = 0;
+    });
+
+    it("should publish events from status command", async () => {
+      const { dir } = scaffoldTestProject("event-status", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("status --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("projectRoot");
+    });
+
+    it("should publish events from detect command", async () => {
+      const { dir } = scaffoldTestProject("event-detect", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("detect --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("patterns");
+    });
+
+    it("should publish events from audit command", async () => {
+      const { dir } = scaffoldTestProject("event-audit", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("audit --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("healthScore");
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // Run Pipeline Integration
+  // ──────────────────────────────────────────────
+  describe("Run Pipeline Integration", () => {
+    const dirs: string[] = [];
+
+    afterEach(() => {
+      for (const d of dirs) rmSync(d, { recursive: true, force: true });
+      dirs.length = 0;
+    });
+
+    it("should run all 5 stages in pipeline", async () => {
+      const { dir } = scaffoldTestProject("pipeline-5stage", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("run --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json.stages).toHaveLength(5);
+      expect(json.stages.map((s: { stage: string }) => s.stage)).toEqual([
+        "analyze", "score", "detect", "audit", "evolve",
+      ]);
+    });
+
+    it("should produce evolution recommendations", async () => {
+      const { dir } = scaffoldTestProject("pipeline-evolve", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runNexus("run --json", dir);
+      expect(exitCode).toBe(0);
+      const json = JSON.parse(stdout);
+      expect(json).toHaveProperty("evolution");
+      expect(json.evolution).toHaveProperty("recommendations");
     });
   });
 });

@@ -13,7 +13,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { UserAnswers } from "./prompts.js";
 import type { Capability } from "./maturity-profile.js";
-import { getCapabilityMapping, type CapabilityMapping } from "./capability-mapping.js";
+import { getCapabilityMapping } from "./capability-mapping.js";
 
 const { copySync, ensureDirSync, readFileSync, writeFileSync, existsSync, readdirSync, removeSync } = fse;
 
@@ -100,7 +100,7 @@ export function scaffoldNexusSystem(
     level: "custom", // legacy compatibility
   };
 
-  const l1Dir = join(TEMPLATES_DIR, "l1");
+  const baseDir = join(TEMPLATES_DIR, "base");
 
   // Merge all directories and files from selected capabilities
   const allDirs = new Set<string>();
@@ -128,7 +128,7 @@ export function scaffoldNexusSystem(
 
   // Copy and customize files
   for (const file of allFiles) {
-    const srcPath = join(l1Dir, file.src);
+    const srcPath = join(baseDir, file.src);
     const destPath = join(targetDir, file.dest);
 
     ensureDirSync(dirname(destPath));
@@ -147,7 +147,7 @@ export function scaffoldNexusSystem(
   }
 
   // Generate opencode.json at PROJECT ROOT (always)
-  const opencodeTemplate = readFileSync(join(l1Dir, "opencode.json"), "utf-8");
+  const opencodeTemplate = readFileSync(join(baseDir, "opencode.json"), "utf-8");
   const opencodeContent = opencodeTemplate
     .replace(/\[modelo-principal\]/g, answers.principalModel.replace(/^opencode\//, ""))
     .replace(/\[modelo-executor\]/g, answers.executorModel.replace(/^opencode\//, ""));
@@ -156,7 +156,7 @@ export function scaffoldNexusSystem(
 
   // Generate ProjectProfile
   const profileTemplate = readFileSync(
-    join(l1Dir, "nexus-profile", "_template.config.ts"), "utf-8"
+    join(baseDir, "nexus-profile", "_template.config.ts"), "utf-8"
   );
   const dirName = targetDir.split(/[/\\]/).pop() || "my-project";
   const projectName = dirName.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
@@ -188,7 +188,7 @@ export function scaffoldNexusSystem(
 
   // Copy selected skills (only if knowledge capability is installed)
   if (capabilities.includes("knowledge") && allDirs.has("nexus-system/docs/skills")) {
-    const skillsDir = join(l1Dir, "docs/skills");
+    const skillsDir = join(baseDir, "docs/skills");
     const selectedSkills = selectSkills(capabilities);
     for (const skill of selectedSkills) {
       const srcPath = join(skillsDir, `${skill}.md`);

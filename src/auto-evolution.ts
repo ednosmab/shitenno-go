@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { consolidateState, type NexusState } from "./state-manager.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
 import { CAPABILITIES } from "./maturity-profile.js";
+import { getAllFeedbackSummaries, adjustConfidence, shouldSuppress, type FeedbackSummary } from "./feedback-loops.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,8 @@ export interface EvolutionRecommendation {
   confidence: number;
   /** Evidência que suporta a recomendação. */
   evidence: string[];
+  /** Se a confiança foi ajustada por feedback. */
+  feedbackAdjusted: boolean;
 }
 
 /** Resultado da análise de evolução. */
@@ -105,6 +108,7 @@ function generateCapabilityRecommendations(state: NexusState): EvolutionRecommen
       dependencies: capInfo.requires.map((r) => `capability:${r}`),
       confidence: 0.8,
       evidence: [`Maturity profile recommends this capability`],
+      feedbackAdjusted: false,
     });
   }
 
@@ -132,6 +136,7 @@ function generateKnowledgeRecommendations(
       dependencies: [],
       confidence: 0.9,
       evidence: ["No ADRs in project", "Project has source files indicating decisions were made"],
+      feedbackAdjusted: false,
     });
   }
 
@@ -149,6 +154,7 @@ function generateKnowledgeRecommendations(
       dependencies: [],
       confidence: 0.7,
       evidence: [`${state.knowledge.adrs.length} ADRs, 0 skills`],
+      feedbackAdjusted: false,
     });
   }
 
@@ -168,6 +174,7 @@ function generateKnowledgeRecommendations(
         dependencies: [],
         confidence: 0.95,
         evidence: criticalGaps.map((g) => g.description),
+        feedbackAdjusted: false,
       });
     }
   }
@@ -194,6 +201,7 @@ function generateGovernanceRecommendations(state: NexusState): EvolutionRecommen
       dependencies: ["capability:governance"],
       confidence: 0.85,
       evidence: ["Governance capability installed", "No WORKFLOW.md"],
+      feedbackAdjusted: false,
     });
   }
 
@@ -212,6 +220,7 @@ function generateGovernanceRecommendations(state: NexusState): EvolutionRecommen
       dependencies: [],
       confidence: 0.6,
       evidence: ["No SYSTEM_MAP.md found"],
+      feedbackAdjusted: false,
     });
   }
 
@@ -235,6 +244,7 @@ function generateAutomationRecommendations(state: NexusState): EvolutionRecommen
       dependencies: [],
       confidence: 0.7,
       evidence: [`${state.knowledge.scripts.length} scripts, ${state.project.projectInfo.sourceFileCount} source files`],
+      feedbackAdjusted: false,
     });
   }
 
@@ -258,12 +268,43 @@ export function analyzeEvolution(
   }
 
   // Generate all recommendations
-  const recommendations: EvolutionRecommendation[] = [
+  const allRecommendations: EvolutionRecommendation[] = [
     ...generateCapabilityRecommendations(state),
     ...generateKnowledgeRecommendations(state, debtReport),
     ...generateGovernanceRecommendations(state),
     ...generateAutomationRecommendations(state),
   ];
+
+  // Load feedback and adjust confidence
+  const feedbackSummaries = getAllFeedbackSummaries(nexusDir);
+  let suppressedCount = 0;
+
+  for (const rec of allRecommendations) {
+    const summary = feedbackSummaries[rec.id] as FeedbackSummary | undefined;
+
+    if (summary) {
+      // Suppress if rejected too many times
+      if (shouldSuppress(summary)) {
+        rec.confidence = 0;
+        rec.feedbackAdjusted = true;
+        suppressedCount++;
+        continue;
+      }
+
+      // Adjust confidence based on feedback
+      if (summary.acceptCount > 0) {
+        rec.confidence = adjustConfidence(rec.confidence, "accepted");
+        rec.feedbackAdjusted = true;
+      }
+      if (summary.rejectCount > 0) {
+        rec.confidence = adjustConfidence(rec.confidence, "rejected");
+        rec.feedbackAdjusted = true;
+      }
+    }
+  }
+
+  // Filter out suppressed recommendations
+  const recommendations = allRecommendations.filter((r) => r.confidence > 0);
 
   // Sort by priority
   const priorityOrder: Record<RecommendationPriority, number> = {
@@ -293,6 +334,7 @@ export function analyzeEvolution(
   parts.push(`${recommendations.length} recommendation(s).`);
   if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
   if (byPriority.high) parts.push(`${byPriority.high} high.`);
+  if (suppressedCount > 0) parts.push(`${suppressedCount} suppressed by feedback.`);
   parts.push(`Maturity: ${state.project.maturity?.overallScore || 0}/100.`);
   parts.push(`Debt: ${debtReport?.healthScore || 100}/100.`);
 

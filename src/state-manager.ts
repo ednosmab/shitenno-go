@@ -11,6 +11,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import YAML from "yaml";
 import { analyseProject } from "./analyser.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -326,69 +327,45 @@ export function readSessionMemory(nexusDir: string): SessionMemory {
 
   try {
     const content = readFileSync(bufferPath, "utf-8");
+    const parsed = YAML.parse(content);
 
-    // Parse simple YAML fields
-    const sessionMatch = content.match(/session:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (sessionMatch) {
-      const sessionBlock = sessionMatch[1];
-      const idMatch = sessionBlock.match(/id:\s*"?([^"\n]+)"?/);
-      const branchMatch = sessionBlock.match(/branch:\s*"?([^"\n]+)"?/);
-      const typeMatch = sessionBlock.match(/operation_type:\s*"?([^"\n]+)"?/);
-      memory.sessionId = idMatch ? idMatch[1].trim() : null;
-      memory.branch = branchMatch ? branchMatch[1].trim() : null;
-      memory.operationType = typeMatch ? typeMatch[1].trim() : null;
-    }
+    if (parsed && typeof parsed === "object") {
+      // Session
+      if (parsed.session && typeof parsed.session === "object") {
+        memory.sessionId = parsed.session.id || null;
+        memory.branch = parsed.session.branch || null;
+        memory.operationType = parsed.session.operation_type || null;
+      }
 
-    // Current task
-    const taskMatch = content.match(/current_task:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (taskMatch) {
-      const taskBlock = taskMatch[1];
-      const idMatch = taskBlock.match(/id:\s*"?([^"\n]+)"?/);
-      const typeMatch = taskBlock.match(/type:\s*"?([^"\n]+)"?/);
-      const descMatch = taskBlock.match(/description:\s*"?([^"\n]+)"?/);
-      const statusMatch = taskBlock.match(/status:\s*"?([^"\n]+)"?/);
-      memory.currentTask = {
-        id: idMatch ? idMatch[1].trim() : null,
-        type: typeMatch ? typeMatch[1].trim() : null,
-        description: descMatch ? descMatch[1].trim() : null,
-        status: statusMatch ? statusMatch[1].trim() : null,
-      };
-    }
+      // Current task
+      if (parsed.current_task && typeof parsed.current_task === "object") {
+        memory.currentTask = {
+          id: parsed.current_task.id || null,
+          type: parsed.current_task.type || null,
+          description: parsed.current_task.description || null,
+          status: parsed.current_task.status || null,
+        };
+      }
 
-    // Reminders
-    const remindersMatch = content.match(/reminders:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (remindersMatch) {
-      memory.reminders = remindersMatch[1]
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"))
-        .map((l) => l.replace(/^-\s*"?/, "").replace(/"?$/, "").trim());
-    }
+      // Reminders
+      if (Array.isArray(parsed.reminders)) {
+        memory.reminders = parsed.reminders.map(String);
+      }
 
-    // Next steps
-    const nextMatch = content.match(/next_steps:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (nextMatch) {
-      memory.nextSteps = nextMatch[1]
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"))
-        .map((l) => l.replace(/^-\s*"?/, "").replace(/"?$/, "").trim());
-    }
+      // Next steps
+      if (Array.isArray(parsed.next_steps)) {
+        memory.nextSteps = parsed.next_steps.map(String);
+      }
 
-    // Blockers
-    const blockersMatch = content.match(/blockers:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (blockersMatch) {
-      memory.blockers = blockersMatch[1]
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"))
-        .map((l) => l.replace(/^-\s*"?/, "").replace(/"?$/, "").trim());
-    }
+      // Blockers
+      if (Array.isArray(parsed.blockers)) {
+        memory.blockers = parsed.blockers.map(String);
+      }
 
-    // Documents loaded
-    const docsMatch = content.match(/documents_loaded:\s*\n([\s\S]*?)(?=\n\w|\n$)/);
-    if (docsMatch) {
-      memory.documentsLoaded = docsMatch[1]
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"))
-        .map((l) => l.replace(/^-\s*"?/, "").replace(/"?$/, "").trim());
+      // Documents loaded
+      if (Array.isArray(parsed.documents_loaded)) {
+        memory.documentsLoaded = parsed.documents_loaded.map(String);
+      }
     }
   } catch {
     // skip

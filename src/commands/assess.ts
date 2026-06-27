@@ -6,13 +6,10 @@
  */
 
 import { Command } from "commander";
-import { existsSync } from "node:fs";
-import { resolve, join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { analyseProject } from "../analyser.js";
 import { askQuestions } from "../prompts.js";
-import { detectNexusProject } from "../utils.js";
 import {
   calculateMaturityProfile,
   saveMaturityProfile,
@@ -22,6 +19,9 @@ import {
   type MaturityProfile,
 } from "../maturity-profile.js";
 import { outputJson, healthBar } from "../formatting.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { getEventBus } from "../event-bus.js";
+import { recordFeedback } from "../feedback-loops.js";
 
 function displayDimensionBar(label: string, value: number, prev?: number): void {
   const barWidth = 20;
@@ -82,47 +82,17 @@ export const assessCommand = new Command("assess")
       console.log("");
     }
 
-    // Find project
-    let projectRoot: string;
-    let nexusDir: string;
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
 
-    if (options.dir) {
-      projectRoot = resolve(options.dir);
-      nexusDir = join(projectRoot, "nexus-system");
-    } else {
-      const detected = detectNexusProject(process.cwd());
-      if (!detected) {
-        if (isJson) {
-          outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
-        } else {
-          console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-          console.log(chalk.gray("  Run 'nexus init' first."));
-          console.log("");
-        }
-        return;
-      }
-      projectRoot = detected.root;
-      nexusDir = detected.nexusDir;
-    }
-
-    // Check initialization
-    if (!existsSync(resolve(projectRoot, "opencode.json"))) {
-      if (isJson) {
-        outputJson({ error: "not_initialized", message: "Run 'nexus init' first." });
-      } else {
-        console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' first."));
-        console.log("");
-      }
-      return;
-    }
+    if (!checkLifecycleGate("assess", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     // Load previous profile
-    const previousProfile = loadMaturityProfile(nexusDir);
+    const previousProfile = loadMaturityProfile(ctx.nexusDir);
 
     // Analyse project
     const analyseSpinner = ora("Analysing project...").start();
-    const analysis = analyseProject(projectRoot);
+    const analysis = analyseProject(ctx.projectRoot);
     analyseSpinner.succeed("Project analysis complete");
 
     let newProfile: MaturityProfile;
@@ -152,7 +122,7 @@ export const assessCommand = new Command("assess")
           hasReviewProcess: previousProfile.dimensions.governance > 40,
           hasDecisionControl: previousProfile.dimensions.governance > 50,
         };
-        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, nexusDir);
+        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, ctx.nexusDir);
       } else {
         // No previous profile — use neutral defaults based on analysis
         const syntheticAnswers = {
@@ -174,7 +144,7 @@ export const assessCommand = new Command("assess")
           hasReviewProcess: false,
           hasDecisionControl: false,
         };
-        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, nexusDir);
+        newProfile = calculateMaturityProfile(syntheticAnswers, analysis, ctx.nexusDir);
       }
       calcSpinner.succeed("Maturity profile calculated");
     } else {
@@ -183,23 +153,45 @@ export const assessCommand = new Command("assess")
       console.log("");
       const answers = await askQuestions(analysis);
       const calcSpinner = ora("Calculating maturity profile...").start();
-      newProfile = calculateMaturityProfile(answers.maturity, analysis, nexusDir);
+      newProfile = calculateMaturityProfile(answers.maturity, analysis, ctx.nexusDir);
       calcSpinner.succeed("Maturity profile calculated");
     }
 
     // Save and record
-    saveMaturityProfile(nexusDir, newProfile);
-    recordMaturitySnapshot(nexusDir, newProfile);
+    saveMaturityProfile(ctx.nexusDir, newProfile);
+    recordMaturitySnapshot(ctx.nexusDir, newProfile);
 
     // Calculate delta
     const scoreDelta = previousProfile
       ? newProfile.overallScore - previousProfile.overallScore
       : undefined;
 
+    // Publish event
+    getEventBus().publish("maturity.changed", {
+      projectRoot: ctx.projectRoot,
+      previousScore: previousProfile?.overallScore,
+      newScore: newProfile.overallScore,
+      scoreDelta,
+      recommendedCapabilities: newProfile.recommendedCapabilities,
+    });
+
+    // Record feedback for recommended capabilities
+    for (const cap of newProfile.recommendedCapabilities) {
+      recordFeedback(ctx.nexusDir, {
+        recommendationId: `cap-${cap}`,
+        action: "deferred",
+        context: {
+          maturityScore: newProfile.overallScore,
+          installedCapabilities: newProfile.installedCapabilities,
+          knowledgeDebt: 0,
+        },
+      });
+    }
+
     // JSON output
     if (isJson) {
       outputJson({
-        projectRoot,
+        projectRoot: ctx.projectRoot,
         previousScore: previousProfile?.overallScore,
         newProfile: {
           dimensions: newProfile.dimensions,
@@ -286,7 +278,7 @@ export const assessCommand = new Command("assess")
     }
 
     // Evolution
-    const history = readMaturityHistory(nexusDir);
+    const history = readMaturityHistory(ctx.nexusDir);
     displayEvolution(history);
 
     // Summary
