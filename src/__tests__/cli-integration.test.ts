@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { scaffoldNexusSystem, type ScaffoldResult } from "../scaffolder.js";
 import type { UserAnswers } from "../prompts.js";
+import type { Capability } from "../maturity-profile.js";
 
 const execAsync = promisify(exec);
 
@@ -62,16 +63,28 @@ function scaffoldTestProject(
     'console.log("hello");'
   );
 
+  const maturityByLevel: Record<string, object> = {
+    junior: { usedNexusBefore: false, isFirstProject: false, projectAge: "new", teamSize: "solo", hasDedicatedTeam: false, hasArchitectureDocs: false, hasADRs: false, hasTechnicalReviews: false, hasCICD: false, hasAutomatedTests: false, hasValidationPipeline: false, intendsToUseAI: false, aiWillImplement: false, requiresHumanReview: false, hasDefinedPatterns: false, hasReviewProcess: false, hasDecisionControl: false },
+    pleno: { usedNexusBefore: false, isFirstProject: false, projectAge: "established", teamSize: "small", hasDedicatedTeam: false, hasArchitectureDocs: false, hasADRs: false, hasTechnicalReviews: false, hasCICD: true, hasAutomatedTests: true, hasValidationPipeline: false, intendsToUseAI: true, aiWillImplement: true, requiresHumanReview: true, hasDefinedPatterns: false, hasReviewProcess: false, hasDecisionControl: false },
+    senior: { usedNexusBefore: true, isFirstProject: false, projectAge: "mature", teamSize: "medium", hasDedicatedTeam: true, hasArchitectureDocs: true, hasADRs: true, hasTechnicalReviews: true, hasCICD: true, hasAutomatedTests: true, hasValidationPipeline: true, intendsToUseAI: true, aiWillImplement: true, requiresHumanReview: true, hasDefinedPatterns: true, hasReviewProcess: true, hasDecisionControl: true },
+  };
+
+  const capsByLevel: Record<string, Capability[]> = {
+    junior: ["core", "knowledge"],
+    pleno: ["core", "knowledge", "governance"],
+    senior: ["core", "knowledge", "architecture", "governance", "ai", "quality", "metrics", "operations", "compliance"],
+  };
+
   const answers: UserAnswers = {
     principalModel: "opencode/mimo-v2.5-free",
     executorModel: "opencode/deepseek-v4-flash-free",
     stack: ["react", "typescript"],
     database: "PostgreSQL",
     styling: "Tailwind CSS",
-    teamLevel: level,
+    maturity: maturityByLevel[level] as UserAnswers["maturity"],
   };
 
-  const result = scaffoldNexusSystem(dir, answers);
+  const result = scaffoldNexusSystem(dir, answers, capsByLevel[level]);
   return { dir, result };
 }
 
@@ -317,24 +330,24 @@ describe("CLI Integration Tests", () => {
 
       const { stdout, exitCode } = await runNexus("upgrade --list", dir);
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("Available upgrades");
-      expect(stdout).toContain("Current level");
+      expect(stdout).toContain("Capabilities Status");
     });
 
-    it("should detect current level correctly", async () => {
+    it("should detect installed capabilities", async () => {
       const { dir } = scaffoldTestProject("upgrade-level", "junior");
       dirs.push(dir);
 
       const { stdout } = await runNexus("upgrade --list", dir);
-      expect(stdout).toMatch(/Current level:\s*\n\s*(JUNIOR|PLENO)/i);
+      expect(stdout).toContain("Core");
+      expect(stdout).toContain("Knowledge");
     });
 
-    it("should show available target levels for a pleno project", async () => {
+    it("should show more capabilities for pleno project", async () => {
       const { dir } = scaffoldTestProject("upgrade-pleno", "pleno");
       dirs.push(dir);
 
       const { stdout } = await runNexus("upgrade --list", dir);
-      expect(stdout).toMatch(/Current level:\s*\n\s*PLENO/i);
+      expect(stdout).toContain("Governance");
     });
   });
 

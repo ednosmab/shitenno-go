@@ -9,6 +9,7 @@ import { validateCommand } from "../src/commands/validate.js";
 import { detectCommand } from "../src/commands/detect.js";
 import { auditCommand } from "../src/commands/audit.js";
 import { cleanCommand } from "../src/commands/clean.js";
+import { assessCommand } from "../src/commands/assess.js";
 
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -29,5 +30,6 @@ program.addCommand(validateCommand);
 program.addCommand(detectCommand);
 program.addCommand(auditCommand);
 program.addCommand(cleanCommand);
+program.addCommand(assessCommand);
 
 program.parse();

@@ -8,6 +8,7 @@ import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { detectNexusProject } from "../utils.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, miniBar, outputJson, statusIcon } from "../formatting.js";
+import { loadMaturityProfile, detectInstalledCapabilities, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
 
 interface StatusCheck {
   name: string;
@@ -103,6 +104,10 @@ export const statusCommand = new Command("status")
     // Write report to reports/
     const reportFile = writeComplexityReport(projectRoot, nexusDir, complexity);
 
+    // Load maturity profile
+    const maturityProfile = loadMaturityProfile(nexusDir);
+    const installedCapabilities = detectInstalledCapabilities(nexusDir);
+
     // JSON output
     if (isJson) {
       outputJson({
@@ -117,6 +122,13 @@ export const statusCommand = new Command("status")
           suggestions: complexity.suggestions,
           areaScores: complexity.areaScores,
         },
+        maturity: maturityProfile ? {
+          overallScore: maturityProfile.overallScore,
+          dimensions: maturityProfile.dimensions,
+          installedCapabilities: maturityProfile.installedCapabilities,
+          recommendedCapabilities: maturityProfile.recommendedCapabilities,
+        } : null,
+        installedCapabilities,
         analysis: {
           packageCount: analysis.packageCount,
           appCount: analysis.appCount,
@@ -139,6 +151,7 @@ export const statusCommand = new Command("status")
     console.log("");
 
     displayResults(checks);
+    displayMaturityProfile(maturityProfile, installedCapabilities);
     displayComplexityReport(complexity, analysis);
 
     if (cacheHit) {
@@ -370,6 +383,65 @@ function displayResults(checks: StatusCheck[]): void {
   }
 
   console.log("");
+}
+
+function displayMaturityProfile(
+  profile: MaturityProfile | null,
+  installedCapabilities: string[]
+): void {
+  console.log(chalk.bold("  🎯 Maturity Profile:"));
+  console.log("");
+
+  if (!profile) {
+    console.log(chalk.gray("    No maturity profile found. Run 'nexus init' to create one."));
+    console.log("");
+    return;
+  }
+
+  // Overall score
+  const color = profile.overallScore >= 65 ? chalk.green : profile.overallScore >= 35 ? chalk.yellow : chalk.red;
+  console.log(`    Overall Score: ${color(String(profile.overallScore))}/100 ${healthBar(profile.overallScore, 100)}`);
+  console.log("");
+
+  // Dimensions
+  const dimLabels: Record<string, string> = {
+    architecture: "Arquitetura",
+    governance: "Governança",
+    quality: "Qualidade",
+    automation: "Automação",
+    ai: "IA",
+    documentation: "Documentação",
+    observability: "Observabilidade",
+  };
+
+  const barWidth = 16;
+  for (const [key, label] of Object.entries(dimLabels)) {
+    const value = profile.dimensions[key as keyof typeof profile.dimensions];
+    const filled = Math.round((value / 100) * barWidth);
+    const empty = barWidth - filled;
+    const dimColor = value >= 65 ? chalk.green : value >= 35 ? chalk.yellow : chalk.red;
+    const bar = dimColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
+    console.log(`    ${label.padEnd(16)} ${bar} ${String(value).padStart(3)}%`);
+  }
+  console.log("");
+
+  // Capabilities
+  console.log(chalk.bold("    Installed Capabilities:"));
+  for (const cap of installedCapabilities) {
+    const info = CAPABILITIES.find((c) => c.id === cap);
+    console.log(chalk.green(`      ✓ ${info?.name || cap}`));
+  }
+  console.log("");
+
+  // Recommendations
+  if (profile.recommendedCapabilities.length > 0) {
+    console.log(chalk.bold("    🎯 Recommended:"));
+    for (const cap of profile.recommendedCapabilities) {
+      const info = CAPABILITIES.find((c) => c.id === cap);
+      console.log(chalk.cyan(`      → ${info?.name || cap}`));
+    }
+    console.log("");
+  }
 }
 
 function displayComplexityReport(

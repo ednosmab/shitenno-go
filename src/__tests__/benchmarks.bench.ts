@@ -17,6 +17,7 @@ import { detectPatterns } from "../pattern-detector.js";
 import { auditHealth } from "../health-auditor.js";
 import { analyseProject } from "../analyser.js";
 import type { UserAnswers } from "../prompts.js";
+import type { Capability } from "../maturity-profile.js";
 
 // ── Fixture Generators ──────────────────────────────────────────────────────
 
@@ -32,8 +33,16 @@ const BASE_ANSWERS: UserAnswers = {
   stack: ["react", "typescript"],
   database: "PostgreSQL",
   styling: "Tailwind CSS",
-  teamLevel: "senior",
+  maturity: {
+    usedNexusBefore: true, isFirstProject: false, projectAge: "mature", teamSize: "medium",
+    hasDedicatedTeam: true, hasArchitectureDocs: true, hasADRs: true, hasTechnicalReviews: true,
+    hasCICD: true, hasAutomatedTests: true, hasValidationPipeline: true,
+    intendsToUseAI: true, aiWillImplement: true, requiresHumanReview: true,
+    hasDefinedPatterns: true, hasReviewProcess: true, hasDecisionControl: true,
+  },
 };
+
+const SENIOR_CAPS: Capability[] = ["core", "knowledge", "architecture", "governance", "ai", "quality", "metrics", "operations", "compliance"];
 
 /**
  * Creates a synthetic project fixture with the specified number of
@@ -89,7 +98,7 @@ function createFixture(
   }
 
   // Scaffold nexus-system
-  const result = scaffoldNexusSystem(dir, BASE_ANSWERS);
+  const result = scaffoldNexusSystem(dir, BASE_ANSWERS, SENIOR_CAPS);
   const nexusDir = join(dir, "nexus-system");
 
   // Create history entries

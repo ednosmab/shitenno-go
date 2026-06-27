@@ -1,3 +1,10 @@
+/**
+ * upgrade.ts — Capability-based Upgrade
+ *
+ * Substitui o upgrade por níveis (L1→L2→L3) por upgrade por capacidades.
+ * O usuário pode adicionar capacidades individuais ou aceitar recomendações.
+ */
+
 import { Command } from "commander";
 import { existsSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
@@ -7,92 +14,14 @@ import ora from "ora";
 import fse from "fs-extra";
 import { invalidateCache } from "../cache.js";
 import { outputJson } from "../formatting.js";
+import {
+  CAPABILITIES,
+  detectInstalledCapabilities,
+  loadMaturityProfile,
+  type Capability,
+} from "../maturity-profile.js";
 
 const { copySync, ensureDirSync } = fse;
-
-const LEVEL_ORDER = ["junior", "pleno", "senior"];
-
-interface LevelUpgrade {
-  level: string;
-  name: string;
-  description: string;
-  directories: string[];
-  files: Array<{ src: string; dest: string }>;
-}
-
-const LEVEL_UPGRADES: LevelUpgrade[] = [
-  {
-    level: "pleno",
-    name: "L2 (Intermediária)",
-    description: "Governança completa para equipas pleno",
-    directories: [
-      "nexus-system/governance",
-      "nexus-system/governance/context",
-      "nexus-system/governance/agents",
-    ],
-    files: [
-      { src: "governance/context/context_buffer.yaml", dest: "nexus-system/governance/context/context_buffer.yaml" },
-    ],
-  },
-  {
-    level: "senior",
-    name: "L3 (Completa)",
-    description: "Governança completa para equipas senior",
-    directories: [
-      "nexus-system/cognition",
-      "nexus-system/cognition/context",
-      "nexus-system/cognition/memory",
-      "nexus-system/cognition/prompts",
-      "nexus-system/governance/contracts",
-      "nexus-system/governance/handoffs",
-      "nexus-system/governance/policies",
-      "nexus-system/governance/premortem",
-      "nexus-system/governance/reviews",
-      "nexus-system/docs/adrs",
-      "nexus-system/docs/feedback",
-      "nexus-system/docs/history",
-      "nexus-system/docs/layers",
-      "nexus-system/docs/plans",
-      "nexus-system/docs/roadmaps",
-      "nexus-system/docs/sdr",
-      "nexus-system/reports",
-    ],
-    files: [
-      { src: "cognition/context/CONTEXT_HIERARCHY.md", dest: "nexus-system/cognition/context/CONTEXT_HIERARCHY.md" },
-      { src: "cognition/memory/MEM-operational-state-v1.json", dest: "nexus-system/cognition/memory/MEM-operational-state-v1.json" },
-      { src: "cognition/prompts/executor/README.md", dest: "nexus-system/cognition/prompts/executor/README.md" },
-      { src: "cognition/prompts/planner/README.md", dest: "nexus-system/cognition/prompts/planner/README.md" },
-      { src: "cognition/prompts/reviewer/README.md", dest: "nexus-system/cognition/prompts/reviewer/README.md" },
-      { src: "governance/contracts/CONTRACTS_INDEX.md", dest: "nexus-system/governance/contracts/CONTRACTS_INDEX.md" },
-      { src: "governance/handoffs/TEMPLATE.md", dest: "nexus-system/governance/handoffs/TEMPLATE.md" },
-      { src: "governance/premortem/PREMORTEM.md", dest: "nexus-system/governance/premortem/PREMORTEM.md" },
-      { src: "governance/reviews/SESSION_REVIEW.md", dest: "nexus-system/governance/reviews/SESSION_REVIEW.md" },
-      { src: "docs/adrs/ADR-TEMPLATE.md", dest: "nexus-system/docs/adrs/ADR-TEMPLATE.md" },
-      { src: "docs/sdr/SDR-TEMPLATE.md", dest: "nexus-system/docs/sdr/SDR-TEMPLATE.md" },
-      { src: "docs/plans/TEMPLATE.md", dest: "nexus-system/docs/plans/TEMPLATE.md" },
-      { src: "docs/session-template.md", dest: "nexus-system/docs/session-template.md" },
-      { src: "docs/runbooks/merge.md", dest: "nexus-system/docs/runbooks/merge.md" },
-      { src: "docs/reports/README.md", dest: "nexus-system/reports/README.md" },
-    ],
-  },
-];
-
-function getCurrentLevel(targetDir: string): string {
-  const nexusDir = join(targetDir, "nexus-system");
-
-  // Check for L3 indicators (cognition)
-  if (existsSync(join(nexusDir, "cognition"))) {
-    return "senior";
-  }
-
-  // Check for L2 indicators (governance)
-  if (existsSync(join(nexusDir, "governance"))) {
-    return "pleno";
-  }
-
-  // Default to L1
-  return "junior";
-}
 
 function getTemplatesDir(): string {
   const __filename = fileURLToPath(import.meta.url);
@@ -101,20 +30,22 @@ function getTemplatesDir(): string {
 }
 
 export const upgradeCommand = new Command("upgrade")
-  .description("Upgrade governance level")
+  .description("Add capabilities to your governance framework")
   .option("-d, --dir <path>", "Project root directory (default: current)")
-  .option("-l, --level <level>", "Target level (junior, pleno, senior)")
-  .option("--list", "List available upgrades")
+  .option("-c, --capability <cap>", "Capability to add (knowledge, architecture, governance, ai, quality, metrics, operations, compliance)")
+  .option("--list", "List all capabilities and their status")
+  .option("--accept-recommended", "Install all recommended capabilities from maturity profile")
   .option("--json", "Output results as JSON")
   .action(async (options) => {
     const targetDir = resolve(options.dir || ".");
     const isJson = options.json === true;
+    const nexusDir = join(targetDir, "nexus-system");
 
     if (!isJson) {
       console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║     nexus upgrade — Add Governance  ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║  nexus upgrade — Add Capabilities        ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
       console.log("");
     }
 
@@ -130,182 +61,262 @@ export const upgradeCommand = new Command("upgrade")
       return;
     }
 
-    const currentLevel = getCurrentLevel(targetDir);
+    const installed = detectInstalledCapabilities(nexusDir);
 
-    // List available upgrades
+    // List capabilities
     if (options.list) {
       if (isJson) {
-        const upgrades = LEVEL_UPGRADES.map((u) => ({
-          level: u.level,
-          name: u.name,
-          description: u.description,
-          status: currentLevel === u.level ? "current" : LEVEL_ORDER.indexOf(u.level) > LEVEL_ORDER.indexOf(currentLevel) ? "available" : "not_available",
+        const capabilities = CAPABILITIES.map((cap) => ({
+          id: cap.id,
+          name: cap.name,
+          description: cap.description,
+          status: installed.includes(cap.id) ? "installed" : "available",
+          alwaysInstalled: cap.alwaysInstalled,
         }));
-        outputJson({ projectRoot: targetDir, currentLevel, upgrades });
+        outputJson({ projectRoot: targetDir, installed, capabilities });
       } else {
-        displayUpgradeOptions(targetDir, currentLevel);
+        displayCapabilityStatus(installed);
       }
       return;
     }
 
-    // Determine target level
-    let targetLevel = options.level;
+    // Accept recommended capabilities
+    if (options.acceptRecommended) {
+      const profile = loadMaturityProfile(nexusDir);
+      if (!profile) {
+        if (isJson) {
+          outputJson({ error: "no_profile", message: "No maturity profile found. Run 'nexus init' first." });
+        } else {
+          console.log(chalk.yellow("  ⚠ No maturity profile found."));
+          console.log(chalk.gray("  Run 'nexus init' first to create a maturity profile."));
+          console.log("");
+        }
+        return;
+      }
 
-    if (!targetLevel) {
+      const toInstall = profile.recommendedCapabilities.filter(
+        (cap) => !installed.includes(cap)
+      );
+
+      if (toInstall.length === 0) {
+        if (isJson) {
+          outputJson({ message: "All recommended capabilities already installed", installed });
+        } else {
+          console.log(chalk.green("  ✔ All recommended capabilities are already installed!"));
+          console.log("");
+        }
+        return;
+      }
+
+      const spinner = ora(`Installing ${toInstall.length} capability(ies)...`).start();
+      const result = installCapabilities(targetDir, toInstall);
+      spinner.succeed(`Installed ${result.filesInstalled} file(s) in ${result.directoriesCreated} directory(ies)`);
+
+      invalidateCache(targetDir);
+
+      if (isJson) {
+        outputJson({ installed: toInstall, filesInstalled: result.filesInstalled, directoriesCreated: result.directoriesCreated });
+      } else {
+        console.log("");
+        console.log(chalk.green("  ✔ Capabilities installed!"));
+        console.log("");
+        for (const cap of toInstall) {
+          const info = CAPABILITIES.find((c) => c.id === cap);
+          console.log(chalk.cyan(`    ✓ ${info?.name || cap}`));
+        }
+        console.log("");
+      }
+      return;
+    }
+
+    // Install specific capability
+    let targetCapability = options.capability;
+
+    if (!targetCapability) {
       // Interactive selection
+      const available = CAPABILITIES.filter(
+        (cap) => !cap.alwaysInstalled && !installed.includes(cap.id)
+      );
+
+      if (available.length === 0) {
+        if (isJson) {
+          outputJson({ message: "All capabilities already installed", installed });
+        } else {
+          console.log(chalk.green("  ✔ All capabilities are already installed!"));
+          console.log("");
+        }
+        return;
+      }
+
       const { select } = await import("inquirer").then((mod) =>
         mod.default.prompt([
           {
             type: "list",
             name: "select",
-            message: "Select target governance level:",
-            choices: LEVEL_UPGRADES
-              .filter((upgrade) => {
-                // Only show levels higher than current
-                return LEVEL_ORDER.indexOf(upgrade.level) > LEVEL_ORDER.indexOf(currentLevel);
-              })
-              .map((upgrade) => ({
-                name: `${upgrade.name} - ${upgrade.description}`,
-                value: upgrade.level,
-              })),
+            message: "Select capability to add:",
+            choices: available.map((cap) => ({
+              name: `${cap.name} — ${cap.description}`,
+              value: cap.id,
+            })),
           },
         ])
       );
-      targetLevel = select;
+      targetCapability = select;
     }
 
-    // Validate target level
-    const upgrade = LEVEL_UPGRADES.find((u) => u.level === targetLevel);
-    if (!upgrade) {
+    // Validate capability
+    const capInfo = CAPABILITIES.find((c) => c.id === targetCapability);
+    if (!capInfo) {
       if (isJson) {
-        outputJson({ error: "invalid_level", message: `Invalid level: ${targetLevel}. Valid: junior, pleno, senior` });
+        outputJson({ error: "invalid_capability", message: `Invalid capability: ${targetCapability}. Valid: ${CAPABILITIES.map((c) => c.id).join(", ")}` });
       } else {
-        console.log(chalk.red(`  ✘ Invalid level: ${targetLevel}. Valid levels: junior, pleno, senior`));
+        console.log(chalk.red(`  ✘ Invalid capability: ${targetCapability}`));
+        console.log(chalk.gray(`  Valid: ${CAPABILITIES.map((c) => c.id).join(", ")}`));
       }
       process.exit(1);
     }
 
-    // Check if already at this level
-    if (currentLevel === targetLevel) {
+    // Check if already installed
+    if (installed.includes(targetCapability as Capability)) {
       if (isJson) {
-        outputJson({ error: "already_at_level", message: `Already at ${upgrade.name} level.`, currentLevel });
+        outputJson({ error: "already_installed", message: `Capability '${targetCapability}' is already installed.`, installed });
       } else {
-        console.log(chalk.yellow(`  ⚠ Already at ${upgrade.name} level.`));
+        console.log(chalk.yellow(`  ⚠ Capability '${capInfo.name}' is already installed.`));
         console.log("");
       }
       return;
     }
 
-    // Check if trying to downgrade
-    if (LEVEL_ORDER.indexOf(targetLevel) < LEVEL_ORDER.indexOf(currentLevel)) {
+    // Check dependencies
+    const depsMet = capInfo.requires.every((req) => installed.includes(req));
+    if (!depsMet) {
+      const missing = capInfo.requires.filter((req) => !installed.includes(req));
       if (isJson) {
-        outputJson({ error: "downgrade_not_allowed", message: `Cannot downgrade from ${currentLevel} to ${targetLevel}.` });
+        outputJson({ error: "missing_dependencies", message: `Missing dependencies: ${missing.join(", ")}`, missing });
       } else {
-        console.log(chalk.red(`  ✘ Cannot downgrade from ${currentLevel} to ${targetLevel}.`));
-        console.log("");
+        console.log(chalk.red(`  ✘ Missing dependencies: ${missing.join(", ")}`));
+        console.log(chalk.gray("  Install these capabilities first."));
       }
-      return;
+      process.exit(1);
     }
 
-    // Install upgrade
-    const spinner = ora(`Upgrading to ${upgrade.name}...`).start();
-
+    // Install
+    const spinner = ora(`Installing ${capInfo.name}...`).start();
     try {
-      const templatesDir = getTemplatesDir();
-      let directoriesCreated = 0;
-      let filesInstalled = 0;
+      const result = installCapabilities(targetDir, [targetCapability as Capability]);
+      spinner.succeed(`Installed ${capInfo.name}`);
 
-      // Create directories
-      for (const dir of upgrade.directories) {
-        const fullPath = join(targetDir, dir);
-        if (!existsSync(fullPath)) {
-          ensureDirSync(fullPath);
-          directoriesCreated++;
-        }
-      }
-
-      // Copy files
-      for (const file of upgrade.files) {
-        const srcPath = join(templatesDir, file.src);
-        const destPath = join(targetDir, file.dest);
-
-        if (existsSync(destPath)) {
-          continue; // Skip existing files
-        }
-
-        if (!existsSync(srcPath)) {
-          continue; // Skip if template not found
-        }
-
-        ensureDirSync(resolve(destPath, ".."));
-        copySync(srcPath, destPath);
-        filesInstalled++;
-      }
-
-      spinner.succeed(`Upgraded to ${upgrade.name}`);
-
-      // Invalidate cache since project structure changed
       invalidateCache(targetDir);
 
       if (isJson) {
-        outputJson({
-          currentLevel,
-          targetLevel: upgrade.level,
-          levelName: upgrade.name,
-          directoriesCreated,
-          filesInstalled,
-        });
+        outputJson({ capability: targetCapability, filesInstalled: result.filesInstalled, directoriesCreated: result.directoriesCreated });
       } else {
         console.log("");
-        console.log(chalk.green("  ✔ Upgrade complete!"));
+        console.log(chalk.green("  ✔ Capability installed!"));
         console.log("");
         console.log(chalk.bold("  Changes:"));
-        console.log(chalk.gray(`    Directories created: ${directoriesCreated}`));
-        console.log(chalk.gray(`    Files installed: ${filesInstalled}`));
-        console.log("");
-        console.log(chalk.bold("  Next steps:"));
-        console.log(chalk.gray("    1. Review the new governance files"));
-        console.log(chalk.gray("    2. Customise as needed"));
-        console.log(chalk.gray("    3. Run 'nexus status' to verify"));
+        console.log(chalk.gray(`    Directories created: ${result.directoriesCreated}`));
+        console.log(chalk.gray(`    Files installed: ${result.filesInstalled}`));
         console.log("");
       }
     } catch (error) {
       if (isJson) {
-        outputJson({ error: "upgrade_failed", message: String(error) });
+        outputJson({ error: "install_failed", message: String(error) });
       } else {
-        spinner.fail("Upgrade failed");
+        spinner.fail("Installation failed");
         console.error(chalk.red(`  Error: ${error}`));
       }
       process.exit(1);
     }
   });
 
-function displayUpgradeOptions(targetDir: string, currentLevel: string): void {
-  console.log(chalk.bold("  Current level:"));
-  console.log(chalk.cyan(`    ${currentLevel.toUpperCase()}`));
-  console.log("");
+// ── Capability Installation ─────────────────────────────────────────────────
 
-  console.log(chalk.bold("  Available upgrades:"));
-  console.log("");
+function installCapabilities(
+  targetDir: string,
+  capabilities: Capability[]
+): { filesInstalled: number; directoriesCreated: number } {
+  const templatesDir = getTemplatesDir();
+  let directoriesCreated = 0;
+  let filesInstalled = 0;
 
-  for (const upgrade of LEVEL_UPGRADES) {
-    const canUpgrade = LEVEL_ORDER.indexOf(upgrade.level) > LEVEL_ORDER.indexOf(currentLevel);
+  // Simplified capability → file mapping for upgrade
+  const capabilityFiles: Record<string, Array<{ src: string; dest: string }>> = {
+    knowledge: [
+      // Skills are copied from skills directory
+    ],
+    architecture: [
+      { src: "docs/adrs/ADR-TEMPLATE.md", dest: "nexus-system/docs/adrs/ADR-TEMPLATE.md" },
+      { src: "docs/sdr/SDR-TEMPLATE.md", dest: "nexus-system/docs/sdr/SDR-TEMPLATE.md" },
+      { src: "docs/plans/TEMPLATE.md", dest: "nexus-system/docs/plans/TEMPLATE.md" },
+      { src: "docs/session-template.md", dest: "nexus-system/docs/session-template.md" },
+    ],
+    governance: [
+      { src: "governance/WORKFLOW.md", dest: "nexus-system/governance/WORKFLOW.md" },
+      { src: "governance/context/context_buffer.yaml", dest: "nexus-system/governance/context/context_buffer.yaml" },
+    ],
+    ai: [
+      { src: "governance/agents/AI-CONTRACT-planner-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-planner-v1.yaml" },
+      { src: "governance/agents/AI-CONTRACT-executor-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-executor-v1.yaml" },
+      { src: "governance/agents/AI-CONTRACT-reviewer-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-reviewer-v1.yaml" },
+      { src: "governance/agents/AI-CONTRACT-orchestrator-v1.yaml", dest: "nexus-system/governance/agents/AI-CONTRACT-orchestrator-v1.yaml" },
+      { src: "governance/contracts/CONTRACTS_INDEX.md", dest: "nexus-system/governance/contracts/CONTRACTS_INDEX.md" },
+      { src: "governance/handoffs/TEMPLATE.md", dest: "nexus-system/governance/handoffs/TEMPLATE.md" },
+      { src: "cognition/context/CONTEXT_HIERARCHY.md", dest: "nexus-system/cognition/context/CONTEXT_HIERARCHY.md" },
+      { src: "cognition/memory/MEM-operational-state-v1.json", dest: "nexus-system/cognition/memory/MEM-operational-state-v1.json" },
+    ],
+    quality: [
+      { src: "scripts/validate-session.ts", dest: "nexus-system/scripts/validate-session.ts" },
+    ],
+    metrics: [
+      { src: "docs/reports/README.md", dest: "nexus-system/reports/README.md" },
+    ],
+    operations: [
+      { src: "scripts/close-session.ts", dest: "nexus-system/scripts/close-session.ts" },
+      { src: "scripts/premortem-check.ts", dest: "nexus-system/scripts/premortem-check.ts" },
+      { src: "docs/runbooks/merge.md", dest: "nexus-system/docs/runbooks/merge.md" },
+    ],
+    compliance: [
+      { src: "governance/premortem/PREMORTEM.md", dest: "nexus-system/governance/premortem/PREMORTEM.md" },
+      { src: "governance/reviews/SESSION_REVIEW.md", dest: "nexus-system/governance/reviews/SESSION_REVIEW.md" },
+    ],
+  };
 
-    let status: string;
-    if (currentLevel === upgrade.level) {
-      status = chalk.green("current");
-    } else if (canUpgrade) {
-      status = chalk.yellow("available");
-    } else {
-      status = chalk.gray("not available");
+  for (const cap of capabilities) {
+    const files = capabilityFiles[cap] || [];
+    for (const file of files) {
+      const srcPath = join(templatesDir, file.src);
+      const destPath = join(targetDir, file.dest);
+
+      if (existsSync(destPath)) continue;
+      if (!existsSync(srcPath)) continue;
+
+      ensureDirSync(resolve(destPath, ".."));
+      copySync(srcPath, destPath);
+      filesInstalled++;
     }
-
-    console.log(`    ${chalk.bold(upgrade.level.toUpperCase())}`);
-    console.log(`      ${upgrade.description}`);
-    console.log(`      Status: ${status}`);
-    console.log("");
   }
 
-  console.log(chalk.gray("  Use 'nexus upgrade --level <level>' to upgrade."));
+  return { filesInstalled, directoriesCreated };
+}
+
+// ── Display ─────────────────────────────────────────────────────────────────
+
+function displayCapabilityStatus(installed: string[]): void {
+  console.log(chalk.bold("  Capabilities Status:"));
+  console.log("");
+
+  for (const cap of CAPABILITIES) {
+    const isInstalled = installed.includes(cap.id);
+    const icon = isInstalled ? chalk.green("✔") : chalk.gray("□");
+    const name = isInstalled ? chalk.bold(cap.name) : chalk.gray(cap.name);
+    const status = isInstalled ? chalk.green("installed") : chalk.gray("available");
+
+    console.log(`    ${icon} ${name} — ${chalk.gray(cap.description)} [${status}]`);
+  }
+
+  console.log("");
+  console.log(chalk.gray("  Use 'nexus upgrade --capability <name>' to add a capability."));
+  console.log(chalk.gray("  Use 'nexus upgrade --accept-recommended' to install all recommended."));
   console.log("");
 }

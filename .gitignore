@@ -4,3 +4,4 @@ dist/
 .nexus-cache.json
 coverage/
 .vitest/
+plans/*
