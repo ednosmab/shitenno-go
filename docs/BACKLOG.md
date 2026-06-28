@@ -72,6 +72,24 @@
 
 ## 📌 P1 — Curto Prazo (≤ 30 dias)
 
+### 🏗️ NEXUS EVOLUTION — Evolução Arquitetural Incremental
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | 🔴 Crítico |
+| **Owner** | unassigned |
+| **Due** | 2026-07-15 |
+| **Criado** | 2026-06-28 |
+| **Plano** | `.opencode/plans/nexus-evolution-implementation.md` |
+| **Referência** | `plans/NEXUS_EVOLUTION_PLAN.md` |
+| **Descrição** | Transformar conceitos implícitos em componentes explícitos da arquitetura. 5 objetivos sequenciais: (1) Engineering Assets como entidades de domínio, (2) Capabilities como entidades de primeira classe, (3) Engineering State como fonte única de verdade, (4) Capability Engine para gerenciamento de ciclo de vida, (5) Pipeline Explícita conectando todos os componentes. |
+| **Ordem** | Assets → Capabilities → State → Engine → Pipeline (cada objetivo cria fundação para o próximo) |
+| **Commits** | 5 commits (um por objetivo) |
+| **Princípios** | Domínio/Infra separados; Dependência unidirecional; Engines como extensão; Builders para agregados; Compatibilidade retroativa |
+| **Critérios de sucesso** | (1) Engineering State é fonte de verdade; (2) Capabilities controlam evolução; (3) Nexus cresce por capacidades; (4) IA orientada pelo estado; (5) Pipeline explícita; (6) 321+ testes passando; (7) Typecheck sem erros; (8) Sem dependências bidirecionais |
+| **Escopo** | Apenas fundamentos. Recommendation Engine, Dashboard, Plugins, Integrações externas ficam para futuras etapas |
+
 | Item | Severidade | Status | Due | Owner |
 |---|---|---|---|---|
 | Criar GitHub Actions CI (`.github/workflows/ci.yml`) — typecheck + build + test em Node 18/20/22 | 🟠 Alto | Backlog | 2026-07-15 | unassigned |
