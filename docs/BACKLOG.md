@@ -87,23 +87,25 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
 | **Arquivo** | `src/cache.ts` |
 | **Descricao** | Arquivo `.nexus-cache.json` e escrito com permissoes default (world-readable). Deveria ter `chmod 0o600` apos escrita. |
 | **Correcao** | Adicionar `chmodSync(filepath, 0o600)` apos `writeFileSync` |
+| **Resolucao** | chmodSync adicionado em writeCache() apos renameSync |
 
 ### Seguranca: Injecao YAML no `create_reminder`
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
 | **Arquivo** | `src/rule-engine.ts:355` |
 | **Descricao** | `String(action.params.message)` e interpolada em conteudo YAML via substituicao de string. Se atacante controla regra, pode injetar YAML. |
 | **Correcao** | Usar biblioteca YAML para geracao ou sanitizar input |
+| **Resolucao** | Input sanitizado: escaping de backslashes, aspas, newlines + limite de 200 chars |
 
 ### Type safety: `PipelineContext` com `unknown`
 

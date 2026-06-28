@@ -7,7 +7,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync, renameSync, chmodSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -158,6 +158,7 @@ function writeCache(projectRoot: string, cache: NexusCache): void {
   try {
     writeFileSync(tmpPath, JSON.stringify(cache, null, 2), "utf-8");
     renameSync(tmpPath, cachePath);
+    chmodSync(cachePath, 0o600);
   } catch {
     try { unlinkSync(tmpPath); } catch { /* ignore cleanup error */ }
   }

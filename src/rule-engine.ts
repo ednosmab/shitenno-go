@@ -352,7 +352,12 @@ function executeAction(
 
       try {
         let content = readFileSync(bufferPath, "utf-8");
-        const reminder = String(action.params.message || "Reminder from rule engine");
+        let reminder = String(action.params.message || "Reminder from rule engine");
+        reminder = reminder
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, "\\n")
+          .substring(0, 200);
         content = content.replace(
           /^reminders:\s*\n/,
           `reminders:\n  - "${reminder}"\n`
