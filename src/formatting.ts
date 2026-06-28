@@ -42,7 +42,7 @@ export function miniBar(score: number, max: number = 10): string {
   const empty = width - filled;
 
   const barColor =
-    pct >= 0.8 ? chalk.red : pct >= 0.5 ? chalk.yellow : chalk.green;
+    pct >= 0.8 ? chalk.green : pct >= 0.5 ? chalk.yellow : chalk.red;
 
   return barColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
 }

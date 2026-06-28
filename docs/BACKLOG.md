@@ -47,12 +47,13 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
 | **Arquivo** | `src/formatting.ts:44-45` |
 | **Descricao** | `miniBar()` usa vermelho para scores altos e verde para scores baixos — inverso de `healthBar()`. High scores (>=80%) aparecem em vermelho, low scores (<50%) em verde. |
 | **Correcao** | Inverter logica: `pct >= 0.8 ? chalk.green : pct >= 0.5 ? chalk.yellow : chalk.red` |
+| **Resolucao** | Cores corrigidas para coincidir com healthBar() |
 
 ### Bug: `createNexusCommand` e dead code
 
