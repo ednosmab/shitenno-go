@@ -92,7 +92,7 @@ describe("outputJson", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     outputJson({ key: "value", num: 42 });
     expect(spy).toHaveBeenCalledTimes(1);
-    const output = JSON.parse(spy.mock.calls[0][0] as string);
+    const output = JSON.parse(spy.mock.calls[0]![0] as string);
     expect(output).toEqual({ key: "value", num: 42 });
     spy.mockRestore();
   });
@@ -100,7 +100,7 @@ describe("outputJson", () => {
   it("outputs nested objects", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     outputJson({ arr: [1, 2], nested: { a: true } });
-    const output = JSON.parse(spy.mock.calls[0][0] as string);
+    const output = JSON.parse(spy.mock.calls[0]![0] as string);
     expect(output.arr).toEqual([1, 2]);
     expect(output.nested.a).toBe(true);
     spy.mockRestore();

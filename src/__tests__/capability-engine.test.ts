@@ -36,7 +36,7 @@ afterAll(() => {
 function makeState(overrides: Partial<EngineeringState> = {}): EngineeringState {
   return {
     consolidatedAt: new Date().toISOString(),
-    lifecycle: { phase: "active", since: new Date().toISOString() },
+    lifecycle: "governed",
     project: {
       name: "test-project",
       root: TEST_DIR,

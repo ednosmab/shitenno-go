@@ -328,7 +328,7 @@ describe("telemetry", () => {
 
     const history = readMaturityHistory(tempDir);
     expect(history.length).toBe(1);
-    expect(history[0].overallScore).toBe(profile.overallScore);
+    expect(history[0]!.overallScore).toBe(profile.overallScore);
   });
 
   it("readMaturityHistory returns empty for no telemetry", () => {

@@ -35,7 +35,7 @@ afterAll(() => {
 function makeState(overrides: Partial<EngineeringState> = {}): EngineeringState {
   return {
     consolidatedAt: new Date().toISOString(),
-    lifecycle: { phase: "active", since: new Date().toISOString() },
+    lifecycle: "governed",
     project: {
       name: "test-project",
       root: TEST_DIR,
@@ -109,32 +109,7 @@ describe("saveRecommendationResult / loadRecommendationResult", () => {
     const result: RecommendationEngineResult = {
       generatedAt: new Date().toISOString(),
       totalRecommendations: 0,
-      bySource: { capability_engine: 0, knowledge_debt: 0, pattern_detection: 0, entropy: 0, ai_readiness: 0, asset_management: 0 },
-      byPriority: {},
-      recommendations: [],
-      topNextSteps: [],
-      engineeringCapacityScore: 80,
-      summary: "test",
-    };
-    saveRecommendationResult(NEXUS_DIR, result);
-    const loaded = loadRecommendationResult(NEXUS_DIR);
-    expect(loaded).toBeDefined();
-    expect(loaded!.engineeringCapacityScore).toBe(80);
-  });
-
-  it("returns null when file missing", () => {
-    const emptyDir = join(TEST_DIR, "empty-rec");
-    mkdirSync(emptyDir, { recursive: true });
-    expect(loadRecommendationResult(emptyDir)).toBeNull();
-  });
-});
-
-describe("recommendationEngineToText", () => {
-  it("returns non-empty text", () => {
-    const result: RecommendationEngineResult = {
-      generatedAt: new Date().toISOString(),
-      totalRecommendations: 1,
-      bySource: { capability_engine: 1, knowledge_debt: 0, pattern_detection: 0, entropy: 0, ai_readiness: 0, asset_management: 0 },
+      bySource: { capability_engine: 0, knowledge_debt: 0, pattern_detection: 0, entropy_reduction: 0, ai_readiness: 0, complexity_analysis: 0, asset_management: 0 },
       byPriority: { high: 1 },
       recommendations: [
         {

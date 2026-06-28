@@ -43,7 +43,7 @@ describe("Session Tracker", () => {
     const content = readFileSync(join(nexusDir, "telemetry", "sessions.jsonl"), "utf-8");
     const lines = content.trim().split("\n");
     expect(lines).toHaveLength(1);
-    expect(JSON.parse(lines[0]).id).toBe(session.id);
+    expect(JSON.parse(lines[0]!).id).toBe(session.id);
   });
 
   it("startSession creates telemetry directory", () => {
@@ -57,7 +57,7 @@ describe("Session Tracker", () => {
     trackCommand(nexusDir, session.id, "doctor");
 
     const sessions = getSessions(nexusDir);
-    expect(sessions[0].commands).toEqual(["report", "doctor"]);
+    expect(sessions[0]!.commands).toEqual(["report", "doctor"]);
   });
 
   it("trackCommand ignores unknown session", () => {
@@ -73,11 +73,11 @@ describe("Session Tracker", () => {
     trackFeedback(nexusDir, session.id, "accepted", "challenging");
 
     const sessions = getSessions(nexusDir);
-    expect(sessions[0].feedbackGiven).toBe(3);
-    expect(sessions[0].recommendationsAccepted).toBe(2);
-    expect(sessions[0].recommendationsRejected).toBe(1);
-    expect(sessions[0].pathChoices.challenging).toBe(2);
-    expect(sessions[0].pathChoices.comfortable).toBe(1);
+    expect(sessions[0]!.feedbackGiven).toBe(3);
+    expect(sessions[0]!.recommendationsAccepted).toBe(2);
+    expect(sessions[0]!.recommendationsRejected).toBe(1);
+    expect(sessions[0]!.pathChoices.challenging).toBe(2);
+    expect(sessions[0]!.pathChoices.comfortable).toBe(1);
   });
 
   it("trackFeedback ignores unknown session", () => {

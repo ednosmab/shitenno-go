@@ -150,10 +150,10 @@ describe("NexusStateMachine", () => {
 
       const history = sm.getHistory();
       expect(history).toHaveLength(2);
-      expect(history[0].from).toBe("uninitialized");
-      expect(history[0].to).toBe("discovered");
-      expect(history[1].from).toBe("discovered");
-      expect(history[1].to).toBe("assessed");
+      expect(history[0]!.from).toBe("uninitialized");
+      expect(history[0]!.to).toBe("discovered");
+      expect(history[1]!.from).toBe("discovered");
+      expect(history[1]!.to).toBe("assessed");
     });
 
     it("persists state to disk", () => {

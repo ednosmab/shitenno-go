@@ -39,7 +39,7 @@ describe("Growth Profile", () => {
       expect(profile.challengeLevel).toBe(0.36);
       expect(profile.pathHistory).toHaveLength(0);
       expect(profile.patterns).toHaveLength(1);
-      expect(profile.patterns[0].type).toBe("balanced");
+      expect(profile.patterns[0]!.type).toBe("balanced");
     });
 
     it("loads existing profile from disk", () => {
@@ -98,9 +98,9 @@ describe("Growth Profile", () => {
       });
 
       expect(profile.pathHistory).toHaveLength(1);
-      expect(profile.pathHistory[0].pathChosen).toBe("comfortable");
-      expect(profile.pathHistory[0].id).toBeDefined();
-      expect(profile.pathHistory[0].timestamp).toBeDefined();
+      expect(profile.pathHistory[0]!.pathChosen).toBe("comfortable");
+      expect(profile.pathHistory[0]!.id).toBeDefined();
+      expect(profile.pathHistory[0]!.timestamp).toBeDefined();
     });
 
     it("records a challenging choice", () => {
@@ -110,7 +110,7 @@ describe("Growth Profile", () => {
       });
 
       expect(profile.pathHistory).toHaveLength(1);
-      expect(profile.pathHistory[0].pathChosen).toBe("challenging");
+      expect(profile.pathHistory[0]!.pathChosen).toBe("challenging");
     });
 
     it("accumulates choices over time", () => {
@@ -226,7 +226,7 @@ describe("Growth Profile", () => {
       const patterns = detectGrowthPatterns(profile);
 
       expect(patterns).toHaveLength(1);
-      expect(patterns[0].type).toBe("balanced");
+      expect(patterns[0]!.type).toBe("balanced");
     });
 
     it("detects prefers_growth pattern", () => {

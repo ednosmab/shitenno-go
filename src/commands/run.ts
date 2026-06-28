@@ -11,6 +11,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { Pipeline, createPipelineContext, type PipelineContext, type PipelineStage } from "../pipeline.js";
+import type { ComplexityReport } from "../scorer.js";
 import { analyseProject } from "../analyser.js";
 import { calculateComplexityScore, writeComplexityReport } from "../scorer.js";
 import { detectPatterns, writePatternReport } from "../pattern-detector.js";
@@ -39,7 +40,7 @@ const scoreStage: PipelineStage = {
     const analysis = ctx.analysis as ReturnType<typeof analyseProject>;
     const complexity = await calculateComplexityScore(ctx.projectRoot, ctx.nexusDir, analysis);
     writeComplexityReport(ctx.projectRoot, ctx.nexusDir, complexity);
-    ctx.complexityReport = complexity as unknown as Record<string, unknown>;
+    ctx.complexityReport = complexity as ComplexityReport;
     return ctx;
   },
 };
@@ -124,7 +125,7 @@ export const runCommand = new Command("run")
       // Build summary
       const complexity = result.complexityReport as { score: number; level: string } | undefined;
       const patterns = result.patternReport as { patterns: unknown[]; candidateRules: unknown[] } | undefined;
-      const health = result.healthReport as { healthScore: number; issues: unknown[] } | undefined;
+      const health = result.healthReport;
       const evolution = result.evolutionReport as { totalRecommendations: number; recommendations: unknown[] } | undefined;
 
       if (isJson) {

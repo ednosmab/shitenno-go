@@ -66,7 +66,7 @@ describe("Pipeline", () => {
     );
 
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].stage).toBe("fail");
+    expect(result.errors[0]!.stage).toBe("fail");
     expect((result as unknown as Record<string, unknown>).success).toBe(true);
   });
 
@@ -83,9 +83,9 @@ describe("Pipeline", () => {
     );
 
     expect(result.stageResults).toHaveLength(1);
-    expect(result.stageResults[0].stage).toBe("test");
-    expect(result.stageResults[0].success).toBe(true);
-    expect(result.stageResults[0].duration).toBeGreaterThanOrEqual(0);
+    expect(result.stageResults[0]!.stage).toBe("test");
+    expect(result.stageResults[0]!.success).toBe(true);
+    expect(result.stageResults[0]!.duration).toBeGreaterThanOrEqual(0);
   });
 
   it("sets completedAt when done", async () => {
@@ -104,8 +104,8 @@ describe("Pipeline", () => {
 
     const stages = pipeline.getStages();
     expect(stages).toHaveLength(2);
-    expect(stages[0].name).toBe("a");
-    expect(stages[1].name).toBe("b");
+    expect(stages[0]!.name).toBe("a");
+    expect(stages[1]!.name).toBe("b");
   });
 
   it("createPipelineContext initializes correctly", () => {

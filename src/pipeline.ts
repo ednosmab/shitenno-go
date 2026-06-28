@@ -19,6 +19,7 @@ import type { CapabilityEngineResult } from "./capability-engine.js";
 import type { EngineeringState } from "./engineering-state.js";
 import type { RecommendationEngineResult } from "./recommendation-engine.js";
 import type { EvolutionReport } from "./auto-evolution.js";
+import type { HealthAuditReport } from "./health-auditor.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export interface PipelineContext {
   engineeringState?: EngineeringState;
   recommendationEngineResult?: RecommendationEngineResult;
   evolutionReport?: EvolutionReport;
+  healthReport?: HealthAuditReport;
 
   // Metadata
   startedAt: string;

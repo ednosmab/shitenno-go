@@ -99,8 +99,8 @@ describe("EventBus", () => {
 
     const history = bus.getHistory();
     expect(history).toHaveLength(2);
-    expect(history[0].type).toBe("session.start");
-    expect(history[1].type).toBe("score.calculated");
+    expect(history[0]!.type).toBe("session.start");
+    expect(history[1]!.type).toBe("score.calculated");
   });
 
   it("returns singleton instance", () => {

@@ -65,7 +65,7 @@ describe("loadRules", () => {
     );
     const rules = loadRules(NEXUS_DIR);
     expect(rules).toHaveLength(1);
-    expect(rules[0].id).toBe("TEST-001");
+    expect(rules[0]!.id).toBe("TEST-001");
   });
 
   it("skips invalid rule files", () => {
@@ -123,7 +123,7 @@ describe("executeRules", () => {
     const context = makeContext();
     const result = executeRules(rules, context);
     expect(result.rulesExecuted).toBe(1);
-    expect(result.results[0].success).toBe(true);
+    expect(result.results[0]!.success).toBe(true);
   });
 
   it("skips disabled rules", () => {
@@ -165,8 +165,8 @@ describe("executeRules", () => {
       priority: 1,
     };
     const result = executeRules([low, high], makeContext());
-    expect(result.results[0].ruleId).toBe("HIGH");
-    expect(result.results[1].ruleId).toBe("LOW");
+    expect(result.results[0]!.ruleId).toBe("HIGH");
+    expect(result.results[1]!.ruleId).toBe("LOW");
   });
 
   it("handles dependencies — satisfied", () => {
@@ -194,7 +194,7 @@ describe("executeRules", () => {
     };
     const result = executeRules([main], makeContext());
     expect(result.rulesSkipped).toBe(1);
-    expect(result.results[0].message).toBe("Dependencies not met");
+    expect(result.results[0]!.message).toBe("Dependencies not met");
   });
 
   it("equals operator", () => {

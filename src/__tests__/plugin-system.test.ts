@@ -17,7 +17,7 @@ describe("PluginSystem", () => {
 
       bus.registerPlugin(plugin);
       expect(bus.getPlugins()).toHaveLength(1);
-      expect(bus.getPlugins()[0].name).toBe("test-plugin");
+      expect(bus.getPlugins()[0]!.name).toBe("test-plugin");
     });
 
     it("rejects duplicate plugins", () => {

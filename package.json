@@ -19,14 +19,14 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
+    "pretest": "tsc --noEmit",
     "test:watch": "vitest",
     "bench": "vitest bench src/__tests__/benchmarks.bench.ts",
     "clean": "rm -rf dist node_modules *.tsbuildinfo",
     "test:coverage": "vitest run --coverage",
     "validate-publish": "npm run build && npm pack --dry-run && echo 'Ready to publish'",
     "lint": "eslint 'src/**/*.ts' --max-warnings=0",
-    "lint:fix": "eslint 'src/**/*.ts' --fix",
-    "validate-publish": "npm run build && npm pack --dry-run && echo 'Ready to publish'"
+    "lint:fix": "eslint 'src/**/*.ts' --fix"
   },
   "keywords": [
     "ai",

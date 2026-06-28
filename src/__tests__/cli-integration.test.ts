@@ -84,7 +84,7 @@ function scaffoldTestProject(
     maturity: maturityByLevel[level] as UserAnswers["maturity"],
   };
 
-  const result = scaffoldNexusSystem(dir, answers, capsByLevel[level]);
+  const result = scaffoldNexusSystem(dir, answers, capsByLevel[level]!);
 
   // Create maturity-profile.json so lifecycle state reaches "assessed"
   const maturityPath = join(dir, "nexus-system", "maturity-profile.json");

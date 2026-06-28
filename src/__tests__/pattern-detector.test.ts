@@ -115,9 +115,9 @@ describe("detectPatterns", () => {
     expect(report.candidateRules.length).toBeGreaterThanOrEqual(1);
 
     const rule = report.candidateRules[0];
-    expect(rule.id).toMatch(/^RULE-\d{3}$/);
-    expect(rule.status).toBe("proposed");
-    expect(rule.target).toBe("FORBIDDEN_OPERATIONS");
+    expect(rule!.id).toMatch(/^RULE-\d{3}$/);
+    expect(rule!.status).toBe("proposed");
+    expect(rule!.target).toBe("FORBIDDEN_OPERATIONS");
   });
 
   it("generates a summary", () => {
