@@ -64,17 +64,24 @@ nexus evolve
 
 Recomendações adaptativas baseadas no perfil de maturidade do time. Cada recomendação tem dois caminhos: conforto e desafio.
 
+### Pipeline completo
+
+```bash
+nexus run
+```
+
+Executa o pipeline de 8 estágios: Análise → Complexidade → Padrões → Knowledge Debt → Capability Engine → Engineering State → Recommendation Engine → Evolução.
+
 ### Outros comandos
 
 | Comando | Função |
 |---------|--------|
-| `nexus upgrade` | Instalar capacidades de governança (L1→L2→L3) |
+| `nexus upgrade` | Instalar capacidades de governança (5 níveis de maturidade) |
 | `nexus validate` | Validar integridade da sessão |
 | `nexus sync` | Sincronizar governança de um nexus externo |
 | `nexus clean` | Limpar cache e temporários |
 | `nexus assess` | Reavaliar perfil de maturidade |
 | `nexus doctor` | Diagnósticos de saúde do sistema |
-| `nexus run` | Executar tarefa específica |
 
 ---
 
@@ -85,15 +92,28 @@ Seu projeto
     │
     ▼
 ┌─────────────┐    ┌──────────────┐    ┌───────────────┐
-│  Scoring    │───▶│   Padrões    │───▶│  Metacognição │
-│  (complexi- │    │  (histórico) │    │  (auto-avalia-│
-│   dade)     │    │              │    │    ção)       │
+│  Análise    │───▶│  Padrões     │───▶│ Knowledge     │
+│  (complexi- │    │  (histórico) │    │ Debt          │
+│   dade)     │    │              │    │               │
 └─────────────┘    └──────────────┘    └───────────────┘
        │                  │                    │
        ▼                  ▼                    ▼
 ┌─────────────────────────────────────────────────────┐
-│              Knowledge Graph                         │
-│  ADRs ↔ Skills ↔ Contratos ↔ Workflows ↔ Runbooks  │
+│              Capability Engine                       │
+│  9 capacidades × 5 níveis de maturidade              │
+│  dormant → installed → configured → active → optimized│
+└─────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│              Engineering State                       │
+│  Fonte única de verdade: assets, entropia, saúde    │
+└─────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│              Recommendation Engine                   │
+│  Próxima melhor ação com confiança e justificativa  │
 └─────────────────────────────────────────────────────┘
        │
        ▼
@@ -107,10 +127,23 @@ Seu projeto
 
 **Mecanismos:**
 - **State Machine** — governa o próprio ciclo de vida (uninitialized → discovered → assessed → governed → evolved)
-- **Event Bus** — módulos comunicam via eventos, não imports diretos
+- **Event Bus** — 20 tipos de eventos para comunicação entre módulos
 - **Feedback Loops** — aprende com aceitação/rejeição das recomendações
-- **Rule Engine** — comportamentos declarativos: novas regras sem alterar código
+- **Rule Engine** — comportamentos declarativos: novas regras sem alterar código (17 tipos de ação)
 - **Plugins** — extensível via `nexus-plugins/`
+- **Engineering State** — fonte única de verdade com métricas de entropia organizacional
+- **Capability Engine** — avalia 9 capacidades com indicadores de maturidade
+- **Recommendation Engine** — gera próxima melhor ação com score de confiança
+
+---
+
+## Segurança
+
+- **Cache restrito** — `.nexus-cache.json` criado com `chmod 0o600`
+- **YAML sanitizado** — inputs escapados contra injeção no rule engine
+- **Sem process.exit()** — erros tratados via Commander, nunca via exit direto
+- **Allowlist de scripts** — apenas scripts aprovados podem ser executados
+- **Validação de regras** — schema validado antes de persistir
 
 ---
 
@@ -136,12 +169,18 @@ npx nexus-system status
 ```bash
 npm install
 npm run dev status     # modo desenvolvimento
-npm run build          # build
-npm test               # testes
+npm run build          # build com tsup
+npm test               # 410 testes (28 arquivos)
 npm run typecheck      # verificação de tipos
-npm run lint           # lint
+npm run lint           # ESLint com regras TypeScript
 npm run bench          # benchmarks
 ```
+
+## CI/CD
+
+GitHub Actions configurações em `.github/workflows/`:
+- **ci.yml** — typecheck + build + test em Node 18/20/22
+- **release.yml** — npm publish + GitHub Release em git tags
 
 ## Licença
 
