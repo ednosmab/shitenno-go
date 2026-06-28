@@ -180,7 +180,7 @@ export const upgradeCommand = new Command("upgrade")
         console.log(chalk.red(`  ✘ Invalid capability: ${targetCapability}`));
         console.log(chalk.gray(`  Valid: ${CAPABILITIES.map((c) => c.id).join(", ")}`));
       }
-      process.exit(1);
+      return;
     }
 
     // Check if already installed
@@ -204,7 +204,7 @@ export const upgradeCommand = new Command("upgrade")
         console.log(chalk.red(`  ✘ Missing dependencies: ${missing.join(", ")}`));
         console.log(chalk.gray("  Install these capabilities first."));
       }
-      process.exit(1);
+      return;
     }
 
     // Install
@@ -241,7 +241,7 @@ export const upgradeCommand = new Command("upgrade")
         spinner.fail("Installation failed");
         console.error(chalk.red(`  Error: ${error}`));
       }
-      process.exit(1);
+      return;
     }
   });
 

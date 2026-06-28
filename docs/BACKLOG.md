@@ -75,12 +75,13 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
 | **Arquivos** | `src/shared.ts:88`, `src/commands/upgrade.ts` (3x), `src/commands/sync.ts` (4x), `src/commands/init.ts` (1x) |
 | **Descricao** | Apesar de `errors.ts` existir, ~10 chamadas `process.exit(1)` continuam diretas. Commander nao pode catchar `process.exit()`. |
 | **Correcao** | Substituir por throw NexusError/NotInitializedError e deixar Commander tratar |
+| **Resolucao** | Todas as 9 chamadas process.exit(1) e 2 process.exit(0) substituidas por return |
 
 ### Seguranca: `chmod 0o600` ausente no cache
 

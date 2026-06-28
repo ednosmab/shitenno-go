@@ -51,7 +51,7 @@ export const syncCommand = new Command("sync")
         console.log(chalk.gray("  Example: nexus sync --nexus-path /path/to/nexus-system"));
         console.log(chalk.gray("  Or: NEXUS_SYSTEM_PATH=/path/to/nexus-system nexus sync"));
       }
-      process.exit(1);
+      return;
     }
 
     const nexusDir = resolve(nexusPath);
@@ -61,7 +61,7 @@ export const syncCommand = new Command("sync")
       } else {
         console.log(chalk.red(`  ✘ nexus-system directory not found: ${nexusDir}`));
       }
-      process.exit(1);
+      return;
     }
 
     // Check if target project has opencode.json (initialized)
@@ -72,7 +72,7 @@ export const syncCommand = new Command("sync")
         console.log(chalk.yellow("  ⚠ This project doesn't seem to be initialized with nexus."));
         console.log(chalk.gray("  Run 'nexus init' first, then 'nexus sync' to update."));
       }
-      process.exit(1);
+      return;
     }
 
     const spinner = ora("Analysing changes...").start();
@@ -138,7 +138,7 @@ export const syncCommand = new Command("sync")
           console.log("");
           console.log(chalk.gray("  Dry run complete. No files were modified."));
         }
-        process.exit(0);
+        return;
       }
 
       // Ask for confirmation if not forced
@@ -157,7 +157,7 @@ export const syncCommand = new Command("sync")
 
         if (!confirm) {
           console.log(chalk.gray("  Sync cancelled."));
-          process.exit(0);
+          return;
         }
       }
 
@@ -215,7 +215,7 @@ export const syncCommand = new Command("sync")
     } catch (error) {
       spinner.stop();
       console.error(chalk.red("  ✘ Sync failed:"), error);
-      process.exit(1);
+      return;
     }
   });
 

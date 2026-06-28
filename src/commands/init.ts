@@ -214,6 +214,6 @@ export const initCommand = new Command("init")
     } catch (error) {
       scaffoldSpinner.fail("Failed to install framework");
       console.error(chalk.red(`  Error: ${error}`));
-      process.exit(1);
+      return;
     }
   });
