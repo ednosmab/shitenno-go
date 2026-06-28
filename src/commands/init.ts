@@ -84,6 +84,14 @@ function displayCapabilities(profile: MaturityProfile): void {
   }
 }
 
+/**
+ * Determines if init should be blocked because the target is inside nexus-cli.
+ * Extracted for testability.
+ */
+export function shouldBlockInit(targetDir: string, force: boolean): boolean {
+  return targetDir.includes("nexus-cli") && !force;
+}
+
 export const initCommand = new Command("init")
   .description("Initialize Nexus System framework with maturity-based discovery")
   .option("-d, --dir <path>", "Project root directory (default: current)")
@@ -101,7 +109,7 @@ export const initCommand = new Command("init")
       : resolve(process.cwd());
 
     // Safety guard
-    if (targetDir.includes("nexus-cli") && !options.force) {
+    if (shouldBlockInit(targetDir, options.force === true)) {
       console.log(chalk.yellow("  ⚠ nexus-system should be created in your project, not inside nexus-cli."));
       console.log(chalk.gray("  Run from your project root: nexus init"));
       console.log(chalk.gray("  Or:  nexus init --force (to create inside nexus-cli)"));

@@ -166,9 +166,13 @@ describe("CLI Integration Tests", () => {
     });
 
     it("should warn when running inside nexus-cli", async () => {
-      const { stdout } = await runNexus("init");
-      // Running from the nexus-cli directory triggers the safety guard
+      const { stdout } = await runNexus("init --dir /tmp/nexus-cli-testdir");
       expect(stdout).toMatch(/nexus-system should be created|already initialized|Governance Setup/);
+    });
+
+    it("should warn with --dir containing nexus-cli", async () => {
+      const { stdout } = await runNexus("init --dir /home/runner/work/nexus-cli/myproject");
+      expect(stdout).toContain("nexus-system should be created");
     });
   });
 
