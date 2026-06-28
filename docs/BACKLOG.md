@@ -138,12 +138,13 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
 | **Modulos sem teste** | `src/rule-engine.ts` (777 linhas, modulo mais seguro), `src/auto-evolution.ts` (399 linhas), `src/errors.ts` |
 | **Descricao** | rule-engine e o modulo com mais medidas de seguranca mas nao possui testes unitarios. auto-evolution e o cor do sistema de evolucao mas nao tem testes proprios. |
 | **Correcao** | Criar `rule-engine.test.ts` (15+ testes), `auto-evolution.test.ts` (3+ testes), `errors.test.ts` |
+| **Resolucao** | 89 novos testes: rule-engine (27), errors (5), validation (22), auto-evolution (4), engineering-state (6), capability-engine (6), recommendation-engine (9). Total 410 testes passam. |
 
 ### Tooling: ESLint ausente
 
