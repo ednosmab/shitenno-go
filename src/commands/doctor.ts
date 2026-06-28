@@ -43,7 +43,7 @@ interface DoctorReport {
 
 // ── Analysis Functions ──────────────────────────────────────────────────────
 
-function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
+export function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
 
   // Knowledge debt risks
@@ -121,7 +121,7 @@ function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport | null)
   return findings;
 }
 
-function analyzeImprovements(state: NexusState, nexusDir: string): DoctorFinding[] {
+export function analyzeImprovements(state: NexusState, nexusDir: string): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
 
   // No CI/CD
@@ -174,7 +174,7 @@ function analyzeImprovements(state: NexusState, nexusDir: string): DoctorFinding
   return findings;
 }
 
-function analyzeTeaching(state: NexusState): { findings: DoctorFinding[]; moments: string[] } {
+export function analyzeTeaching(state: NexusState): { findings: DoctorFinding[]; moments: string[] } {
   const findings: DoctorFinding[] = [];
   const moments: string[] = [];
 
@@ -217,7 +217,7 @@ function analyzeTeaching(state: NexusState): { findings: DoctorFinding[]; moment
 
 // ── Main Analysis ───────────────────────────────────────────────────────────
 
-function runDoctorAnalysis(
+export function runDoctorAnalysis(
   projectRoot: string,
   nexusDir: string
 ): DoctorReport {

@@ -7,10 +7,9 @@
  * PRINCIPLE: DRY — Don't Repeat Yourself.
  */
 
-import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, writeFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import chalk from "chalk";
-import { detectNexusProject } from "./utils.js";
 import { outputJson } from "./formatting.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────

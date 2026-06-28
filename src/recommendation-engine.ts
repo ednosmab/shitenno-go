@@ -10,11 +10,10 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEventBus } from "./event-bus.js";
-import type { EngineeringState, EngineeringAsset, AssetType } from "./engineering-state.js";
-import type { CapabilityEngineResult, CapabilityRecommendation } from "./capability-engine.js";
-import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
-import { detectPatterns, type PatternDetectionReport } from "./pattern-detector.js";
+import type { EngineeringState, AssetType } from "./engineering-state.js";
+import type { CapabilityEngineResult } from "./capability-engine.js";
+import type { KnowledgeDebtReport } from "./knowledge-debt.js";
+import type { PatternDetectionReport } from "./pattern-detector.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -204,7 +203,7 @@ function generateFromEntropy(
       expectedImpact: "Improves knowledge graph connectivity and discoverability",
       action: "Add relations between orphaned assets in the knowledge graph",
       affectedArtifacts: state.assets
-        .filter((a) => !state.knowledgeGraph || true) // simplified
+        .filter((_a) => !state.knowledgeGraph || true) // simplified
         .slice(0, state.entropy.orphanedAssets)
         .map((a) => a.path),
       dependencies: [],
@@ -243,7 +242,6 @@ function generateFromAIReadiness(
   // Check AI readiness indicators
   const hasAgentContracts = state.assets.some((a) => a.type === "contract");
   const hasPrompts = state.assets.some((a) => a.type === "prompt");
-  const hasContext = state.assets.some((a) => a.type === "context");
 
   if (!hasAgentContracts && state.project.sourceFileCount > 50) {
     recs.push({
@@ -323,7 +321,7 @@ function generateFromAssetManagement(
 export function runRecommendationEngine(
   state: EngineeringState,
   capResult: CapabilityEngineResult,
-  nexusDir: string
+  _nexusDir: string
 ): RecommendationEngineResult {
   // Collect recommendations from all sources
   const allRecommendations: Recommendation[] = [
@@ -347,7 +345,7 @@ export function runRecommendationEngine(
   // Sort by priority
   const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
   allRecommendations.sort(
-    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+    (x, y) => priorityOrder[x.priority] - priorityOrder[y.priority]
   );
 
   // Count by source and priority

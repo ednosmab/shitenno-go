@@ -11,57 +11,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { analyzeEvolution, writeEvolutionReport, type EvolutionRecommendation } from "../auto-evolution.js";
+import { analyzeEvolution, writeEvolutionReport } from "../auto-evolution.js";
 import { recordFeedback, detectFeedbackPatterns, getAllFeedbackSummaries } from "../feedback-loops.js";
 import { getEventBus } from "../event-bus.js";
 import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { formatDualPath, formatDualPathJson, formatGrowthProgress } from "../dual-path-presenter.js";
-import { recordPathChoice, loadGrowthProfile } from "../growth-profile.js";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-const PRIORITY_COLORS: Record<string, typeof chalk.green> = {
-  urgent: chalk.red,
-  high: chalk.yellow,
-  medium: chalk.blue,
-  low: chalk.gray,
-};
-
-const PRIORITY_ICONS: Record<string, string> = {
-  urgent: "🔴",
-  high: "🟡",
-  medium: "🔵",
-  low: "⚪",
-};
-
-function formatConfidence(confidence: number): string {
-  const pct = Math.round(confidence * 100);
-  if (pct >= 80) return chalk.green(`${pct}%`);
-  if (pct >= 50) return chalk.yellow(`${pct}%`);
-  return chalk.red(`${pct}%`);
-}
-
-function formatRecommendation(rec: EvolutionRecommendation, index: number): string {
-  const color = PRIORITY_COLORS[rec.priority] || chalk.gray;
-  const icon = PRIORITY_ICONS[rec.priority] || "⚪";
-  const lines: string[] = [];
-
-  lines.push(`  ${icon} ${chalk.bold(`[${rec.id}]`)} ${color(rec.priority.toUpperCase())} — ${chalk.bold(rec.title)}`);
-  lines.push(`     ${chalk.gray(rec.description)}`);
-  lines.push(`     Impact: ${chalk.cyan(rec.expectedImpact)}`);
-  lines.push(`     Confidence: ${formatConfidence(rec.confidence)}`);
-
-  if (rec.command) {
-    lines.push(`     Command: ${chalk.white(rec.command)}`);
-  }
-
-  if (rec.evidence.length > 0) {
-    lines.push(`     Evidence: ${chalk.gray(rec.evidence[0])}`);
-  }
-
-  return lines.join("\n");
-}
+import { recordPathChoice } from "../growth-profile.js";
 
 // ── Command ──────────────────────────────────────────────────────────────────
 
@@ -217,10 +173,8 @@ export const evolveCommand = new Command("evolve")
       console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════════════╝"));
       console.log("");
 
-      let index = 1;
       for (const dualPath of report.dualPaths) {
         console.log(formatDualPath(dualPath.comfortable, dualPath.challenging, report.growthProfile));
-        index++;
       }
 
       // Top next steps

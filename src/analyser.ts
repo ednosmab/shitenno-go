@@ -202,7 +202,7 @@ function detectTypeScript(rootDir: string): boolean {
   return existsSync(join(rootDir, "tsconfig.json"));
 }
 
-function readPackageJson(rootDir: string): Record<string, any> | null {
+function readPackageJson(rootDir: string): { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; scripts?: Record<string, string>; workspaces?: unknown } | null {
   const path = join(rootDir, "package.json");
   if (!existsSync(path)) return null;
   try {

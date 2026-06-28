@@ -15,9 +15,12 @@ import { runCommand } from "../src/commands/run.js";
 import { evolveCommand } from "../src/commands/evolve.js";
 import { reportCommand } from "../src/commands/report.js";
 
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { version } = require("../package.json");
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
 
 const program = new Command();
 

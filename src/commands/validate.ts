@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
 import { outputJson, statusIcon } from "../formatting.js";

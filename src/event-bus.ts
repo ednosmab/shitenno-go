@@ -8,7 +8,7 @@
  * PRINCIPLE: Modules communicate through events, not direct imports.
  */
 
-import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -195,7 +195,6 @@ export function readPersistedEvents(
   nexusDir: string,
   date: string
 ): Array<{ type: string; payload: unknown; timestamp: string }> {
-  const { existsSync, readFileSync } = require("node:fs");
   const telemetryDir = join(nexusDir, "telemetry");
   const filePath = join(telemetryDir, `events-${date}.jsonl`);
 

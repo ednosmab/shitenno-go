@@ -8,8 +8,8 @@
  * The user's intention drives growth, not the system's recommendations.
  */
 
-import type { EvolutionRecommendation, RecommendationType, RecommendationPriority } from "./auto-evolution.js";
-import type { GrowthProfile, GrowthPattern } from "./growth-profile.js";
+import type { EvolutionRecommendation, RecommendationType } from "./auto-evolution.js";
+import type { GrowthProfile } from "./growth-profile.js";
 import type { NexusState } from "./state-manager.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────

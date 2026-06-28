@@ -9,9 +9,15 @@ export default defineConfig({
     reporters: ["verbose"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json-summary"],
+      reporter: ["text", "json-summary", "html"],
       include: ["src/**/*.ts"],
       exclude: ["src/__tests__/**", "src/templates/**"],
+      thresholds: {
+        lines: 43,
+        functions: 79,
+        branches: 75,
+        statements: 43,
+      },
     },
   },
 });

@@ -9,12 +9,6 @@ import { outputJson } from "../formatting.js";
 
 const { copySync, ensureDirSync, writeFileSync } = fse;
 
-interface SyncOptions {
-  nexusPath?: string;
-  dryRun?: boolean;
-  force?: boolean;
-}
-
 interface FileChange {
   path: string;
   action: "create" | "update" | "skip";
@@ -219,7 +213,7 @@ export const syncCommand = new Command("sync")
     }
   });
 
-function getFilesToSync(nexusDir: string, targetDir: string): string[] {
+export function getFilesToSync(nexusDir: string, _targetDir: string): string[] {
   const files: string[] = [];
 
   // Core files
@@ -252,7 +246,7 @@ function getFilesToSync(nexusDir: string, targetDir: string): string[] {
   return files;
 }
 
-function shouldPreserveCustomizations(filePath: string): boolean {
+export function shouldPreserveCustomizations(filePath: string): boolean {
   // Files that should preserve project-specific customizations
   const preserveList = [
     "docs/AGENTS.md",
@@ -263,7 +257,7 @@ function shouldPreserveCustomizations(filePath: string): boolean {
   return preserveList.includes(filePath);
 }
 
-function mergeWithCustomizations(
+export function mergeWithCustomizations(
   nexusFile: string,
   targetFile: string
 ): string {
@@ -284,7 +278,7 @@ function mergeWithCustomizations(
   return nexusContent;
 }
 
-function mergeJsonFiles(nexusContent: string, targetContent: string): string {
+export function mergeJsonFiles(nexusContent: string, targetContent: string): string {
   try {
     const nexus = JSON.parse(nexusContent);
     const target = JSON.parse(targetContent);
@@ -323,7 +317,7 @@ function mergeJsonFiles(nexusContent: string, targetContent: string): string {
   }
 }
 
-function mergeMarkdownFiles(nexusContent: string, targetContent: string): string {
+export function mergeMarkdownFiles(nexusContent: string, targetContent: string): string {
   // Extract sections from both files
   const nexusSections = extractSections(nexusContent);
   const targetSections = extractSections(targetContent);
@@ -351,7 +345,7 @@ function mergeMarkdownFiles(nexusContent: string, targetContent: string): string
   return result;
 }
 
-function extractSections(content: string): Record<string, string> {
+export function extractSections(content: string): Record<string, string> {
   const sections: Record<string, string> = {};
   const lines = content.split("\n");
   let currentSection = "";

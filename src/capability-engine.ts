@@ -8,15 +8,14 @@
  * PRINCIPLE: The system grows by unlocking capabilities, not by adding commands.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEventBus, type NexusEventType } from "./event-bus.js";
+import { getEventBus } from "./event-bus.js";
 import {
   CAPABILITIES,
   type Capability,
   type CapabilityInfo,
   type MaturityDimensions,
-  type MaturityProfile,
 } from "./maturity-profile.js";
 import type { EngineeringState } from "./engineering-state.js";
 
@@ -220,7 +219,7 @@ function buildCapabilityEntity(
   nexusDir: string,
   installedCapabilities: Capability[],
   assets: Array<{ type: string; path: string }>,
-  maturityScore: number
+  _maturityScore: number
 ): CapabilityEntity {
   const isInstalled = installedCapabilities.includes(capInfo.id);
   const { level, score } = detectCapabilityMaturity(capInfo.id, nexusDir, installedCapabilities);

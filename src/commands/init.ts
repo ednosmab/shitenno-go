@@ -22,7 +22,6 @@ import {
   calculateMaturityProfile,
   saveMaturityProfile,
   recordMaturitySnapshot,
-  profileToLegacyLevel,
   CAPABILITIES,
   type MaturityProfile,
   type Capability,

@@ -43,7 +43,6 @@ export const upgradeCommand = new Command("upgrade")
   .action(async (options) => {
     const isJson = options.json === true;
     const targetDir = resolve(options.dir || ".");
-    const nexusDir = join(targetDir, "nexus-system");
 
     if (!isJson) {
       console.log("");

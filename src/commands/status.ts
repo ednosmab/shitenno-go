@@ -7,7 +7,7 @@ import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, miniBar, outputJson, statusIcon } from "../formatting.js";
 import { loadMaturityProfile, detectInstalledCapabilities, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
-import { guardNotInitialized, type ProjectContext, checkLifecycleGate } from "../shared.js";
+import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 
 interface StatusCheck {

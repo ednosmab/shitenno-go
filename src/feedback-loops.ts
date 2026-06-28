@@ -100,7 +100,6 @@ export function recordFeedback(
   nexusDir: string,
   record: Omit<FeedbackRecord, "id" | "timestamp">
 ): FeedbackRecord {
-  const feedbackDir = getFeedbackDir(nexusDir);
   const recordsDir = getRecordsDir(nexusDir);
 
   if (!existsSync(recordsDir)) {

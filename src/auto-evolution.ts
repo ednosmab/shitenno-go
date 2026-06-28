@@ -8,7 +8,7 @@
  * O sistema aprende e recomenda a sua própria evolução.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { consolidateState, type NexusState } from "./state-manager.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";

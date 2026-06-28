@@ -7,7 +7,7 @@ import { healthBar, outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { getHookBus } from "../plugin-system.js";
-import { discoverArtifacts, discoverRelations, analyzeGraph, type GraphAnalysis } from "../knowledge-graph.js";
+import { discoverArtifacts, discoverRelations, analyzeGraph } from "../knowledge-graph.js";
 
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")

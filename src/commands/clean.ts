@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { existsSync, unlinkSync, readdirSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { invalidateCache } from "../cache.js";
 import { outputJson } from "../formatting.js";

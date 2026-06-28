@@ -25,14 +25,14 @@ import { DIMENSION_LABELS, type PerformanceDimension } from "../feedback-loops.j
 
 // ── Formatting Helpers ───────────────────────────────────────────────────────
 
-function formatDimensionBar(label: string, report: DimensionReport): string {
+export function formatDimensionBar(label: string, report: DimensionReport): string {
   const bar = healthBar(report.score, 100, 20);
   const trendIcon = report.trend === "improving" ? chalk.green("↑") :
                     report.trend === "declining" ? chalk.red("↓") : chalk.gray("→");
   return `   ${label.padEnd(30)} ${bar}  ${trendIcon}`;
 }
 
-function formatInsight(insight: Insight): string {
+export function formatInsight(insight: Insight): string {
   const icon = insight.type === "strength" ? chalk.green("✅") :
                insight.type === "improvement" ? chalk.yellow("⚠️") :
                insight.type === "pattern" ? chalk.blue("📊") :
@@ -43,7 +43,7 @@ function formatInsight(insight: Insight): string {
   return `   ${icon} ${text}`;
 }
 
-function formatReport(report: PerformanceReport): void {
+export function formatReport(report: PerformanceReport): void {
   console.log(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("REPORT")}`);
   console.log(`${chalk.bold.cyan("╚══╝")}  Relatório de Desempenho — Últimos ${report.period.days} dias`);
   console.log(`   ${chalk.gray(`${report.period.from} → ${report.period.to}`)}\n`);

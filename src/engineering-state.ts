@@ -9,9 +9,9 @@
  * every decision reads from it.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { analyseProject, type ProjectAnalysis } from "./analyser.js";
+import { analyseProject } from "./analyser.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
 import {
   detectInstalledCapabilities,
@@ -24,9 +24,7 @@ import {
   loadArtifacts,
   loadRelations,
   analyzeGraph,
-  type Artifact,
   type Relation,
-  type GraphAnalysis,
 } from "./knowledge-graph.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────

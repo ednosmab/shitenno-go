@@ -135,11 +135,24 @@ export function generatePerformanceReport(
   let dominantDim: PerformanceDimension = "decision_making";
   let weakestDim: PerformanceDimension = "decision_making";
 
+  // Calculate previous period's scores for trend comparison
+  const previousPeriodStart = new Date(periodStart.getTime() - days * 24 * 60 * 60 * 1000);
+  const previousPeriodRecords = feedbackRecords.filter(
+    (r) => new Date(r.timestamp) >= previousPeriodStart && new Date(r.timestamp) < periodStart
+  );
+
   for (const [dim, summary] of Object.entries(dimensionSummaries)) {
     const d = dim as PerformanceDimension;
     const score = calculateDimensionScore(summary);
-    const periodRecordsForDim = periodRecords.filter((r) => r.dimension === d);
-    const previousScore = score; // Simplified: use same score for trend (historical comparison TODO)
+    const previousDimRecords = previousPeriodRecords.filter((r) => r.dimension === d);
+    const previousSummary: DimensionSummary = {
+      dimension: d,
+      acceptCount: previousDimRecords.filter((r) => r.action === "accepted").length,
+      rejectCount: previousDimRecords.filter((r) => r.action === "rejected").length,
+      deferCount: previousDimRecords.filter((r) => r.action === "deferred").length,
+      evidence: [],
+    };
+    const previousScore = calculateDimensionScore(previousSummary);
 
     dimensions[d] = {
       score,
@@ -161,10 +174,13 @@ export function generatePerformanceReport(
   const challenging = periodRecords.filter((r) => r.pathChoice === "challenging").length;
   const totalPathChoices = periodRecords.filter((r) => r.pathChoice).length;
 
-  // Determine most active day
+  // Determine most active day from feedback records
   const dayFrequency: Record<string, number> = {};
-  for (const session of [] as unknown[]) {
-    // Placeholder — session data would come from session tracker
+  for (const record of feedbackRecords) {
+    const day = record.timestamp.split("T")[0];
+    if (day) {
+      dayFrequency[day] = (dayFrequency[day] || 0) + 1;
+    }
   }
 
   // Debt and maturity trends (from telemetry snapshots)
