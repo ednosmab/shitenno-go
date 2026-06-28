@@ -27,7 +27,8 @@ export type NexusEventType =
   | "pipeline.stage.start"
   | "pipeline.stage.complete"
   | "pipeline.complete"
-  | "lifecycle.state_changed";
+  | "lifecycle.state_changed"
+  | "knowledge.analyzed";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 
@@ -49,14 +50,18 @@ class NexusEventBus implements EventBus {
     payload: unknown;
     timestamp: string;
   }> = [];
+  private static readonly MAX_HISTORY = 1000;
 
   publish<T>(eventType: NexusEventType, payload: T): void {
-    // Record in history
     this.eventHistory.push({
       type: eventType,
       payload,
       timestamp: new Date().toISOString(),
     });
+
+    if (this.eventHistory.length > NexusEventBus.MAX_HISTORY) {
+      this.eventHistory = this.eventHistory.slice(-NexusEventBus.MAX_HISTORY);
+    }
 
     // Deliver to all subscribers
     const handlers = this.listeners.get(eventType);

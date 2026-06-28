@@ -13,6 +13,83 @@ import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
+// ── Security: Allowed Scripts ────────────────────────────────────────────────
+
+/** Comandos permitidos para execução via regras. */
+const ALLOWED_SCRIPTS: Record<string, string> = {
+  "git-status": "git status --short",
+  "git-diff": "git diff --stat",
+  "git-log": "git log --oneline -5",
+  "list-files": "find . -maxdepth 2 -type f | head -20",
+};
+
+function isScriptAllowed(script: string): boolean {
+  return script in ALLOWED_SCRIPTS;
+}
+
+// ── Security: Rule ID Validation ────────────────────────────────────────────
+
+function isValidRuleId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(id) && id.length <= 100;
+}
+
+// ── Security: Regex Helpers ─────────────────────────────────────────────────
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ── Security: Prototype Pollution Protection ────────────────────────────────
+
+const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype", "toString", "valueOf"]);
+
+// ── Security: Schema Validation ─────────────────────────────────────────────
+
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+const VALID_ACTION_TYPES = [
+  "create_reminder", "update_quick_board", "log_event",
+  "trigger_assessment", "trigger_health_check", "update_backlog", "run_script",
+];
+
+function validateRule(rule: unknown): ValidationResult {
+  const errors: string[] = [];
+
+  if (typeof rule !== "object" || rule === null) {
+    return { valid: false, errors: ["Rule is not an object"] };
+  }
+
+  const r = rule as Record<string, unknown>;
+
+  if (typeof r.id !== "string" || !r.id) errors.push("Missing or invalid 'id'");
+  if (typeof r.trigger !== "string") errors.push("Missing or invalid 'trigger'");
+  if (!Array.isArray(r.conditions)) errors.push("'conditions' must be an array");
+  if (!Array.isArray(r.actions)) errors.push("'actions' must be an array");
+  if (typeof r.priority !== "number") errors.push("'priority' must be a number");
+  if (r.tags !== undefined && !Array.isArray(r.tags)) errors.push("'tags' must be an array");
+
+  if (Array.isArray(r.actions)) {
+    for (const action of r.actions) {
+      if (typeof action !== "object" || action === null) {
+        errors.push("Action is not an object");
+        continue;
+      }
+      const a = action as Record<string, unknown>;
+      if (!VALID_ACTION_TYPES.includes(a.type as string)) {
+        errors.push(`Invalid action type: "${a.type}"`);
+      }
+      if (typeof a.params !== "object" || a.params === null) {
+        errors.push(`Action "${a.type}" missing 'params'`);
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 /** Tipos de evento que disparam regras. */
@@ -168,12 +245,17 @@ export function loadRules(nexusDir: string): Rule[] {
   for (const file of files) {
     try {
       const content = readFileSync(join(rulesPath, file), "utf-8");
-      const rule = JSON.parse(content) as Rule;
-      if (rule.id && rule.trigger) {
-        rules.push(rule);
+      const parsed = JSON.parse(content);
+      const validation = validateRule(parsed);
+
+      if (!validation.valid) {
+        console.warn(`[RuleEngine] Invalid rule in ${file}: ${validation.errors.join(", ")}`);
+        continue;
       }
+
+      rules.push(parsed as Rule);
     } catch {
-      // skip invalid files
+      console.warn(`[RuleEngine] Failed to parse ${file}`);
     }
   }
 
@@ -182,6 +264,10 @@ export function loadRules(nexusDir: string): Rule[] {
 
 /** Grava uma regra no directório. */
 export function saveRule(nexusDir: string, rule: Rule): void {
+  if (!isValidRuleId(rule.id)) {
+    throw new Error(`Invalid rule ID: "${rule.id}". Only alphanumeric, hyphens and underscores allowed.`);
+  }
+
   const rulesPath = join(nexusDir, RULES_DIR);
   if (!existsSync(rulesPath)) {
     mkdirSync(rulesPath, { recursive: true });
@@ -218,8 +304,18 @@ function evaluateCondition(
       return fieldValue !== undefined && fieldValue !== null;
     case "not_exists":
       return fieldValue === undefined || fieldValue === null;
-    case "matches_regex":
-      return new RegExp(String(targetValue)).test(String(fieldValue));
+    case "matches_regex": {
+      try {
+        const pattern = String(targetValue);
+        if (pattern.length > 200) return false;
+        const groupCount = (pattern.match(/\(/g) || []).length;
+        if (groupCount > 10) return false;
+        const regex = new RegExp(pattern);
+        return regex.test(String(fieldValue));
+      } catch {
+        return false;
+      }
+    }
     default:
       return false;
   }
@@ -235,6 +331,7 @@ function resolveField(
 
   for (const part of parts) {
     if (current === null || current === undefined) return undefined;
+    if (DANGEROUS_KEYS.has(part)) return undefined;
     current = (current as Record<string, unknown>)[part];
   }
 
@@ -278,7 +375,7 @@ function executeAction(
 
         if (item) {
           content = content.replace(
-            new RegExp(`(${section}:\\s*\\n)`),
+            new RegExp(`(${escapeRegex(section)}:\\s*\\n)`),
             `$1    - "${item}"\n`
           );
           writeFileSync(bufferPath, content, "utf-8");
@@ -296,7 +393,9 @@ function executeAction(
 
       try {
         const date = new Date().toISOString().slice(0, 10);
-        const event = String(action.params.event || "rule_engine_event");
+        const event = String(action.params.event || "rule_engine_event")
+          .replace(/[^a-zA-Z0-9_-]/g, "_")
+          .slice(0, 50);
         const message = String(action.params.message || "");
         const filename = `${date}-rule-${event}.md`;
         const filepath = join(historyDir, filename);
@@ -339,11 +438,24 @@ function executeAction(
       const script = String(action.params.script || "");
       if (!script) return { success: false, message: "No script specified" };
 
+      if (!isScriptAllowed(script)) {
+        return {
+          success: false,
+          message: `Script "${script}" not in allowlist. Allowed: ${Object.keys(ALLOWED_SCRIPTS).join(", ")}`,
+        };
+      }
+
       try {
-        execSync(script, { cwd: context.projectRoot, timeout: 30000 });
+        const command = ALLOWED_SCRIPTS[script]!;
+        execSync(command, {
+          cwd: context.projectRoot,
+          timeout: 30000,
+          encoding: "utf-8",
+          stdio: "pipe",
+        });
         return { success: true, message: `Script executed: ${script}` };
       } catch (error) {
-        return { success: false, message: `Script failed: ${error}` };
+        return { success: false, message: `Script failed: ${error instanceof Error ? error.message : String(error)}` };
       }
     }
 

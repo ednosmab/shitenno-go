@@ -1,208 +1,268 @@
 # Nexus System
 
-> AI governance framework that grows with your project — scoring, pattern detection, health auditing.
+> Framework de governança de IA que cresce com seu projeto — scoring, detecção de padrões, auditoria de saúde.
 
-A CLI tool that analyses your project's complexity, detects patterns in engineering history, and audits governance health. It adapts to your team's level (Junior / Pleno / Senior) and provides actionable suggestions.
+Uma ferramenta CLI que analisa a complexidade do seu projeto, detecta padrões no histórico de engenharia e audita a saúde da governança. Ela se adapta ao nível do seu time (Junior / Pleno / Senior) e fornece sugestões acionáveis.
 
 ---
 
 ## Features
 
-| Command | Description | Phase |
-|---------|-------------|-------|
-| `nexus init` | Initialize governance framework in your project | — |
-| `nexus status` | Check governance health + complexity scoring | Phase 1 |
-| `nexus detect` | Detect patterns in history and propose candidate rules | Phase 2 |
-| `nexus audit` | Audit Nexus System health (metacognition) | Phase 3 |
-| `nexus upgrade` | Upgrade governance level (L1 → L2 → L3) | — |
-| `nexus validate` | Validate session integrity | — |
-| `nexus sync` | Sync project governance files from nexus-system | — |
+| Comando | Descrição | Status |
+|---------|-----------|--------|
+| `nexus init` | Inicializa o framework de governança no seu projeto | Estável |
+| `nexus status` | Verifica saúde da governança + scoring de complexidade | Estável |
+| `nexus detect` | Detecta padrões no histórico e propõe regras candidatas | Estável |
+| `nexus audit` | Auditoria metacognitiva da saúde do Nexus | Estável |
+| `nexus upgrade` | Atualiza nível de governança (L1 → L2 → L3) | Estável |
+| `nexus validate` | Valida integridade da sessão | Estável |
+| `nexus sync` | Sincroniza arquivos de governança externos | Estável |
+| `nexus clean` | Limpa cache e arquivos temporários | Estável |
+| `nexus assess` | Reavalia perfil de maturidade | Estável |
+| `nexus doctor` | Diagnósticos e verificações de saúde | Estável |
+| `nexus run` | Executa uma tarefa/script específica | Estável |
+| `nexus evolve` | Sugere passos de evolução baseados na maturidade | Estável |
 
 ---
 
-## Installation
+## Instalação
 
 ```bash
 npm install -g nexus-system
 ```
 
-Or run directly with npx:
+Ou execute diretamente com npx:
 
 ```bash
 npx nexus-system status
 ```
 
-### Requirements
+### Requisitos
 
 - Node.js ≥ 18.0.0
-- Git (recommended, for behavioral metrics)
+- Git (recomendado, para métricas comportamentais)
 
 ---
 
-## Quick Start
+## Início Rápido
 
 ```bash
-# 1. Initialize in your project
+# 1. Inicializar no seu projeto
 nexus init
 
-# 2. Check governance health
+# 2. Verificar saúde da governança
 nexus status
 
-# 3. Detect patterns
+# 3. Detectar padrões
 nexus detect
 
-# 4. Audit governance health
+# 4. Auditar saúde da governança
 nexus audit
 ```
 
 ---
 
-## Commands
+## Comandos
 
 ### `nexus init`
 
-Scaffolds the full governance framework into your project.
+Scaffolding completo do framework de governança.
 
 ```bash
-nexus init              # interactive setup
-nexus init -d /path     # specify target directory
-nexus init --force      # force creation inside nexus-cli
+nexus init              # setup interativo
+nexus init -d /path     # especificar diretório alvo
+nexus init --force      # forçar criação dentro do nexus-cli
 ```
 
-**What it creates:**
-- `opencode.json` — AI agent configuration (project root)
-- `nexus-system/` — governance framework directory
-- `nexus-profile/` — project profile with area definitions
-- Skills, scripts, docs, and governance templates based on team level
+**O que cria:**
+- `opencode.json` — configuração de agentes IA (raiz do projeto)
+- `nexus-system/` — diretório do framework de governança
+- `nexus-profile/` — perfil do projeto com definições de áreas
+- Skills, scripts, docs e templates de governança baseados no nível do time
 
 ### `nexus status`
 
-Analyses your project's complexity and governance health.
+Analisa complexidade do projeto e saúde da governança.
 
 ```bash
-nexus status              # auto-detect project
-nexus status -d /path     # specify directory
-nexus status --no-cache   # skip cache, recalculate
+nexus status              # auto-detectar projeto
+nexus status -d /path     # especificar diretório
+nexus status --no-cache   # pular cache, recalcular
+nexus status --json       # saída em formato JSON
 ```
 
-**Outputs:**
-- Governance health checks (opencode.json, AGENTS.md, skills, scripts, etc.)
-- Complexity score with static + behavioral metrics
-- Per-area breakdown (file count, churn, sensitive surface, violations, dependencies)
-- Actionable suggestions
+**Saídas:**
+- Verificações de saúde da governança (opencode.json, AGENTS.md, skills, scripts, etc.)
+- Score de complexidade com métricas estáticas + comportamentais
+- Detalhamento por área (contagem de arquivos, churn, superfície sensível, violações, dependências)
+- Sugestões acionáveis
 
 ### `nexus detect`
 
-Reads history and reports to detect recurring patterns.
+Lê histórico e relatórios para detectar padrões recorrentes.
 
 ```bash
-nexus detect              # auto-detect project
-nexus detect -d /path     # specify directory
-nexus detect --no-cache   # skip cache, recalculate
+nexus detect              # auto-detectar projeto
+nexus detect -d /path     # especificar diretório
+nexus detect --json       # saída em formato JSON
 ```
 
-**Detects:**
-- Recurring errors (same area, 3+ occurrences)
-- Reverted decisions (rollback patterns)
-- Hot areas (consistently high scores across reports)
+**Detecta:**
+- Erros recorrentes (mesma área, 3+ ocorrências)
+- Decisões revertidas (padrões de rollback)
+- Áreas quentes (scores consistentemente altos)
 
 ### `nexus audit`
 
-Metacognitive audit — the system evaluating its own governance effectiveness.
+Auditoria metacognitiva — o sistema avaliando sua própria eficácia de governança.
 
 ```bash
-nexus audit              # auto-detect project
-nexus audit -d /path     # specify directory
-nexus audit --no-cache   # skip cache, recalculate
+nexus audit              # auto-detectar projeto
+nexus audit -d /path     # especificar diretório
+nexus audit --json       # saída em formato JSON
 ```
 
-**Audits:**
-- Dead rules (never mentioned in history)
-- Violation hotspots (high error rate)
-- Missing docs (critical files absent)
-- Orphan directories (empty structure)
-- Stale context buffer
+**Audita:**
+- Regras mortas (nunca mencionadas no histórico)
+- Pontos de violação (alta taxa de erros)
+- Documentação ausente (arquivos críticos faltando)
+- Diretórios órfãos (estrutura vazia)
+- Context buffer desatualizado
 
 ### `nexus upgrade`
 
-Add more governance capabilities as your project grows.
+Adicione mais capacidades de governança conforme seu projeto cresce.
 
 ```bash
-nexus upgrade                    # interactive level selection
-nexus upgrade --level pleno      # upgrade to L2
-nexus upgrade --level senior     # upgrade to L3
-nexus upgrade --list             # show available upgrades
+nexus upgrade                    # seleção interativa de nível
+nexus upgrade --capability cap   # instalar capacidade específica
+nexus upgrade --accept-recommended # instalar todas as recomendadas
+nexus upgrade --list             # mostrar upgrades disponíveis
 ```
 
-**Levels:**
+**Níveis:**
 - **L1 (Junior):** Docs + Skills + Scripts
-- **L2 (Pleno):** + Governance + Context Buffer
-- **L3 (Senior):** + Cognition + Contracts + Reports + ADRs
+- **L2 (Pleno):** + Governança + Context Buffer
+- **L3 (Senior):** + Cognição + Contratos + Relatórios + ADRs
 
 ### `nexus validate`
 
-Validates session integrity before closing.
+Valida integridade da sessão antes de fechar.
 
 ```bash
-nexus validate              # run all checks
-nexus validate --fix        # attempt automatic repairs
+nexus validate              # executar todas as verificações
+nexus validate --fix        # tentar reparos automáticos
+nexus validate --json       # saída em formato JSON
 ```
 
 ### `nexus sync`
 
-Sync project governance files from an external nexus-system.
+Sincroniza arquivos de governança de um nexus-system externo.
 
 ```bash
 nexus sync --nexus-path /path/to/nexus-system
-nexus sync --dry-run        # preview changes without applying
-nexus sync --force          # overwrite without confirmation
+nexus sync --dry-run        # visualizar mudanças sem aplicar
+nexus sync --force          # sobrescrever sem confirmação
+```
+
+### `nexus clean`
+
+Limpa cache e arquivos temporários.
+
+```bash
+nexus clean                # limpar cache
+nexus clean --all          # limpar cache + relatórios
+```
+
+### `nexus assess`
+
+Reavalia o perfil de maturidade do projeto.
+
+```bash
+nexus assess               # reavaliar maturidade
+nexus assess -d /path      # especificar diretório
+```
+
+### `nexus doctor`
+
+Executa diagnósticos de saúde do sistema.
+
+```bash
+nexus doctor               # executar diagnósticos
+nexus doctor --json        # saída em formato JSON
+```
+
+### `nexus run`
+
+Executa uma tarefa ou script específico.
+
+```bash
+nexus run <task>           # executar tarefa
+```
+
+### `nexus evolve`
+
+Sugere passos de evolução baseados no perfil de maturidade atual.
+
+```bash
+nexus evolve               # sugestões interativas
+nexus evolve --json        # saída em formato JSON
 ```
 
 ---
 
-## Architecture
+## Arquitetura
 
 ```
 nexus-cli/
-├── bin/nexus.ts              # CLI entry point (Commander.js)
+├── bin/nexus.ts              # Ponto de entrada CLI (Commander.js)
 ├── src/
-│   ├── analyser.ts           # Project analysis & stack detection
-│   ├── scorer.ts             # Complexity scoring engine (Phase 1)
-│   ├── pattern-detector.ts   # Pattern extraction (Phase 2)
-│   ├── health-auditor.ts     # Governance health audit (Phase 3)
-│   ├── cache.ts              # Disk cache with SHA256 checksums
-│   ├── scaffolder.ts         # Project scaffolding
-│   ├── prompts.ts            # Interactive prompts (inquirer)
-│   ├── utils.ts              # Shared utilities
-│   ├── commands/             # CLI command implementations
-│   ├── templates/            # Template files for scaffolding
-│   └── __tests__/            # Unit + integration tests
+│   ├── analyser.ts           # Análise de projeto & detecção de stack
+│   ├── scorer.ts             # Engine de scoring de complexidade
+│   ├── pattern-detector.ts   # Extração de padrões
+│   ├── health-auditor.ts     # Auditoria de saúde da governança
+│   ├── rule-engine.ts        # Engine de regras declarativas
+│   ├── plugin-system.ts      # Sistema de extensibilidade
+│   ├── event-bus.ts          # Sistema pub/sub
+│   ├── cache.ts              # Cache em disco com checksums SHA256
+│   ├── scaffolder.ts         # Scaffolding de projetos
+│   ├── prompts.ts            # Prompts interativos (inquirer)
+│   ├── logger.ts             # Logging centralizado
+│   ├── constants.ts          # Constantes compartilhadas
+│   ├── errors.ts             # Erros tipados
+│   ├── utils.ts              # Utilitários compartilhados
+│   ├── shared.ts             # Infraestrutura compartilhada CLI
+│   ├── commands/             # Implementações dos comandos CLI
+│   ├── templates/            # Template files para scaffolding
+│   └── __tests__/            # Testes unitários + integração
+├── docs/architecture/        # Documentação de arquitetura
+└── nexus-plugins/            # Plugins de extensibilidade
 ```
 
 ### Performance
 
-The scoring engine uses several optimizations:
+O engine de scoring utiliza várias otimizações:
 
-- **Batch git log** — Single `git log` call for all areas (vs N separate calls)
-- **Parallel area scoring** — `Promise.all` with event loop interleaving
-- **Shared file cache** — `FileContentCache` avoids repeated reads
-- **Pre-read history** — Single pass over history for all areas
+- **Batch git log** — Chamada única `git log` para todas as áreas (vs N chamadas separadas)
+- **Scoring paralelo por área** — `Promise.all` com interleaving no event loop
+- **Cache compartilhado de arquivos** — `FileContentCache` evita leituras repetidas
+- **Pré-leitura do histórico** — Passada única sobre o histórico para todas as áreas
 
-### Caching
+### Cache
 
-Results are cached to `.nexus-cache.json` at project root. Cache is invalidated when:
-- `git HEAD` changes (any commit)
-- `package.json` is modified
-- `opencode.json` is modified
-- `nexus-profile/` or `nexus-system/` changes
+Resultados são cacheados em `.nexus-cache.json` na raiz do projeto. O cache é invalidado quando:
+- `git HEAD` muda (qualquer commit)
+- `package.json` é modificado
+- `opencode.json` é modificado
+- `nexus-profile/` ou `nexus-system/` mudam
 
-Cache hit: **<1ms** vs 15-106ms without cache.
+Cache hit: **<1ms** vs 15-106ms sem cache.
 
 ---
 
-## Configuration
+## Configuração
 
-### `opencode.json` (Project Root)
+### `opencode.json` (Raiz do Projeto)
 
 ```json
 {
@@ -215,55 +275,71 @@ Cache hit: **<1ms** vs 15-106ms without cache.
 }
 ```
 
-### `nexus-profile/` (Project Profile)
+### `nexus-profile/` (Perfil do Projeto)
 
-Auto-generated during `nexus init`. Defines:
-- Project name
-- Source areas to monitor
-- Sensitive keywords
-- Churn window (days)
-- Scoring weights
+Gerado automaticamente durante `nexus init`. Define:
+- Nome do projeto
+- Áreas de código fonte para monitorar
+- Palavras-chave sensíveis
+- Janela de churn (dias)
+- Pesos de scoring
 
 ---
 
-## Development
+## Desenvolvimento
 
 ```bash
-# Install dependencies
-pnpm install
+# Instalar dependências
+npm install
 
-# Development mode
-pnpm dev status
+# Modo desenvolvimento
+npm run dev status
 
 # Build
-pnpm build
+npm run build
 
-# Run tests
-pnpm test
+# Testes
+npm test
 
 # Type check
-pnpm typecheck
+npm run typecheck
+
+# Lint
+npm run lint
 
 # Benchmarks
-npx vitest bench src/__tests__/benchmarks.bench.ts
+npm run bench
 ```
 
 ---
 
-## Testing
+## Testes
 
-- **105 unit tests** across 8 test files
-- **24 CLI integration tests** (end-to-end)
-- **Performance benchmarks** for scoring, detection, and audit engines
+- **278+ testes** em 18 arquivos de teste
+- **Testes de integração CLI** (end-to-end)
+- **Benchmarks de performance** para engines de scoring, detecção e auditoria
 
 ```bash
-pnpm test              # run all tests
-pnpm test:watch        # watch mode
-npx vitest bench       # run benchmarks
+npm test              # executar todos
+npm run test:watch    # modo watch
+npm run bench         # executar benchmarks
 ```
 
 ---
 
-## License
+## Segurança
+
+O Nexus System implementa as seguintes medidas de segurança:
+
+- **Allowlist de scripts** — Apenas comandos pré-aprovados podem ser executados via regras
+- **Validação de IDs** — Rule IDs são restritos a caracteres alfanuméricos, hífens e underscores
+- **Sanitização de regex** — Padrões são validados contra complexidade excessiva
+- **Proteção contra prototype pollution** — Acesso a `__proto__`, `constructor` é bloqueado
+- **Validação de plugins** — Hooks e nomes são validados antes do registro
+- **Cache atômico** — Escrita via temp file + rename previne corrupção
+
+---
+
+## Licença
 
 MIT

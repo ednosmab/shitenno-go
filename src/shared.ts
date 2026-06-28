@@ -13,6 +13,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { detectNexusProject } from "./utils.js";
 import { outputJson } from "./formatting.js";
+import { NotInitializedError } from "./errors.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,28 +63,27 @@ export function createNexusCommand(
         const ctx = resolveProjectContext(options);
 
         if (!ctx.isInitialized) {
-          const error = {
-            error: "not_initialized",
-            message: "Project not initialized. Run `nexus init` first.",
-          };
-          if (isJson) {
-            outputJson(error);
-          } else {
-            console.error(error.message);
-          }
-          process.exit(1);
+          throw new NotInitializedError();
         }
 
         await action(ctx, options);
       } catch (error) {
-        const err = {
-          error: "unknown",
-          message: error instanceof Error ? error.message : String(error),
-        };
-        if (isJson) {
-          outputJson(err);
+        if (error instanceof NotInitializedError) {
+          if (isJson) {
+            outputJson({ error: error.code, message: error.message });
+          } else {
+            console.error(error.message);
+          }
         } else {
-          console.error(err.message);
+          const err = {
+            error: "unknown",
+            message: error instanceof Error ? error.message : String(error),
+          };
+          if (isJson) {
+            outputJson(err);
+          } else {
+            console.error(err.message);
+          }
         }
         process.exit(1);
       }
@@ -95,6 +95,7 @@ export function createNexusCommand(
 // ── Lifecycle Gate ─────────────────────────────────────────────────────────
 
 import { detectLifecycleState, canRunCommand, type NexusLifecycleState } from "./nexus-state-machine.js";
+import { COMMAND_GATES } from "./constants.js";
 
 /**
  * Check if a command is allowed to run in the current lifecycle state.
@@ -128,21 +129,7 @@ export function checkLifecycleGate(
 }
 
 function getRequiredState(command: string): NexusLifecycleState {
-  const gates: Record<string, NexusLifecycleState> = {
-    init: "uninitialized",
-    status: "discovered",
-    detect: "discovered",
-    audit: "discovered",
-    upgrade: "assessed",
-    validate: "assessed",
-    assess: "discovered",
-    doctor: "discovered",
-    run: "assessed",
-    sync: "governed",
-    clean: "governed",
-    evolve: "governed",
-  };
-  return gates[command] || "discovered";
+  return (COMMAND_GATES[command] || "discovered") as NexusLifecycleState;
 }
 
 // ── Report Writer ────────────────────────────────────────────────────────────

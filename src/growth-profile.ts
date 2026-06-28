@@ -190,7 +190,9 @@ export function detectGrowthPatterns(profile: GrowthProfile): GrowthPattern[] {
     // Check for sporadic growth (alternating choices)
     let alternations = 0;
     for (let i = 1; i < recent.length; i++) {
-      if (recent[i].pathChosen !== recent[i - 1].pathChosen) {
+      const current = recent[i];
+      const previous = recent[i - 1];
+      if (current && previous && current.pathChosen !== previous.pathChosen) {
         alternations++;
       }
     }

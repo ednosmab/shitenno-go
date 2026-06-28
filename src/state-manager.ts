@@ -137,8 +137,8 @@ export function readKnowledgeState(nexusDir: string): KnowledgeState {
       const statusMatch = content.match(/Estado:\s*(\w+)/i) || content.match(/Status:\s*(\w+)/i);
       state.adrs.push({
         id: file.replace(".md", ""),
-        title: titleMatch ? titleMatch[1] : file.replace(".md", ""),
-        status: statusMatch ? statusMatch[1] : "unknown",
+        title: titleMatch?.[1] ?? file.replace(".md", ""),
+        status: statusMatch?.[1] ?? "unknown",
         path: `docs/adrs/${file}`,
       });
     }
@@ -169,8 +169,8 @@ export function readKnowledgeState(nexusDir: string): KnowledgeState {
       const roleMatch = content.match(/agent:\s*(.+)/);
       state.contracts.push({
         id: file.replace(/\.(yaml|yml)$/, ""),
-        name: nameMatch ? nameMatch[1].trim() : file,
-        role: roleMatch ? roleMatch[1].trim() : "unknown",
+        name: nameMatch?.[1]?.trim() ?? file,
+        role: roleMatch?.[1]?.trim() ?? "unknown",
         path: `governance/agents/${file}`,
       });
     }
@@ -273,15 +273,18 @@ export function readProjectState(
       .sort()
       .slice(-1);
     if (debtFiles.length > 0) {
-      try {
-        const content = JSON.parse(readFileSync(join(reportsDir, debtFiles[0]), "utf-8"));
-        state.knowledgeDebt = {
-          totalGaps: content.totalGaps,
-          healthScore: content.healthScore,
-          detectedAt: content.generatedAt,
-        };
-      } catch {
-        // skip
+      const debtFile = debtFiles[0];
+      if (debtFile) {
+        try {
+          const content = JSON.parse(readFileSync(join(reportsDir, debtFile), "utf-8"));
+          state.knowledgeDebt = {
+            totalGaps: content.totalGaps,
+            healthScore: content.healthScore,
+            detectedAt: content.generatedAt,
+          };
+        } catch {
+          // skip
+        }
       }
     }
   }

@@ -64,7 +64,7 @@ function readHistory(nexusDir: string): HistoryEntry[] {
     .map((file) => {
       const content = readFileSync(join(historyDir, file), "utf-8");
       const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/);
-      return { filename: file, date: dateMatch ? dateMatch[1] : "unknown", content: content.toLowerCase() };
+      return { filename: file, date: dateMatch?.[1] ?? "unknown", content: content.toLowerCase() };
     });
 }
 
@@ -78,7 +78,8 @@ function readRules(nexusDir: string): string[] {
   const numberedRegex = /^\d+\.\s+\*\*([^*]+)\*\*/gm;
   let match;
   while ((match = numberedRegex.exec(content)) !== null) {
-    rules.push(match[1].trim());
+    const rule = match[1];
+    if (rule) rules.push(rule.trim());
   }
   return [...new Set(rules)];
 }

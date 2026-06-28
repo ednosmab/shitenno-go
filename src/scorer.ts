@@ -89,7 +89,9 @@ function loadProjectProfile(projectRoot: string): ProjectProfile | null {
   if (files.length === 0) return null;
 
   // Read the first profile file and extract values via regex
-  const content = readFileSync(join(profileDir, files[0]), "utf-8");
+  const firstFile = files[0];
+  if (!firstFile) return null;
+  const content = readFileSync(join(profileDir, firstFile), "utf-8");
 
   const projectNameMatch = content.match(/projectName:\s*["']([^"']+)["']/);
   const areasMatch = content.match(/areas:\s*\[([\s\S]*?)\]/);
@@ -110,15 +112,15 @@ function loadProjectProfile(projectRoot: string): ProjectProfile | null {
       .filter(Boolean);
 
   return {
-    projectName: projectNameMatch[1],
-    areas: parseStringArray(areasMatch[1]),
+    projectName: projectNameMatch[1] ?? "",
+    areas: parseStringArray(areasMatch[1] ?? ""),
     sensitiveKeywords: sensitiveMatch
-      ? parseStringArray(sensitiveMatch[1])
+      ? parseStringArray(sensitiveMatch[1] ?? "")
       : ["auth", "payment", "session", "security"],
-    churnWindowDays: churnMatch ? parseInt(churnMatch[1], 10) : 90,
+    churnWindowDays: churnMatch ? parseInt(churnMatch[1] ?? "90", 10) : 90,
     weights: { churn: 1.0, violationRate: 1.0, sensitiveSurface: 1.0 },
     violationKeywords: violationMatch
-      ? parseStringArray(violationMatch[1])
+      ? parseStringArray(violationMatch[1] ?? "")
       : ["erro", "bug", "corrigi", "falhou", "rollback", "violação"],
   };
 }
@@ -168,15 +170,16 @@ function batchGitChurn(
     const fileSetByArea = new Map<string, Set<string>>();
     for (const a of areas) fileSetByArea.set(a, new Set());
 
-    for (const line of output.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      for (const a of areas) {
-        if (trimmed.startsWith(a + "/") || trimmed.includes("/" + a + "/")) {
-          fileSetByArea.get(a)!.add(trimmed);
+      for (const line of output.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        for (const a of areas) {
+          if (trimmed.startsWith(a + "/") || trimmed.includes("/" + a + "/")) {
+            const fileSet = fileSetByArea.get(a);
+            if (fileSet) fileSet.add(trimmed);
+          }
         }
       }
-    }
 
     for (const [a, files] of fileSetByArea) {
       churnMap.set(a, files.size);
@@ -227,8 +230,10 @@ function preReadHistory(
   for (const a of areas) lastViolationIdx.set(a, -1);
 
   for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file) continue;
     try {
-      const content = readFileSync(join(historyDir, files[i]), "utf-8").toLowerCase();
+      const content = readFileSync(join(historyDir, file), "utf-8").toLowerCase();
       for (const a of areas) {
         if (content.includes(a.toLowerCase())) {
           const hasViolation = violationKeywords.some((kw) => content.includes(kw));
@@ -245,8 +250,8 @@ function preReadHistory(
 
   // Compute incident-free age: files.length - lastViolationIdx - 1
   for (const a of areas) {
-    const idx = lastViolationIdx.get(a)!;
-    result.incidentFreeAgeByArea.set(a, idx < 0 ? files.length : files.length - idx - 1);
+    const idx = lastViolationIdx.get(a);
+    result.incidentFreeAgeByArea.set(a, (idx === undefined || idx < 0) ? files.length : files.length - idx - 1);
   }
 
   return result;
@@ -298,6 +303,7 @@ function batchScoreArea(
         const match = line.match(importRegex);
         if (!match) continue;
         const importPath = match[1];
+        if (!importPath) continue;
         for (const { full, short } of otherAreas) {
           if (
             importPath.includes(`../${short}/`) ||
@@ -347,7 +353,8 @@ async function calculateAreaScores(
   const metricsMap = new Map(areaMetrics.map(({ area, metrics }) => [area, metrics]));
 
   const results = profile.areas.map((area) => {
-    const m = metricsMap.get(area)!;
+    const m = metricsMap.get(area);
+    if (!m) return null;
     const churn = churnMap.get(area) || 0;
     const violations = history.violationsByArea.get(area) || 0;
     const incidentFreeAge = history.incidentFreeAgeByArea.get(area) || 0;
@@ -411,7 +418,7 @@ async function calculateAreaScores(
     };
   });
 
-  return results;
+  return results.filter((r): r is AreaScore => r !== null);
 }
 
 
@@ -423,7 +430,7 @@ function countContextPressure(projectRoot: string, area: string): number {
 
   // Map area to potential layer name (e.g., "src/services" → "services")
   const areaParts = area.split("/");
-  const layerName = areaParts[areaParts.length - 1];
+  const layerName = areaParts[areaParts.length - 1] ?? "";
   const layerDir = join(layersDir, layerName);
 
   if (!existsSync(layerDir)) return 0;

@@ -474,7 +474,8 @@ function generateRecommendations(gaps: KnowledgeGap[]): string[] {
 
   for (const [type, typeGaps] of byType) {
     if (typeGaps.length > 0) {
-      recommendations.push(typeGaps[0].recommendation);
+      const firstGap = typeGaps[0];
+      if (firstGap) recommendations.push(firstGap.recommendation);
     }
   }
 

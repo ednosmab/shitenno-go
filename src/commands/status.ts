@@ -1,8 +1,7 @@
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
-import fse from "fs-extra";
 import { calculateComplexityScore, writeComplexityReport, type ComplexityReport } from "../scorer.js";
 import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
@@ -221,7 +220,7 @@ function checkSkillsDirectory(nexusDir: string): StatusCheck {
     return { name: "nexus-system/docs/skills/", status: "warn", message: "Directory not found" };
   }
 
-  const skillFiles = fse.readdirSync(skillsDir).filter((f: string) =>
+  const skillFiles = readdirSync(skillsDir).filter((f: string) =>
     f.endsWith(".md")
   );
 
@@ -280,7 +279,7 @@ function checkScripts(nexusDir: string): StatusCheck {
     return { name: "nexus-system/scripts/", status: "warn", message: "Directory not found" };
   }
 
-  const scriptFiles = fse.readdirSync(scriptsDir).filter((f: string) =>
+  const scriptFiles = readdirSync(scriptsDir).filter((f: string) =>
     f.endsWith(".ts") || f.endsWith(".js")
   );
 
@@ -302,7 +301,7 @@ function checkAgentContracts(nexusDir: string): StatusCheck {
     return { name: "agent contracts", status: "warn", message: "Not found" };
   }
 
-  const yamlFiles = fse.readdirSync(contractsDir).filter((f: string) =>
+  const yamlFiles = readdirSync(contractsDir).filter((f: string) =>
     f.endsWith(".yaml") || f.endsWith(".yml")
   );
 

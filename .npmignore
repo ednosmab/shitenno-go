@@ -1,18 +1,23 @@
 # Source
 src/
 bin/
+docs/
+plans/
+nexus-plugins/
+.github/
+
+# Config
 tsconfig.json
 vitest.config.ts
+.eslintrc.json
 .gitignore
 .npmignore
 
 # Tests
-__tests__/
+src/__tests__/
 *.test.ts
 *.bench.ts
 
-# Build artifacts that should not be in package
+# Build artifacts
 *.tsbuildinfo
-
-# Development
-node_modules/
+coverage/

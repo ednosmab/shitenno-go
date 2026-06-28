@@ -7,8 +7,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync, renameSync } from "node:fs";
 import { join, relative } from "node:path";
+import { tmpdir } from "node:os";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,10 +154,12 @@ function readCache(projectRoot: string): NexusCache | null {
 
 function writeCache(projectRoot: string, cache: NexusCache): void {
   const cachePath = join(projectRoot, CACHE_FILENAME);
+  const tmpPath = join(tmpdir(), `nexus-cache-${Date.now()}.json`);
   try {
-    writeFileSync(cachePath, JSON.stringify(cache, null, 2), "utf-8");
+    writeFileSync(tmpPath, JSON.stringify(cache, null, 2), "utf-8");
+    renameSync(tmpPath, cachePath);
   } catch {
-    // silently fail — cache is optional optimization
+    try { unlinkSync(tmpPath); } catch { /* ignore cleanup error */ }
   }
 }
 

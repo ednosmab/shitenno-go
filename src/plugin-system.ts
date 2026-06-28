@@ -162,14 +162,31 @@ export async function loadPlugins(projectRoot: string): Promise<NexusPlugin[]> {
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
+const VALID_HOOK_NAMES = new Set([
+  "pre-analysis", "post-analysis", "pre-scaffold", "post-scaffold",
+  "custom-check", "custom-recommendation", "custom-metric",
+]);
+
+const SAFE_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
 function isNexusPlugin(obj: unknown): obj is NexusPlugin {
   if (typeof obj !== "object" || obj === null) return false;
   const plugin = obj as Record<string, unknown>;
-  return (
-    typeof plugin.name === "string" &&
-    typeof plugin.version === "string" &&
-    typeof plugin.description === "string"
-  );
+
+  if (typeof plugin.name !== "string" || !SAFE_NAME_REGEX.test(plugin.name)) return false;
+  if (typeof plugin.version !== "string") return false;
+  if (typeof plugin.description !== "string") return false;
+
+  if (plugin.hooks !== undefined) {
+    if (typeof plugin.hooks !== "object" || plugin.hooks === null) return false;
+    const hooks = plugin.hooks as Record<string, unknown>;
+    for (const hookName of Object.keys(hooks)) {
+      if (!VALID_HOOK_NAMES.has(hookName as HookName)) return false;
+      if (typeof hooks[hookName] !== "function") return false;
+    }
+  }
+
+  return true;
 }
 
 // ── Singleton ────────────────────────────────────────────────────────────────

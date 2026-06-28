@@ -264,7 +264,11 @@ function installCapabilities(
       if (existsSync(destPath)) continue;
       if (!existsSync(srcPath)) continue;
 
-      ensureDirSync(resolve(destPath, ".."));
+      const dir = resolve(destPath, "..");
+      if (!existsSync(dir)) {
+        ensureDirSync(dir);
+        directoriesCreated++;
+      }
       copySync(srcPath, destPath);
       filesInstalled++;
     }

@@ -93,7 +93,7 @@ function readHistoryEntries(nexusDir: string): HistoryEntry[] {
 
     // Extract date from filename (YYYY-MM-DD-sessao-NN.md)
     const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/);
-    const date = dateMatch ? dateMatch[1] : "unknown";
+    const date = dateMatch?.[1] ?? "unknown";
 
     // Detect violations mentioned
     const lower = content.toLowerCase();
@@ -152,13 +152,14 @@ function detectRecurringErrors(entries: HistoryEntry[]): DetectedPattern[] {
   for (const entry of entries) {
     if (entry.violations.length === 0) continue;
 
-    const key = entry.areas.length > 0 ? entry.areas[0] : "global";
+    const key = entry.areas.length > 0 ? (entry.areas[0] ?? "global") : "global";
     if (!violationsByArea.has(key)) {
       violationsByArea.set(key, []);
     }
-    violationsByArea.get(key)!.push(
-      `${entry.date} (${entry.filename}): ${entry.violations.join(", ")}`
-    );
+    const existing = violationsByArea.get(key);
+    if (existing) {
+      existing.push(`${entry.date} (${entry.filename}): ${entry.violations.join(", ")}`);
+    }
   }
 
   for (const [area, evidence] of violationsByArea) {

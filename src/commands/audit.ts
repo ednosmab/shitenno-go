@@ -60,7 +60,7 @@ export const auditCommand = new Command("audit")
       const graphAnalysis = analyzeGraph(artifacts, relations);
 
       // Publish knowledge graph event
-      getEventBus().publish("knowledge.analyzed" as never, {
+      getEventBus().publish("knowledge.analyzed", {
         totalArtifacts: graphAnalysis.totalArtifacts,
         totalRelations: graphAnalysis.totalRelations,
         healthScore: graphAnalysis.healthScore,

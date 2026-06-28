@@ -184,7 +184,9 @@ export function formatGrowthProgress(profile: GrowthProfile): string {
 
   if (profile.patterns.length > 0) {
     const pattern = profile.patterns[0];
-    lines.push(`    Pattern: ${chalk.gray(pattern.description)}`);
+    if (pattern) {
+      lines.push(`    Pattern: ${chalk.gray(pattern.description)}`);
+    }
   }
 
   if (profile.pathHistory.length > 0) {

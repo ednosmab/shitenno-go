@@ -87,22 +87,31 @@ export function detectNexusProject(startDir: string): { root: string; nexusDir: 
 
 export class FileContentCache {
   private cache = new Map<string, string>();
+  private static readonly MAX_ENTRIES = 500;
 
-  /** Lê o conteúdo de um ficheiro (cached). */
   get(filePath: string): string | null {
     if (this.cache.has(filePath)) {
       return this.cache.get(filePath)!;
     }
     try {
       const content = readFileSync(filePath, "utf-8");
-      this.cache.set(filePath, content);
+      this.set(filePath, content);
       return content;
     } catch {
       return null;
     }
   }
 
-  /** Retorna o número de ficheiros em cache. */
+  set(filePath: string, content: string): void {
+    if (this.cache.size >= FileContentCache.MAX_ENTRIES) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(filePath, content);
+  }
+
   get size(): number {
     return this.cache.size;
   }

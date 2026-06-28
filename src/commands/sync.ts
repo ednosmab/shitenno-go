@@ -366,7 +366,7 @@ function extractSections(content: string): Record<string, string> {
         sections[currentSection] = currentContent.join("\n");
       }
       // Start new section
-      currentSection = headingMatch[2].trim();
+      currentSection = headingMatch[2]?.trim() ?? "";
       currentContent = [line];
     } else if (currentSection) {
       currentContent.push(line);
