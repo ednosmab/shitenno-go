@@ -59,12 +59,13 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
 | **Arquivo** | `src/shared.ts:45-93` |
 | **Descricao** | Funcao definida mas nunca importada por nenhum comando. Contem `process.exit(1)` contradizendo o proposito de `errors.ts`. |
 | **Correcao** | Remover funcao ou integrar nos comandos que ainda usam `process.exit(1)` |
+| **Resolucao** | Funcao removida juntamente com imports nao utilizados (Command, NotInitializedError) |
 
 ---
 

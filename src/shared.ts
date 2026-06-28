@@ -9,11 +9,9 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { Command } from "commander";
 import chalk from "chalk";
 import { detectNexusProject } from "./utils.js";
 import { outputJson } from "./formatting.js";
-import { NotInitializedError } from "./errors.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,59 +35,6 @@ export function resolveProjectContext(options: { dir?: string }): ProjectContext
   const hasMaturityProfile = existsSync(join(nexusDir, "maturity-profile.json"));
 
   return { projectRoot, nexusDir, isInitialized, hasMaturityProfile };
-}
-
-// ── Command Factory ──────────────────────────────────────────────────────────
-
-/** Create a command with common patterns (banner, JSON mode, error handling). */
-export function createNexusCommand(
-  name: string,
-  description: string,
-  action: (ctx: ProjectContext, options: Record<string, unknown>) => Promise<void>
-): Command {
-  const cmd = new Command(name)
-    .description(description)
-    .option("-d, --dir <path>", "Project directory")
-    .option("--json", "Output as JSON")
-    .action(async function (this: Command, options: Record<string, unknown>) {
-      const isJson = options.json === true;
-
-      if (!isJson) {
-        console.log(`\n╔══╗  ${name.toUpperCase()}`);
-        console.log(`╚══╝  ${description}\n`);
-      }
-
-      try {
-        const ctx = resolveProjectContext(options);
-
-        if (!ctx.isInitialized) {
-          throw new NotInitializedError();
-        }
-
-        await action(ctx, options);
-      } catch (error) {
-        if (error instanceof NotInitializedError) {
-          if (isJson) {
-            outputJson({ error: error.code, message: error.message });
-          } else {
-            console.error(error.message);
-          }
-        } else {
-          const err = {
-            error: "unknown",
-            message: error instanceof Error ? error.message : String(error),
-          };
-          if (isJson) {
-            outputJson(err);
-          } else {
-            console.error(err.message);
-          }
-        }
-        process.exit(1);
-      }
-    });
-
-  return cmd;
 }
 
 // ── Lifecycle Gate ─────────────────────────────────────────────────────────
