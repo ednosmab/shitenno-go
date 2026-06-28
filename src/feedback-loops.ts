@@ -3,6 +3,7 @@
  *
  * Tracks acceptance/rejection of recommendations and adjusts
  * future recommendations based on patterns.
+ * Now includes dimension tracking for user performance reporting.
  *
  * PRINCIPLE: The system learns from human decisions.
  */
@@ -11,6 +12,27 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { join } from "node:path";
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+/** Performance dimensions inspired by the feedback template. */
+export type PerformanceDimension =
+  | "architectural_vision"
+  | "scope_management"
+  | "prompt_quality"
+  | "decision_making"
+  | "risk_management"
+  | "technical_communication"
+  | "sustainable_velocity";
+
+/** Human-readable labels for each dimension. */
+export const DIMENSION_LABELS: Record<PerformanceDimension, string> = {
+  architectural_vision: "Visão Arquitectural",
+  scope_management: "Gestão de Scope",
+  prompt_quality: "Qualidade de Prompts",
+  decision_making: "Tomada de Decisão",
+  risk_management: "Gestão de Risco",
+  technical_communication: "Comunicação Técnica",
+  sustainable_velocity: "Velocidade Sustentável",
+};
 
 export interface FeedbackRecord {
   id: string;
@@ -25,6 +47,12 @@ export interface FeedbackRecord {
   };
   /** Path choice made by the user (for dual-path system). */
   pathChoice?: "comfortable" | "challenging";
+  /** Performance dimension this feedback relates to. */
+  dimension?: PerformanceDimension;
+  /** Concrete evidence for the assessment. */
+  evidence?: string;
+  /** Session ID where this feedback was given. */
+  sessionId?: string;
 }
 
 export interface FeedbackSummary {
@@ -210,6 +238,91 @@ export function detectFeedbackPatterns(nexusDir: string): FeedbackPattern[] {
   }
 
   return patterns;
+}
+
+// ── Dimension Functions ──────────────────────────────────────────────────────
+
+export interface DimensionSummary {
+  dimension: PerformanceDimension;
+  acceptCount: number;
+  rejectCount: number;
+  deferCount: number;
+  evidence: string[];
+}
+
+/** Record feedback with a performance dimension. */
+export function recordDimensionFeedback(
+  nexusDir: string,
+  record: {
+    recommendationId: string;
+    action: "accepted" | "rejected" | "deferred";
+    reason?: string;
+    dimension: PerformanceDimension;
+    evidence: string;
+    sessionId?: string;
+    pathChoice?: "comfortable" | "challenging";
+    context?: {
+      maturityScore: number;
+      installedCapabilities: string[];
+      knowledgeDebt: number;
+    };
+  }
+): FeedbackRecord {
+  return recordFeedback(nexusDir, {
+    recommendationId: record.recommendationId,
+    action: record.action,
+    reason: record.reason,
+    dimension: record.dimension,
+    evidence: record.evidence,
+    sessionId: record.sessionId,
+    pathChoice: record.pathChoice,
+    context: record.context || {
+      maturityScore: 0,
+      installedCapabilities: [],
+      knowledgeDebt: 0,
+    },
+  });
+}
+
+/** Get feedback summary for a specific dimension. */
+export function getDimensionSummary(
+  nexusDir: string,
+  dimension: PerformanceDimension
+): DimensionSummary {
+  const records = getFeedbackRecords(nexusDir);
+  const filtered = records.filter((r) => r.dimension === dimension);
+
+  return {
+    dimension,
+    acceptCount: filtered.filter((r) => r.action === "accepted").length,
+    rejectCount: filtered.filter((r) => r.action === "rejected").length,
+    deferCount: filtered.filter((r) => r.action === "deferred").length,
+    evidence: filtered
+      .filter((r) => r.evidence)
+      .map((r) => r.evidence!)
+      .slice(-5), // last 5 evidence items
+  };
+}
+
+/** Get feedback summaries for all dimensions. */
+export function getAllDimensionSummaries(
+  nexusDir: string
+): Record<PerformanceDimension, DimensionSummary> {
+  const dimensions: PerformanceDimension[] = [
+    "architectural_vision",
+    "scope_management",
+    "prompt_quality",
+    "decision_making",
+    "risk_management",
+    "technical_communication",
+    "sustainable_velocity",
+  ];
+
+  const result = {} as Record<PerformanceDimension, DimensionSummary>;
+  for (const dim of dimensions) {
+    result[dim] = getDimensionSummary(nexusDir, dim);
+  }
+  return result;
 }
 
 // ── Internal Helpers ─────────────────────────────────────────────────────────

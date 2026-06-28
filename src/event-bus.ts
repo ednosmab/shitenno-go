@@ -3,9 +3,13 @@
  *
  * Enables decoupled communication between Nexus modules.
  * Modules publish events; other modules subscribe and react.
+ * Optional persistence to disk for performance reporting.
  *
  * PRINCIPLE: Modules communicate through events, not direct imports.
  */
+
+import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { join } from "node:path";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +43,7 @@ export interface EventBus {
   removeAllListeners(eventType?: NexusEventType): void;
   listenerCount(eventType: NexusEventType): number;
   getHistory(): Array<{ type: string; payload: unknown; timestamp: string }>;
+  enablePersistence(nexusDir: string): void;
 }
 
 // ── Implementation ───────────────────────────────────────────────────────────
@@ -51,16 +56,24 @@ class NexusEventBus implements EventBus {
     timestamp: string;
   }> = [];
   private static readonly MAX_HISTORY = 1000;
+  private persistenceDir: string | null = null;
 
   publish<T>(eventType: NexusEventType, payload: T): void {
-    this.eventHistory.push({
+    const entry = {
       type: eventType,
       payload,
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    this.eventHistory.push(entry);
 
     if (this.eventHistory.length > NexusEventBus.MAX_HISTORY) {
       this.eventHistory = this.eventHistory.slice(-NexusEventBus.MAX_HISTORY);
+    }
+
+    // Persist to disk if enabled
+    if (this.persistenceDir) {
+      this.persistEvent(entry);
     }
 
     // Deliver to all subscribers
@@ -79,6 +92,26 @@ class NexusEventBus implements EventBus {
           console.error(`[EventBus] Handler error for "${eventType}":`, error);
         }
       }
+    }
+  }
+
+  /** Enable persistence to disk. Events are written to JSONL files by date. */
+  enablePersistence(nexusDir: string): void {
+    const telemetryDir = join(nexusDir, "telemetry");
+    if (!existsSync(telemetryDir)) {
+      mkdirSync(telemetryDir, { recursive: true });
+    }
+    this.persistenceDir = telemetryDir;
+  }
+
+  private persistEvent(entry: { type: string; payload: unknown; timestamp: string }): void {
+    if (!this.persistenceDir) return;
+    try {
+      const date = entry.timestamp.slice(0, 10);
+      const filePath = join(this.persistenceDir, `events-${date}.jsonl`);
+      appendFileSync(filePath, JSON.stringify(entry) + "\n", "utf-8");
+    } catch {
+      // Persistence is best-effort — never block event delivery
     }
   }
 
@@ -139,4 +172,29 @@ export function getEventBus(): EventBus {
 /** Reset the global event bus (for testing). */
 export function resetEventBus(): void {
   globalBus = null;
+}
+
+/** Enable event persistence to disk for performance reporting. */
+export function enableEventPersistence(nexusDir: string): void {
+  getEventBus().enablePersistence(nexusDir);
+}
+
+/** Read persisted events from a specific date. */
+export function readPersistedEvents(
+  nexusDir: string,
+  date: string
+): Array<{ type: string; payload: unknown; timestamp: string }> {
+  const { existsSync, readFileSync } = require("node:fs");
+  const telemetryDir = join(nexusDir, "telemetry");
+  const filePath = join(telemetryDir, `events-${date}.jsonl`);
+
+  if (!existsSync(filePath)) return [];
+
+  try {
+    const content = readFileSync(filePath, "utf-8").trim();
+    if (!content) return [];
+    return content.split("\n").map((line: string) => JSON.parse(line));
+  } catch {
+    return [];
+  }
 }

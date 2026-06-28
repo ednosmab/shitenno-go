@@ -13,6 +13,7 @@ import { assessCommand } from "../src/commands/assess.js";
 import { doctorCommand } from "../src/commands/doctor.js";
 import { runCommand } from "../src/commands/run.js";
 import { evolveCommand } from "../src/commands/evolve.js";
+import { reportCommand } from "../src/commands/report.js";
 
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -37,5 +38,6 @@ program.addCommand(assessCommand);
 program.addCommand(doctorCommand);
 program.addCommand(runCommand);
 program.addCommand(evolveCommand);
+program.addCommand(reportCommand());
 
 program.parse();
