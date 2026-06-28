@@ -172,11 +172,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
 | **Descricao** | CHANGELOG.md documenta CI/CD mas os arquivos `.github/workflows/` nao existem. CI deve rodar typecheck + build + test em Node 18/20/22. Release deve publicar npm em git tags. |
 | **Correcao** | Criar `.github/workflows/ci.yml` e `.github/workflows/release.yml` |
+| **Resolucao** | ci.yml (test em Node 18/20/22) e release.yml (npm publish + GitHub Release) criados |
 
 ---
 
