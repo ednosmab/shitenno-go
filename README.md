@@ -1,187 +1,254 @@
 # Nexus System
 
-> Um sistema que pensa sobre como você trabalha.
+> A system that thinks about how you work.
 
-Nexus detecta **Knowledge Debt** — o custo invisível do conhecimento de engenharia ausente, desconectado e desatualizado — e recomenda ações para fechar esse gap.
+Nexus is not a tool. It is not a framework. It is not a linter. It is not a CI pipeline.
 
-Não é um linter. Não é CI. Não é um framework.
-É um sistema de governança de conhecimento que audita a si mesmo, aprende com seu feedback e recomenda a própria evolução.
-
----
-
-## O que Nexus resolve
-
-| Sem Nexus | Com Nexus |
-|-----------|-----------|
-| Conhecimento documentado mas desconectado | Conhecimento grafado com relações explícitas |
-| Complexidade sentida mas não medida | Complexidade pontuada com métricas estáticas + comportamentais |
-| Padrões notados mas não rastreados | Padrões detectados do histórico automaticamente |
-| Governança manual e inconsistente | Governança automatizada via regras |
-| Agentes IA operam sem contexto | Agentes IA recebem contexto governado e hierárquico |
-| Evolução ad-hoc | Evolução recomendada com base no estado |
+Nexus is a system that organizes engineering knowledge so that humans and AI agents can continuously understand a project's state, make better decisions, and evolve with confidence.
 
 ---
 
-## Como operar
+## Why Does Nexus Exist
 
-### Inicializar
+Engineering teams accumulate knowledge but fail to govern it.
 
-```bash
-nexus init
-```
+ADRs are written but never referenced. Skills are documented but never extracted from patterns. Workflows are defined but never enforced. Context is lost between sessions. Decisions are repeated because no one remembers the previous one.
 
-Cria a estrutura de governança: `opencode.json`, `nexus-system/`, `nexus-profile/`, skills, scripts, templates.
+This is **Knowledge Debt** — the silent killer of engineering productivity.
 
-### Verificar estado
-
-```bash
-nexus status
-```
-
-Mostra score de complexidade, saúde da governança, e sugestões acionáveis.
-
-### Detectar padrões
-
-```bash
-nexus detect
-```
-
-Lê histórico e relatórios para identificar erros recorrentes, decisões revertidas, e áreas quentes.
-
-### Auditar governança (metacognição)
-
-```bash
-nexus audit
-```
-
-O sistema avaliando a própria eficácia: regras mortas, hotspots de violação, docs ausentes, diretórios órfãos.
-
-### Evoluir
-
-```bash
-nexus evolve
-```
-
-Recomendações adaptativas baseadas no perfil de maturidade do time. Cada recomendação tem dois caminhos: conforto e desafio.
-
-### Pipeline completo
-
-```bash
-nexus run
-```
-
-Executa o pipeline de 8 estágios: Análise → Complexidade → Padrões → Knowledge Debt → Capability Engine → Engineering State → Recommendation Engine → Evolução.
-
-### Outros comandos
-
-| Comando | Função |
-|---------|--------|
-| `nexus upgrade` | Instalar capacidades de governança (5 níveis de maturidade) |
-| `nexus validate` | Validar integridade da sessão |
-| `nexus sync` | Sincronizar governança de um nexus externo |
-| `nexus clean` | Limpar cache e temporários |
-| `nexus assess` | Reavaliar perfil de maturidade |
-| `nexus doctor` | Diagnósticos de saúde do sistema |
+Nexus detects Knowledge Debt before it compounds. It connects the artifacts that should be connected. It recommends the knowledge that should exist but does not.
 
 ---
 
-## Como funciona por dentro
+## How Does Nexus Think
+
+Nexus interprets projects through a conceptual flow:
 
 ```
-Seu projeto
-    │
-    ▼
-┌─────────────┐    ┌──────────────┐    ┌───────────────┐
-│  Análise    │───▶│  Padrões     │───▶│ Knowledge     │
-│  (complexi- │    │  (histórico) │    │ Debt          │
-│   dade)     │    │              │    │               │
-└─────────────┘    └──────────────┘    └───────────────┘
-       │                  │                    │
-       ▼                  ▼                    ▼
-┌─────────────────────────────────────────────────────┐
-│              Capability Engine                       │
-│  9 capacidades × 5 níveis de maturidade              │
-│  dormant → installed → configured → active → optimized│
-└─────────────────────────────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────────────────────┐
-│              Engineering State                       │
-│  Fonte única de verdade: assets, entropia, saúde    │
-└─────────────────────────────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────────────────────┐
-│              Recommendation Engine                   │
-│  Próxima melhor ação com confiança e justificativa  │
-└─────────────────────────────────────────────────────┘
-       │
-       ▼
-┌──────────────┐    ┌──────────────┐
-│ Auto-Evolução│───▶│  Dual-Path   │
-│ (recomenda   │    │ (conforto vs │
-│  a própria   │    │  desafio)    │
-│  evolução)   │    │              │
-└──────────────┘    └──────────────┘
+Reality
+  ↓ (observation)
+Observation
+  ↓ (formalization)
+Knowledge
+  ↓ (persistence)
+Engineering Assets
+  ↓ (evaluation)
+Capabilities
+  ↓ (measurement)
+Engineering State
+  ↓ (analysis)
+Decisions
+  ↓ (selection)
+Actions
+  ↓ (execution)
+Project Evolution
 ```
 
-**Mecanismos:**
-- **State Machine** — governa o próprio ciclo de vida (uninitialized → discovered → assessed → governed → evolved)
-- **Event Bus** — 20 tipos de eventos para comunicação entre módulos
-- **Feedback Loops** — aprende com aceitação/rejeição das recomendações
-- **Rule Engine** — comportamentos declarativos: novas regras sem alterar código (17 tipos de ação)
-- **Plugins** — extensível via `nexus-plugins/`
-- **Engineering State** — fonte única de verdade com métricas de entropia organizacional
-- **Capability Engine** — avalia 9 capacidades com indicadores de maturidade
-- **Recommendation Engine** — gera próxima melhor ação com score de confiança
+This is not a pipeline. It is the mental model of the Nexus — how understanding transforms into evolution.
 
 ---
 
-## Segurança
+## The Nexus Engineering Model
 
-- **Cache restrito** — `.nexus-cache.json` criado com `chmod 0o600`
-- **YAML sanitizado** — inputs escapados contra injeção no rule engine
-- **Sem process.exit()** — erros tratados via Commander, nunca via exit direto
-- **Allowlist de scripts** — apenas scripts aprovados podem ser executados
-- **Validação de regras** — schema validado antes de persistir
+Nexus operates on three layers:
+
+```
+┌─────────────────────────────────────────────┐
+│              GOVERNANCE LAYER                │
+│  Rules, Workflows, Contracts, Premortem     │
+│  "How we work"                              │
+├─────────────────────────────────────────────┤
+│              KNOWLEDGE LAYER                │
+│  ADRs, Skills, Runbooks, Scripts            │
+│  "What we know"                             │
+├─────────────────────────────────────────────┤
+│              ANALYSIS LAYER                 │
+│  Scoring, Patterns, Health, Debt            │
+│  "What we measure"                          │
+└─────────────────────────────────────────────┘
+```
+
+Every piece of information belongs to one of three tiers:
+
+- **Knowledge** (Permanent) — ADRs, Skills, Contracts, Workflows
+- **State** (Current) — Maturity, Capabilities, Complexity
+- **Memory** (Temporary) — Session, Task, Blockers, Reminders
 
 ---
 
-## Requisitos
+## How Humans and AI Collaborate
 
-- Node.js ≥ 18.0.0
-- Git (recomendado, para métricas comportamentais)
+Nexus provides governed context for AI agents. It ensures that AI agents receive the right knowledge, at the right time, in the right format.
 
-## Instalação
+```
+Human Knowledge → Engineering Assets → Governed Context → AI Agent
+```
+
+The governance loop:
+
+```
+ASSESS → RECOMMEND → APPROVE → IMPLEMENT → (re-assess)
+```
+
+Nexus proposes. Humans decide. This rule is absolute.
+
+---
+
+## Core Principles
+
+1. **Code is consequence of knowledge** — Code exists because knowledge was organized
+2. **Architecture is consequence of domain** — Architecture serves the domain, not itself
+3. **Capabilities evolve before features** — Maturity before functionality
+4. **AI amplifies good engineering** — Structure makes AI useful
+5. **Every decision generates knowledge** — Recorded decisions compound
+6. **Engineering State is more important than code state** — What it means matters more than what exists
+
+---
+
+## Meta Model
+
+The Meta Model defines how Nexus sees a project:
+
+| Element | Definition |
+|---------|-----------|
+| **Reality** | The actual project: code, team, processes |
+| **Observation** | A perception of something that deserves attention |
+| **Knowledge** | Validated understanding, formalized and stored |
+| **Engineering Assets** | Persistent containers of knowledge |
+| **Capabilities** | Modular units of governance maturity |
+| **Engineering State** | Measurable condition of engineering practices |
+| **Decisions** | Choices between alternatives, recorded with context |
+| **Actions** | Operations that modify the project |
+| **Project Evolution** | Continuous improvement of engineering practices |
+
+For the complete specification, see [docs/domain/ubiquitous-language.md](docs/domain/ubiquitous-language.md).
+
+---
+
+## Architecture Overview
+
+```
+                    ┌─────────┐
+                    │  core   │
+                    └────┬────┘
+          ┌──────────────┼──────────────┐
+          │              │              │
+     ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
+     │knowledge│   │ quality │   │  ops    │
+     └─────────┘   └────┬────┘   └─────────┘
+                        │
+                   ┌────┴────┐
+                   │ metrics │
+                   └─────────┘
+          │              │              │
+     ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
+     │  arch   │   │ govern. │   │         │
+     └─────────┘   └────┬────┘   └─────────┘
+                   ┌────┴────┐
+              ┌────┴────┐ ┌──┴──────┐
+              │  ai     │ │ compli. │
+              └─────────┘ └─────────┘
+```
+
+9 capabilities. 7 maturity dimensions. 13 CLI commands. 30+ core modules.
+
+For the complete architecture, see [docs/INDEX.md](docs/INDEX.md).
+
+---
+
+## Quick Start
+
+### Install
 
 ```bash
 npm install -g nexus-system
 ```
 
-Ou diretamente:
+### Initialize
 
 ```bash
-npx nexus-system status
+nexus init
 ```
 
-## Desenvolvimento
+Creates governance structure: `opencode.json`, `nexus-system/`, `nexus-profile/`, skills, scripts, templates.
+
+### Check Status
+
+```bash
+nexus status
+```
+
+Shows complexity score, governance health, and actionable suggestions.
+
+### Detect Patterns
+
+```bash
+nexus detect
+```
+
+Reads history and reports to identify recurring errors, reverted decisions, and hot areas.
+
+### Full Pipeline
+
+```bash
+nexus run
+```
+
+Executes the 8-stage pipeline: Analysis → Complexity → Patterns → Knowledge Debt → Capability Engine → Engineering State → Recommendation Engine → Evolution.
+
+### All Commands
+
+| Command | Function |
+|---------|----------|
+| `nexus init` | Initialize governance structure |
+| `nexus status` | Health check + complexity scoring |
+| `nexus detect` | Pattern detection from history |
+| `nexus audit` | Self-evaluation: dead rules, violation hotspots |
+| `nexus evolve` | Adaptive recommendations based on maturity |
+| `nexus run` | Full 8-stage pipeline execution |
+| `nexus upgrade` | Install governance capabilities |
+| `nexus validate` | Session integrity validation |
+| `nexus sync` | Sync governance from external nexus |
+| `nexus clean` | Clean cache and temp files |
+| `nexus assess` | Re-evaluate maturity profile |
+| `nexus doctor` | System health diagnostics |
+| `nexus report` | Generate reports |
+
+---
+
+## Security
+
+- **Restricted cache** — `.nexus-cache.json` created with `chmod 0o600`
+- **Sanitized YAML** — Inputs escaped against injection in rule engine
+- **No process.exit()** — Errors handled via Commander, never via direct exit
+- **Script allowlist** — Only approved scripts can be executed
+- **Rule validation** — Schema validated before persistence
+
+---
+
+## Requirements
+
+- Node.js >= 18.0.0
+- Git (recommended, for behavioral metrics)
+
+## Development
 
 ```bash
 npm install
-npm run dev status     # modo desenvolvimento
-npm run build          # build com tsup
-npm test               # 410 testes (28 arquivos)
-npm run typecheck      # verificação de tipos
-npm run lint           # ESLint com regras TypeScript
+npm run dev status     # development mode
+npm run build          # build with tsup
+npm test               # 410+ tests (28 files)
+npm run typecheck      # type checking
+npm run lint           # ESLint with TypeScript rules
 npm run bench          # benchmarks
 ```
 
 ## CI/CD
 
-GitHub Actions configurações em `.github/workflows/`:
-- **ci.yml** — typecheck + build + test em Node 18/20/22
-- **release.yml** — npm publish + GitHub Release em git tags
+GitHub Actions in `.github/workflows/`:
+- **ci.yml** — typecheck + build + test on Node 18/20/22
+- **release.yml** — npm publish + GitHub Release on git tags
 
-## Licença
+## License
 
 MIT
