@@ -22,6 +22,7 @@ export type NexusEventType =
   | "health.checked"
   | "debt.detected"
   | "capability.installed"
+  | "capability.unlocked"
   | "maturity.changed"
   | "rule.triggered"
   | "evolution.recommended"
@@ -32,7 +33,17 @@ export type NexusEventType =
   | "pipeline.stage.complete"
   | "pipeline.complete"
   | "lifecycle.state_changed"
-  | "knowledge.analyzed";
+  | "knowledge.analyzed"
+  | "engineering_state.updated"
+  | "engineering_state.consolidated"
+  | "knowledge_debt.detected"
+  | "recommendation.accepted"
+  | "recommendation.rejected"
+  | "governance.policy_applied"
+  | "asset.created"
+  | "asset.updated"
+  | "asset.archived"
+  | "entropy.calculated";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 
