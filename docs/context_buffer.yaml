@@ -1,0 +1,80 @@
+# CONTEXT_BUFFER — Memória RAM do Nexus System
+# Actualizado: 2026-06-27
+
+quick_board_required: true
+
+quick_board:
+  em_curso: null
+  parado: []
+  proximo:
+    - "[P1] Criar .github/workflows/ci.yml (typecheck + build + test)"
+    - "[P1] Criar .github/workflows/release.yml (npm publish)"
+    - "[P1] Publicar npm package — definir scope e registry"
+  p1_paralelas:
+    - "[P1] Documentar CONTRIBUTING.md"
+    - "[P1] Adicionar testes de cobertura ao CI"
+
+reminders:
+  - "[P0] Plano Estratégico: 10 pilares implementados — CONCEPTUAL_MODEL.md, KNOWLEDGE_LIFECYCLE.md, rule-engine.ts, knowledge-graph.ts, state-manager.ts, knowledge-debt.ts, doctor command, auto-evolution.ts"
+  - "[P1] CI/CD: CHANGELOG documenta workflows mas .github/workflows/ nunca foi criado — ci.yml (Node 18/20/22) e release.yml (npm publish em tags)"
+  - "[P1] npm publish: definir scope, registry e permissões de publicação"
+  - "[P1] CONTRIBUTING.md: documentar guia de desenvolvimento para novos contribuidores"
+  - "[P1] Testes de cobertura: adicionar vitest --coverage ao CI"
+
+milestone:
+  status: "COMPLETED"
+  closed_at: "2026-06-27T23:59:59Z"
+  adr_reference: null
+  commits: []
+  next_phase: "CI/CD implementation"
+
+session:
+  id: "2026-06-27-naming-cleanup"
+  branch: "main"
+  operation_type: "REFACTOR"
+  last_commit: null
+  status: "active"
+  closed_at: null
+  reminder: null
+
+current_task:
+  id: "TASK-002"
+  type: "feature"
+  description: "Plano Estratégico completo — 10 pilares implementados"
+  status: "completed"
+  plan_file: "plans/Plano-Estrategico-Proximo-Estagio-do-Nexus-System.md"
+  current_step: "completed"
+  model_assignments: []
+  adr: null
+
+adr:
+  last: null
+  created: null
+
+blockers: []
+
+next_steps:
+  - "Criar .github/workflows/ci.yml (typecheck + build + test, Node 18/20/22)"
+  - "Criar .github/workflows/release.yml (npm publish em git tags)"
+  - "Adicionar testes unitários para rule-engine, knowledge-graph, knowledge-debt, state-manager"
+
+last_decision:
+  adr: null
+  description: "Implementar Plano Estratégico completo — 10 pilares: rule engine, knowledge graph, state separation, knowledge debt, doctor, auto-evolution"
+
+technical_debt: []
+
+documents_loaded:
+  - "package.json"
+  - "package-lock.json"
+  - "README.md"
+  - "CHANGELOG.md"
+  - "BACKLOG.md"
+  - "src/commands/init.ts"
+  - "src/commands/audit.ts"
+  - "src/capability-mapping.ts"
+  - "src/maturity-profile.ts"
+  - "src/templates/l1/governance/context/context_buffer.yaml"
+  - "src/templates/l1/docs/Nexus-System_GUIDE.md"
+  - "src/templates/l1/docs/CONCEPTUAL_MODEL.md"
+  - "src/templates/l1/docs/KNOWLEDGE_LIFECYCLE.md"

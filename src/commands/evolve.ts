@@ -3,8 +3,9 @@
  *
  * Shows evolution recommendations and allows accept/feedback.
  * Integrates with auto-evolution, feedback-loops, and event bus.
+ * Displays dual paths (comfortable + challenging) for each recommendation.
  *
- * PRINCIPLE: The system recommends, the human decides.
+ * PRINCIPLE: The system shows two paths and trusts the user's intention to choose.
  */
 
 import { Command } from "commander";
@@ -15,6 +16,8 @@ import { recordFeedback, detectFeedbackPatterns, getAllFeedbackSummaries } from 
 import { getEventBus } from "../event-bus.js";
 import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
+import { formatDualPath, formatDualPathJson, formatGrowthProgress } from "../dual-path-presenter.js";
+import { recordPathChoice, loadGrowthProfile } from "../growth-profile.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +72,8 @@ export const evolveCommand = new Command("evolve")
   .option("--accept <id>", "Accept a recommendation (record feedback)")
   .option("--reject <id>", "Reject a recommendation (record feedback)")
   .option("--reason <text>", "Reason for accept/reject")
+  .option("--comfortable", "Choose the comfortable path (within current thinking)")
+  .option("--challenging", "Choose the challenging path (beyond current thinking)")
   .action(async (options) => {
     const isJson = options.json === true;
 
@@ -91,6 +96,14 @@ export const evolveCommand = new Command("evolve")
       const action = options.accept ? "accepted" : "rejected";
       const reason = options.reason || undefined;
 
+      // Determine path choice
+      let pathChoice: "comfortable" | "challenging" | undefined;
+      if (options.comfortable) {
+        pathChoice = "comfortable";
+      } else if (options.challenging) {
+        pathChoice = "challenging";
+      }
+
       const record = recordFeedback(ctx.nexusDir, {
         recommendationId: recId,
         action,
@@ -100,13 +113,29 @@ export const evolveCommand = new Command("evolve")
           installedCapabilities: [],
           knowledgeDebt: 0,
         },
+        pathChoice,
       });
+
+      // Record path choice in growth profile
+      if (pathChoice) {
+        recordPathChoice(ctx.nexusDir, {
+          pathChosen: pathChoice,
+          context: {
+            command: "evolve",
+            recommendationType: "evolution_recommendation",
+            maturityScore: 0,
+          },
+        });
+      }
 
       if (isJson) {
         outputJson({ feedback: record });
       } else {
         const icon = action === "accepted" ? chalk.green("✔") : chalk.red("✘");
         console.log(`  ${icon} Recommendation ${recId} ${action}`);
+        if (pathChoice) {
+          console.log(`    Path: ${pathChoice === "comfortable" ? chalk.green("Comfortable") : chalk.yellow("Challenging")}`);
+        }
         if (reason) console.log(`    Reason: ${chalk.gray(reason)}`);
         console.log("");
       }
@@ -143,6 +172,14 @@ export const evolveCommand = new Command("evolve")
           byType: report.byType,
           byPriority: report.byPriority,
           recommendations: report.recommendations,
+          dualPaths: report.dualPaths.map((dp) =>
+            formatDualPathJson(dp.comfortable, dp.challenging, report.growthProfile)
+          ),
+          growthProfile: {
+            growthCapacity: report.growthProfile.growthCapacity,
+            challengeLevel: report.growthProfile.challengeLevel,
+            pattern: report.growthProfile.patterns[0]?.type || "balanced",
+          },
           topNextSteps: report.topNextSteps,
           summary: report.summary,
           feedback: {
@@ -160,6 +197,10 @@ export const evolveCommand = new Command("evolve")
       console.log(`    Capabilities: ${report.currentState.installedCapabilities.length} installed`);
       console.log("");
 
+      // Growth profile
+      console.log(formatGrowthProgress(report.growthProfile));
+      console.log("");
+
       // Feedback summary
       if (totalFeedback > 0) {
         console.log(chalk.bold("  Feedback History:"));
@@ -170,30 +211,16 @@ export const evolveCommand = new Command("evolve")
         console.log("");
       }
 
-      // Recommendations by priority
-      const grouped: Record<string, EvolutionRecommendation[]> = {};
-      for (const rec of report.recommendations) {
-        if (!grouped[rec.priority]) grouped[rec.priority] = [];
-        grouped[rec.priority].push(rec);
-      }
-
-      console.log(chalk.bold("  Recommendations:"));
+      // Dual paths
+      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════════════╗"));
+      console.log(chalk.bold.cyan("  ║           DUAL PATH — Choose Your Way           ║"));
+      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════════════╝"));
       console.log("");
 
       let index = 1;
-      for (const priority of ["urgent", "high", "medium", "low"]) {
-        const recs = grouped[priority];
-        if (!recs || recs.length === 0) continue;
-
-        const color = PRIORITY_COLORS[priority] || chalk.gray;
-        console.log(chalk.bold(`  ${color(priority.toUpperCase())} (${recs.length}):`));
-        console.log("");
-
-        for (const rec of recs) {
-          console.log(formatRecommendation(rec, index));
-          console.log("");
-          index++;
-        }
+      for (const dualPath of report.dualPaths) {
+        console.log(formatDualPath(dualPath.comfortable, dualPath.challenging, report.growthProfile));
+        index++;
       }
 
       // Top next steps
@@ -207,7 +234,8 @@ export const evolveCommand = new Command("evolve")
 
       // Usage hint
       console.log(chalk.gray("  Usage:"));
-      console.log(chalk.gray("    nexus evolve --accept EVO-001    # Accept a recommendation"));
+      console.log(chalk.gray("    nexus evolve --accept EVO-001 --comfortable   # Choose comfortable path"));
+      console.log(chalk.gray("    nexus evolve --accept CHL-001 --challenging   # Choose challenging path"));
       console.log(chalk.gray("    nexus evolve --reject EVO-001 --reason \"Not now\""));
       console.log("");
 

@@ -173,4 +173,49 @@ describe("Feedback Loops", () => {
     const summaries = getAllFeedbackSummaries(tempDir);
     expect(Object.keys(summaries)).toHaveLength(2);
   });
+
+  it("recordFeedback includes pathChoice in record", () => {
+    const record = recordFeedback(tempDir, {
+      recommendationId: "EVO-001",
+      action: "accepted",
+      context: defaultContext,
+      pathChoice: "challenging",
+    });
+
+    expect(record.pathChoice).toBe("challenging");
+  });
+
+  it("updateSummary tracks pathChoice statistics", () => {
+    recordFeedback(tempDir, {
+      recommendationId: "EVO-001",
+      action: "accepted",
+      context: defaultContext,
+      pathChoice: "challenging",
+    });
+    recordFeedback(tempDir, {
+      recommendationId: "EVO-001",
+      action: "rejected",
+      context: defaultContext,
+      pathChoice: "comfortable",
+    });
+
+    const summary = getFeedbackSummary(tempDir, "EVO-001");
+    expect(summary).not.toBeNull();
+    expect(summary!.pathChoiceStats).toBeDefined();
+    expect(summary!.pathChoiceStats!.comfortableCount).toBe(1);
+    expect(summary!.pathChoiceStats!.challengingCount).toBe(1);
+    expect(summary!.pathChoiceStats!.lastPathChoice).toBe("comfortable");
+  });
+
+  it("updateSummary handles feedback without pathChoice", () => {
+    recordFeedback(tempDir, {
+      recommendationId: "EVO-001",
+      action: "accepted",
+      context: defaultContext,
+    });
+
+    const summary = getFeedbackSummary(tempDir, "EVO-001");
+    expect(summary).not.toBeNull();
+    expect(summary!.totalInteractions).toBe(1);
+  });
 });

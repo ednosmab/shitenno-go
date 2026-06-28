@@ -14,6 +14,8 @@ import { consolidateState, type NexusState } from "./state-manager.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
 import { CAPABILITIES } from "./maturity-profile.js";
 import { getAllFeedbackSummaries, adjustConfidence, shouldSuppress, type FeedbackSummary } from "./feedback-loops.js";
+import { loadGrowthProfile, type GrowthProfile } from "./growth-profile.js";
+import { generateChallengingAlternative, type DualPath } from "./challenge-generator.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -79,6 +81,10 @@ export interface EvolutionReport {
   byPriority: Record<RecommendationPriority, number>;
   /** Lista de recomendações. */
   recommendations: EvolutionRecommendation[];
+  /** Dual paths (comfortable + challenging alternatives). */
+  dualPaths: DualPath[];
+  /** Perfil de crescimento do utilizador. */
+  growthProfile: GrowthProfile;
   /** Próximos passos mais importantes. */
   topNextSteps: string[];
   /** Resumo. */
@@ -315,6 +321,19 @@ export function analyzeEvolution(
   };
   recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
+  // Load growth profile and generate dual paths
+  const growthProfile = loadGrowthProfile(nexusDir);
+  const dualPaths: DualPath[] = [];
+
+  for (const rec of recommendations) {
+    const challenging = generateChallengingAlternative(rec, growthProfile, state);
+    dualPaths.push({
+      comfortable: rec,
+      challenging,
+      challengeLevel: growthProfile.challengeLevel,
+    });
+  }
+
   // Count by type and priority
   const byType = {} as Record<RecommendationType, number>;
   const byPriority = {} as Record<RecommendationPriority, number>;
@@ -337,6 +356,7 @@ export function analyzeEvolution(
   if (suppressedCount > 0) parts.push(`${suppressedCount} suppressed by feedback.`);
   parts.push(`Maturity: ${state.project.maturity?.overallScore || 0}/100.`);
   parts.push(`Debt: ${debtReport?.healthScore || 100}/100.`);
+  parts.push(`Growth capacity: ${Math.round(growthProfile.growthCapacity * 100)}%.`);
 
   return {
     analyzedAt: new Date().toISOString(),
@@ -349,6 +369,8 @@ export function analyzeEvolution(
     byType,
     byPriority,
     recommendations,
+    dualPaths,
+    growthProfile,
     topNextSteps,
     summary: parts.join(" "),
   };

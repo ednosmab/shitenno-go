@@ -23,6 +23,8 @@ export interface FeedbackRecord {
     installedCapabilities: string[];
     knowledgeDebt: number;
   };
+  /** Path choice made by the user (for dual-path system). */
+  pathChoice?: "comfortable" | "challenging";
 }
 
 export interface FeedbackSummary {
@@ -34,6 +36,12 @@ export interface FeedbackSummary {
   acceptanceRate: number;
   lastAction: "accepted" | "rejected" | "deferred" | null;
   lastTimestamp: string | null;
+  /** Path choice statistics (for dual-path system). */
+  pathChoiceStats?: {
+    comfortableCount: number;
+    challengingCount: number;
+    lastPathChoice: "comfortable" | "challenging" | null;
+  };
 }
 
 export interface FeedbackPattern {
@@ -223,6 +231,11 @@ function updateSummary(nexusDir: string, record: FeedbackRecord): void {
       acceptanceRate: 0,
       lastAction: null,
       lastTimestamp: null,
+      pathChoiceStats: {
+        comfortableCount: 0,
+        challengingCount: 0,
+        lastPathChoice: null,
+      },
     };
   }
 
@@ -247,6 +260,24 @@ function updateSummary(nexusDir: string, record: FeedbackRecord): void {
       : 0;
   summary.lastAction = record.action;
   summary.lastTimestamp = record.timestamp;
+
+  // Update path choice statistics
+  if (record.pathChoice) {
+    if (!summary.pathChoiceStats) {
+      summary.pathChoiceStats = {
+        comfortableCount: 0,
+        challengingCount: 0,
+        lastPathChoice: null,
+      };
+    }
+
+    if (record.pathChoice === "comfortable") {
+      summary.pathChoiceStats.comfortableCount++;
+    } else {
+      summary.pathChoiceStats.challengingCount++;
+    }
+    summary.pathChoiceStats.lastPathChoice = record.pathChoice;
+  }
 
   writeFileSync(summaryPath, JSON.stringify(summaries, null, 2));
 }

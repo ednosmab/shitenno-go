@@ -5,5 +5,5 @@ dist/
 coverage/
 .vitest/
 
-plans/*
-docs/*
+#plans/*
+#docs/*
