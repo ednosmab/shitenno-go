@@ -71,6 +71,10 @@ const evolveStage: PipelineStage = {
   name: "evolve",
   description: "Generate evolution recommendations",
   execute: async (ctx: PipelineContext) => {
+    if (!checkLifecycleGate("evolve", ctx.projectRoot, ctx.nexusDir, false)) {
+      console.log(chalk.yellow("  ⚠ Skipping evolve stage (requires 'governed' state)"));
+      return ctx;
+    }
     const report = analyzeEvolution(ctx.projectRoot, ctx.nexusDir);
     writeEvolutionReport(ctx.nexusDir, report);
     ctx.evolutionReport = report;
@@ -81,7 +85,7 @@ const evolveStage: PipelineStage = {
 // ── Command ──────────────────────────────────────────────────────────────────
 
 export const runCommand = new Command("run")
-  .description("Run the full analysis pipeline (analyze → score → detect → audit)")
+  .description("Run the full analysis pipeline (analyze → score → detect → audit → evolve)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--json", "Output results as JSON")
   .action(async (options) => {

@@ -1,0 +1,84 @@
+
+[1m═══════════════════════════════════════════════════[0m
+[1m  E2E Validation Report — Nexus System[0m
+[1m═══════════════════════════════════════════════════[0m
+
+Date:     2026-06-29
+Project:  /media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli
+Personas: junior-solo, established-team, senior-enterprise
+
+[0;36m▸ Building project (clean)...[0m
+ESM dist/nexus.js 290.53 KB
+ESM ⚡️ Build success in 69ms
+DTS Build start
+DTS ⚡️ Build success in 4213ms
+DTS dist/nexus.d.ts 20.00 B
+[0;32m✔ Build complete[0m
+
+[0;36m▸ Running unit tests...[0m
+[0;32m✔ Tests passed[0m — 31 passed
+
+[0;36m▸ Running typecheck...[0m
+[0;32m✔ Typecheck clean[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  Persona: junior-solo[0m
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;32m✔[0m nexus init
+  [0;32m✔[0m nexus status
+  [0;32m✔[0m nexus detect
+  [0;32m✔[0m nexus audit
+  [0;32m✔[0m nexus assess
+  [0;32m✔[0m nexus run (exit)
+  [0;32m✔[0m nexus run (5 stages)
+  [0;32m✔[0m nexus evolve (executed)
+  [0;32m✔[0m nexus doctor
+  [0;32m✔[0m nexus validate
+  [0;32m✔[0m nexus report (exit)
+  [0;32m✔[0m nexus report (tie handled — balanced dimensions)
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  Persona: established-team[0m
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;32m✔[0m nexus init
+  [0;32m✔[0m nexus status
+  [0;32m✔[0m nexus detect
+  [0;32m✔[0m nexus audit
+  [0;32m✔[0m nexus assess
+  [0;32m✔[0m nexus run (exit)
+  [0;32m✔[0m nexus run (5 stages)
+  [0;32m✔[0m nexus evolve (executed)
+  [0;32m✔[0m nexus doctor
+  [0;32m✔[0m nexus validate
+  [0;32m✔[0m nexus report (exit)
+  [0;32m✔[0m nexus report (tie handled — balanced dimensions)
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  Persona: senior-enterprise[0m
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;32m✔[0m nexus init
+  [0;32m✔[0m nexus status
+  [0;32m✔[0m nexus detect
+  [0;32m✔[0m nexus audit
+  [0;32m✔[0m nexus assess
+  [0;32m✔[0m nexus run (exit)
+  [0;32m✔[0m nexus run (5 stages)
+  [0;32m✔[0m nexus evolve (executed)
+  [0;32m✔[0m nexus doctor
+  [0;32m✔[0m nexus validate
+  [0;32m✔[0m nexus report (exit)
+  [0;32m✔[0m nexus report (tie handled — balanced dimensions)
+
+[1m═══════════════════════════════════════════════════[0m
+[1m  Summary[0m
+[1m═══════════════════════════════════════════════════[0m
+
+Results: [0;32m36[0m passed, [0;31m0[0m failed, 36 total
+
+[0;32m[1mAll tests passed![0m
+
+Report saved: /media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli/tests/e2e/e2e-report-2026-06-29.txt
+

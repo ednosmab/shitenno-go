@@ -194,7 +194,7 @@ Reads history and reports to identify recurring errors, reverted decisions, and 
 nexus run
 ```
 
-Executes the 8-stage pipeline: Analysis → Complexity → Patterns → Knowledge Debt → Capability Engine → Engineering State → Recommendation Engine → Evolution.
+Executes the 5-stage pipeline: Analyse → Score → Detect → Audit → Evolve.
 
 ### All Commands
 
@@ -205,7 +205,7 @@ Executes the 8-stage pipeline: Analysis → Complexity → Patterns → Knowledg
 | `nexus detect` | Pattern detection from history |
 | `nexus audit` | Self-evaluation: dead rules, violation hotspots |
 | `nexus evolve` | Adaptive recommendations based on maturity |
-| `nexus run` | Full 8-stage pipeline execution |
+| `nexus run` | Full 5-stage pipeline execution |
 | `nexus upgrade` | Install governance capabilities |
 | `nexus validate` | Session integrity validation |
 | `nexus sync` | Sync governance from external nexus |

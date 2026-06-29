@@ -14,7 +14,7 @@
     ".": "./dist/nexus.js"
   },
   "scripts": {
-    "build": "tsup && cp -r src/templates dist/templates",
+    "build": "tsup && rm -rf dist/templates && cp -r src/templates dist/templates",
     "dev": "tsx bin/nexus.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",

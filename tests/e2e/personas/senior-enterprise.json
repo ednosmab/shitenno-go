@@ -1,0 +1,26 @@
+{
+  "principalModel": "opencode/mimo-v2.5-free",
+  "executorModel": "opencode/deepseek-v4-flash-free",
+  "stack": ["react", "nextjs", "typescript"],
+  "database": "PostgreSQL",
+  "styling": "Tailwind CSS",
+  "maturity": {
+    "usedNexusBefore": true,
+    "isFirstProject": false,
+    "projectAge": "mature",
+    "teamSize": "medium",
+    "hasDedicatedTeam": true,
+    "hasArchitectureDocs": true,
+    "hasADRs": true,
+    "hasTechnicalReviews": true,
+    "hasCICD": true,
+    "hasAutomatedTests": true,
+    "hasValidationPipeline": true,
+    "intendsToUseAI": true,
+    "aiWillImplement": true,
+    "requiresHumanReview": true,
+    "hasDefinedPatterns": true,
+    "hasReviewProcess": true,
+    "hasDecisionControl": true
+  }
+}

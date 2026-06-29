@@ -38,7 +38,7 @@ export interface DimensionReport {
 
 export interface Insight {
   type: "strength" | "improvement" | "pattern" | "suggestion";
-  dimension: PerformanceDimension;
+  dimension: PerformanceDimension | null;
   text: string;
   evidence?: string;
 }
@@ -46,8 +46,8 @@ export interface Insight {
 export interface PerformanceReport {
   period: { from: string; to: string; days: number };
   profile: {
-    dominantDimension: PerformanceDimension;
-    weakestDimension: PerformanceDimension;
+    dominantDimension: PerformanceDimension | null;
+    weakestDimension: PerformanceDimension | null;
     growthPattern: string;
     growthCapacity: number;
     challengeLevel: number;
@@ -132,8 +132,9 @@ export function generatePerformanceReport(
   const dimensions = {} as Record<PerformanceDimension, DimensionReport>;
   let maxScore = -1;
   let minScore = 101;
-  let dominantDim: PerformanceDimension = "decision_making";
-  let weakestDim: PerformanceDimension = "decision_making";
+  let dominantDim: PerformanceDimension | null = null;
+  let weakestDim: PerformanceDimension | null = null;
+  let allTied = false;
 
   // Calculate previous period's scores for trend comparison
   const previousPeriodStart = new Date(periodStart.getTime() - days * 24 * 60 * 60 * 1000);
@@ -165,6 +166,13 @@ export function generatePerformanceReport(
 
     if (score > maxScore) { maxScore = score; dominantDim = d; }
     if (score < minScore) { minScore = score; weakestDim = d; }
+  }
+
+  // Check if all dimensions are tied
+  allTied = maxScore === minScore && maxScore >= 0;
+  if (allTied) {
+    dominantDim = null;
+    weakestDim = null;
   }
 
   // Calculate aggregate feedback metrics
@@ -276,8 +284,8 @@ function generateInsights(
   // Find strongest and weakest dimensions
   let maxScore = -1;
   let minScore = 101;
-  let strongest: PerformanceDimension = "decision_making";
-  let weakest: PerformanceDimension = "decision_making";
+  let strongest: PerformanceDimension | null = null;
+  let weakest: PerformanceDimension | null = null;
 
   for (const [dim, report] of Object.entries(dimensions)) {
     const d = dim as PerformanceDimension;
@@ -285,20 +293,43 @@ function generateInsights(
     if (report.score < minScore) { minScore = report.score; weakest = d; }
   }
 
+  // Check if all dimensions are tied
+  const allTied = maxScore === minScore && maxScore >= 0;
+  if (allTied) {
+    strongest = null;
+    weakest = null;
+  }
+
   // Strength
-  insights.push({
-    type: "strength",
-    dimension: strongest,
-    text: `Sua força está em ${DIMENSION_LABELS[strongest]}. Score: ${maxScore}/100.`,
-    evidence: dimensions[strongest].evidence[0],
-  });
+  if (strongest) {
+    insights.push({
+      type: "strength",
+      dimension: strongest,
+      text: `Sua força está em ${DIMENSION_LABELS[strongest]}. Score: ${maxScore}/100.`,
+      evidence: dimensions[strongest].evidence[0],
+    });
+  } else {
+    insights.push({
+      type: "strength",
+      dimension: null,
+      text: `Todas as dimensões estão equilibradas com score ${maxScore}/100.`,
+    });
+  }
 
   // Improvement area
-  insights.push({
-    type: "improvement",
-    dimension: weakest,
-    text: `Área com mais potencial de melhoria: ${DIMENSION_LABELS[weakest]}. Score: ${minScore}/100.`,
-  });
+  if (weakest) {
+    insights.push({
+      type: "improvement",
+      dimension: weakest,
+      text: `Área com mais potencial de melhoria: ${DIMENSION_LABELS[weakest]}. Score: ${minScore}/100.`,
+    });
+  } else {
+    insights.push({
+      type: "improvement",
+      dimension: null,
+      text: "Nenhuma dimensão se destaca como área de melhoria — todas equilibradas.",
+    });
+  }
 
   // Growth pattern insight
   const pattern = growthProfile.patterns[0];
@@ -371,7 +402,7 @@ function generateNextSteps(
 
   // Based on weakest dimension
   const weakest = insights.find((i) => i.type === "improvement");
-  if (weakest) {
+  if (weakest?.dimension) {
     steps.push(`Focar em ${DIMENSION_LABELS[weakest.dimension]} na próxima sessão`);
   }
 

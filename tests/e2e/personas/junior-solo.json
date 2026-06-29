@@ -1,0 +1,26 @@
+{
+  "principalModel": "opencode/mimo-v2.5-free",
+  "executorModel": "opencode/deepseek-v4-flash-free",
+  "stack": ["typescript"],
+  "database": "SQLite",
+  "styling": "Tailwind CSS",
+  "maturity": {
+    "usedNexusBefore": false,
+    "isFirstProject": true,
+    "projectAge": "new",
+    "teamSize": "solo",
+    "hasDedicatedTeam": false,
+    "hasArchitectureDocs": false,
+    "hasADRs": false,
+    "hasTechnicalReviews": false,
+    "hasCICD": false,
+    "hasAutomatedTests": false,
+    "hasValidationPipeline": false,
+    "intendsToUseAI": true,
+    "aiWillImplement": true,
+    "requiresHumanReview": true,
+    "hasDefinedPatterns": false,
+    "hasReviewProcess": false,
+    "hasDecisionControl": false
+  }
+}

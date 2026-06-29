@@ -9,12 +9,12 @@
  */
 
 import { Command } from "commander";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { analyseProject } from "../analyser.js";
-import { askQuestions } from "../prompts.js";
+import { askQuestions, type UserAnswers } from "../prompts.js";
 import { scaffoldNexusSystem } from "../scaffolder.js";
 import { invalidateCache } from "../cache.js";
 import { loadPlugins, getHookBus } from "../plugin-system.js";
@@ -94,6 +94,7 @@ export function shouldBlockInit(targetDir: string, force: boolean): boolean {
 export const initCommand = new Command("init")
   .description("Initialize Nexus System framework with maturity-based discovery")
   .option("-d, --dir <path>", "Project root directory (default: current)")
+  .option("--answers-file <path>", "JSON file with pre-defined answers (skips interactive prompts)")
   .option("--force", "Force creation inside nexus-cli (not recommended)")
   .action(async (options) => {
     console.log("");
@@ -143,10 +144,22 @@ export const initCommand = new Command("init")
     console.log(`    CI/CD:     ${analysis.hasCI ? "yes" : chalk.gray("no")}`);
     console.log("");
 
-    // Step 2: Discovery questionnaire
-    console.log(chalk.bold("  Answer a few questions to determine your maturity profile:"));
-    console.log("");
-    const answers = await askQuestions(analysis);
+    // Step 2: Get answers (interactive or from file)
+    let answers: UserAnswers;
+    if (options.answersFile) {
+      const answersPath = resolve(options.answersFile);
+      if (!existsSync(answersPath)) {
+        console.log(chalk.red(`  ✘ Answers file not found: ${answersPath}`));
+        return;
+      }
+      const raw = readFileSync(answersPath, "utf-8");
+      answers = JSON.parse(raw);
+      console.log(chalk.gray(`  Loaded answers from ${options.answersFile}`));
+    } else {
+      console.log(chalk.bold("  Answer a few questions to determine your maturity profile:"));
+      console.log("");
+      answers = await askQuestions(analysis);
+    }
 
     // Step 3: Calculate maturity profile
     const profileSpinner = ora("Calculating maturity profile...").start();
