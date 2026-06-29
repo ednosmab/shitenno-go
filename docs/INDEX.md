@@ -115,6 +115,39 @@ Documents in this layer describe the implementation history, refactoring plans, 
 
 ---
 
+### Evolution (Direction)
+
+**Question:** How should the system evolve?
+
+Documents in this layer describe the target architecture, migration strategy, and future roadmap.
+
+| Document | Purpose |
+|----------|---------|
+| [Evolution README](./evolution/README.md) | Navigation hub for all evolution documents |
+| [Executive Summary](./evolution/00-EXECUTIVE-SUMMARY.md) | High-level priorities |
+| [Current State Assessment](./evolution/01-CURRENT-STATE-ASSESSMENT.md) | Strengths and risks |
+| [Target Architecture](./evolution/03-TARGET-ARCHITECTURE.md) | Target architecture direction |
+| [Master Evolution Plan](./evolution/ai/MASTER_EVOLUTION_PLAN.md) | Strategic objectives and roadmap |
+| [Migration Waves](./evolution/roadmap/) | Wave 1-4 migration plans |
+
+**Read this** if you want to understand where Nexus is heading.
+
+---
+
+### Engineering (Process)
+
+**Question:** How do we work?
+
+Documents in this layer describe development process, contributing guidelines, and governance rules.
+
+| Document | Purpose |
+|----------|---------|
+| [Backlog](./BACKLOG.md) | Active work tracker with P0-P3 priorities |
+
+**Read this** if you want to contribute to Nexus.
+
+---
+
 ## Reading Guide
 
 | Task | Read |

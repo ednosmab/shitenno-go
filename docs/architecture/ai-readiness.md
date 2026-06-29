@@ -38,7 +38,7 @@ Without rules, agents have no constraints.
 
 **Required:**
 - `docs/AGENTS.md` — Engineering rules for AI teams
-- `docs/FORBIDDEN_OPERATIONS.md` — Absolute binding rules
+- `src/templates/base/docs/FORBIDDEN_OPERATIONS.md` — Absolute binding rules
 
 **Ideal:**
 - `governance/rules/` — Declarative rules for the rule engine

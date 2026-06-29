@@ -44,6 +44,8 @@ This matrix validates that every module in the Nexus System maps clearly to a [M
 | `logger.ts` | Infrastructure (Logging) | Log entries | Log messages | No | No | No | Yes |
 | `constants.ts` | Infrastructure (Constants) | Constants | — | No | No | No | No |
 | `errors.ts` | Infrastructure (Errors) | Error types | — | No | No | No | No |
+| `capability-engine.ts` | Knowledge → Capabilities | Capability installation | Capabilities | Yes | Yes | No | Yes |
+| `engineering-state.ts` | Capabilities → Engineering State | State consolidation | Three tiers | Yes | Yes | No | Yes |
 
 ---
 
@@ -71,9 +73,9 @@ This matrix validates that every module in the Nexus System maps clearly to a [M
 
 | Category | Total | Maps to Meta Model | Maps to Infrastructure | No Mapping |
 |----------|-------|-------------------|----------------------|------------|
-| Core Modules | 30 | 12 | 18 | 0 |
+| Core Modules | 34 | 14 | 20 | 0 |
 | Commands | 13 | 12 | 1 | 0 |
-| **Total** | **43** | **24** | **19** | **0** |
+| **Total** | **47** | **26** | **21** | **0** |
 
 ---
 

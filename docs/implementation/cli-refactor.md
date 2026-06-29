@@ -4,7 +4,7 @@
 
 ## Current State
 
-10 commands with ~280 lines of duplicated code:
+13 commands with ~280 lines of duplicated code:
 - Initialization guard (8 commands × ~20 lines = ~160 lines)
 - Banner display (9 commands × ~5 lines = ~45 lines)
 - JSON output boilerplate (9 commands × ~10 lines = ~90 lines)

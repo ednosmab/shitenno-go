@@ -11,7 +11,7 @@ Today, each Nexus command duplicates:
 - Cache read/write (~15 lines each)
 - Report writing (~20 lines each)
 
-Total: ~280 lines of duplicated code across 10 commands.
+Total: ~280 lines of duplicated code across 13 commands.
 
 ## The Solution: Shared Infrastructure
 
@@ -220,5 +220,5 @@ const cmd = createCommand("status", "Health check + complexity scoring", async (
 
 - **File:** `src/shared.ts` (~200 lines)
 - **Rendering:** Additions to `src/formatting.ts`
-- **Refactor:** Update all 10 commands to use shared infrastructure
+- **Refactor:** Update all 13 commands to use shared infrastructure
 - **Tests:** `src/__tests__/shared.test.ts`

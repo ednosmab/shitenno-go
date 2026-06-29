@@ -8,7 +8,7 @@
 The complete governance framework consisting of CLI commands, core modules, templates, and documentation. The system that governs engineering knowledge.
 
 ### Nexus CLI
-The command-line interface to the Nexus System. Provides 10 commands: `init`, `status`, `detect`, `audit`, `upgrade`, `validate`, `sync`, `assess`, `clean`, `doctor`.
+The command-line interface to the Nexus System. Provides 13 commands: `init`, `status`, `detect`, `audit`, `evolve`, `run`, `upgrade`, `validate`, `sync`, `assess`, `clean`, `doctor`, `report`.
 
 ### Governance
 The practice of making engineering decisions explicit, traceable, and enforceable. Not bureaucracy — clarity.

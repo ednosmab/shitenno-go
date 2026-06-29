@@ -66,7 +66,7 @@ Nexus adjusts its behavior based on team maturity. A junior team gets different 
 
 **Why:** One-size-fits-all governance fails. Adaptation sustains.
 
-**Implementation:** `maturity-profile.ts` with 7 dimensions. `recommendations.ts` adjusts based on scores. `capability-mapping.ts` installs only relevant capabilities.
+**Implementation:** `maturity-profile.ts` with 7 dimensions. `recommendation-engine.ts` adjusts based on scores. `capability-mapping.ts` installs only relevant capabilities.
 
 ## 7. Modularity Over Monolith
 

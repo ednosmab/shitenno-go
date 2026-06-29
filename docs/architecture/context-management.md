@@ -17,7 +17,7 @@ Nexus solves this with a hierarchical context system.
 ```
 P0: Global Rules (always loaded)
     ├── AGENTS.md
-    ├── FORBIDDEN_OPERATIONS.md
+    ├── src/templates/base/docs/FORBIDDEN_OPERATIONS.md
     └── DESDO.md
 
 P1: Session State (always loaded)

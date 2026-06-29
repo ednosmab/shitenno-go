@@ -27,21 +27,75 @@ The event bus connects them.
 
 ## Event Types
 
+### Session Events
+
 | Event | Payload | Published By |
 |-------|---------|-------------|
 | `session.start` | `{ sessionId, branch }` | init, assess |
 | `session.end` | `{ sessionId, summary }` | close-session |
+| `lifecycle.state_changed` | `{ previous, current, trigger }` | nexus-state-machine |
+
+### Analysis Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
 | `analysis.complete` | `{ analysis }` | analyser |
 | `score.calculated` | `{ report }` | scorer |
 | `pattern.detected` | `{ patterns }` | pattern-detector |
 | `health.checked` | `{ report }` | health-auditor |
+| `entropy.calculated` | `{ entropyScore, factors }` | scorer |
+| `knowledge.analyzed` | `{ knowledgeReport }` | knowledge-graph |
+
+### Knowledge Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
 | `debt.detected` | `{ report }` | knowledge-debt |
-| `capability.installed` | `{ capability }` | upgrade |
-| `maturity.changed` | `{ previous, current }` | assess |
-| `rule.triggered` | `{ ruleId, result }` | rule-engine |
-| `evolution.recommended` | `{ recommendations }` | auto-evolution |
 | `adr.created` | `{ adr }` | (external) |
 | `skill.created` | `{ skill }` | (external) |
+| `knowledge.analyzed` | `{ knowledgeReport }` | knowledge-graph |
+
+### Asset Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
+| `asset.created` | `{ asset, type }` | scaffolder, external |
+| `asset.updated` | `{ asset, changes }` | external |
+| `asset.archived` | `{ asset, reason }` | external |
+
+### Capability Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
+| `capability.installed` | `{ capability }` | upgrade |
+| `capability.unlocked` | `{ capability, triggers }` | capability-engine |
+| `maturity.changed` | `{ previous, current }` | assess |
+
+### Pipeline Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
+| `pipeline.complete` | `{ pipelineId, results, duration }` | pipeline |
+
+### Governance Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
+| `rule.triggered` | `{ ruleId, result }` | rule-engine |
+| `governance.policy_applied` | `{ policyId, scope, outcome }` | rule-engine |
+
+### Recommendation Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
+| `evolution.recommended` | `{ recommendations }` | auto-evolution |
+| `recommendation.accepted` | `{ recommendation, userId }` | feedback-loops |
+| `recommendation.rejected` | `{ recommendation, reason }` | feedback-loops |
+
+### Validation Events
+
+| Event | Payload | Published By |
+|-------|---------|-------------|
 | `validation.completed` | `{ results }` | validate |
 
 ## The Interface

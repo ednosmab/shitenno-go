@@ -88,8 +88,8 @@
 | **Severidade** | Baixo |
 | **Owner** | unassigned |
 | **Arquivos afetados** | `src/commands/*.ts` (129 occurrences de console.log que usam `any` indiretamente), `src/knowledge-debt.ts:315`, `src/cache.ts:6,90`, `src/auto-evolution.ts:292` |
-| **Descricao** | Embora `as any` explicito tenha sido removido, restam 129 `console.log` em commands que produzem output sem type-safety. Tambem existem 4 ocorrencias de `any` em comentarios. |
-| **Correcao** | Nenhuma acao critica — sao apenas console.log para output CLI. Considerar migrar para logger centralizado. |
+| **Descricao** | 129 chamadas `console.log` diretas nos commands em vez de usar logger centralizado. Nao e um bug, mas dificulta silenciar output em testes e controlar niveis de log. |
+| **Correcao** | Nenhuma acao critica — considerar migrar para logger centralizado em ciclo futuro. |
 
 ### Seguranca: `process.exit(1)` ausente (ja corrigido)
 
@@ -158,7 +158,7 @@
 | Suportar projectos sem Git (fallback para metricas estaticas apenas) | Medio | Backlog | 2026-08-15 | unassigned |
 | Benchmark suite automatizada (CI) para detectar regressoes de performance | Baixo | Backlog | 2026-08-30 | unassigned |
 | Documentar CONTRIBUTING.md com guia de desenvolvimento | Medio | Backlog | 2026-08-15 | unassigned |
-| Publicar npm package — definir scope, registry, e permissoes | Alto | Backlog | 2026-08-01 | unshared |
+| Publicar npm package — definir scope, registry, e permissoes | Alto | Backlog | 2026-08-01 | unassigned |
 | Migrar testes CLI de exec() para import direto | Medio | Backlog | 2026-08-15 | unassigned |
 | Adicionar testes para modulos com 0% (constants.ts, shared.ts, prompts.ts) | Medio | Backlog | 2026-08-01 | unassigned |
 | Consolidar planos de `plans/` em unico documento | Medio | Backlog | 2026-08-15 | unassigned |

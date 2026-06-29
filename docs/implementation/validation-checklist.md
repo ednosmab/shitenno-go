@@ -7,7 +7,7 @@
 - [ ] `opencode.json` exists at project root
 - [ ] `nexus-system/` directory exists
 - [ ] `nexus-system/docs/AGENTS.md` exists
-- [ ] `nexus-system/docs/FORBIDDEN_OPERATIONS.md` exists
+- [ ] `nexus-system/docs/FORBIDDEN_OPERATIONS.md` exists (from `src/templates/base/docs/FORBIDDEN_OPERATIONS.md`)
 - [ ] `nexus-system/docs/DESDO.md` exists
 - [ ] `nexus-system/docs/CONCEPTUAL_MODEL.md` exists
 - [ ] `nexus-system/docs/KNOWLEDGE_LIFECYCLE.md` exists
