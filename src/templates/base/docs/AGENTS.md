@@ -21,7 +21,7 @@
 - Proibição de imports directos de bibliotecas de ícones (usar apenas os do design system próprio)
 - Uso exclusivo de componentes do design system (não HTML nativo)
 - Proibição de cores hardcoded (usar tokens de design)
-- Comando de verificação do design system (ex: `pnpm run verify:ui`)
+- Comando de verificação do design system (ex: `pnpm run verify`)
 - Manter stories actualizadas (se aplicável)
 
 ---

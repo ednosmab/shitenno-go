@@ -332,7 +332,7 @@ projecto/
     │   │   ├── AI-CONTRACT-executor-v1.yaml
     │   │   ├── AI-CONTRACT-reviewer-v1.yaml
     │   │   └── AI-CONTRACT-orchestrator-v1.yaml
-    │   └── context/                 ← RAM (L2+)
+    │   └── context/                 ← RAM (live session state)
     │       └── context_buffer.yaml
     ├── core/
     │   └── complexity/

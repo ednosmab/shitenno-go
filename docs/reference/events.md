@@ -192,6 +192,54 @@ Emitted when pipeline execution completes.
 - **Published by:** pipeline
 - **Subscribed by:** session-tracker, knowledge-debt
 
+### pipeline.stage.start
+
+Emitted when a pipeline stage begins execution.
+
+- **Payload:** `{ stageName: string, pipelineId: string }`
+- **Published by:** pipeline
+- **Subscribed by:** session-tracker
+
+### pipeline.stage.complete
+
+Emitted when a pipeline stage completes.
+
+- **Payload:** `{ stageName: string, pipelineId: string, duration: number, success: boolean }`
+- **Published by:** pipeline
+- **Subscribed by:** session-tracker
+
+---
+
+## Engineering State Events
+
+### engineering_state.updated
+
+Emitted when the engineering state is updated.
+
+- **Payload:** `{ updatedAt: string, healthScore: number }`
+- **Published by:** engineering-state
+- **Subscribed by:** auto-evolution
+
+### engineering_state.consolidated
+
+Emitted when the engineering state is consolidated from all subsystems.
+
+- **Payload:** `{ consolidatedAt: string, lifecycle: string, assetCount: number }`
+- **Published by:** engineering-state
+- **Subscribed by:** auto-evolution, knowledge-debt
+
+---
+
+## Knowledge Debt Events
+
+### knowledge_debt.detected
+
+Emitted when knowledge debt is detected.
+
+- **Payload:** `{ totalGaps: number, healthScore: number, topGaps: KnowledgeGap[] }`
+- **Published by:** knowledge-debt
+- **Subscribed by:** auto-evolution, session-tracker
+
 ---
 
 ## Governance Events
