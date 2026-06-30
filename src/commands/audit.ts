@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
+import { join } from "node:path";
 import { auditHealth, writeHealthReport, type HealthAuditReport } from "../health-auditor.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, outputJson } from "../formatting.js";
@@ -8,12 +9,14 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { getHookBus } from "../plugin-system.js";
 import { discoverArtifacts, discoverRelations, analyzeGraph } from "../knowledge-graph.js";
+import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../backlog-writer.js";
 
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
   .option("--json", "Output results as JSON")
+  .option("--auto-backlog", "Auto-detect gaps and add to BACKLOG.md")
   .action(async (options) => {
     const isJson = options.json === true;
 
@@ -220,6 +223,46 @@ export const auditCommand = new Command("audit")
         issues: report.issues.length,
         optimizations: report.optimizations.length,
       });
+
+      // Auto-backlog: convert audit issues to backlog items
+      if (options.autoBacklog) {
+        const today = new Date().toISOString().slice(0, 10);
+        const backlogItems: BacklogItem[] = [];
+
+        // Convert audit issues to backlog items
+        report.issues.forEach((issue, idx) => {
+          backlogItems.push(issueToBacklogItem(issue, today, "SA", idx + 1));
+        });
+
+        // Convert knowledge graph suggestions
+        if (graphAnalysis.orphanArtifacts.length > 0) {
+          backlogItems.push({
+            id: `SA${backlogItems.length + 1}`,
+            title: `${graphAnalysis.orphanArtifacts.length} artifacts orfaos no knowledge graph`,
+            severity: "Alto",
+            priority: "P1",
+            source: "nexus audit",
+            date: today,
+            modules: ["nexus-system/"],
+            description: `${graphAnalysis.orphanArtifacts.length} artifacts no knowledge graph sem relacoes conectando-os.`,
+            correction: "Adicionar relacoes entre artifacts orfaos e existentes.",
+          });
+        }
+
+        if (backlogItems.length > 0) {
+          const backlogPath = join(ctx.nexusDir, "docs", "BACKLOG.md");
+          const result = appendBacklogSection(backlogPath, backlogItems, today);
+
+          if (!isJson) {
+            console.log(chalk.bold("  📋 Auto-backlog:"));
+            console.log(chalk.green(`    ✔ ${result.itemsAdded} item(s) adicionado(s) ao backlog`));
+            if (result.itemsSkipped > 0) {
+              console.log(chalk.gray(`    ⊘ ${result.itemsSkipped} item(s) duplicado(s) ignorado(s)`));
+            }
+            console.log("");
+          }
+        }
+      }
 
       // Execute custom check hooks from plugins
       const hookBus = getHookBus();

@@ -33,3 +33,8 @@ coverage/
 
 # Nexus
 .nexus-cache.json
+opencode.json
+
+# Nexus System — instalado via nexus init, não versionado
+nexus-system/
+nexus-profile/

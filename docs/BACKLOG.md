@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-06-30 — 544 testes, 0 erros TypeScript, Context Pipeline integrado, 119 itens no backlog (40 done)
+> **Ultima atualizacao:** 2026-06-30 — 580 testes, 0 erros TypeScript, auto-analise completa (17 gaps), 136 itens no backlog
 
 ---
 
@@ -924,12 +924,258 @@
 
 ---
 
+## Auto-análise 2026-06-30 (nexus-cli)
+
+> **Gerado por:** nexus assess + nexus doctor + nexus audit + nexus status + análise manual
+> **Score de maturidade:** 55/100 | **Saúde:** 85/100 | **Auditoria:** 77/100
+> **Data da auto-análise:** 2026-06-30
+
+### SA1 governance/WORKFLOW.md faltando
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Critico |
+| **Prioridade** | P0 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus audit (severity 3) |
+| **Modulos** | nexus-system/governance/ |
+| **Descricao** | Documento governance/WORKFLOW.md nao encontrado. Critico para lifecycle state — impede comandos que requerem estado governed. |
+| **Correcao** | Criar WORKFLOW.md com fluxo de governanca do projeto. |
+
+### SA2 Bug: digest require("fs") incompativel com ESM
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Critico |
+| **Prioridade** | P0 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus digest --json (erro) |
+| **Modulos** | src/commands/digest.ts |
+| **Descricao** | Comando digest falha com "Dynamic require of fs is not supported". Usa require() em vez de import, incompativel com ESM. |
+| **Correcao** | Substituir require("node:fs") por import estatico no inicio do arquivo. |
+
+### SA3 Governanca 0%
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Critico |
+| **Prioridade** | P0 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus assess --json (dimension: governance = 0) |
+| **Modulos** | src/ (global) |
+| **Descricao** | Dimensao Governance do score de maturidade esta em 0%. Nenhuma pratica de governanca formalizada no codigo. |
+| **Correcao** | Criar governance/WORKFLOW.md, adicionar ADRs, definir processos de review. |
+
+### SA4 Arquitetura 15%
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus assess --json (dimension: architecture = 15) |
+| **Modulos** | src/ (global) |
+| **Descricao** | Dimensao Architecture do score de maturidade esta em 15%. 46 arquivos flat em src/, sem camadas, sem bounded contexts. |
+| **Correcao** | Reestruturar em domain/infrastructure/commands/interfaces. Adicionar abstracoes. |
+
+### SA5 Documentacao 10%
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus assess --json (dimension: documentation = 10) |
+| **Modulos** | src/, docs/ |
+| **Descricao** | Dimensao Documentation do score de maturidade esta em 10%. Docs internos fracos, sem ADRs, sem session templates. |
+| **Correcao** | Criar ADRs para decisoes arquiteturais, documentar decisoes de design. |
+
+### SA6 15 artifacts orfaos no knowledge graph
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus audit --json (knowledgeGraph.orphanCount = 15) |
+| **Modulos** | nexus-system/ |
+| **Descricao** | 15 artifacts no knowledge graph sem relacoes conectando-os. Impossivel rastrear fluxo de conhecimento. |
+| **Correcao** | Adicionar relacoes entre artifacts órfãos e existentes. |
+
+### SA7 Baixa densidade de relacoes no knowledge graph
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus audit --json (knowledgeGraph.suggestions) |
+| **Modulos** | nexus-system/ |
+| **Descricao** | Relacao baixa entre artifacts (24 relacoes para 26 artifacts). Sugestao: adicionar mais conexoes. |
+| **Correcao** | Mapear dependencias entre modulos e criar relacoes no knowledge graph. |
+
+### SA8 context_buffer.yaml nao encontrado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus status --json (context_buffer.yaml = warn) |
+| **Modulos** | nexus-system/governance/context/ |
+| **Descricao** | Arquivo context_buffer.yaml nao encontrado. Necessario para buffer de contexto entre sessoes. |
+| **Correcao** | Criar governance/context/context_buffer.yaml a partir do template. |
+
+### SA9 Nenhum agent contract configurado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus status --json (agent contracts = warn) |
+| **Modulos** | nexus-system/governance/agents/ |
+| **Descricao** | Nenhum agent contract encontrado. Necessario para definir papeis e responsabilidades de agents IA. |
+| **Correcao** | Criar AI-CONTRACT-planner-v1.yaml, AI-CONTRACT-executor-v1.yaml, AI-CONTRACT-reviewer-v1.yaml. |
+
+### SA10 Clean Architecture violado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | Analise manual |
+| **Modulos** | src/ (46 arquivos) |
+| **Descricao** | 46 arquivos flat em src/, sem separacao de camadas. Domain logic misturado com infrastructure. Commands importam implementacoes concretas. |
+| **Correcao** | Reestruturar: src/domain/, src/infrastructure/, src/commands/, src/interfaces/. Extrair abstracoes. |
+
+### SA11 SOLID violado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | Analise manual |
+| **Modulos** | src/ (global) |
+| **Descricao** | God modules (feedback-loops.ts 396 linhas, state-manager.ts 438 linhas). Sem dependency injection. Interface Segregation violada (NexusState com 60+ campos). |
+| **Correcao** | Dividir modules grandes. Adicionar DI. Criar interfaces menores. |
+
+### SA12 Knowledge graph nao inicializado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus doctor --json |
+| **Modulos** | nexus-system/ |
+| **Descricao** | Knowledge graph nao inicializado. Impossivel rastrear como conhecimento flui pelo projeto. |
+| **Correcao** | Executar `nexus audit` para popular knowledge graph automaticamente. |
+
+### SA13 Falta ADRs
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus doctor --json (teaching moment) |
+| **Modulos** | nexus-system/docs/adrs/ |
+| **Descricao** | Nenhuma ADR (Architecture Decision Record) criada. Decisoes arquiteturais nao documentadas. |
+| **Correcao** | Criar ADRs para decisoes principais: por que TypeScript, por que Commander, por que ESM. |
+
+### SA14 docs/session-template.md faltando
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | nexus audit --json (severity 1) |
+| **Modulos** | nexus-system/docs/ |
+| **Descricao** | Documento session-template.md nao encontrado. Recomendado para estruturar sessoes de trabalho. |
+| **Correcao** | Criar session-template.md a partir do template base. |
+
+### SA15 DDD nao aplicado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | Analise manual |
+| **Modulos** | src/ (global) |
+| **Descricao** | Domain-Driven Design nao aplicado. Sem bounded contexts, sem ubiquitous language, models anemicos. |
+| **Correcao** | Definir bounded contexts (feedback, maturity, knowledge). Enriquecer models com comportamento. |
+
+### SA16 TDD nao aplicado
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | Analise manual |
+| **Modulos** | src/ (global) |
+| **Descricao** | Testes escritos depois do codigo, nao antes. 580 testes mas nao e TDD — e test-after. |
+| **Correcao** | Adotar workflow TDD: red → green → refactor. Escrever testes antes para features novas. |
+
+### SA17 Commander state persistence
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-06-30 |
+| **Fonte** | Analise manual (commands-action.test.ts) |
+| **Modulos** | src/commands/sync.ts |
+| **Descricao** | Commander singleton retém _optionValues entre chamadas .parse(). Testes de sync precisam de fresh instances. |
+| **Correcao** | Converter syncCommand para factory function (como reportCommand()). |
+
+---
+
 ## Metricas de Qualidade (snapshot 2026-06-30)
 
 ```
 Projeto:       nexus-cli v0.1.0
 TypeScript:    strict: true, 0 erros
-Testes:        532/532 passando (36 arquivos)
+Testes:        580/580 passando (42 arquivos)
 Coverage:      ~51% (linhas) | ~82% (funcoes) | ~76% (branches)
 ESLint:        0 erros, 0 warnings
 Dependencias:  6 deps + 10 devDeps (lean)
@@ -938,6 +1184,7 @@ Commands:      18 (init, status, audit, assess, detect, run, evolve,
                report, doctor, upgrade, validate, sync, clean, digest,
                briefing, feedback, bench, dashboard)
 Context Pipeline: collectContext → cache → briefing → feedback → dashboard
+Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 ```
 
 ---
@@ -947,8 +1194,8 @@ Context Pipeline: collectContext → cache → briefing → feedback → dashboa
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
 | **Done** | 40 | Bugs, integracao, qualidade, pipeline, testes, catch blocks |
-| **P0** (≤ 7d) | 0 | Todos concluidos |
-| **P1** (≤ 30d) | 10 | Coverage gap, produto, monetizacao, AI agents |
-| **P2** (≤ 90d) | 32 | Features, enterprise, docs, performance, security |
+| **P0** (≤ 7d) | 3 | Auto-analise: WORKFLOW.md, digest bug, governanca 0% |
+| **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts |
+| **P2** (≤ 90d) | 38 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance |
 | **P3** (sem SLA) | 37 | Nice-to-have, ecosystem, observability, i18n, nome/logo |
-| **Total** | **119** | |
+| **Total** | **136** | |
