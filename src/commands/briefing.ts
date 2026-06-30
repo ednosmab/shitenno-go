@@ -20,10 +20,10 @@ import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { collectContext } from "../context-collector.js";
-import { computeInputHash, getCachedBriefing, setCachedBriefing, invalidateBriefingCache, readCache } from "../briefing-cache.js";
+import { computeInputHash, setCachedBriefing, invalidateBriefingCache, readCache } from "../briefing-cache.js";
 import { briefingToMarkdown, briefingToJson, generateDiff, type Briefing } from "../briefing.js";
 import { compressedSummary, generateOptimizationHints, suggestDepth, type BriefingDepth } from "../token-optimizer.js";
-import { recordOutcome, createFileStorage } from "../session-feedback.js";
+
 import { outputJson } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
 
@@ -152,104 +152,6 @@ function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: st
     console.log(chalk.gray("  📦 Cached"));
     console.log("");
   }
-
-  console.log(chalk.gray(`  Generated: ${briefing.generatedAt}`));
-  console.log("");
-}
-
-function displayBriefing(briefing: Briefing, cacheHit: boolean): void {
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║    nexus briefing — Context Pipeline  ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-  console.log("");
-
-  // Project identity
-  console.log(chalk.bold("  📁 Project Identity"));
-  console.log(`     Domain:   ${chalk.cyan(briefing.project.domain)}`);
-  console.log(`     Scale:    ${chalk.cyan(briefing.project.scale)}`);
-  console.log(`     Stack:    ${briefing.project.stack.join(", ")}`);
-  console.log(`     Maturity: ${briefing.project.maturityScore}/100`);
-  console.log("");
-
-  // Risk status
-  const riskColor = briefing.risks.overall === "critical" ? chalk.red :
-                    briefing.risks.overall === "high" ? chalk.yellow :
-                    briefing.risks.overall === "medium" ? chalk.hex("#FFA500") : chalk.green;
-
-  console.log(chalk.bold("  ⚠ Risk Status"));
-  console.log(`     Overall:  ${riskColor(briefing.risks.overall)}`);
-  if (briefing.risks.criticalAreas.length > 0) {
-    console.log(chalk.red(`     Critical: ${briefing.risks.criticalAreas.join(", ")}`));
-  }
-  if (briefing.risks.highAreas.length > 0) {
-    console.log(chalk.yellow(`     High:     ${briefing.risks.highAreas.join(", ")}`));
-  }
-  console.log("");
-
-  // Test coverage
-  console.log(chalk.bold("  🧪 Test Coverage"));
-  console.log(`     Has Tests: ${briefing.tests.hasTests ? chalk.green("Yes") : chalk.red("No")}`);
-  if (briefing.tests.areasWithoutTests.length > 0) {
-    console.log(chalk.yellow(`     Without Tests: ${briefing.tests.areasWithoutTests.length} area(s)`));
-  }
-  console.log("");
-
-  // Context rules
-  if (briefing.contextRules.length > 0) {
-    console.log(chalk.bold("  📏 Context Rules (Top)"));
-    for (const rule of briefing.contextRules) {
-      console.log(chalk.gray(`     • ${rule.rule}`));
-    }
-    console.log("");
-  }
-
-  // Dynamic rules
-  if (briefing.dynamicRules.length > 0) {
-    console.log(chalk.bold("  📜 Dynamic Rules (From History)"));
-    for (const rule of briefing.dynamicRules) {
-      const icon = rule.severity === "critical" ? "🚨" : rule.severity === "high" ? "⚠️" : "ℹ️";
-      console.log(chalk.gray(`     ${icon} [${rule.severity}] ${rule.rule}`));
-    }
-    console.log("");
-  }
-
-  // Recurring errors from feedback (Gap 4)
-  if (briefing.patterns.recurringErrors.length > 0) {
-    console.log(chalk.bold("  🔥 Recurring Error Hotspots (from feedback)"));
-    for (const area of briefing.patterns.recurringErrors) {
-      console.log(chalk.red(`     • ${area}`));
-    }
-    console.log("");
-  }
-
-  // Detected patterns from pattern-detector (Gap 5)
-  if (briefing.patterns.detected.length > 0) {
-    console.log(chalk.bold("  🔍 Detected Patterns"));
-    for (const p of briefing.patterns.detected) {
-      const icon = p.severity >= 4 ? "🚨" : p.severity >= 2 ? "⚠️" : "ℹ️";
-      console.log(chalk.gray(`     ${icon} [${p.type}] ${p.description}`));
-    }
-    console.log("");
-  }
-
-  // Recommendations
-  console.log(chalk.bold("  💡 Recommendations"));
-  for (const rec of briefing.recommendations) {
-    console.log(chalk.cyan(`     → ${rec}`));
-  }
-  console.log("");
-
-  if (cacheHit) {
-    console.log(chalk.gray("  📦 Used cached briefing"));
-    console.log("");
-  }
-
-  // Token economy
-  console.log(chalk.bold("  💰 Token Economy"));
-  console.log(chalk.green(`     Saved: ~${briefing.tokenEconomy.estimatedTokensSaved.toLocaleString()} tokens vs manual discovery`));
-  console.log(chalk.gray(`     Rules: ${briefing.tokenEconomy.contextRuleCount} context + ${briefing.tokenEconomy.dynamicRuleCount} dynamic`));
-  console.log("");
 
   console.log(chalk.gray(`  Generated: ${briefing.generatedAt}`));
   console.log("");
@@ -404,16 +306,6 @@ export function briefingCommand(): Command {
 
         // Default: display (depth-aware)
         displayBriefingByDepth(briefing, cacheHit, depth);
-
-        // ── Stage 4: Feedback hook ───────────────────────────────────
-        // Record that a briefing was used (success outcome)
-        const storage = createFileStorage(ctx.nexusDir);
-        recordOutcome(storage, {
-          outcome: "success",
-          briefingHash: newInputHash,
-          briefingTimestamp: briefing.generatedAt,
-          notes: "Briefing consumed",
-        });
 
         // ── Event ────────────────────────────────────────────────────
         getEventBus().publish("analysis.complete", {

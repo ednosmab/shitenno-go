@@ -29,12 +29,6 @@ function healthBar(value: number, max: number, width = 20): string {
   return color("█".repeat(filled)) + chalk.gray("░".repeat(empty));
 }
 
-function trendArrow(current: number, previous: number): string {
-  if (current > previous) return chalk.green(" ↑");
-  if (current < previous) return chalk.red(" ↓");
-  return chalk.gray(" →");
-}
-
 // ── Dashboard Display ──────────────────────────────────────────────────────
 
 function displayDashboard(

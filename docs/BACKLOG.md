@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-06-29 — 532 testes, 0 erros TypeScript, Context Pipeline integrado, 107 itens no backlog
+> **Ultima atualizacao:** 2026-06-30 — 532 testes, 0 erros TypeScript, Context Pipeline integrado, 119 itens no backlog (5 P0 done)
 
 ---
 
@@ -39,6 +39,11 @@
 | Gap 4: recurringErrors populado | Alto | Via feedback failure hotspots em enrichBriefingWithPatterns |
 | Gap 5: pattern-detector no briefing | Alto | Campo detected[] populado por detectPatterns() |
 | Token-optimizer integrado no briefing | Alto | compressedSummary em --summary, suggestDepth adaptativo, --profile option |
+| P0 0.1: Remover auto-feedback briefing | Alto | Removido recordOutcome() automatico do briefing command |
+| P0 0.2: Padrao redundante eliminado | Alto | enrichBriefingWithPatterns() aceita patternReport opcional |
+| P0 0.3: Dead code briefing.ts | Medio | Removido displayBriefing() e import getCachedBriefing |
+| P0 0.4: Dead code dashboard.ts | Baixo | Removido trendArrow() |
+| P0 0.5: Simplificar getLatestFeedback | Baixo | Refatorado para records.at(-1) ?? null |
 
 ---
 
@@ -48,56 +53,51 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Arquivo** | `src/commands/briefing.ts` (Stage 4: Feedback hook) |
-| **Descricao** | `recordOutcome(storage, { outcome: "success" ... })` e chamado automaticamente toda vez que o briefing e exibido. Isso polui os dados de feedback — o briefing nao e uma sessao de trabalho, e um input. O feedback deve ser dado apenas pelo `nexus feedback` comandado por um agente/humano que completou trabalho real. |
-| **Correcao** | Remover o auto-feedback do briefing command. O briefing deve ser consumido, nao reportado como outcome. |
+| **Owner** | Edson |
+| **Resolucao** | Removido recordOutcome() automatico do briefing command (2026-06-30) |
+| **Arquivo** | `src/commands/briefing.ts` |
 
 ### 0.2 Evitar deteccao de padroes redundante
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Arquivos** | `src/context-collector.ts` (enrichBriefingWithPatterns), `src/commands/run.ts` (detectStage), `src/pipeline.ts` (stage 3) |
-| **Descricao** | `detectPatterns()` e chamado em `enrichBriefingWithPatterns()` (toda vez que `collectContext()` roda) E tambem no pipeline stage `detectStage`. Isso significa leitura duplicada de todos os arquivos de historico. |
-| **Correcao** | Passar `PatternDetectionReport` como opcional para `enrichBriefingWithPatterns()`. Se ja existe no `PipelineContext`, reutilizar. |
+| **Owner** | Edson |
+| **Resolucao** | enrichBriefingWithPatterns() aceita patternReport opcional (2026-06-30) |
+| **Arquivo** | `src/context-collector.ts` |
 
 ### 0.3 Remover dead code em briefing.ts
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
+| **Resolucao** | Removido displayBriefing() e import getCachedBriefing (2026-06-30) |
 | **Arquivo** | `src/commands/briefing.ts` |
-| **Descricao** | Duas funcoes mortas: (a) `displayBriefing()` (linha 160) — substituida por `displayBriefingByDepth()` mas nao removida. (b) `getCachedBriefing` importado mas nunca usado. |
-| **Correcao** | Remover `displayBriefing()` e remover `getCachedBriefing` do import. |
 
 ### 0.4 Remover dead code em dashboard.ts
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
+| **Resolucao** | Removido trendArrow() (2026-06-30) |
 | **Arquivo** | `src/commands/dashboard.ts` |
-| **Descricao** | `trendArrow()` (linha 32) definida mas nunca chamada. |
-| **Correcao** | Remover `trendArrow()` ou integra-la na visualizacao (mostrar trend de success rate entre periodos). |
 
 ### 0.5 Simplificar getLatestFeedback
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
+| **Resolucao** | Refatorado para records.at(-1) ?? null (2026-06-30) |
 | **Arquivo** | `src/session-feedback.ts:161` |
-| **Descricao** | `(records[records.length - 1] ?? null)` resolve o undefined→null, mas e mais confuso do que precisa. |
-| **Correcao** | Simplificar para `records.at(-1) ?? null`. |
 
 ---
 
@@ -254,12 +254,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done (resolvido pelo 0.3) |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivo** | `src/commands/briefing.ts:160-230` |
 | **Descricao** | `displayBriefing()` e uma funcao de ~70 linhas que nao e mais chamada — substituida por `displayBriefingByDepth()`. |
-| **Correcao** | Remover a funcao inteira. |
+| **Correcao** | Removida junto com 0.3 (2026-06-30). |
 
 ---
 
@@ -495,12 +495,14 @@
 | 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
 | 3.28 | Briefing --watch | Baixo | Regenerar briefing automaticamente a cada N segundos |
 | 3.29 | Session-tracker com append-only (remover overwrite) | Medio | session-tracker usa read-all-write-all — migrar para append-only como session-feedback |
-| 3.30 | Validação de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
+| 3.30 | Validacao de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
 | 3.31 | nexus detect --format markdown | Baixo | Saida markdown para detect (atualmente so text/json) |
 | 3.32 | Briefing cache com compressao | Baixo | Comprimir cache JSON para reduzir tamanho em disco |
 | 3.33 | Feedback com campo `briefingProfile` | Baixo | Registrar qual profile (minimal/standard/full) foi usado |
 | 3.34 | nexus dashboard --export csv | Baixo | Exportar dados do dashboard em CSV |
 | 3.35 | Plugin sandboxing | Baixo | Isolar plugins em workers para seguranca |
+| 3.36 | Decidir nome do produto | Baixo | Nexus Gaude, Prism, Codex, ou outro — decisao estrategica pendente |
+| 3.37 | Refinamento do logo | Baixo | Vetorizacao, variações, assets finais — logo atual e AI-generated com watermark |
 
 ---
 
@@ -932,7 +934,7 @@
 
 ---
 
-## Metricas de Qualidade (snapshot 2026-06-29)
+## Metricas de Qualidade (snapshot 2026-06-30)
 
 ```
 Projeto:       nexus-cli v0.1.0
@@ -954,8 +956,9 @@ Context Pipeline: collectContext → cache → briefing → feedback → dashboa
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **P0** (≤ 7d) | 5 | Bugs de integracao, dead code, return type |
-| **P1** (≤ 30d) | 25 | Integracao, testes, produto, monetizacao, AI agents |
+| **Done** | 28 | Bugs, integracao, qualidade, pipeline |
+| **P0** (≤ 7d) | 0 | Todos concluidos |
+| **P1** (≤ 30d) | 22 | Integracao, testes, produto, monetizacao, AI agents |
 | **P2** (≤ 90d) | 32 | Features, enterprise, docs, performance, security |
-| **P3** (sem SLA) | 45 | Nice-to-have, ecosystem, observability, i18n |
-| **Total** | **107** | |
+| **P3** (sem SLA) | 37 | Nice-to-have, ecosystem, observability, i18n, nome/logo |
+| **Total** | **119** | |

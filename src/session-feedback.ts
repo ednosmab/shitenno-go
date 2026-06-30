@@ -158,7 +158,7 @@ export function getFeedbackForSession(
  */
 export function getLatestFeedback(nexusDir: string): SessionFeedbackRecord | null {
   const records = getFeedbackRecords(nexusDir);
-  return records.length > 0 ? (records[records.length - 1] ?? null) : null;
+  return records.at(-1) ?? null;
 }
 
 /**

@@ -162,7 +162,8 @@ export function collectContext(
 function enrichBriefingWithPatterns(
   briefing: Briefing,
   projectRoot: string,
-  nexusDir: string
+  nexusDir: string,
+  existingPatternReport?: ReturnType<typeof detectPatterns>
 ): Briefing {
   // Gap 4: Populate recurringErrors from feedback failure hotspots
   let recurringErrors: string[] = [];
@@ -179,7 +180,7 @@ function enrichBriefingWithPatterns(
   // Gap 5: Populate detected patterns from pattern-detector
   let detected: Briefing["patterns"]["detected"] = [];
   try {
-    const patternReport = detectPatterns(projectRoot, nexusDir);
+    const patternReport = existingPatternReport ?? detectPatterns(projectRoot, nexusDir);
     detected = patternReport.patterns.map((p: DetectedPattern) => ({
       type: p.type,
       description: p.description,
