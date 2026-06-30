@@ -6,11 +6,9 @@
 >
 > **Severidade:** Critico | Alto | Medio | Baixo
 >
-> **Regras vinculantes:** `src/templates/base/docs/FORBIDDEN_OPERATIONS.md`
->
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima auditoria:** 2026-06-28 — Coverage 50.71%, 484 testes, 0 lint warnings
+> **Ultima atualizacao:** 2026-06-29 — 532 testes, 0 erros TypeScript, Context Pipeline integrado, 107 itens no backlog
 
 ---
 
@@ -18,194 +16,946 @@
 
 | Item | Severidade | Resolucao |
 |---|---|---|
-| Renomear "nexus-governance" → "nexus-system" | Critico | package.json, package-lock.json, README.md, init.ts, audit.ts atualizados |
-| Fix repository URL | Alto | package.json repository.url atualizado para ednosmab/nexus-system |
-| Executar Plano Estrategico | Alto | 10 pilares: conceptual model, knowledge lifecycle, capabilities, rule engine, knowledge graph, state separation, knowledge debt, doctor, auto-evolution |
-| Executar NEXUS_EVOLUTION_PLAN | Alto | Engineering State, Capability Engine, Recommendation Engine, pipeline explícito, 10 novos eventos, entropy metrics |
-| Comando `evolve` com dual-path | Alto | Implementado em `src/commands/evolve.ts` (251 linhas) — dual-path, feedback, growth profile |
-| Comando `run` (pipeline) | Alto | Implementado em `src/commands/run.ts` (206 linhas) — pipeline com 5 estagios |
-| Comando `assess` | Medio | Implementado em `src/commands/assess.ts` (11k linhas) |
-| Comando `report` | Medio | Implementado em `src/commands/report.ts` |
-| Auto-evolution com feedback | Alto | Implementado em `src/auto-evolution.ts` (399 linhas) — 4 tipos de recomendacao, integracao com feedback loops |
-| Dual-path presenter | Alto | Implementado em `src/dual-path-presenter.ts` (231 linhas) |
-| Challenge generator | Alto | Implementado em `src/challenge-generator.ts` (276 linhas) |
-| Growth profile | Alto | Implementado em `src/growth-profile.ts` (256 linhas) — persiste em disco |
-| pathChoice no feedback-loops | Alto | Implementado em `src/feedback-loops.ts` — tracked por escolha |
-| `src/constants.ts` centralizado | Medio | VIOLATION_KEYWORDS, COMMAND_GATES, timeouts centralizados |
-| `src/logger.ts` centralizado | Medio | debug/info/warn/error com setLogLevel e muteLogs |
-| `src/errors.ts` tipados | Medio | NexusError, NotInitializedError, InvalidRuleError, ScriptNotAllowedError |
-| Event bus com `knowledge.analyzed` | Alto | Definido e publicado em audit.ts |
-| Plugin validation | Medio | isNexusPlugin() com SAFE_NAME_REGEX, VALID_HOOK_NAMES |
-| Atomic writes no cache | Medio | writeCache() usa temp file + renameSync |
-| Seguranca no rule-engine | Critico | Allowlist em execSync, sanitizacao de rule ID, limites de regex, prototype pollution protection |
-| Docs de arquitetura (30 arquivos) | Medio | 00-VISION.md ate 29-ROADMAP.md + INDEX.md |
-| 21 arquivos de teste | Medio | Cobertura para analyser, cache, challenge-generator, dual-path, edge-cases, event-bus, feedback-loops, formatting, growth-profile, health-auditor, maturity-profile, nexus-state-machine, pattern-detector, performance-reporter, pipeline, plugin-system, scaffolder, scorer, session-tracker, utils, cli-integration |
-| ESLint migrado para flat config | Alto | eslint.config.js criado para ESLint v10, .eslintrc.json removido |
-| 38 warnings ESLint corrigidos | Alto | Imports/variaveis nao usadas removidas, dead code limpo, any types corrigidos |
-| require() substituido por ESM imports | Medio | bin/nexus.ts e event-bus.ts atualizados para ESM |
-| Trend historico no performance-reporter | Medio | Comparacao real de scores entre periodos, mostActiveDay calculado |
-| Coverage configurado com @vitest/coverage-v8 | Alto | vitest.config.ts com thresholds, reporters text/json-summary/html |
-| Testes de integracao para CLI commands | Alto | commands.test.ts — 42 testes para sync, doctor, report (43% → 49% coverage) |
-| Testes unitarios para scorer.ts | Alto | scorer-extra.test.ts — 27 testes (46% → 79% coverage) |
-| Coverage gate no CI | Alto | .github/workflows/ci.yml com step de coverage, vitest.config.ts com thresholds |
-| npm run bench — comparacao antes/depois | Medio | Nenhuma regressao de performance detectada |
+| Renomear "nexus-governance" → "nexus-system" | Critico | package.json, init.ts, audit.ts |
+| Executar Plano Estrategico (10 pilares) | Alto | conceptual model, knowledge lifecycle, capabilities, etc. |
+| Comando `evolve` com dual-path | Alto | src/commands/evolve.ts (251 linhas) |
+| Comando `run` (pipeline) | Alto | src/commands/run.ts (206 linhas) |
+| Auto-evolution com feedback | Alto | src/auto-evolution.ts (399 linhas) |
+| Dual-path presenter | Alto | src/dual-path-presenter.ts (231 linhas) |
+| Challenge generator | Alto | src/challenge-generator.ts (276 linhas) |
+| Growth profile | Alto | src/growth-profile.ts (256 linhas) |
+| Event bus com 10 tipos novos | Alto | src/event-bus.ts |
+| Seguranca no rule-engine | Critico | Allowlist em execSync, sanitizacao |
+| Atomic writes no cache | Medio | writeCache() usa tmp + renameSync |
+| Coverage configurado com thresholds | Alto | vitest.config.ts com @vitest/coverage-v8 |
+| Context Pipeline completo | Alto | collectContext(), briefing-cache, session-feedback |
+| Comando `feedback` | Alto | nexus feedback --outcome success/failure/partial |
+| Comando `bench` | Medio | nexus bench — token benchmark automatizado |
+| Comando `dashboard` | Medio | nexus dashboard — token economy metrics |
+| Token optimizer | Medio | suggestDepth, compressedSummary, differentialBriefing |
+| Gap 1: status.ts usa collectContext() | Alto | Substituido ad-hoc por pipeline unificado |
+| Gap 2: feedback.ts briefingHash conectado | Alto | Le do briefing-cache em vez de hardcoded "" |
+| Gap 3: session-tracker ↔ session-feedback | Alto | sessionId field, getFeedbackForSession() |
+| Gap 4: recurringErrors populado | Alto | Via feedback failure hotspots em enrichBriefingWithPatterns |
+| Gap 5: pattern-detector no briefing | Alto | Campo detected[] populado por detectPatterns() |
+| Token-optimizer integrado no briefing | Alto | compressedSummary em --summary, suggestDepth adaptativo, --profile option |
 
 ---
 
-## P0 — Bugs Corretivos (≤ 7 dias)
+## P0 — Bugs e Integracao Imediata (≤ 7 dias)
 
-### npm audit: vulnerabilidade em esbuild
+### 0.1 Remover auto-feedback "success" no briefing command
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/briefing.ts` (Stage 4: Feedback hook) |
+| **Descricao** | `recordOutcome(storage, { outcome: "success" ... })` e chamado automaticamente toda vez que o briefing e exibido. Isso polui os dados de feedback — o briefing nao e uma sessao de trabalho, e um input. O feedback deve ser dado apenas pelo `nexus feedback` comandado por um agente/humano que completou trabalho real. |
+| **Correcao** | Remover o auto-feedback do briefing command. O briefing deve ser consumido, nao reportado como outcome. |
+
+### 0.2 Evitar deteccao de padroes redundante
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Arquivos** | `src/context-collector.ts` (enrichBriefingWithPatterns), `src/commands/run.ts` (detectStage), `src/pipeline.ts` (stage 3) |
+| **Descricao** | `detectPatterns()` e chamado em `enrichBriefingWithPatterns()` (toda vez que `collectContext()` roda) E tambem no pipeline stage `detectStage`. Isso significa leitura duplicada de todos os arquivos de historico. |
+| **Correcao** | Passar `PatternDetectionReport` como opcional para `enrichBriefingWithPatterns()`. Se ja existe no `PipelineContext`, reutilizar. |
+
+### 0.3 Remover dead code em briefing.ts
 
 | Campo | Valor |
 |---|---|
 | **Status** | Backlog |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
-| **Pacote** | esbuild 0.27.3 - 0.28.0 |
-| **Descricao** | npm audit detecta 1 vulnerabilidade low-severity em esbuild (dependencia de tsup). Fix disponivel via `npm audit fix`. |
-| **Correcao** | Rodar `npm audit fix` ou atualizar tsup para versao mais recente |
+| **Arquivo** | `src/commands/briefing.ts` |
+| **Descricao** | Duas funcoes mortas: (a) `displayBriefing()` (linha 160) — substituida por `displayBriefingByDepth()` mas nao removida. (b) `getCachedBriefing` importado mas nunca usado. |
+| **Correcao** | Remover `displayBriefing()` e remover `getCachedBriefing` do import. |
+
+### 0.4 Remover dead code em dashboard.ts
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/dashboard.ts` |
+| **Descricao** | `trendArrow()` (linha 32) definida mas nunca chamada. |
+| **Correcao** | Remover `trendArrow()` ou integra-la na visualizacao (mostrar trend de success rate entre periodos). |
+
+### 0.5 Simplificar getLatestFeedback
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/session-feedback.ts:161` |
+| **Descricao** | `(records[records.length - 1] ?? null)` resolve o undefined→null, mas e mais confuso do que precisa. |
+| **Correcao** | Simplificar para `records.at(-1) ?? null`. |
 
 ---
 
-## P1 — Seguranca e Robustez (≤ 30 dias)
+## P1 — Integracao e Conexao (≤ 30 dias)
 
-### Empty catch blocks (erros silenciados)
+### 1.1 Ligacao feedback ↔ session ativo
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Arquivos** | `src/commands/feedback.ts`, `src/session-feedback.ts` |
+| **Descricao** | O campo `sessionId` foi adicionado ao `SessionFeedbackRecord` mas nunca e preenchido. O comando `nexus feedback` nao aceita `--session-id` e nenhum comando inicia sessoes no session-tracker automaticamente. |
+| **Correcao** | (a) Adicionar `--session-id` ao `nexus feedback`. (b) Criar wrapper `withSessionTracking()` que chama `startSession()` antes e `endSession()` depois de cada comando. (c) No `nexus briefing`, associar a sessao automaticamente. |
+
+### 1.2 Logging de erros no enrichment
 
 | Campo | Valor |
 |---|---|
 | **Status** | Backlog |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
-| **Arquivos afetados** | `src/analyser.ts:210`, `src/auto-evolution.ts:272,396`, `src/cache.ts:45,71,150,162,236`, `src/capability-engine.ts:169,276,469`, `src/engineering-state.ts:242,539,561,645`, `src/event-bus.ts:124,207`, `src/feedback-loops.ts:137,160` |
-| **Descricao** | ~20 blocos `catch {}` vazios silenciam erros sem log ou re-throw. Em producao, falhas ficam invisiveis. Exemplo: `cache.ts:45` — se JSON.parse falha, cache retorna null sem indicar corrupcao. |
-| **Correcao** | Adicionar `console.error` ou `logger.debug` em cada catch vazio, ou re-throw com contexto. Priorizar em `cache.ts` e `engineering-state.ts` que tem mais blocos. |
+| **Arquivo** | `src/context-collector.ts` (enrichBriefingWithPatterns) |
+| **Descricao** | Dois `try/catch {}` vazios em `enrichBriefingWithPatterns` engolem erros de feedback e pattern-detector silenciosamente. |
+| **Correcao** | Substituir por `logger.debug("enrichBriefing", "Feedback data unavailable:", err.message)` e `logger.debug("enrichBriefing", "Pattern detection unavailable:", err.message)`. |
 
-### Tipos `any` residuais em src/
+### 1.3 Unificar computeInputHash
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivos** | `src/briefing-cache.ts` (exportado), `src/context-collector.ts` (privado) |
+| **Descricao** | Existem duas funcoes `computeInputHash` quase identicas. Mantenha apenas a de `briefing-cache.ts`. |
+| **Correcao** | Remover `computeInputHash` de `context-collector.ts`. Importar de `briefing-cache.ts`. |
+
+### 1.4 Dashboard correlacionar session-tracker + feedback
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/dashboard.ts` |
+| **Descricao** | O dashboard usa apenas dados de `session-feedback` mas ignora o `session-tracker`. Dados de duracao real, comandos executados, e padroes de uso nao aparecem. |
+| **Correcao** | Importar `getSessionMetrics()` de `session-tracker.ts` e cruzar com feedback summary. Mostrar: comandos mais usados, duracao media real vs reportada, correlacao comando→sucesso. |
+
+### 1.5 Dynamico: estimativas de tokens no bench
 
 | Campo | Valor |
 |---|---|
 | **Status** | Backlog |
 | **Severidade** | Baixo |
 | **Owner** | unassigned |
-| **Arquivos afetados** | `src/commands/*.ts` (129 occurrences de console.log que usam `any` indiretamente), `src/knowledge-debt.ts:315`, `src/cache.ts:6,90`, `src/auto-evolution.ts:292` |
-| **Descricao** | 129 chamadas `console.log` diretas nos commands em vez de usar logger centralizado. Nao e um bug, mas dificulta silenciar output em testes e controlar niveis de log. |
-| **Correcao** | Nenhuma acao critica — considerar migrar para logger centralizado em ciclo futuro. |
+| **Arquivo** | `src/commands/bench.ts` |
+| **Descricao** | `estimateManualTokens()` sempre retorna `8800` e `estimateBriefingTokens()` sempre retorna `500`. |
+| **Correcao** | Calcular baseado em: contagem de arquivos, tamanho do AGENTS.md, numero de regras, tamanho do risk-map. |
 
-### Seguranca: `process.exit(1)` ausente (ja corrigido)
+### 1.6 Corrigir writeBriefingMarkdown path
 
 | Campo | Valor |
 |---|---|
-| **Status** | Done |
-| **Severidade** | Alto |
+| **Status** | Backlog |
+| **Severidade** | Medio |
 | **Owner** | unassigned |
-| **Resolucao** | Todas as 9 chamadas process.exit(1) e 2 process.exit(0) substituidas por return |
+| **Arquivo** | `src/commands/briefing.ts` (writeBriefingMarkdown) |
+| **Descricao** | `writeBriefingMarkdown()` escreve em `.nexus/BRIEFING.md` mas o projeto usa `nexus-system/` como diretorio principal. Path inconsistente. |
+| **Correcao** | Mudar para `nexusDir + "/BRIEFING.md"` em vez de `join(projectRoot, ".nexus")`. |
+
+### 1.7 Evitar race condition no cache
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/briefing-cache.ts` |
+| **Descricao** | `readCache()` + `writeCache()` nao e atomico como operacao. Dois processos concorrentes podem ler o cache antigo e sobrescrever. |
+| **Correcao** | Usar file lock ou aceitar que o ultimo writer vence (documentar limitacao). |
+
+### 1.8 Validar nexusDir antes de operacoes
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivos** | `src/shared.ts` (guardNotInitialized, checkLifecycleGate) |
+| **Descricao** | Varios comandos chamam funcoes com `nexusDir` sem verificar se o diretorio existe. `guardNotInitialized()` retorna o path mas nao valida existencia. |
+| **Correcao** | Adicionar `existsSync(nexusDir)` no `guardNotInitialized()` ou no `checkLifecycleGate()`. |
 
 ---
 
-## P1 — Qualidade e Manutencao (≤ 30 dias)
+## P1 — Qualidade e Testes (≤ 30 dias)
 
-### Coverage gap: comandos CLI com 0%
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Arquivos** | `src/commands/assess.ts` (0%), `src/commands/audit.ts` (0%), `src/commands/clean.ts` (0%), `src/commands/detect.ts` (0%), `src/commands/doctor.ts` (0%), `src/commands/evolve.ts` (0%), `src/commands/init.ts` (11.44%), `src/commands/report.ts` (0%), `src/commands/run.ts` (0%), `src/commands/status.ts` (0%), `src/commands/upgrade.ts` (0%), `src/commands/validate.ts` (0%) |
-| **Descricao** | 12 dos 13 comandos CLI estao com 0% de coverage. Apenas init.ts e commands.test.ts cobrem parcialmente. Comandos testados via CLI binario nao contam para coverage de source. |
-| **Correcao** | Exportar funcoes auxiliares de cada comando e criar testes unitarios (como feito para sync/doctor/report). Priorizar: assess, doctor, evolve, report, upgrade. |
-
-### Coverage gap: modulos core com baixa cobertura
+### 1.9 Testes para comandos novos
 
 | Campo | Valor |
 |---|---|
 | **Status** | Backlog |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
-| **Modulos** | `src/knowledge-graph.ts` (4.69%), `src/prompts.ts` (0.86%), `src/constants.ts` (0%), `src/shared.ts` (0%), `src/logger.ts` (46.51%), `src/state-manager.ts` (45.41%), `src/plugin-system.ts` (54.03%), `src/engineering-state.ts` (48.01%), `src/knowledge-debt.ts` (56.32%), `src/recommendation-engine.ts` (47.72%), `src/auto-evolution.ts` (57.58%), `src/capability-engine.ts` (59.94%), `src/event-bus.ts` (66.66%), `src/pipeline.ts` (43.47%) |
-| **Descricao** | 14 modulos core com coverage abaixo de 70%. Os mais criticos: knowledge-graph (4.69%), prompts (0.86%), constants (0%). |
-| **Correcao** | Criar testes unitarios para cada modulo. Comecar por knowledge-graph e shared.ts que sao fundamentais. |
+| **Modulos** | `src/commands/bench.ts` (0%), `src/commands/dashboard.ts` (0%), `src/commands/feedback.ts` (0% action) |
+| **Descricao** | Os 3 comandos novos da Context Pipeline nao tem testes. |
+| **Correcao** | Criar testes unitarios para: (a) `runBenchmark()` com mock de `collectContext`. (b) `displayDashboard()` com mock de `computeFeedbackSummary`. (c) Feedback command action com validacao de --outcome, summary mode, JSON output. |
 
-### Coverage gap: modulos ja bem cobertos (manter)
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Modulos** | `src/errors.ts` (100%), `src/formatting.ts` (100%), `src/validation.ts` (100%), `src/analyser.ts` (98.78%), `src/maturity-profile.ts` (98.75%), `src/session-tracker.ts` (96.52%), `src/cache.ts` (96.29%), `src/scaffolder.ts` (94.97%), `src/challenge-generator.ts` (94.87%), `src/dual-path-presenter.ts` (95.86%), `src/performance-reporter.ts` (94.29%), `src/pattern-detector.ts` (93.45%), `src/utils.ts` (93.33%) |
-| **Descricao** | 13 modulos com coverage > 93%. Manter como baseline e adicionar testes regressivos se houver refatoracoes. |
-
-### Coverage threshold: funcao `readPackageJson` em analyser.ts
+### 1.10 Testes para enrichBriefingWithPatterns
 
 | Campo | Valor |
 |---|---|
 | **Status** | Backlog |
-| **Severidade** | Baixo |
+| **Severidade** | Alto |
 | **Owner** | unassigned |
-| **Arquivo** | `src/analyser.ts:210-212` |
-| **Descricao** | `readPackageJson()` tem um `catch {}` vazio que esconde falhas de parse. Embora o modulo tenha 98.78% de coverage, esta funcao especifica nao e testada com JSON invalido. |
-| **Correcao** | Adicionar teste para JSON invalido em package.json |
+| **Arquivo** | `src/context-collector.ts` |
+| **Descricao** | A funcao `enrichBriefingWithPatterns()` e a espinha dorsal da integracao feedback→briefing e pattern-detector→briefing, mas nao tem testes unitarios. |
+| **Correcao** | Criar teste com DI mock: mockar `getFeedbackRecords()` e `detectPatterns()`. |
+
+### 1.11 Testes para getFeedbackForSession e getLatestFeedback
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/session-feedback.ts` |
+| **Descricao** | Duas funcoes novas exportadas sem testes. |
+| **Correcao** | Adicionar testes cobrindo: filtrar por sessionId, retorno de records vazios, retorno do ultimo record. |
+
+### 1.12 Coverage gap: comandos CLI com 0%
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Modulos** | assess.ts, audit.ts, clean.ts, detect.ts, doctor.ts, evolve.ts, init.ts, report.ts, run.ts, status.ts, upgrade.ts, validate.ts |
+| **Descricao** | 12 dos 13 comandos originais continuam com 0% de coverage. |
+| **Correcao** | Exportar funcoes auxiliares e criar testes unitarios. Priorizar: assess, doctor, evolve, report, upgrade. |
+
+### 1.13 Empty catch blocks (erros silenciados)
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivos** | ~20 blocos catch {} vazios em: analyser.ts, auto-evolution.ts, cache.ts, capability-engine.ts, engineering-state.ts, event-bus.ts, feedback-loops.ts, context-collector.ts |
+| **Descricao** | Blocos catch vazios escondem falhas silenciosamente. |
+| **Correcao** | Adicionar `logger.debug()` ou `logger.warn()` em cada catch vazio. Priorizar cache.ts e engineering-state.ts. |
+
+### 1.14 Remover displayBriefing dead code
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/briefing.ts:160-230` |
+| **Descricao** | `displayBriefing()` e uma funcao de ~70 linhas que nao e mais chamada — substituida por `displayBriefingByDepth()`. |
+| **Correcao** | Remover a funcao inteira. |
 
 ---
 
-## P2 — Medio Prazo (≤ 90 dias)
+## P2 — Funcionalidades e Otimizacao (≤ 90 dias)
 
-| Item | Severidade | Status | Due | Owner |
-|---|---|---|---|---|
-| Testes de integracao end-to-end para scaffolding completo | Medio | Backlog | 2026-08-01 | unassigned |
-| Melhorar output de `nexus status` com tabela formatada | Baixo | Backlog | 2026-08-01 | unassigned |
-| Suportar projectos sem Git (fallback para metricas estaticas apenas) | Medio | Backlog | 2026-08-15 | unassigned |
-| Benchmark suite automatizada (CI) para detectar regressoes de performance | Baixo | Backlog | 2026-08-30 | unassigned |
-| Documentar CONTRIBUTING.md com guia de desenvolvimento | Medio | Backlog | 2026-08-15 | unassigned |
-| Publicar npm package — definir scope, registry, e permissoes | Alto | Backlog | 2026-08-01 | unassigned |
-| Migrar testes CLI de exec() para import direto | Medio | Backlog | 2026-08-15 | unassigned |
-| Adicionar testes para modulos com 0% (constants.ts, shared.ts, prompts.ts) | Medio | Backlog | 2026-08-01 | unassigned |
-| Consolidar planos de `plans/` em unico documento | Medio | Backlog | 2026-08-15 | unassigned |
-| Extrair funcoes testaveis de commands/ para aumentar coverage | Medio | Backlog | 2026-08-01 | unassigned |
+### 2.1 Aprovacao de regras candidatas
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivos** | `src/pattern-detector.ts` (CandidateRule), `src/commands/detect.ts` |
+| **Descricao** | `detectPatterns()` gera `candidateRules` com status "proposed" mas nao existe mecanismo para aprovar/rejeitar. |
+| **Correcao** | Criar `nexus detect --approve RULE-001` e `nexus detect --reject RULE-001`. Persistir decisoes em `nexus-system/governance/rules-decisions.json`. |
+
+### 2.2 Feedback ↔ capability-engine
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | `src/capability-engine.ts`, `src/session-feedback.ts` |
+| **Descricao** | O capability-engine recomenda instalacoes mas nao aprende com falhas. |
+| **Correcao** | No `evaluateCapabilities()`, consultar `failureHotspots` do feedback. Se uma area com capability instalada tem muitos failures, sugerir downgrade. |
+
+### 2.3 nexus bench --compare historico
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/bench.ts` |
+| **Descricao** | Benchmark mostra resultados atuais mas nao compara com execucoes anteriores. |
+| **Correcao** | Salvar resultado em `nexus-system/reports/bench-YYYY-MM-DD.json`. Adicionar `--compare` que mostra tendencia. |
+
+### 2.4 nexus feedback --list
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/commands/feedback.ts` |
+| **Descricao** | Nao existe forma de ver os registros de feedback sem usar `--summary`. |
+| **Correcao** | Adicionar `--list` que mostra ultimos 10 registros formatados. |
+
+### 2.5 Desacoplar context-collector de pattern-detector
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/context-collector.ts` |
+| **Descricao** | `context-collector.ts` agora importa `pattern-detector.ts` e `session-feedback.ts`, aumentando o acoplamento. O collector deveria ser uma camada de orquestracao, nao de integracao. |
+| **Correcao** | Mover `enrichBriefingWithPatterns()` para um modulo separado (`src/briefing-enricher.ts`) ou injetar via `ContextDeps`. |
+
+### 2.6 Type BriefingDepth como tipo proprio no briefing
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/briefing.ts`, `src/token-optimizer.ts` |
+| **Descricao** | `BriefingDepth` e definido em `token-optimizer.ts` mas re-exportado. O briefing.ts nao tem referencia ao tipo — usa `string` no display. |
+| **Correcao** | Usar `BriefingDepth` como tipo do parametro `depth` em `displayBriefingByDepth()` em vez de `string`. |
+
+### 2.7 Usar differentialBriefing no --diff
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | `src/commands/briefing.ts`, `src/token-optimizer.ts` |
+| **Descricao** | `differentialBriefing()` do token-optimizer e mais compacto que `generateDiff()` do briefing.ts. O `--diff` usa `generateDiff()` que gera markdown verboso. |
+| **Correcao** | Oferecer `--diff --compact` que usa `differentialBriefing()` (~50 tokens vs ~200). |
+
+### 2.8 Validação de schema nos records lidos
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivos** | `src/session-feedback.ts` (createFileStorage.read), `src/session-tracker.ts` (readAllSessions) |
+| **Descricao** | Records lidos de JSONL nao tem validacao de schema. Se o arquivo estiver corrompido ou com formato antigo, `JSON.parse` retorna objetos incompletos. |
+| **Correcao** | Adicionar validacao minima: verificar campos obrigatorios (id, timestamp, outcome) apos parse. Descartar records invalidos com logger.warn. |
+
+### 2.9 Extrair modulo shared de display
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | Todos os commands/ que tem `console.log` com chalk |
+| **Descricao** | ~90 chamadas `console.log` com chalk repetidas em 18 arquivos de comando. Padrao de banner `╔══╗` duplicado em todos. |
+| **Correcao** | Extrair funcoes `banner(title)`, `section(title)`, `kv(key, value)` para `src/formatting.ts`. |
+
+---
+
+## P2 — Documentacao (≤ 90 dias)
+
+### 2.10 Atualizar AGENTS.md template
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/templates/base/docs/AGENTS.md` |
+| **Descricao** | O template menciona `nexus briefing` e `nexus feedback` mas nao menciona `nexus bench`, `nexus dashboard`, `nexus detect`, ou `nexus doctor`. |
+| **Correcao** | Adicionar secoes para: bench, dashboard, detect, doctor, profile option. |
+
+### 2.11 Linkar ROI.md no README
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | `README.md`, `docs/ROI.md` |
+| **Descricao** | `docs/ROI.md` foi criado mas nao e referenciado do README.md. |
+| **Correcao** | Adicionar link na secao Token Economy do README. |
+
+### 2.12 JSDoc nas funcoes novas
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | `enrichBriefingWithPatterns`, `getFeedbackForSession`, `getLatestFeedback`, `compressedSummary`, `differentialBriefing`, `suggestDepth`, `generateOptimizationHints`, `displayBriefingByDepth` |
+| **Descricao** | 8 funcoes exportadas/novas sem JSDoc. |
+| **Correcao** | Adicionar JSDoc com `@param`, `@returns`, e `@example`. |
+
+### 2.13 Consolidar planos de plans/
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Diretorio** | `plans/` (11 arquivos) |
+| **Descricao** | 11 arquivos de plano com massiva sobreposicao. |
+| **Correcao** | Consolidar em 3 documentos: (a) Plano atual, (b) Historico, (c) Roadmap futuro. |
+
+### 2.14 Documentar limitacoes conhecidas
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `docs/` |
+| **Descricao** | Nao existe documentacao de limitacoes conhecidas: race condition no cache, projetos sem git, monorepos parciais, etc. |
+| **Correcao** | Criar `docs/KNOWN_LIMITATIONS.md` listando todas as limitacoes e workarounds. |
+
+---
+
+## P2 — Performance (≤ 90 dias)
+
+### 2.15 Cache intermediario no collectContext
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Arquivo** | `src/context-collector.ts` |
+| **Descricao** | `collectContext()` executa todas as etapas (fingerprint, risk-map, rules, briefing, enrichment) toda vez que e chamado. Em sequencias de comandos (`nexus status && nexus briefing`), o trabalho e duplicado. |
+| **Correcao** | Adicionar cache em memoria (Map<hash, snapshot>) com TTL de 60s. Ou usar o briefing-cache como intermediario. |
+
+### 2.16 Lazy loading de modulos pesados
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivo** | `src/context-collector.ts` |
+| **Descricao** | Todas as importacoes sao estaticas no topo do arquivo. `pattern-detector.ts`, `session-feedback.ts`, `analyser.ts` sao carregados mesmo quando nao necessarios. |
+| **Correcao** | Usar dynamic imports (`await import()`) para modulos que so sao necessarios em branches especificos. |
+
+### 2.17 Benchmark suite automatizada CI
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Arquivos** | `.github/workflows/ci.yml`, `src/__tests__/benchmarks.bench.ts` |
+| **Descricao** | O benchmark existe mas nao roda no CI. Regressoes de performance passam despercebidas. |
+| **Correcao** | Adicionar step `pnpm bench` ao CI com threshold de regressao (ex: +20% tempo = fail). |
 
 ---
 
 ## P3 — Baixa Prioridade (sem SLA)
 
-| Item | Severidade | Status |
-|---|---|---|
-| Plugin system para skills customizadas | Baixo | Backlog |
-| Dashboard web para visualizacao de scores historicos | Baixo | Backlog |
-| Suportar monorepos com workspaces (pnpm/yarn) | Medio | Backlog |
-| Integrar com GitHub API para metricas de PRs/issues | Baixo | Backlog |
-| Migrar console.log dos commands para logger centralizado | Baixo | Backlog |
-| Adicionar HTML coverage report ao .gitignore | Baixo | Backlog |
+| # | Item | Severidade | Descricao |
+|---|---|---|---|
+| 3.1 | Migrar console.log para logger centralizado | Baixo | 90+ chamadas console.log diretas nos commands em vez de logger |
+| 3.2 | Dashboard web para scores historicos | Baixo | Visualizacao web dos dados de benchmark/feedback |
+| 3.3 | Suportar monorepos com workspaces | Medio | pnpm/yarn workspaces, deteccao automatica |
+| 3.4 | Integrar com GitHub API | Baixo | Churn real baseado em PR reviews, issues abertas |
+| 3.5 | Plugin system para skills customizadas | Baixo | Allow third-party plugins via hook system |
+| 3.6 | nexus dashboard --live | Baixo | Watch mode com atualizacao periodica |
+| 3.7 | Publicar npm package | Alto | Definir scope, registry, permissoes |
+| 3.8 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
+| 3.9 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
+| 3.10 | nexus --quiet / --no-color | Baixo | Modo scriptavel para CI/CD |
+| 3.11 | nexus init --dry-run | Baixo | Preview do que seria criado sem criar |
+| 3.12 | nexus upgrade --dry-run | Baixo | Preview do que seria instalado sem instalar |
+| 3.13 | nexus audit --fix | Medio | Auto-fix para problemas de governance detectados |
+| 3.14 | Changelog automatico | Baixo | Gerar CHANGELOG.md a partir de commit messages |
+| 3.15 | Version bumping automatizado | Baixo | Semver automatico baseado em conventional commits |
+| 3.16 | Metrics export (Prometheus/OpenTelemetry) | Baixo | Exportar metricas de uso para observabilidade |
+| 3.17 | Structured logging | Baixo | JSON logs em vez de console.log para parsing |
+| 3.18 | Plugin versioning e dependency resolution | Baixo | Versao minima de plugins, dependencias entre plugins |
+| 3.19 | nexus detect --approve/--reject | Medio | Aprovar ou rejeitar regras candidatas do pattern-detector |
+| 3.20 | nexus feedback --outcome failure auto-link | Baixo | Ao reportar falha, sugerir areas baseado no pattern-detector |
+| 3.21 | Briefing --profile no briefingToMarkdown | Baixo | Gerar markdown com profundidade adaptativa |
+| 3.22 | HealthBar compartilhado | Baixo | dashboard.ts duplica healthBar de formatting.ts — importar |
+| 3.23 | Colorblind-friendly mode | Baixo | Usar icons/texto em vez de apenas cores |
+| 3.24 | Event history query API | Baixo | Consultar historico de eventos do event-bus |
+| 3.25 | nexus bench --save / --load | Baixo | Salvar/carregar benchmarks para comparacao offline |
+| 3.26 | nexus status --fix | Baixo | Auto-fix para problemas de governance (como doctor) |
+| 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
+| 3.28 | Briefing --watch | Baixo | Regenerar briefing automaticamente a cada N segundos |
+| 3.29 | Session-tracker com append-only (remover overwrite) | Medio | session-tracker usa read-all-write-all — migrar para append-only como session-feedback |
+| 3.30 | Validação de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
+| 3.31 | nexus detect --format markdown | Baixo | Saida markdown para detect (atualmente so text/json) |
+| 3.32 | Briefing cache com compressao | Baixo | Comprimir cache JSON para reduzir tamanho em disco |
+| 3.33 | Feedback com campo `briefingProfile` | Baixo | Registrar qual profile (minimal/standard/full) foi usado |
+| 3.34 | nexus dashboard --export csv | Baixo | Exportar dados do dashboard em CSV |
+| 3.35 | Plugin sandboxing | Baixo | Isolar plugins em workers para seguranca |
 
 ---
 
-## Backlog Estrategico (referencia — nao e sprint)
+## P1 — Produto & Go-to-Market (≤ 30 dias)
 
-Estes itens sao de longo prazo e estao documentados em `plans/`. Nao devem ser adicionados ao sprint sem consolidacao previa.
+### G1 Landing page
 
-| Item | Documento | Status |
-|---|---|---|
-| Engineering State como fonte unica de verdade | `NEXUS_EVOLUTION_PLAN.md` | **Done** — `src/engineering-state.ts` (712 linhas) |
-| Capability Engine | `NEXUS_EVOLUTION_PLAN.md` | **Done** — `src/capability-engine.ts` (542 linhas) |
-| Recommendation Engine | `NEXUS_EVOLUTION_PLAN.md` | **Done** — `src/recommendation-engine.ts` (474 linhas) |
-| Maturity-based installation (substituir L1/L2/L3) | `Plano-de-Evolução-do-Nexus-CLI.md` | Conceitual |
-| Reducao de entropia organizacional | `NEXUS_EVOLUTION_PLAN.md` | **Done** — integrado em `engineering-state.ts` (entropy metrics) |
-| Pipeline explícito com 8 stages | `NEXUS_EVOLUTION_PLAN.md` | **Done** — `src/pipeline.ts` (createDefaultPipeline) |
-| Eventos de engenharia (10 novos tipos) | `NEXUS_EVOLUTION_PLAN.md` | **Done** — `src/event-bus.ts` |
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Site one-page com proposta de valor, demonstracao visual, CTA para waitlist. Deve comunicar: (1) O problema (context loss entre sessoes), (2) A solucao (briefing dinamico), (3) O resultado (60-80% menos tokens). |
+| **Correcao** | Criar `docs/landing/` com copy, wireframe e assets. Ferramenta: Astro, Next.js, ou HTML statico. |
 
-> **Nota:** Os 11 arquivos em `plans/` possuem massiva sobreposicao. `auditoria-completa-plano.md` e `auditoria-correcao-completa.md` cobrem o mesmo escopo. `unified-execution.md` e o documento de coordenacao. Recomenda-se consolidar em um unico plano antes de iniciar novo ciclo.
+### G2 Waitlist / early access
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Formulario de captura de emails para early access. Validar demanda antes de investir em monetizacao. |
+| **Correcao** | Integrar com Resend, Loops, ou Buttondown. Meta: 100 emails antes de lancar. |
+
+### G3 Definicao de personas
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Quem e o usuario? (1) Tech Lead que quer governance, (2) Dev Solo que quer produtividade, (3) AI Engineer que quer context para agentes. Cada persona tem dor diferente. |
+| **Correcao** | Criar `docs/personas.md` com 3 personas detalhadas: nome, dor, fluxo, tom de voz, objecoes. |
+
+### G4 Analise competitiva
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Mapear Credo AI, Modulos, Govern365, Packmind. Como nos diferenciar? Resposta: context engineering para AI coding — ninguem faz isso. |
+| **Correcao** | Criar `docs/competitive-analysis.md` com matriz de features, precos, posicionamento. |
+
+### G5 Pricing model concreto
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Definir tiers: Free (CLI basico), Starter ($29/mo), Team ($99/mo), Enterprise (custom). Cada tier com features claras. |
+| **Correcao** | Criar `docs/pricing.md` com tabela de features por tier, justificativa de precos, comparacao com concorrentes. |
+
+### G6 Case studies
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | 3 casos de uso reais com metricas antes/depois. Ex: "Reduzi 70% do tempo de onboarding de um dev junior com Nexus." |
+| **Correcao** | Criar `docs/case-studies/` com 3 estudos: web-app, API, monorepo. |
+
+### G7 Product Hunt launch
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Preparar materiais para Product Hunt: tagline, screenshots, maker comment, first comment. |
+| **Correcao** | Criar `docs/launch/product-hunt.md` com copy e assets. |
 
 ---
 
-## Metricas de Qualidade (snapshot 2026-06-28)
+## P1 — Monetizacao & Licenciamento (≤ 30 dias)
+
+### M1 Sistema de license key
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Chave de ativação por projeto. Formato: `NXS-XXXX-XXXX-XXXX`. Validacao offline com grace period. |
+| **Correcao** | Criar `src/license.ts` com: generate(), validate(), deactivate(). Usar SHA-256 para assinatura. |
+
+### M2 Tier enforcement
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Limitar features por tier. Free: init, status, detect. Starter: todos. Team: + dashboard, bench. Enterprise: + SSO, compliance. |
+| **Correcao** | Criar `src/tier-gate.ts`. Modificar `bin/nexus.ts` para verificar tier antes de executar comandos restritos. |
+
+### M3 Usage tracking
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Rastrear comandos executos para billing. Metricas: comandos/mes, briefings gerados, feedback records. |
+| **Correcao** | Extender `session-tracker.ts` para gravar `usage.jsonl` com timestamps e tipo de comando. |
+
+### M4 Trial mechanism
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | 14 dias de tier superior automaticamente apos `nexus init`. Depois, downgrade para free. |
+| **Correcao** | Adicionar campo `trialEndsAt` no `nexus-system/config.json`. Verificar antes de comandos restritos. |
+
+### M5 Payment integration
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Stripe ou Paddle para cobranca recorrente. Webhook para atualizar license. |
+| **Correcao** | Criar `src/commands/subscribe.ts` que abre checkout URL. Webhook em `src/webhooks/` para confirmar pagamento. |
+
+### M6 License server
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | API central para validar licenses, verificar tier, registrar uso. |
+| **Correcao** | Criar `server/` com Express/Fastify. Endpoints: POST /validate, POST /usage, GET /status. |
+
+### M7 Offline license
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Modo offline com grace period de 30 dias. After that, features bloqueadas. |
+| **Correcao** | Cache de license local com TTL. Verificacao periodica quando online. |
+
+---
+
+## P2 — Enterprise (≤ 90 dias)
+
+### E1 SSO/SAML
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Autenticacao empresarial via SAML 2.0 ou OIDC. Integrar com Okta, Azure AD, Google Workspace. |
+| **Correcao** | Adicionar `nexus auth --sso` que redireciona para IdP. Callback salva token localmente. |
+
+### E2 Compliance exports
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Relatorios para SOC 2, ISO 42001, EU AI Act. Exportar historico de decisoes, feedback, mudancas. |
+| **Correcao** | Criar `nexus compliance --framework soc2` que gera relatorio PDF/JSON com evidencias. |
+
+### E3 Audit trail
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Log imutavel de todas as operacoes: quem fez, quando, o que mudou. |
+| **Correcao** | Extender event-bus para gravar `audit.jsonl` com hash encadeado (cada entry referencia a anterior). |
+
+### E4 Role-based access
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Admin (tudo), Operator (executa), Viewer (leitura). Por projeto. |
+| **Correcao** | Criar `nexus acl --add user@company.com operator`. Verificar permissao antes de cada operacao. |
+
+### E5 Private deployment
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Self-hosted sem dependencia de npm registry. Bundle unico com binaries. |
+| **Correcao** | Usar `pkg` ou `sea` (Node.js single executable) para gerar binarios. Distribuir via GitHub Releases privado. |
+
+---
+
+## P1 — AI Agent Integration (≤ 30 dias)
+
+### A1 MCP server
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Servidor MCP (Model Context Protocol) para agentes IA consumirem contexto do Nexus. Ferramentas: getBriefing, getRiskMap, getRules. |
+| **Correcao** | Criar `src/mcp-server.ts` com ferramentas MCP. Publicar como `@nexus/mcp`. |
+
+### A2 OpenCode plugin
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | Hook automatico antes de cada tarefa no OpenCode. Injeta briefing no contexto do agente. |
+| **Correcao** | Criar plugin OpenCode que chama `nexus briefing --summary` antes de cada tarefa e injeta no system prompt. |
+
+### A3 Cursor integration
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Extensao para Cursor IDE que mostra briefing no sidebar. |
+| **Correcao** | Criar extensao VS Code (Cursor e compativel) que le `.nexus/BRIEFING.md` e exibe em panel. |
+
+### A4 Git hooks
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Pre-commit: auto-briefing. Pre-push: validation. Post-commit: feedback automatico. |
+| **Correcao** | Criar `nexus hooks --install` que configura git hooks via `core.hooksPath`. |
+
+### A5 Webhook de sessao
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | POST briefing result para API externa (Slack, Discord, webhook custom). |
+| **Correcao** | Adicionar `--webhook <url>` ao `nexus briefing`. Enviar JSON via POST apos gerar. |
+
+### A6 Context injection API
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Endpoint REST para briefing sob demanda. Agentes podem chamar HTTP em vez de CLI. |
+| **Correcao** | Adicionar `nexus serve` que inicia servidor HTTP com endpoints: GET /briefing, GET /risk-map, GET /rules. |
+
+---
+
+## P2 — Developer Experience (≤ 90 dias)
+
+### D1 Interactive tutorial
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | `nexus tutorial` — guided tour interativo que mostra cada comando com exemplos reais. |
+| **Correcao** | Criar `src/commands/tutorial.ts` com 7 passos: init, status, detect, briefing, feedback, run, evolve. |
+
+### D2 Example projects
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | 3 templates: web-app (Next.js), API (Express), library (TypeScript). Cada um com governance pre-configurada. |
+| **Correcao** | Criar `examples/` com 3 diretorios. `nexus init --template web-app` para usar. |
+
+### D3 Migration guide
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Como migrar de outros tools (ESLint, Prettier, SonarQube) para Nexus. |
+| **Correcao** | Criar `docs/migration.md` com tabelas de equivalencia. |
+
+### D4 API documentation
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Referencia completa das funcoes internas para quem quer usar como biblioteca. |
+| **Correcao** | Gerar docs via TypeDoc. Publicar em `docs/api/`. |
+
+### D5 SDK/library mode
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Uso como biblioteca Node.js, nao CLI. `import { generateBriefing } from 'nexus-system'`. |
+| **Correcao** | Separar core de CLI. Criar `nexus-system/core` export. |
+
+### D6 Video walkthrough
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | 5min demo no YouTube mostrando o fluxo completo: init → briefing → feedback. |
+| **Correcao** | Gravar screencast. Ferramenta: OBS + terminal grande. |
+
+---
+
+## P2 — Data & Analytics (≤ 90 dias)
+
+### DA1 Usage analytics
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Quais comandos sao mais usados, horarios de pico, taxa de sucesso por comando. |
+| **Correcao** | Dashboard `nexus analytics` que le `usage.jsonl` e gera graficos. |
+
+### DA2 Error tracking
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Relatorio automatico de erros: tipo, frequencia, contexto. |
+| **Correcao** | Criar `src/error-tracker.ts` que captura erros nao tratados e grava em `errors.jsonl`. |
+
+### DA3 User behavior analysis
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Fluxo tipico de uso: quais comandos sao executados em sequencia. |
+| **Correcao** | Analisar `session-tracker` para detectar padroes de uso. |
+
+### DA4 A/B testing framework
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | Testar variacoes de briefing: formato, profundidade, ordem de secoes. |
+| **Correcao** | Criar `src/experiments.ts` com variante A/B e metricas de aceitacao. |
+
+---
+
+## P2 — Security Hardening (≤ 90 dias)
+
+### S1 Penetration testing
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Teste de seguranca no CLI: injection via inputs, path traversal, command injection. |
+| **Correcao** | Contratar pentest ou usar ferramentas (Snyk, npm audit). |
+
+### S2 Dependency auditing
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Owner** | unassigned |
+| **Descricao** | `npm audit` automatico no CI. Bloquear builds com vulnerabilidades criticas. |
+| **Correcao** | Adicionar step `pnpm audit --audit-level=high` ao CI. |
+
+### S3 Secret scanning
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Owner** | unassigned |
+| **Descricao** | Detectar keys/tokens no output do CLI. Evitar vazar informacoes sensiveis. |
+| **Correcao** | Usar `gitleaks` ou `trufflehog` no CI. Adicionar regex para detectar API keys no output. |
+
+### S4 Supply chain security
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Owner** | unassigned |
+| **Descricao** | SLSA compliance, provenance, SBOM. |
+| **Correcao** | Gerar SBOM via `syft`. Assinar commits com Sigstore. |
+
+---
+
+## P3 — Internationalization (sem SLA)
+
+| # | Item | Severidade | Descricao |
+|---|---|---|---|
+| I1 | Multi-language support | Baixo | pt-BR, en, es — mensagens de erro e output |
+| I2 | Locale detection | Baixo | Detectar idioma do sistema automaticamente |
+| I3 | Translation management | Baixo | i18n framework (i18next ou similar) |
+
+---
+
+## Metricas de Qualidade (snapshot 2026-06-29)
 
 ```
-Projeto:       nexus-system v0.1.0
+Projeto:       nexus-cli v0.1.0
 TypeScript:    strict: true, 0 erros
-Testes:        484/484 passando (31 arquivos)
-Coverage:      50.71% (linhas) | 82.12% (funcoes) | 76.09% (branches)
+Testes:        532/532 passando (36 arquivos)
+Coverage:      ~51% (linhas) | ~82% (funcoes) | ~76% (branches)
 ESLint:        0 erros, 0 warnings
 Dependencias:  6 deps + 10 devDeps (lean)
 CI/CD:         ci.yml (Node 18/20/22 + coverage gate)
-               release.yml (npm publish + GitHub Release)
+Commands:      18 (init, status, audit, assess, detect, run, evolve,
+               report, doctor, upgrade, validate, sync, clean, digest,
+               briefing, feedback, bench, dashboard)
+Context Pipeline: collectContext → cache → briefing → feedback → dashboard
 ```
+
+---
+
+## Resumo por Prioridade
+
+| Prioridade | Itens | Tema Principal |
+|---|---|---|
+| **P0** (≤ 7d) | 5 | Bugs de integracao, dead code, return type |
+| **P1** (≤ 30d) | 25 | Integracao, testes, produto, monetizacao, AI agents |
+| **P2** (≤ 90d) | 32 | Features, enterprise, docs, performance, security |
+| **P3** (sem SLA) | 45 | Nice-to-have, ecosystem, observability, i18n |
+| **Total** | **107** | |
