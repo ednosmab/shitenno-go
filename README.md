@@ -6,6 +6,8 @@ Nexus is not a tool. It is not a framework. It is not a linter. It is not a CI p
 
 Nexus is a system that organizes engineering knowledge so that humans and AI agents can continuously understand a project's state, make better decisions, and evolve with confidence.
 
+**Proprietary Software** — This software is owned by Edson Ramos. All rights reserved. See [LICENSE](LICENSE) for details.
+
 ---
 
 ## Why Does Nexus Exist
@@ -243,14 +245,14 @@ npm run lint           # ESLint with TypeScript rules
 npm run bench          # benchmarks
 ```
 
-## CI/CD
+## Testing
 
 Local validation: `bash tests/e2e/validate.sh` (36 tests across 3 personas).
 
-GitHub Actions (planned) in `.github/workflows/`:
-- **ci.yml** — typecheck + build + test on Node 18/20/22
-- **release.yml** — npm publish + GitHub Release on git tags
-
 ## License
 
-MIT
+**Proprietary** — Copyright (c) 2026 Edson Ramos. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without express written permission from the author.
+
+For licensing inquiries, contact: edson.ramos@nexus-system.com

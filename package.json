@@ -38,8 +38,9 @@
     "pattern-detection",
     "health-audit"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "Edson Ramos <edson.ramos@nexus-system.com>",
+  "license": "UNLICENSED",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/ednosmab/nexus-system.git"
