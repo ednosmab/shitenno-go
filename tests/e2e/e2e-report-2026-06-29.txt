@@ -8,10 +8,10 @@ Project:  /media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli
 Personas: junior-solo, established-team, senior-enterprise
 
 [0;36m▸ Building project (clean)...[0m
-ESM dist/nexus.js 290.53 KB
-ESM ⚡️ Build success in 69ms
+ESM dist/nexus.js 362.15 KB
+ESM ⚡️ Build success in 72ms
 DTS Build start
-DTS ⚡️ Build success in 4213ms
+DTS ⚡️ Build success in 4217ms
 DTS dist/nexus.d.ts 20.00 B
 [0;32m✔ Build complete[0m
 
