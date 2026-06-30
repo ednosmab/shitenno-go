@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-06-30 — 580 testes, 0 erros TypeScript, auto-analise completa (17 gaps), 136 itens no backlog
+> **Ultima atualizacao:** 2026-06-30 — 606 testes, 0 erros TypeScript, auto-backlog feature, 137 itens no backlog
 
 ---
 
@@ -45,6 +45,7 @@
 | P0 0.4: Dead code dashboard.ts | Baixo | Removido trendArrow() |
 | P0 0.5: Simplificar getLatestFeedback | Baixo | Refatorado para records.at(-1) ?? null |
 | 1.12 Coverage gap: comandos CLI | Alto | 36 novos testes em digest.test.ts + commands-action.test.ts (580 total) |
+| Auto-backlog feature | Alto | nexus audit --auto-backlog — detecta gaps e escreve no BACKLOG.md (606 testes) |
 
 ---
 
@@ -1175,7 +1176,7 @@
 ```
 Projeto:       nexus-cli v0.1.0
 TypeScript:    strict: true, 0 erros
-Testes:        580/580 passando (42 arquivos)
+Testes:        606/606 passando (43 arquivos)
 Coverage:      ~51% (linhas) | ~82% (funcoes) | ~76% (branches)
 ESLint:        0 erros, 0 warnings
 Dependencias:  6 deps + 10 devDeps (lean)
@@ -1184,6 +1185,7 @@ Commands:      18 (init, status, audit, assess, detect, run, evolve,
                report, doctor, upgrade, validate, sync, clean, digest,
                briefing, feedback, bench, dashboard)
 Context Pipeline: collectContext → cache → briefing → feedback → dashboard
+Auto-backlog:  nexus audit --auto-backlog (detect gaps → BACKLOG.md)
 Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 ```
 
@@ -1193,9 +1195,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 40 | Bugs, integracao, qualidade, pipeline, testes, catch blocks |
+| **Done** | 41 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog |
 | **P0** (≤ 7d) | 3 | Auto-analise: WORKFLOW.md, digest bug, governanca 0% |
 | **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts |
 | **P2** (≤ 90d) | 38 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance |
 | **P3** (sem SLA) | 37 | Nice-to-have, ecosystem, observability, i18n, nome/logo |
-| **Total** | **136** | |
+| **Total** | **137** | |
