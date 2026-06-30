@@ -189,6 +189,11 @@ export const initCommand = new Command("init")
       saveMaturityProfile(nexusDir, profile);
       recordMaturitySnapshot(nexusDir, profile);
 
+      // Generate project fingerprint
+      const { generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
+      const fingerprint = generateProjectFingerprint(targetDir, analysis, profile.overallScore);
+      saveFingerprint(nexusDir, fingerprint);
+
       // Display results
       console.log("");
       console.log(chalk.bold.green("  ✓ Nexus System Framework installed!"));

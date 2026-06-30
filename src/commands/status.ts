@@ -112,6 +112,23 @@ export const statusCommand = new Command("status")
     displayMaturityProfile(maturityProfile, installedCapabilities);
     displayComplexityReport(complexity, analysis);
 
+    // Display project fingerprint
+    const { loadFingerprint, isFingerprintStale, generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
+    const staleFingerprint = isFingerprintStale(ctx.nexusDir);
+    let fingerprint = loadFingerprint(ctx.nexusDir);
+    if (!fingerprint || staleFingerprint) {
+      fingerprint = generateProjectFingerprint(ctx.projectRoot, analysis, maturityProfile?.overallScore);
+      saveFingerprint(ctx.nexusDir, fingerprint);
+    }
+    if (fingerprint) {
+      console.log(chalk.bold("  🔍 Project Fingerprint:"));
+      console.log(chalk.gray(`    Domain:    ${fingerprint.domain}`));
+      console.log(chalk.gray(`    Scale:     ${fingerprint.scale}`));
+      console.log(chalk.gray(`    Stack:     ${fingerprint.stack.slice(0, 5).join(", ")}${fingerprint.stack.length > 5 ? ` (+${fingerprint.stack.length - 5})` : ""}`));
+      console.log(chalk.gray(`    Hash:      ${fingerprint.hash}`));
+      console.log("");
+    }
+
     if (cacheHit) {
       console.log(chalk.gray("  📦 Used cached results"));
       console.log("");
