@@ -1,0 +1,5 @@
+#!/bin/sh
+# post-commit hook — triggers knowledge graph rebuild and pattern detection
+# Runs after every commit to keep the governance system in sync.
+
+nexus detect --auto 2>/dev/null &
