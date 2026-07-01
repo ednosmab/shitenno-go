@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "./logger.js";
+import { getEventBus } from "./event-bus.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,25 @@ export function recordFeedback(
 
   // Update summary
   updateSummary(nexusDir, fullRecord);
+
+  // Publish event to event bus
+  const eventType = fullRecord.action === "accepted"
+    ? "recommendation.accepted"
+    : "recommendation.rejected";
+
+  if (fullRecord.action === "accepted" || fullRecord.action === "rejected") {
+    try {
+      getEventBus().publish(eventType, {
+        recommendationId: fullRecord.recommendationId,
+        action: fullRecord.action,
+        reason: fullRecord.reason,
+        feedbackId: fullRecord.id,
+      });
+    } catch (error) {
+      // Event bus may not be initialized in all contexts
+      logger.debug("feedback-loops", "Failed to publish event:", error);
+    }
+  }
 
   return fullRecord;
 }

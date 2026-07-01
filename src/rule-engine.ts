@@ -746,14 +746,65 @@ import { getEventBus, type NexusEventType } from "./event-bus.js";
 
 /** Map event bus events to rule engine triggers. */
 const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
+  // Session events
   "session.start": "session_start",
   "session.end": "session_end",
-  "validation.completed": "validation_fail",
-  "maturity.changed": "maturity_change",
+
+  // Analysis events
+  "analysis.complete": "file_change",
+  "score.calculated": "file_change",
+
+  // Pattern and health events
   "pattern.detected": "pattern_detected",
   "health.checked": "health_check",
-  "pipeline.complete": "pipeline_complete",
+  "debt.detected": "knowledge_debt_detected",
+
+  // Capability events
+  "capability.installed": "capability_install",
+  "capability.unlocked": "capability_install",
+  "maturity.changed": "maturity_change",
+
+  // Rule events
+  "rule.triggered": "manual",
+
+  // Evolution events
+  "evolution.recommended": "file_change",
+
+  // Asset events
   "adr.created": "adr_created",
+  "skill.created": "skill_created",
+  "asset.created": "file_change",
+  "asset.updated": "file_change",
+  "asset.archived": "file_change",
+
+  // Validation events
+  "validation.completed": "validation_pass",
+
+  // Pipeline events
+  "pipeline.stage.start": "file_change",
+  "pipeline.stage.complete": "file_change",
+  "pipeline.complete": "pipeline_complete",
+
+  // Lifecycle events
+  "lifecycle.state_changed": "file_change",
+
+  // Knowledge events
+  "knowledge.analyzed": "file_change",
+  "knowledge_debt.detected": "knowledge_debt_detected",
+
+  // Engineering state events
+  "engineering_state.updated": "file_change",
+  "engineering_state.consolidated": "file_change",
+
+  // Recommendation feedback events
+  "recommendation.accepted": "file_change",
+  "recommendation.rejected": "file_change",
+
+  // Governance events
+  "governance.policy_applied": "file_change",
+
+  // Entropy events
+  "entropy.calculated": "file_change",
 };
 
 /** Subscribe to event bus events and execute matching rules. */

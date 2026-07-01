@@ -14,6 +14,7 @@ import type { EngineeringState, AssetType } from "./engineering-state.js";
 import type { CapabilityEngineResult } from "./capability-engine.js";
 import type { KnowledgeDebtReport } from "./knowledge-debt.js";
 import type { PatternDetectionReport } from "./pattern-detector.js";
+import { getAllFeedbackSummaries, adjustConfidence, shouldSuppress } from "./feedback-loops.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -321,30 +322,47 @@ function generateFromAssetManagement(
 export function runRecommendationEngine(
   state: EngineeringState,
   capResult: CapabilityEngineResult,
-  _nexusDir: string
+  nexusDir: string,
+  patternReport: PatternDetectionReport | null = null,
+  knowledgeDebtReport: KnowledgeDebtReport | null = null
 ): RecommendationEngineResult {
   // Collect recommendations from all sources
   const allRecommendations: Recommendation[] = [
     ...generateFromCapabilityEngine(capResult),
-    ...generateFromKnowledgeDebt(state.knowledgeDebt ? {
-      generatedAt: state.knowledgeDebt.detectedAt,
-      totalGaps: state.knowledgeDebt.totalGaps,
-      healthScore: state.knowledgeDebt.healthScore,
-      gapsBySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
-      gapsByType: {} as Record<string, number>,
-      gaps: [],
-      summary: "",
-      recommendations: [],
-    } : null),
-    ...generateFromPatternDetection(null), // Would need pattern report
+    ...generateFromKnowledgeDebt(knowledgeDebtReport ?? state.knowledgeDebt as KnowledgeDebtReport | null),
+    ...generateFromPatternDetection(patternReport),
     ...generateFromEntropy(state),
     ...generateFromAIReadiness(state),
     ...generateFromAssetManagement(state),
   ];
 
+  // Apply feedback loop: adjust confidence and suppress frequently rejected recommendations
+  const feedbackSummaries = getAllFeedbackSummaries(nexusDir);
+  const adjustedRecommendations: Recommendation[] = [];
+
+  for (const rec of allRecommendations) {
+    const summary = feedbackSummaries[rec.id];
+
+    // Skip if recommendation should be suppressed
+    if (summary && shouldSuppress(summary)) {
+      continue;
+    }
+
+    // Adjust confidence based on feedback history
+    if (summary) {
+      if (summary.lastAction === "accepted") {
+        rec.confidence = adjustConfidence(rec.confidence, "accepted");
+      } else if (summary.lastAction === "rejected") {
+        rec.confidence = adjustConfidence(rec.confidence, "rejected");
+      }
+    }
+
+    adjustedRecommendations.push(rec);
+  }
+
   // Sort by priority
   const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-  allRecommendations.sort(
+  adjustedRecommendations.sort(
     (x, y) => priorityOrder[x.priority] - priorityOrder[y.priority]
   );
 
@@ -360,13 +378,13 @@ export function runRecommendationEngine(
   };
   const byPriority: Record<string, number> = {};
 
-  for (const rec of allRecommendations) {
+  for (const rec of adjustedRecommendations) {
     bySource[rec.source]++;
     byPriority[rec.priority] = (byPriority[rec.priority] || 0) + 1;
   }
 
   // Top next steps
-  const topNextSteps = allRecommendations
+  const topNextSteps = adjustedRecommendations
     .filter((r) => r.priority === "urgent" || r.priority === "high")
     .slice(0, 5)
     .map((r) => r.command || r.action);
@@ -385,17 +403,17 @@ export function runRecommendationEngine(
 
   // Summary
   const parts: string[] = [];
-  parts.push(`${allRecommendations.length} recommendation(s).`);
+  parts.push(`${adjustedRecommendations.length} recommendation(s).`);
   if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
   if (byPriority.high) parts.push(`${byPriority.high} high.`);
   parts.push(`Engineering capacity: ${engineeringCapacityScore}/100.`);
 
   return {
     generatedAt: new Date().toISOString(),
-    totalRecommendations: allRecommendations.length,
+    totalRecommendations: adjustedRecommendations.length,
     bySource,
     byPriority,
-    recommendations: allRecommendations,
+    recommendations: adjustedRecommendations,
     topNextSteps,
     engineeringCapacityScore,
     summary: parts.join(" "),
