@@ -789,8 +789,8 @@
 | **Status** | Done |
 | **Severidade** | Alto |
 | **Owner** | Edson |
-| **Resolucao** | Implementado feedback-engine.ts com calibragem de tom por perfil (2026-07-01). Comando `nexus feedback --personalized` gera feedback duplo (agente + usuario) com 3 tons (mentor/peer/relatorio) baseado no perfil do usuario. 19 testes novos. |
-| **Arquivo** | `src/feedback-engine.ts`, `src/commands/feedback.ts` |
+| **Resolucao** | Implementado feedback-engine.ts com calibragem de tom por perfil (2026-07-01). Comando `nexus feedback --personalized` gera feedback duplo (agente + usuario) com 3 tons (mentor/peer/relatorio) baseado no perfil do usuario. Comando `nexus profile` para configurar perfil. Perguntas de perfil no `nexus init`. Funcao `inferProfile()` infere perfil do comportamento. Atualizacao automatica do perfil apos cada sessao. 19 testes novos. |
+| **Arquivo** | `src/feedback-engine.ts`, `src/commands/feedback.ts`, `src/commands/profile.ts`, `src/prompts.ts`, `src/commands/init.ts` |
 
 ---
 

@@ -25,6 +25,8 @@ import {
   loadUserProfile,
   generatePersonalizedFeedback,
   formatFeedbackAsMarkdown,
+  updateProfileFromSession,
+  saveUserProfile,
 } from "../feedback-engine.js";
 
 // ── Command ────────────────────────────────────────────────────────────────
@@ -178,6 +180,15 @@ export function feedbackCommand(): Command {
         durationMinutes: Number.isFinite(durationMinutes) ? durationMinutes : undefined,
         sessionId: options["session-id"] ? String(options["session-id"]) : undefined,
       });
+
+      // Update user profile based on session outcome
+      const updatedProfile = updateProfileFromSession(
+        ctx.nexusDir,
+        record.outcome,
+        true, // followedRecommendations (default assumption)
+        record.durationMinutes
+      );
+      saveUserProfile(ctx.nexusDir, updatedProfile);
 
       if (isJson) {
         outputJson({

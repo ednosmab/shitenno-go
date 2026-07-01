@@ -19,6 +19,7 @@ import { briefingCommand } from "../src/commands/briefing.js";
 import { feedbackCommand } from "../src/commands/feedback.js";
 import { benchCommand } from "../src/commands/bench.js";
 import { dashboardCommand } from "../src/commands/dashboard.js";
+import { profileCommand } from "../src/commands/profile.js";
 
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -52,5 +53,6 @@ program.addCommand(briefingCommand());
 program.addCommand(feedbackCommand());
 program.addCommand(benchCommand());
 program.addCommand(dashboardCommand());
+program.addCommand(profileCommand());
 
 program.parse();

@@ -132,6 +132,124 @@ export function saveUserProfile(nexusDir: string, profile: UserProfile): void {
   writeFileSync(profilePath, JSON.stringify(profile, null, 2), "utf-8");
 }
 
+// ── Profile Inference ──────────────────────────────────────────────────────
+
+export interface SessionBehaviorData {
+  /** Total sessions recorded. */
+  totalSessions: number;
+  /** Success rate (0-1). */
+  successRate: number;
+  /** Average duration in minutes. */
+  avgDuration: number | null;
+  /** Number of times user rejected recommendations. */
+  rejectedRecommendations: number;
+  /** Number of times user accepted recommendations. */
+  acceptedRecommendations: number;
+  /** Commands used frequently. */
+  frequentCommands: string[];
+  /** Areas with most failures. */
+  failureAreas: string[];
+  /** Whether user asks for explanations (inferred from notes). */
+  asksForExplanations: boolean;
+}
+
+/**
+ * Infer user profile from behavioral data.
+ * Uses session history to estimate skill levels and preferences.
+ */
+export function inferProfile(
+  nexusDir: string,
+  behaviorData: SessionBehaviorData
+): UserProfile {
+  const currentProfile = loadUserProfile(nexusDir);
+
+  // Estimate architecture level based on success rate and command usage
+  let architecture: SkillLevel = currentProfile.architecture;
+  if (behaviorData.totalSessions >= 10) {
+    if (behaviorData.successRate >= 0.8 && behaviorData.frequentCommands.includes("audit")) {
+      architecture = "senior";
+    } else if (behaviorData.successRate >= 0.5) {
+      architecture = "pleno";
+    } else {
+      architecture = "junior";
+    }
+  }
+
+  // Estimate coding level based on success rate and failure areas
+  let coding: SkillLevel = currentProfile.coding;
+  if (behaviorData.totalSessions >= 10) {
+    if (behaviorData.successRate >= 0.8 && behaviorData.failureAreas.length <= 2) {
+      coding = "senior";
+    } else if (behaviorData.successRate >= 0.5) {
+      coding = "pleno";
+    } else {
+      coding = "junior";
+    }
+  }
+
+  // Estimate leadership level based on recommendation acceptance
+  let leadership: SkillLevel = currentProfile.leadership;
+  if (behaviorData.totalSessions >= 10) {
+    const acceptanceRate = behaviorData.acceptedRecommendations /
+      (behaviorData.acceptedRecommendations + behaviorData.rejectedRecommendations || 1);
+    if (acceptanceRate >= 0.8 && behaviorData.frequentCommands.includes("status")) {
+      leadership = "senior";
+    } else if (acceptanceRate >= 0.5) {
+      leadership = "pleno";
+    } else {
+      leadership = "junior";
+    }
+  }
+
+  // Estimate tone preference based on behavior
+  let tone: FeedbackTone = currentProfile.tone;
+  if (behaviorData.asksForExplanations && behaviorData.successRate < 0.5) {
+    tone = "mentor"; // User needs more guidance
+  } else if (behaviorData.successRate >= 0.8 && leadership === "senior") {
+    tone = "peer"; // Senior user prefers peer feedback
+  }
+
+  // Estimate code-free percentage based on role and focus
+  let codeFreePercent = currentProfile.codeFreePercent;
+  if (architecture === "senior" || leadership === "senior") {
+    codeFreePercent = Math.max(codeFreePercent, 70);
+  }
+
+  return {
+    ...currentProfile,
+    architecture,
+    coding,
+    leadership,
+    tone,
+    codeFreePercent,
+  };
+}
+
+/**
+ * Update profile based on a single session outcome.
+ * Incremental update after each session.
+ */
+export function updateProfileFromSession(
+  nexusDir: string,
+  outcome: SessionOutcome,
+  followedRecommendations: boolean,
+  durationMinutes: number | undefined
+): UserProfile {
+  const profile = loadUserProfile(nexusDir);
+  const behaviorData: SessionBehaviorData = {
+    totalSessions: 1,
+    successRate: outcome === "success" ? 1 : outcome === "partial" ? 0.5 : 0,
+    avgDuration: durationMinutes ?? null,
+    rejectedRecommendations: followedRecommendations ? 0 : 1,
+    acceptedRecommendations: followedRecommendations ? 1 : 0,
+    frequentCommands: [],
+    failureAreas: [],
+    asksForExplanations: false,
+  };
+
+  return inferProfile(nexusDir, behaviorData);
+}
+
 // ── Tone Calibration ──────────────────────────────────────────────────────
 
 /**

@@ -30,6 +30,7 @@ import {
   type Capability,
 } from "../maturity-profile.js";
 import { healthBar } from "../formatting.js";
+import { saveUserProfile } from "../feedback-engine.js";
 
 function displayMaturityDimensions(profile: MaturityProfile): void {
   const dims = profile.dimensions;
@@ -259,6 +260,21 @@ export const initCommand = new Command("init")
       // Save maturity profile
       saveMaturityProfile(nexusDir, profile);
       recordMaturitySnapshot(nexusDir, profile);
+
+      // Save user profile for personalized feedback
+      if (answers.userProfile) {
+        saveUserProfile(nexusDir, {
+          name: answers.userProfile.name,
+          role: answers.userProfile.role,
+          architecture: answers.userProfile.architecture,
+          coding: answers.userProfile.coding,
+          leadership: answers.userProfile.leadership,
+          tone: answers.userProfile.tone,
+          language: answers.userProfile.language,
+          codeFreePercent: answers.userProfile.codeFreePercent,
+          focusAreas: answers.userProfile.focusAreas,
+        });
+      }
 
       // Generate project fingerprint
       const { generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");

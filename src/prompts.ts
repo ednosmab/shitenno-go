@@ -21,6 +21,18 @@ export interface UserAnswers {
   maturity: MaturityAnswers;
   /** Capacidades selecionadas pelo usuário (override do perfil) */
   selectedCapabilities?: string[];
+  /** User profile for personalized feedback */
+  userProfile?: {
+    name: string;
+    role: string;
+    architecture: "junior" | "pleno" | "senior";
+    coding: "junior" | "pleno" | "senior";
+    leadership: "junior" | "pleno" | "senior";
+    tone: "mentor" | "peer" | "relatorio";
+    language: "pt" | "en";
+    codeFreePercent: number;
+    focusAreas: string[];
+  };
 }
 
 /**
@@ -267,6 +279,104 @@ export async function askQuestions(
     },
   ]);
 
+  // ── Bloco 9: Perfil do Usuário ──
+  console.log("");
+  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  console.log(chalk.bold.cyan("  │   👤  Perfil do Usuário              │"));
+  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  console.log("");
+  console.log(chalk.gray("  Para feedback personalizado. Pode configurar depois com 'nexus profile'."));
+  console.log("");
+
+  const userProfile = await inquirer.prompt([
+    {
+      type: "input",
+      name: "name",
+      message: "O teu nome:",
+      default: "Developer",
+    },
+    {
+      type: "list",
+      name: "role",
+      message: "O teu cargo/role:",
+      choices: [
+        { name: "Tech Lead em Formação", value: "Tech Lead em Formação" },
+        { name: "Senior Developer", value: "Senior Developer" },
+        { name: "Junior Developer", value: "Junior Developer" },
+        { name: "Pleno Developer", value: "Pleno Developer" },
+        { name: "Architect", value: "Architect" },
+        { name: "Engineering Manager", value: "Engineering Manager" },
+        { name: "Outro", value: "Outro" },
+      ],
+    },
+    {
+      type: "list",
+      name: "architecture",
+      message: "Nível de Arquitectura:",
+      choices: [
+        { name: "Júnior — ainda a aprender padrões", value: "junior" },
+        { name: "Pleno — conhece bem os fundamentos", value: "pleno" },
+        { name: "Sênior — domina system design", value: "senior" },
+      ],
+    },
+    {
+      type: "list",
+      name: "coding",
+      message: "Nível de Código:",
+      choices: [
+        { name: "Júnior — ainda a aprender", value: "junior" },
+        { name: "Pleno — escreve bem", value: "pleno" },
+        { name: "Sênior — domina padrões e optimização", value: "senior" },
+      ],
+    },
+    {
+      type: "list",
+      name: "leadership",
+      message: "Nível de Leadership:",
+      choices: [
+        { name: "Júnior — foco em execução", value: "junior" },
+        { name: "Pleno — começa a guiar", value: "pleno" },
+        { name: "Sênior — guia o time", value: "senior" },
+      ],
+    },
+    {
+      type: "list",
+      name: "tone",
+      message: "Tom de feedback preferido:",
+      choices: [
+        { name: "Mentor — suportivo, didático, encorajador", value: "mentor" },
+        { name: "Peer — directo, entre pares", value: "peer" },
+        { name: "Relatório — técnico, impessoal", value: "relatorio" },
+      ],
+    },
+    {
+      type: "list",
+      name: "language",
+      message: "Idioma do feedback:",
+      choices: [
+        { name: "Português", value: "pt" },
+        { name: "English", value: "en" },
+      ],
+    },
+    {
+      type: "input",
+      name: "codeFreePercent",
+      message: "Percentagem de feedback no-code (0-100):",
+      default: "50",
+      validate: (value: string) => {
+        const num = parseInt(value, 10);
+        if (isNaN(num) || num < 0 || num > 100) return "Deve ser um número entre 0 e 100";
+        return true;
+      },
+    },
+    {
+      type: "input",
+      name: "focusAreas",
+      message: "Áreas de foco (vírgula-separado, ex: visão,leadership):",
+      default: "",
+    },
+  ]);
+
   return {
     principalModel: aiConfig.principalModel,
     executorModel: aiConfig.executorModel,
@@ -280,6 +390,19 @@ export async function askQuestions(
       ...quality,
       ...aiUsage,
       ...governance,
+    },
+    userProfile: {
+      name: userProfile.name,
+      role: userProfile.role,
+      architecture: userProfile.architecture as "junior" | "pleno" | "senior",
+      coding: userProfile.coding as "junior" | "pleno" | "senior",
+      leadership: userProfile.leadership as "junior" | "pleno" | "senior",
+      tone: userProfile.tone as "mentor" | "peer" | "relatorio",
+      language: userProfile.language as "pt" | "en",
+      codeFreePercent: parseInt(userProfile.codeFreePercent, 10),
+      focusAreas: userProfile.focusAreas
+        ? userProfile.focusAreas.split(",").map((a: string) => a.trim()).filter(Boolean)
+        : [],
     },
   };
 }
