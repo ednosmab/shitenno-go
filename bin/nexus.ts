@@ -30,6 +30,7 @@ import { decideCommand } from "../src/commands/decide.js";
 import { policyCommand } from "../src/commands/policy.js";
 import { actCommand } from "../src/commands/act.js";
 import { planCommand } from "../src/commands/plan.js";
+import { shellInitCommand } from "../src/commands/shell-init.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine } from "../src/rule-engine.js";
@@ -113,6 +114,7 @@ program.addCommand(decideCommand());
 program.addCommand(policyCommand());
 program.addCommand(actCommand());
 program.addCommand(planCommand());
+program.addCommand(shellInitCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────
 
