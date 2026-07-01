@@ -23,6 +23,7 @@ import { profileCommand } from "../src/commands/profile.js";
 import { goalCommand } from "../src/commands/goal.js";
 import { decideCommand } from "../src/commands/decide.js";
 import { policyCommand } from "../src/commands/policy.js";
+import { actCommand } from "../src/commands/act.js";
 
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -60,5 +61,6 @@ program.addCommand(profileCommand());
 program.addCommand(goalCommand());
 program.addCommand(decideCommand());
 program.addCommand(policyCommand());
+program.addCommand(actCommand());
 
 program.parse();
