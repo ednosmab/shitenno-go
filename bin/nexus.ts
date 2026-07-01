@@ -21,6 +21,7 @@ import { benchCommand } from "../src/commands/bench.js";
 import { dashboardCommand } from "../src/commands/dashboard.js";
 import { profileCommand } from "../src/commands/profile.js";
 import { goalCommand } from "../src/commands/goal.js";
+import { decideCommand } from "../src/commands/decide.js";
 
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -56,5 +57,6 @@ program.addCommand(benchCommand());
 program.addCommand(dashboardCommand());
 program.addCommand(profileCommand());
 program.addCommand(goalCommand());
+program.addCommand(decideCommand());
 
 program.parse();
