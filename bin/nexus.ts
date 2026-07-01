@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,7 +35,8 @@ import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine } from "../src/rule-engine.js";
 import { initializeKnowledgeGraph } from "../src/knowledge-graph.js";
 import { initializeCapabilityEngine } from "../src/capability-engine.js";
-import { startSession, endSession, trackCommand } from "../src/session-tracker.js";
+import { startSession, endSession } from "../src/session-tracker.js";
+import { installMiddleware } from "../src/cli-middleware.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
@@ -75,15 +76,6 @@ if (isInitialized) {
   });
 }
 
-function existsSync(path: string): boolean {
-  try {
-    readFileSync(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // ── CLI Program ─────────────────────────────────────────────────────────────
 
 const program = new Command();
@@ -117,6 +109,14 @@ program.addCommand(decideCommand());
 program.addCommand(policyCommand());
 program.addCommand(actCommand());
 program.addCommand(planCommand());
+
+// ── Middleware Pipeline ──────────────────────────────────────────────────────
+
+installMiddleware(program, {
+  projectRoot,
+  nexusDir,
+  sessionId: currentSessionId,
+});
 
 program.parse();
 
