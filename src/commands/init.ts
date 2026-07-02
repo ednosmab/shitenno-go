@@ -31,6 +31,7 @@ import {
 } from "../maturity-profile.js";
 import { healthBar } from "../formatting.js";
 import { saveUserProfile } from "../feedback-engine.js";
+import { initializeRules } from "../rule-engine.js";
 
 function displayMaturityDimensions(profile: MaturityProfile): void {
   const dims = profile.dimensions;
@@ -256,6 +257,9 @@ export const initCommand = new Command("init")
       // Allow user to customize if they want more
       const result = scaffoldNexusSystem(targetDir, answers, capsToInstall);
       scaffoldSpinner.succeed("Framework installed!");
+
+      // Initialize default rules if governance/rules is empty
+      initializeRules(nexusDir);
 
       // Save maturity profile
       saveMaturityProfile(nexusDir, profile);

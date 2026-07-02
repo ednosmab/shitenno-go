@@ -206,6 +206,44 @@ export function collectConsoleData(projectRoot: string, nexusDir: string): Conso
   };
 }
 
+// ── Cache ───────────────────────────────────────────────────────────────────
+
+interface CacheEntry {
+  data: ConsoleData;
+  timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry>();
+
+/**
+ * Get cached data or collect fresh data.
+ * TTL defaults to 5 seconds to avoid excessive file I/O during rapid tab switches.
+ */
+export function getOrCollectConsoleData(
+  projectRoot: string,
+  nexusDir: string,
+  ttlMs: number = 5000,
+): ConsoleData {
+  const key = `${projectRoot}:${nexusDir}`;
+  const now = Date.now();
+  const entry = cache.get(key);
+
+  if (entry && now - entry.timestamp < ttlMs) {
+    return entry.data;
+  }
+
+  const data = collectConsoleData(projectRoot, nexusDir);
+  cache.set(key, { data, timestamp: now });
+  return data;
+}
+
+/**
+ * Clear the data cache (useful after write operations).
+ */
+export function clearConsoleDataCache(): void {
+  cache.clear();
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function countByType(artifacts: Array<{ type: string }>, type: string): number {

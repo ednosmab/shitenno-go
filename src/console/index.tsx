@@ -23,6 +23,7 @@ import { SessionsTab } from "./tabs/sessions.js";
 import { EventsTab } from "./tabs/events.js";
 import { LifecycleTab } from "./tabs/lifecycle.js";
 import { CommandsTab } from "./tabs/commands.js";
+import { ErrorBoundary } from "./components/error-boundary.js";
 import type { ConsoleData } from "./data-collector.js";
 
 // ── Tab Definitions ────────────────────────────────────────────────────────
@@ -159,22 +160,27 @@ function NexusConsoleInner({
     }
   });
 
-  // Render the active tab
+  // Render the active tab with error boundary
   const renderTab = (): React.ReactElement => {
+    const tabName = TABS[nav.activeTab]?.label ?? "Unknown";
+    let content: React.ReactElement;
+
     switch (nav.activeTab) {
-      case 0: return <OverviewTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 1: return <EngineeringTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 2: return <ArchitectureTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 3: return <KnowledgeTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 4: return <HealthTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 5: return <GoalsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />;
-      case 6: return <DecisionsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />;
-      case 7: return <SessionsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />;
-      case 8: return <EventsTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 9: return <LifecycleTab data={data} scrollOffset={nav.scrollOffset} />;
-      case 10: return <CommandsTab projectRoot={projectRoot} />;
-      default: return <OverviewTab data={data} scrollOffset={nav.scrollOffset} />;
+      case 0: content = <OverviewTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 1: content = <EngineeringTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 2: content = <ArchitectureTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 3: content = <KnowledgeTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 4: content = <HealthTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 5: content = <GoalsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />; break;
+      case 6: content = <DecisionsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />; break;
+      case 7: content = <SessionsTab data={data} scrollOffset={nav.scrollOffset} expandedItem={nav.expandedItem} onExpandItem={nav.expandItem} />; break;
+      case 8: content = <EventsTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 9: content = <LifecycleTab data={data} scrollOffset={nav.scrollOffset} />; break;
+      case 10: content = <CommandsTab projectRoot={projectRoot} />; break;
+      default: content = <OverviewTab data={data} scrollOffset={nav.scrollOffset} />;
     }
+
+    return <ErrorBoundary tabName={tabName}>{content}</ErrorBoundary>;
   };
 
   // Screen reader mode: linearized output

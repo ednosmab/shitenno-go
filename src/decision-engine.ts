@@ -9,7 +9,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -309,7 +309,6 @@ export class FileDecisionRepository implements DecisionRepository {
   findAll(filter?: DecisionFilter): Decision[] {
     if (!existsSync(this.dir)) return [];
 
-    const { readdirSync } = require("node:fs");
     const files = readdirSync(this.dir).filter((f: string) => f.endsWith(".json"));
     const decisions: Decision[] = [];
 

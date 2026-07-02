@@ -12,6 +12,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import { logger } from "./logger.js";
 
 // ── Security: Allowed Scripts ────────────────────────────────────────────────
 
@@ -249,13 +250,13 @@ export function loadRules(nexusDir: string): Rule[] {
       const validation = validateRule(parsed);
 
       if (!validation.valid) {
-        console.warn(`[RuleEngine] Invalid rule in ${file}: ${validation.errors.join(", ")}`);
+        logger.warn("RuleEngine", `Invalid rule in ${file}: ${validation.errors.join(", ")}`);
         continue;
       }
 
       rules.push(parsed as Rule);
     } catch {
-      console.warn(`[RuleEngine] Failed to parse ${file}`);
+      logger.warn("RuleEngine", `Failed to parse ${file}`);
     }
   }
 

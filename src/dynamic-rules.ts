@@ -9,7 +9,7 @@
  * PRINCIPLE: Rules should be born from evidence, not assumptions.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
@@ -109,7 +109,7 @@ function detectHistoryIncidents(projectRoot: string, nexusDir: string): DynamicR
   if (!existsSync(historyDir)) return rules;
 
   try {
-    const files = require("node:fs").readdirSync(historyDir).filter((f: string) => f.endsWith(".md"));
+    const files = readdirSync(historyDir).filter((f: string) => f.endsWith(".md"));
 
     const incidentKeywords = ["erro", "bug", "falhou", "rollback", "incidente", "problema", "broken", "regression"];
     const areaIncidents: Record<string, number> = {};

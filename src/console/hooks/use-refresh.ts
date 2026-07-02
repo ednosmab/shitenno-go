@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { collectConsoleData, type ConsoleData } from "../data-collector.js";
+import { getOrCollectConsoleData, clearConsoleDataCache, type ConsoleData } from "../data-collector.js";
 
 export function useRefresh(
   projectRoot: string,
@@ -13,12 +13,13 @@ export function useRefresh(
   intervalMs: number = 0
 ) {
   const [data, setData] = useState<ConsoleData>(() =>
-    collectConsoleData(projectRoot, nexusDir)
+    getOrCollectConsoleData(projectRoot, nexusDir)
   );
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const refresh = useCallback(() => {
-    const newData = collectConsoleData(projectRoot, nexusDir);
+    clearConsoleDataCache(); // Force fresh data on manual refresh
+    const newData = getOrCollectConsoleData(projectRoot, nexusDir);
     setData(newData);
     setLastRefresh(new Date());
   }, [projectRoot, nexusDir]);

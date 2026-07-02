@@ -10,6 +10,7 @@
 
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 import type { EventPayloadMap, CorrelationId, TraceId } from "./event-payloads.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -120,11 +121,11 @@ class NexusEventBus implements EventBus {
           // Handle async handlers
           if (result && typeof (result as Promise<void>).catch === "function") {
             (result as Promise<void>).catch((error: unknown) => {
-              console.error(`[EventBus] Async handler error for "${eventType}":`, error);
+              logger.error("EventBus", `Async handler error for "${eventType}":`, error);
             });
           }
         } catch (error) {
-          console.error(`[EventBus] Handler error for "${eventType}":`, error);
+          logger.error("EventBus", `Handler error for "${eventType}":`, error);
         }
       }
     }

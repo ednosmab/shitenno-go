@@ -9,7 +9,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { EngineeringState, EngineeringAsset, AssetType } from "./engineering-state.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ function computeStateHash(state: EngineeringState): string {
     policies: state.activePolicies,
     consolidatedAt: state.consolidatedAt,
   });
-  return require("node:crypto").createHash("sha256").update(payload).digest("hex").slice(0, 12);
+  return createHash("sha256").update(payload).digest("hex").slice(0, 12);
 }
 
 // ── Generators ─────────────────────────────────────────────────────────────

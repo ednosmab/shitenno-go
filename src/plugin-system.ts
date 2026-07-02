@@ -9,6 +9,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ export class HookBus {
   registerPlugin(plugin: NexusPlugin): void {
     // Check for duplicate names
     if (this.plugins.some((p) => p.name === plugin.name)) {
-      console.warn(`[PluginSystem] Plugin "${plugin.name}" already registered, skipping.`);
+      logger.warn("PluginSystem", `Plugin "${plugin.name}" already registered, skipping.`);
       return;
     }
     this.plugins.push(plugin);
@@ -70,8 +71,9 @@ export class HookBus {
         try {
           current = await transformer(plugin, current);
         } catch (error) {
-          console.error(
-            `[PluginSystem] Hook "${hookName}" failed in plugin "${plugin.name}":`,
+          logger.error(
+            "PluginSystem",
+            `Hook "${hookName}" failed in plugin "${plugin.name}":`,
             error
           );
         }
@@ -96,8 +98,9 @@ export class HookBus {
             results.push(result);
           }
         } catch (error) {
-          console.error(
-            `[PluginSystem] Collector hook "${hookName}" failed in plugin "${plugin.name}":`,
+          logger.error(
+            "PluginSystem",
+            `Collector hook "${hookName}" failed in plugin "${plugin.name}":`,
             error
           );
         }
@@ -134,7 +137,7 @@ export async function loadPluginsFromDir(pluginsDir: string): Promise<NexusPlugi
           plugins.push(plugin);
         }
       } catch (error) {
-        console.error(`[PluginSystem] Failed to load plugin from "${entry.name}":`, error);
+        logger.error("PluginSystem", `Failed to load plugin from "${entry.name}":`, error);
       }
     }
   }

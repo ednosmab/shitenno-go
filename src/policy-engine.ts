@@ -7,7 +7,7 @@
  * Architecture: Policy (JSON) → ConditionEvaluator → PolicyEngine → PolicyResult
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -259,7 +259,6 @@ export class FilePolicyRepository implements PolicyRepository {
     const filepath = join(this.dir, `${id}.json`);
     if (!existsSync(filepath)) return false;
     try {
-      const { unlinkSync } = require("node:fs");
       unlinkSync(filepath);
       return true;
     } catch {
