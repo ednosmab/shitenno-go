@@ -43,6 +43,9 @@
   ],
   "author": "Edson Ramos <edson.ramos@nexus-system.com>",
   "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*"
+  ],
   "private": true,
   "repository": {
     "type": "git",
