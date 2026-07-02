@@ -1,5 +1,5 @@
 /**
- * console.ts — nexus console command
+ * dashboard.ts — nexus dashboard command
  *
  * Launches the interactive terminal dashboard.
  * Supports --json for machine-readable output,
@@ -12,8 +12,8 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { outputJson } from "../formatting.js";
 import { collectConsoleData } from "../console/data-collector.js";
 
-export function consoleCommand(): Command {
-  const cmd = new Command("console")
+export function dashboardCommand(): Command {
+  const cmd = new Command("dashboard")
     .description("Interactive engineering dashboard with tabs, mouse, and accessibility")
     .option("-d, --dir <path>", "Project directory")
     .option("--json", "Output as JSON instead of TUI")
@@ -28,7 +28,7 @@ export function consoleCommand(): Command {
       if (!isJson) {
         console.log("");
         console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║  nexus console — Engineering Dashboard ║"));
+        console.log(chalk.bold.cyan("  ║       Engineering Dashboard          ║"));
         console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
         console.log("");
       }
@@ -36,7 +36,7 @@ export function consoleCommand(): Command {
       const ctx = guardNotInitialized(options, isJson);
       if (!ctx) return;
 
-      if (!checkLifecycleGate("console", ctx.projectRoot, ctx.nexusDir, isJson)) {
+      if (!checkLifecycleGate("dashboard", ctx.projectRoot, ctx.nexusDir, isJson)) {
         return;
       }
 
@@ -65,7 +65,7 @@ export function consoleCommand(): Command {
         await waitUntilExit();
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.log(chalk.red(`  ✘ Failed to launch console: ${msg}`));
+        console.log(chalk.red(`  ✘ Failed to launch dashboard: ${msg}`));
         console.log(chalk.gray("  Falling back to static output..."));
         console.log("");
 

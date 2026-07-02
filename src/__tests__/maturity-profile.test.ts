@@ -73,6 +73,7 @@ const BASE_ANALYSIS: ProjectAnalysis = {
   hasLinter: false,
   hasCI: false,
   hasTypeScript: true,
+  totalCommits: 0,
 };
 
 let tempDir: string;

@@ -1,5 +1,5 @@
 /**
- * dashboard.ts — Context Pipeline: Token Economy Dashboard
+ * console.ts — nexus console command
  *
  * Visualizes token economy metrics over time:
  * - Total tokens saved
@@ -8,9 +8,9 @@
  * - Monthly projections
  *
  * Usage:
- *   nexus dashboard                # Full dashboard
- *   nexus dashboard --json         # JSON output
- *   nexus dashboard --period <d>   # Period in days (default: 30)
+ *   nexus console                # Full console
+ *   nexus console --json         # JSON output
+ *   nexus console --period <d>   # Period in days (default: 30)
  */
 
 import { Command } from "commander";
@@ -30,16 +30,16 @@ function healthBar(value: number, max: number, width = 20): string {
   return color("█".repeat(filled)) + chalk.gray("░".repeat(empty));
 }
 
-// ── Dashboard Display ──────────────────────────────────────────────────────
+// ── Console Display ────────────────────────────────────────────────────────
 
-function displayDashboard(
+function displayConsole(
   summary: ReturnType<typeof computeFeedbackSummary>,
   sessionMetrics: ReturnType<typeof getSessionMetrics>,
   periodDays: number
 ): void {
   console.log("");
   console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║  nexus dashboard — Token Economy     ║"));
+  console.log(chalk.bold.cyan("  ║  nexus console — Token Economy       ║"));
   console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
   console.log("");
 
@@ -128,9 +128,9 @@ function displayDashboard(
 
 // ── Command ────────────────────────────────────────────────────────────────
 
-export function dashboardCommand(): Command {
-  const cmd = new Command("dashboard")
-    .description("Token economy dashboard with session metrics")
+export function consoleCommand(): Command {
+  const cmd = new Command("console")
+    .description("Token economy console with session metrics")
     .option("-d, --dir <path>", "Project directory")
     .option("--json", "Output as JSON")
     .option("--period <days>", "Period in days", "30")
@@ -141,7 +141,7 @@ export function dashboardCommand(): Command {
       if (!isJson) {
         console.log("");
         console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║  nexus dashboard — Token Economy     ║"));
+        console.log(chalk.bold.cyan("  ║  nexus console — Token Economy       ║"));
         console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
         console.log("");
       }
@@ -149,7 +149,7 @@ export function dashboardCommand(): Command {
       const ctx = guardNotInitialized(options, isJson);
       if (!ctx) return;
 
-      if (!checkLifecycleGate("dashboard", ctx.projectRoot, ctx.nexusDir, isJson)) {
+      if (!checkLifecycleGate("console", ctx.projectRoot, ctx.nexusDir, isJson)) {
         return;
       }
 
@@ -170,10 +170,10 @@ export function dashboardCommand(): Command {
         return;
       }
 
-      displayDashboard(summary, sessionMetrics, periodDays);
+      displayConsole(summary, sessionMetrics, periodDays);
 
       getEventBus().publish("analysis.complete", {
-        type: "dashboard",
+        type: "console",
         sessions: summary.totalSessions,
         tokensSaved: summary.tokenEconomy.totalTokensSaved,
         cacheHitRate: summary.tokenEconomy.cacheHitRate,

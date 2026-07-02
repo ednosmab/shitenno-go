@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-01 — 606 testes, 0 erros TypeScript, auto-backlog feature, 139 itens no backlog
+> **Ultima atualizacao:** 2026-07-02 — 606 testes, 0 erros TypeScript, auto-backlog feature, 141 itens no backlog
 
 ---
 
@@ -365,6 +365,34 @@
 | **Arquivos** | Todos os commands/ que tem `console.log` com chalk |
 | **Descricao** | ~90 chamadas `console.log` com chalk repetidas em 18 arquivos de comando. Padrao de banner `╔══╗` duplicado em todos. |
 | **Correcao** | Extrair funcoes `banner(title)`, `section(title)`, `kv(key, value)` para `src/formatting.ts`. |
+
+### 2.18 Dashboard: cliques do mouse nas abas nao funcionam
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-02 |
+| **Fonte** | Teste manual do usuario |
+| **Modulos** | `src/console/components/tab-bar.tsx`, `src/console/index.tsx` |
+| **Descricao** | As abas do dashboard interativo nao respondem a cliques do mouse. Apenas navegacao por setas do teclado funciona. O componente TabItem tem `useOnClick` configurado mas nao esta funcionando. |
+| **Correcao** | Verificar se `MouseProvider` esta correto no root do Ink. Testar se `useOnClick` detecta cliques. Possivelmente o problema e que os refs dos TabItem nao estao recebendo eventos. |
+
+### 2.19 Dashboard: responsividade do layout
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Baixo |
+| **Prioridade** | P3 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-02 |
+| **Fonte** | Teste manual do usuario |
+| **Modulos** | `src/console/tabs/*.tsx`, `src/console/components/*.tsx` |
+| **Descricao** | O dashboard so e visualizado corretamente com a tela maximizada. Em terminais menores (fora do VSCode ou sem maximizar), o layout fica quebrado com overflow. |
+| **Correcao** | Implementar breakpoints dinamicos baseados no tamanho do terminal (`process.stdout.columns`). Adaptar numero de colunas e layout conforme largura disponivel. Usar `flexWrap` do Ink. |
 
 ---
 
@@ -1229,6 +1257,6 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 | **Done** | 41 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog |
 | **P0** (≤ 7d) | 4 | Auto-analise: WORKFLOW.md, digest bug, governanca 0%, governance infrastructure |
 | **P1** (≤ 30d) | 19 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
-| **P2** (≤ 90d) | 38 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance |
-| **P3** (sem SLA) | 37 | Nice-to-have, ecosystem, observability, i18n, nome/logo |
-| **Total** | **139** | |
+| **P2** (≤ 90d) | 40 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX |
+| **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
+| **Total** | **141** | |

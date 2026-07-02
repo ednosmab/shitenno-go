@@ -32,6 +32,9 @@ import {
 import { healthBar } from "../formatting.js";
 import { saveUserProfile } from "../feedback-engine.js";
 import { initializeRules } from "../rule-engine.js";
+import { auditHealth, type HealthAuditReport } from "../health-auditor.js";
+import { discoverArtifacts, discoverRelations, analyzeGraph, type GraphAnalysis } from "../knowledge-graph.js";
+import type { ProjectAnalysis } from "../analyser.js";
 
 function displayMaturityDimensions(profile: MaturityProfile): void {
   const dims = profile.dimensions;
@@ -89,6 +92,71 @@ function displayCapabilities(profile: MaturityProfile): void {
   }
 }
 
+// ── Starter vs Active Project Detection ────────────────────────────────────
+
+/**
+ * Determines if a project is a "starter" (just framework installed, minimal code)
+ * vs "active" (has meaningful implementation).
+ *
+ * Logic: sourceFileCount < 10 AND totalCommits < 1
+ * - sourceFileCount counts .ts/.tsx/.js/.jsx/.vue/.svelte (excludes node_modules)
+ * - totalCommits uses git rev-list --count HEAD
+ */
+export function isStarterProject(analysis: ProjectAnalysis): boolean {
+  return analysis.sourceFileCount < 10 && analysis.totalCommits < 1;
+}
+
+// ── Mini Dashboard Display ─────────────────────────────────────────────────
+
+function displayMiniDashboard(
+  auditReport: HealthAuditReport,
+  graphAnalysis: GraphAnalysis,
+): void {
+  const score = auditReport.healthScore;
+  const scoreColor = score >= 70 ? chalk.green : score >= 40 ? chalk.yellow : chalk.red;
+
+  console.log(chalk.bold.green("  ═══ Governance Health ═══"));
+  console.log("");
+
+  // Health Score
+  console.log(`    Health Score:  ${scoreColor(String(score) + "/100")}  ${healthBar(score, 100)}`);
+  console.log(`    Rules:         ${chalk.bold(String(auditReport.totalRules))} active`);
+  console.log(`    History:       ${auditReport.historyEntries} session(s) analyzed`);
+
+  // Issues summary
+  const critical = auditReport.issues.filter((i) => i.severity === 3).length;
+  const warning = auditReport.issues.filter((i) => i.severity === 2).length;
+  const info = auditReport.issues.filter((i) => i.severity === 1).length;
+  console.log(`    Issues:        ${auditReport.issues.length} (${critical} critical, ${warning} warning, ${info} info)`);
+
+  // Knowledge Graph
+  const graphScore = graphAnalysis.healthScore;
+  const graphColor = graphScore >= 70 ? chalk.green : graphScore >= 40 ? chalk.yellow : chalk.red;
+  console.log("");
+  console.log(chalk.bold("  Knowledge Graph:"));
+  console.log(`    Artifacts:   ${graphAnalysis.totalArtifacts}`);
+  console.log(`    Relations:   ${graphAnalysis.totalRelations}`);
+  console.log(`    Health:      ${graphColor(String(graphScore) + "/100")}  ${healthBar(graphScore, 100)}`);
+  console.log(`    Orphans:     ${graphAnalysis.orphanArtifacts.length}`);
+
+  // Top issues (max 3)
+  if (auditReport.issues.length > 0) {
+    console.log("");
+    console.log(chalk.bold("  Top Issues:"));
+    const topIssues = auditReport.issues.slice(0, 3);
+    for (const issue of topIssues) {
+      const icon = issue.severity === 3 ? chalk.red("✘") : issue.severity === 2 ? chalk.yellow("⚠") : chalk.gray("ℹ");
+      console.log(`    ${icon} ${issue.description}`);
+    }
+  }
+
+  console.log("");
+  console.log(chalk.gray("  Next: nexus audit --json for full report"));
+  console.log("");
+}
+
+// ── Safety Guard ───────────────────────────────────────────────────────────
+
 /**
  * Determines if init should be blocked because the target is inside nexus-cli.
  * Extracted for testability.
@@ -98,7 +166,7 @@ export function shouldBlockInit(targetDir: string, force: boolean): boolean {
 }
 
 export const initCommand = new Command("init")
-  .description("Initialize Nexus System framework with maturity-based discovery")
+  .description("Initialize Nexus System ecosystem with maturity-based discovery")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("--answers-file <path>", "JSON file with pre-defined answers (skips interactive prompts)")
   .option("--force", "Force creation inside nexus-cli (not recommended)")
@@ -192,6 +260,30 @@ export const initCommand = new Command("init")
         console.log(chalk.green("  ✔ Your project is well-equipped! No new capabilities recommended."));
       }
       console.log("");
+
+      // Run audit for active projects (not starters)
+      if (isStarterProject(analysis)) {
+        console.log(chalk.bold("  Project appears to be a starter (minimal code detected)."));
+        console.log(chalk.gray("  Run 'nexus audit' once you have implementation code."));
+        console.log("");
+      } else {
+        const auditSpinner = ora("Running governance audit...").start();
+        try {
+          const auditReport = auditHealth(targetDir, nexusDir);
+          const artifacts = discoverArtifacts(nexusDir);
+          const relations = discoverRelations(artifacts);
+          const graphAnalysis = analyzeGraph(artifacts, relations);
+          auditSpinner.succeed("Audit complete");
+          console.log("");
+          displayMiniDashboard(auditReport, graphAnalysis);
+        } catch (error) {
+          auditSpinner.fail("Audit failed");
+          console.log(chalk.gray(`  ${error instanceof Error ? error.message : "Unknown error"}`));
+          console.log(chalk.gray("  Run 'nexus audit' manually for details."));
+          console.log("");
+        }
+      }
+
       return;
     }
 
@@ -249,7 +341,7 @@ export const initCommand = new Command("init")
     displayCapabilities(profile);
 
     // Step 5: Scaffold by capabilities
-    const scaffoldSpinner = ora("Installing governance framework...").start();
+    const scaffoldSpinner = ora("Installing governance ecosystem...").start();
     try {
       // Determine which capabilities to install (recommended + selected)
       const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
@@ -291,7 +383,7 @@ export const initCommand = new Command("init")
       console.log("");
       console.log(chalk.bold("  Structure created:"));
       console.log(chalk.gray("    opencode.json          ← configuration (project root)"));
-      console.log(chalk.gray("    nexus-system/          ← governance framework"));
+      console.log(chalk.gray("    nexus-system/          ← governance ecosystem"));
       for (const dir of result.directoriesCreated) {
         if (dir === "nexus-system") continue;
         console.log(chalk.gray(`      ${dir.replace("nexus-system/", "")}/`));
@@ -328,7 +420,7 @@ export const initCommand = new Command("init")
       }
       console.log("");
     } catch (error) {
-      scaffoldSpinner.fail("Failed to install framework");
+      scaffoldSpinner.fail("Failed to install ecosystem");
       console.error(chalk.red(`  Error: ${error}`));
 
       // Rollback: remove partial nexus-system directory

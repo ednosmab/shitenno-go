@@ -5,8 +5,9 @@
  * Highlights active tab and supports keyboard + mouse navigation.
  */
 
-import React from "react";
+import React, { useRef } from "react";
 import { Box, Text } from "ink";
+import { useOnClick } from "@ink-tools/ink-mouse";
 
 interface Tab {
   id: string;
@@ -21,6 +22,38 @@ interface TabBarProps {
   ariaLabel?: string;
 }
 
+interface TabItemProps {
+  tab: Tab;
+  index: number;
+  isActive: boolean;
+  onSelect: (index: number) => void;
+}
+
+function TabItem({ tab, index, isActive, onSelect }: TabItemProps): React.ReactElement {
+  const ref = useRef(null);
+
+  useOnClick(ref, () => {
+    onSelect(index);
+  });
+
+  const shortcut = tab.shortcut ? `[${tab.shortcut}]` : "";
+
+  return (
+    <Box ref={ref} marginRight={1}>
+      <Text
+        bold={isActive}
+        inverse={isActive}
+        color={isActive ? "cyan" : undefined}
+      >
+        {` ${tab.label} `}
+      </Text>
+      {shortcut && (
+        <Text dimColor>{shortcut}</Text>
+      )}
+    </Box>
+  );
+}
+
 export function TabBar({ tabs, activeIndex, onSelect, ariaLabel }: TabBarProps): React.ReactElement {
   return (
     <Box
@@ -33,25 +66,15 @@ export function TabBar({ tabs, activeIndex, onSelect, ariaLabel }: TabBarProps):
       paddingX={1}
       aria-label={ariaLabel || "Navigation tabs"}
     >
-      {tabs.map((tab, index) => {
-        const isActive = index === activeIndex;
-        const shortcut = tab.shortcut ? `[${tab.shortcut}]` : "";
-
-        return (
-          <Box key={tab.id} marginRight={1}>
-            <Text
-              bold={isActive}
-              inverse={isActive}
-              color={isActive ? "cyan" : undefined}
-            >
-              {` ${tab.label} `}
-            </Text>
-            {shortcut && (
-              <Text dimColor>{shortcut}</Text>
-            )}
-          </Box>
-        );
-      })}
+      {tabs.map((tab, index) => (
+        <TabItem
+          key={tab.id}
+          tab={tab}
+          index={index}
+          isActive={index === activeIndex}
+          onSelect={onSelect}
+        />
+      ))}
     </Box>
   );
 }

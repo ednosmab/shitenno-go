@@ -35,6 +35,7 @@ function makeAnalysis(overrides: Partial<ProjectAnalysis> = {}): ProjectAnalysis
     hasLinter: false,
     hasCI: false,
     hasTypeScript: false,
+    totalCommits: 0,
     ...overrides,
   };
 }

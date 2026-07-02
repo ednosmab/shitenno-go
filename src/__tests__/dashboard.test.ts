@@ -9,8 +9,8 @@ import { scaffoldNexusSystem } from "../scaffolder.js";
 const execAsync = promisify(exec);
 const CLI_PATH = resolve(import.meta.dirname, "../../dist/nexus.js");
 
-describe("dashboard command", () => {
-  const TMP_DIR = join(tmpdir(), `nexus-dashboard-test-${Date.now()}`);
+describe("console command", () => {
+  const TMP_DIR = join(tmpdir(), `nexus-console-test-${Date.now()}`);
 
   beforeAll(() => {
     mkdirSync(TMP_DIR, { recursive: true });
@@ -51,8 +51,8 @@ describe("dashboard command", () => {
     if (existsSync(TMP_DIR)) rmSync(TMP_DIR, { recursive: true });
   });
 
-  it("should run dashboard with no data", async () => {
-    const result = await execAsync(`node ${CLI_PATH} dashboard --json`, {
+  it("should run console with no data", async () => {
+    const result = await execAsync(`node ${CLI_PATH} console --json`, {
       cwd: TMP_DIR,
       timeout: 15000,
     });

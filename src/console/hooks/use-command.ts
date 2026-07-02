@@ -109,10 +109,10 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     category: "read-only",
   },
   {
-    id: "dashboard",
+    id: "console",
     command: "nexus",
-    args: ["dashboard", "--json"],
-    label: "nexus dashboard",
+    args: ["console", "--json"],
+    label: "nexus console",
     description: "Token economy and session metrics",
     estimatedTime: "<2s",
     category: "read-only",

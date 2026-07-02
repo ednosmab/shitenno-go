@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { execSync } from "node:child_process";
 import { walkSourceFiles } from "./utils.js";
 
 export interface ProjectAnalysis {
@@ -18,6 +19,7 @@ export interface ProjectAnalysis {
   hasLinter: boolean;
   hasCI: boolean;
   hasTypeScript: boolean;
+  totalCommits: number;
 }
 
 /**
@@ -50,6 +52,7 @@ export function analyseProject(rootDir: string): ProjectAnalysis {
     hasLinter: detectLinter(rootDir),
     hasCI: detectCI(rootDir),
     hasTypeScript: detectTypeScript(rootDir),
+    totalCommits: countTotalCommits(rootDir),
   };
 }
 
@@ -200,6 +203,19 @@ function detectCI(rootDir: string): boolean {
 
 function detectTypeScript(rootDir: string): boolean {
   return existsSync(join(rootDir, "tsconfig.json"));
+}
+
+function countTotalCommits(rootDir: string): number {
+  try {
+    const output = execSync("git rev-list --count HEAD 2>/dev/null", {
+      encoding: "utf-8",
+      cwd: rootDir,
+      timeout: 5000,
+    });
+    return parseInt(output.trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 function readPackageJson(rootDir: string): { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; scripts?: Record<string, string>; workspaces?: unknown } | null {

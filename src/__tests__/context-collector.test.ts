@@ -58,6 +58,7 @@ const mockDeps: ContextDeps = {
     hasLinter: false,
     hasCI: false,
     hasTypeScript: true,
+    totalCommits: 0,
   }),
   loadMaturityProfile: () => null,
   generateProjectFingerprint: () => ({

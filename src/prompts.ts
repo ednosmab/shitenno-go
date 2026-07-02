@@ -123,7 +123,7 @@ export async function askQuestions(
     {
       type: "confirm",
       name: "isFirstProject",
-      message: "É seu primeiro projeto utilizando o framework?",
+      message: "É seu primeiro projeto utilizando o Nexus?",
       default: false,
     },
   ]);
