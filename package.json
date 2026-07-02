@@ -27,7 +27,9 @@
     "validate-publish": "npm run build && npm pack --dry-run && echo 'Ready to publish'",
     "lint": "eslint 'src/**/*.ts' --max-warnings=0",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sync:docs": "tsx nexus-system/scripts/sync-docs.ts",
+    "validate:docs": "tsx nexus-system/scripts/sync-docs.ts"
   },
   "keywords": [
     "ai",

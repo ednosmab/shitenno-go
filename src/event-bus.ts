@@ -45,7 +45,8 @@ export type NexusEventType =
   | "asset.created"
   | "asset.updated"
   | "asset.archived"
-  | "entropy.calculated";
+  | "entropy.calculated"
+  | "docs.sync.triggered";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

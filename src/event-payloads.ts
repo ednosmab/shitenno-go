@@ -264,6 +264,17 @@ export interface EntropyCalculatedPayload extends EventMeta {
   factors: Record<string, number>;
 }
 
+// ── Doc Sync Events ────────────────────────────────────────────────────────
+
+export interface DocsSyncTriggeredPayload extends EventMeta {
+  path: string;
+  relativePath: string;
+  significance: number;
+  level: "ignore" | "low" | "medium" | "high";
+  outputLevel: "silent" | "minimal" | "verbose";
+  reasons: string[];
+}
+
 // ── Payload Map ────────────────────────────────────────────────────────────
 
 /**
@@ -303,6 +314,7 @@ export interface EventPayloadMap {
   "asset.updated": AssetUpdatedPayload;
   "asset.archived": AssetArchivedPayload;
   "entropy.calculated": EntropyCalculatedPayload;
+  "docs.sync.triggered": DocsSyncTriggeredPayload;
 }
 
 // ── Helper ─────────────────────────────────────────────────────────────────

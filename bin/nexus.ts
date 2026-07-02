@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import chalk from "chalk";
 
 import { initCommand } from "../src/commands/init.js";
 import { syncCommand } from "../src/commands/sync.js";
@@ -40,6 +41,8 @@ import { initializeCapabilityEngine } from "../src/capability-engine.js";
 import { startSession, endSession } from "../src/session-tracker.js";
 import { installMiddleware } from "../src/cli-middleware.js";
 import { startWatching } from "../src/file-watcher.js";
+import { registerDocSyncHook } from "../src/doc-sync-hook.js";
+import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
@@ -80,6 +83,13 @@ if (isInitialized) {
 
   // Start watching governance artifacts for changes
   startWatching(nexusDir);
+
+  // Register doc sync hook for automatic documentation updates
+  registerDocSyncHook({
+    projectRoot,
+    enableAutoSync: true,
+    minSignificance: 0.3,
+  });
 }
 
 // ── CLI Program ─────────────────────────────────────────────────────────────
@@ -88,8 +98,93 @@ const program = new Command();
 
 program
   .name("nexus")
-  .description("AI governance framework that grows with your project")
+  .description("AI governance ecosystem that grows with your project")
   .version(version);
+
+// ── Custom Help Formatting ──────────────────────────────────────────────────
+
+program.configureHelp({
+  sortSubcommands: false,
+  formatHelp(cmd, helper) {
+    let output = "";
+    output += `${chalk.bold.cyan("nexus")} ${chalk.gray("— AI governance ecosystem")}\n\n`;
+
+    // Usage
+    output += `${chalk.bold("Usage:")}\n`;
+    output += `  nexus <command> [options]\n\n`;
+
+    output += `${chalk.bold("Quick Start:")}\n`;
+    output += `  nexus --help            ${chalk.gray("Show all commands")}\n`;
+    output += `  nexus --help <command>  ${chalk.gray("Show help for a command")}\n`;
+    output += `  nexus --version         ${chalk.gray("Show version")}\n\n`;
+
+    // Command categories
+    for (const category of COMMAND_CATEGORIES) {
+      output += `${chalk.bold.green(category.name)}\n`;
+      output += `${chalk.gray(`  ${category.description}`)}\n`;
+
+      for (const cmd of category.commands) {
+        const name = cmd.name.padEnd(14);
+        output += `  ${chalk.cyan(name)} ${chalk.gray(cmd.description)}\n`;
+      }
+      output += "\n";
+    }
+
+    return output;
+  },
+});
+
+// ── Help Command ─────────────────────────────────────────────────────────────
+
+const helpCmd = new Command("help")
+  .description("Show help for a specific command")
+  .argument("[command]", "Command name to get help for")
+  .action((cmdName: string | undefined) => {
+    if (!cmdName) {
+      program.help();
+      return;
+    }
+
+    const cmd = findCommand(cmdName);
+    if (!cmd) {
+      console.log(chalk.red(`  Unknown command: ${cmdName}`));
+      console.log(chalk.gray("  Run 'nexus --help' to see all available commands."));
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log("");
+    console.log(`${chalk.bold.cyan(`nexus ${cmd.name}`)} — ${cmd.description}`);
+    console.log("");
+    console.log(`${chalk.bold("Usage:")}`);
+    console.log(`  ${cmd.usage}`);
+    console.log("");
+
+    if (cmd.examples.length > 0) {
+      console.log(`${chalk.bold("Examples:")}`);
+      for (const ex of cmd.examples) {
+        console.log(`  ${chalk.gray(ex)}`);
+      }
+      console.log("");
+    }
+
+    if (cmd.tips && cmd.tips.length > 0) {
+      console.log(`${chalk.bold("Tips:")}`);
+      for (const tip of cmd.tips) {
+        console.log(`  ${chalk.yellow("→")} ${tip}`);
+      }
+      console.log("");
+    }
+
+    // Show Commander.js help for options
+    const registeredCmd = program.commands.find((c) => c.name() === cmdName);
+    if (registeredCmd) {
+      console.log(`${chalk.bold("Options:")}`);
+      console.log(registeredCmd.helpInformation());
+    }
+  });
+
+program.addCommand(helpCmd);
 
 program.addCommand(initCommand);
 program.addCommand(syncCommand);

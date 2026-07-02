@@ -10,7 +10,14 @@
 
 import { watch, type FSWatcher } from "chokidar";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { getEventBus } from "./event-bus.js";
+import {
+  calculateSignificance,
+  ChangeHistoryTracker,
+  type SignificanceResult,
+} from "./doc-sync-significance.js";
+import { logger } from "./logger.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +26,8 @@ export interface WatcherOptions {
   debounceMs?: number;
   /** Additional paths to watch beyond nexus-system/ */
   extraPaths?: string[];
+  /** Enable doc sync on significant changes (default: true) */
+  enableDocSync?: boolean;
 }
 
 // ── File Type Detection ──────────────────────────────────────────────────────
@@ -41,6 +50,7 @@ function detectArtifactType(filePath: string, nexusDir: string): ArtifactType {
 // ── Watcher ──────────────────────────────────────────────────────────────────
 
 let activeWatcher: FSWatcher | null = null;
+const changeHistory = new ChangeHistoryTracker();
 
 /**
  * Start watching governance artifacts for changes.
@@ -50,7 +60,7 @@ export function startWatching(
   nexusDir: string,
   options: WatcherOptions = {}
 ): () => void {
-  const { debounceMs = 500 } = options;
+  const { debounceMs = 500, enableDocSync = true } = options;
 
   if (activeWatcher) {
     activeWatcher.close();
@@ -86,7 +96,7 @@ export function startWatching(
       filePath,
       setTimeout(() => {
         pendingEvents.delete(filePath);
-        handleFileChange(filePath, nexusDir, bus);
+        handleFileChange(filePath, nexusDir, bus, enableDocSync);
       }, debounceMs)
     );
   });
@@ -132,9 +142,32 @@ export function startWatching(
 function handleFileChange(
   filePath: string,
   nexusDir: string,
-  bus: ReturnType<typeof getEventBus>
+  bus: ReturnType<typeof getEventBus>,
+  enableDocSync: boolean
 ): void {
   const artifactType = detectArtifactType(filePath, nexusDir);
+
+  // Record change for frequency tracking
+  const frequency = changeHistory.recordChange(filePath);
+
+  // Read file content for size calculation
+  let newContent: string;
+  let oldContent: string | null = null;
+  try {
+    newContent = readFileSync(filePath, "utf-8");
+  } catch {
+    // File might have been deleted
+    newContent = "";
+  }
+
+  // Calculate significance
+  const significance: SignificanceResult = calculateSignificance(
+    filePath,
+    nexusDir,
+    oldContent,
+    newContent,
+    frequency
+  );
 
   // Publish asset.updated for all changes
   bus.publish("asset.updated", {
@@ -172,6 +205,27 @@ function handleFileChange(
       previousValue: null,
       newValue: filePath,
       source: "file-watcher",
+    });
+  }
+
+  // Doc sync trigger based on significance
+  if (enableDocSync && significance.shouldSync) {
+    const relativePath = filePath.slice(nexusDir.length + 1);
+
+    if (significance.level === "high") {
+      logger.info(
+        "file-watcher",
+        `High significance change: ${relativePath} (${significance.score.toFixed(2)})`
+      );
+    }
+
+    bus.publish("docs.sync.triggered", {
+      path: filePath,
+      relativePath,
+      significance: significance.score,
+      level: significance.level,
+      outputLevel: significance.outputLevel,
+      reasons: significance.reasons,
     });
   }
 }
