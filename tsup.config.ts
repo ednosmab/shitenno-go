@@ -9,4 +9,8 @@ export default defineConfig({
   sourcemap: false,
   minify: false,
   splitting: false,
+  loader: {
+    ".tsx": "tsx",
+    ".ts": "ts",
+  },
 });
