@@ -150,6 +150,12 @@ export function scaffoldNexusSystem(
     if (file.customize) {
       let content = readFileSync(srcPath, "utf-8");
       content = fillPlaceholders(content, answers);
+
+      // Filter AGENTS.md based on installed capabilities
+      if (file.dest.includes("AGENTS.md")) {
+        content = filterAgentsMdByCapabilities(content, capabilities);
+      }
+
       writeFileSync(destPath, content, "utf-8");
     } else {
       copySync(srcPath, destPath);
@@ -212,6 +218,35 @@ export function scaffoldNexusSystem(
   }
 
   return result;
+}
+
+// ── AGENTS.md Conditional Sections ────────────────────────────────────────────
+
+/**
+ * Remove seções de capacidades não instaladas do AGENTS.md.
+ *
+ * O template contém marcadores HTML como:
+ *   <!-- CAPABILITY: governance --> ... <!-- /CAPABILITY -->
+ *
+ * Se a capacidade não está instalada, toda a seção é removida.
+ */
+function filterAgentsMdByCapabilities(
+  content: string,
+  installedCapabilities: Capability[]
+): string {
+  // Match <!-- CAPABILITY: xxx --> ... <!-- /CAPABILITY --> blocks
+  const capabilityBlockRegex = /<!-- CAPABILITY: (\w+) -->[\s\S]*?<!-- \/CAPABILITY -->/g;
+
+  return content.replace(capabilityBlockRegex, (match, capability: string) => {
+    if (installedCapabilities.includes(capability as Capability)) {
+      // Keep the block but remove the comment markers
+      return match
+        .replace(/<!-- CAPABILITY: \w+ -->\n?/, "")
+        .replace(/<!-- \/CAPABILITY -->\n?$/, "");
+    }
+    // Remove entire block for uninstalled capabilities
+    return "";
+  });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

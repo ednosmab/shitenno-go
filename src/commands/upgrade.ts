@@ -6,7 +6,7 @@
  */
 
 import { Command } from "commander";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -34,7 +34,7 @@ function getTemplatesDir(): string {
 }
 
 export const upgradeCommand = new Command("upgrade")
-  .description("Add capabilities to your governance framework")
+  .description("Add capabilities to your governance ecosystem")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("-c, --capability <cap>", "Capability to add (knowledge, architecture, governance, ai, quality, metrics, operations, compliance)")
   .option("--list", "List all capabilities and their status")
@@ -212,6 +212,9 @@ export const upgradeCommand = new Command("upgrade")
       const result = installCapabilities(targetDir, [targetCapability as Capability]);
       spinner.succeed(`Installed ${capInfo.name}`);
 
+      // Update AGENTS.md with new capability sections
+      updateAgentsMdWithCapabilities(targetDir, [...installed, targetCapability as Capability]);
+
       invalidateCache(targetDir);
 
       // Publish event
@@ -271,6 +274,54 @@ export const upgradeCommand = new Command("upgrade")
       return;
     }
   });
+
+// ── AGENTS.md Update ─────────────────────────────────────────────────────────
+
+/**
+ * Update AGENTS.md with new capability sections.
+ * Regenerates the file from template with capability filtering.
+ */
+function updateAgentsMdWithCapabilities(
+  targetDir: string,
+  installedCapabilities: Capability[]
+): void {
+  const agentsMdPath = join(targetDir, "nexus-system", "docs", "AGENTS.md");
+  if (!existsSync(agentsMdPath)) return;
+
+  const templatesDir = getTemplatesDir();
+  const templatePath = join(templatesDir, "docs", "AGENTS.md");
+  if (!existsSync(templatePath)) return;
+
+  // Read template
+  let content = readFileSync(templatePath, "utf-8");
+
+  // Apply capability filtering
+  content = filterAgentsMdByCapabilities(content, installedCapabilities);
+
+  // Write updated file
+  writeFileSync(agentsMdPath, content, "utf-8");
+}
+
+/**
+ * Remove seções de capacidades não instaladas do AGENTS.md.
+ */
+function filterAgentsMdByCapabilities(
+  content: string,
+  installedCapabilities: Capability[]
+): string {
+  const capabilityBlockRegex = /<!-- CAPABILITY: (\w+) -->[\s\S]*?<!-- \/CAPABILITY -->/g;
+
+  return content.replace(capabilityBlockRegex, (match, capability: string) => {
+    if (installedCapabilities.includes(capability as Capability)) {
+      // Keep the block but remove the comment markers
+      return match
+        .replace(/<!-- CAPABILITY: \w+ -->\n?/, "")
+        .replace(/<!-- \/CAPABILITY -->\n?$/, "");
+    }
+    // Remove entire block for uninstalled capabilities
+    return "";
+  });
+}
 
 // ── Capability Installation ─────────────────────────────────────────────────
 

@@ -1,5 +1,95 @@
 # 🛠️ AGENTS.md - REGRAS DO TIME DE ENGENHARIA DE IA
 
+<!-- CAPABILITY: knowledge -->
+## 🎨 GOVERNANÇA DO DESIGN SYSTEM (PERSONALIZÁVEL)
+
+[PERSONALIZAR: regras específicas do design system do projecto. Exemplo de regras a incluir:]
+- Proibição de imports directos de bibliotecas de ícones (usar apenas os do design system próprio)
+- Uso exclusivo de componentes do design system (não HTML nativo)
+- Proibição de cores hardcoded (usar tokens de design)
+- Comando de verificação do design system (ex: `pnpm run verify`)
+- Manter stories actualizadas (se aplicável)
+
+---
+
+<!-- /CAPABILITY -->
+
+<!-- CAPABILITY: governance -->
+## 🧠 ALGORITMO DE GESTÃO DE CONTEXTO (WORKFLOW ATIVO)
+
+> ⚠️ **REGRA ABSOLUTA:** Toda task de implementação, refatoração ou correção DEVE começar pelo carregamento dos documentos. Nenhuma linha de código pode ser escrita antes da leitura completa dos P0 + P2 da camada.
+
+Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar rigorosamente os 4 passos abaixo na ordem exata, usando suas ferramentas MCP.
+
+### 🔄 PASSO 1: DIAGNÓSTICO E LEITURA PREGUIÇOSA (LAZY LOADING)
+- **Leia `governance/WORKFLOW.md` primeiro** — ele define o fluxo da sessão com base no tipo de operação (FEATURE/BUG/REFACTOR/DOCUMENTATION/PLANNING).
+- Use o MCP para ler `governance/SYSTEM_MAP.md` e localize a pasta da camada da tarefa.
+- Use o MCP para ler `governance/context/context_buffer.yaml` para extrair o estado da última execução.
+- **Leia TODOS os P0 obrigatórios** (já injetados como system prompt pelo `opencode.json`): AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md, Requisitos_plataforma.md, CONTEXT_HIERARCHY.md
+- Use o MCP para ler a Skill e o Plano de Execução específicos da camada afetada (P2).
+- **Registre no buffer quais documentos foram lidos** na seção `## 🕹️ Documentos Carregados via MCP`.
+
+### 📝 PASSO 2: ATUALIZAÇÃO DA MEMÓRIA RAM (BEFORE-CODE)
+- Antes de modificar qualquer código fonte, atualize o `governance/context/context_buffer.yaml`.
+- Atualize o campo `current_task.status` com o objetivo imediato do turno.
+- Atualize os `model_assignments` conforme o plano activo.
+
+### 💻 PASSO 3: EXECUÇÃO CIRÚRGICA
+- Escreva ou altere o código estritamente dentro da pasta permitida ao seu Agente.
+- Se o usuário reportar erros de terminal (TypeScript/Lint), pare imediatamente.
+- Escreva o erro detalhado na seção `## ⚠️ Impedimentos & Logs de Erro Recentes` do buffer.
+- Tente a correção apenas após documentar o erro no buffer.
+
+### 🧹 PASSO 4: CONSOLIDAÇÃO E PURGA (AFTER-CODE)
+- Assim que o código compilar com sucesso, marque `[x]` na tarefa correspondente do plano.
+- Execute `pnpm run validate:session` para verificar integridade do estado.
+- Limpe a seção de `imported-tools` do buffer inserindo: "*Nenhum erro ativo.*"
+- Execute o ritual de fim de sessão conforme regra #12: `pnpm run close:session`, buffer podado (≤ 50 linhas activas), backlog actualizado, testes verdes.
+- Termine sua resposta exibindo o estado atual resumido do buffer e o consumo estimado da sessão.
+
+### 📜 Protocolo de Registro Histórico de Longo Prazo
+1. **Imutabilidade:** Os arquivos dentro de `docs/history/` são registros históricos. Você está PROIBIDO de alterar arquivos de sessões passadas.
+2. **Geração de Saída:** Quando o usuário solicitar o encerramento ou resumo de uma sessão para transição de chat, sintetize os pontos em um formato denso contendo: Data, Objetivos Alcançados, Decisões Técnicas de Arquitetura e Estado do Repositório.
+3. **Leitura Sob Demanda:** Você só deve ler a pasta `docs/history/` se o usuário solicitar explicitamente uma retrospectiva sobre o motivo de uma decisão tomada em sessões anteriores.
+
+---
+
+## 🧠 CONTEXTO DO PROJECTO (CONTEXT PIPELINE)
+
+**ANTES de iniciar qualquer tarefa:**
+1. Execute `nexus briefing` (ou leia `.nexus/BRIEFING.md` se disponível)
+2. Verifique as áreas de risco, cobertura de testes e regras contextuais
+3. Adapte o comportamento baseado nos alertas e recomendações do briefing
+
+**APÓS completar a tarefa:**
+1. Execute `nexus feedback --outcome success` se a tarefa foi concluída com sucesso
+2. Execute `nexus feedback --outcome failure --notes "<descrição do problema>"` se falhou
+3. Execute `nexus feedback --outcome partial --areas <áreas>"` se parcialmente concluída
+4. O sistema aprenderá com o resultado e ajustará recomendações futuras
+
+**Ver resumo de feedback:**
+- `nexus feedback --summary` — mostra taxa de sucesso, hotspots de falha, e estatísticas
+
+**Formatos disponíveis para briefing:**
+- `nexus briefing` — output markdown para IA
+- `nexus briefing --json` — JSON estruturado para ferramentas
+- `nexus briefing --write` — escreve `.nexus/BRIEFING.md` para leitura offline
+- `nexus briefing --diff` — mostra mudanças desde o último briefing
+- `nexus briefing --invalidate` — força regeneração ignorando cache
+
+---
+
+## ⏳ Diretriz de Leitura Preguiçosa Otimizada (Lazy Loading)
+- Você está PROIBIDO de realizar buscas globais (globbing) ou ler múltiplos arquivos da pasta `docs/` ou `governance/` de forma simultânea no início do chat.
+- A primeira leitura obrigatória é `governance/WORKFLOW.md` — ele determina o fluxo da sessão.
+- Sempre que o usuário solicitar uma tarefa, analise o escopo e use o arquivo `governance/SYSTEM_MAP.md` para identificar os caminhos exatos dos arquivos de plano e skill necessários.
+- Use a ferramenta MCP para ler exclusivamente os arquivos mapeados para a tarefa atual e ignore as demais pastas de documentação.
+- Leia `governance/context/context_buffer.yaml` ao iniciar cada nova tarefa para obter o estado actual (exceto durante fluxos de refatoração ou correção de bugs).
+
+---
+
+<!-- /CAPABILITY -->
+
 ## 📐 ARQUITETURA E PADRÕES DO REPOSITÓRIO (OBRIGATÓRIO)
 - **Stack do Projecto:** [PERSONALIZAR: linguagens, frameworks e tecnologias usados]
 - **Idioma Único:** Todo código fonte deve ser escrito em **inglês** — nomes de arquivos, variáveis, constantes, funções, componentes, props, tipos, interfaces, enums, tabelas, colunas e mensagens de commit. Nomes em português são proibidos.
@@ -12,19 +102,8 @@
 - **Configuração de Ambiente:** [PERSONALIZAR: regras específicas de ambiente de teste e deploy, se aplicável]
 - **Diretrizes de Engenharia (DESDO):** O arquivo `docs/DESDO.md` consolida as regras de governança, mitigações operacionais e padrões arquiteturais (SOLID, TDD, segurança, documentação) que devem ser observados em toda geração de código ou alteração de estado no projeto.
 
-
 ---
 
-## 🎨 GOVERNANÇA DO DESIGN SYSTEM (PERSONALIZÁVEL)
-
-[PERSONALIZAR: regras específicas do design system do projecto. Exemplo de regras a incluir:]
-- Proibição de imports directos de bibliotecas de ícones (usar apenas os do design system próprio)
-- Uso exclusivo de componentes do design system (não HTML nativo)
-- Proibição de cores hardcoded (usar tokens de design)
-- Comando de verificação do design system (ex: `pnpm run verify`)
-- Manter stories actualizadas (se aplicável)
-
----
 
 ## 📖 CÓDIGO DECLARATIVO E LEGÍVEL (REGRA ABSOLUTA)
 
@@ -112,6 +191,7 @@ As regras não são todas do mesmo nível. Existem três camadas de dependência
 12. **INVARIANTE DE FIM DE SESSÃO:** Nenhuma sessão pode ser declarada "concluída" sem antes executar o ritual de fim de sessão: `pnpm run close:session` (verifica working tree, buffer, testes, UI governance e build), buffer podado (≤ 50 linhas activas), backlog actualizado, testes verdes (`tsc --noEmit`, `pnpm run test`, `pnpm run build`). Ver template detalhado em `docs/session-template.md` e política DT-02 em FORBIDDEN_OPERATIONS.
 13. **QUICK BOARD DE AVISO (LEMBRETES PERMANENTES):** Ao iniciar QUALQUER sessão, a IA DEVE apresentar ao usuário o **Quick Board** do `governance/context/context_buffer.yaml` antes da primeira resposta operacional. O Quick Board lista: tarefa em curso, parado, próximo, dívidas P1 com due date. Este lembrete NÃO substitui a leitura completa dos P0 — é apenas um aviso de contexto. A omissão do Quick Board na primeira resposta é violação desta regra.
 
+<!-- CAPABILITY: knowledge -->
 14. **VALIDAÇÃO DE PLANO EM MODO REVIEW:** Quando o agente opera em modo `review` (definido em `opencode.json` no agent `review`), DEVE SEMPRE validar que o trabalho executado corresponde ao plano aprovado pelo usuário. Protocolo obrigatório:
    a. **Tabela de conformidade:** Listar cada step do plano (1, 2, 3, ...) com estado (✅/⚠️/❌) e evidência objetiva (diff, linha, contagem, output de comando).
    b. **Métricas vs. plano:** Comparar números declarados (linhas removidas, testes adicionados, ficheiros tocados) com números reais via `git diff --stat`, `wc -l`, `pnpm test`.
@@ -145,6 +225,8 @@ As regras não são todas do mesmo nível. Existem três camadas de dependência
      g. **Ficheiro privado** por defeito (em `.gitignore`).
    i. **Compromisso de commit separado:** O feedback é privado e não versionado. Usar `git commit --allow-empty -m "docs(feedback): YYYY-MM-DD"` APÓS o(s) commit(s) de trabalho, para rastreabilidade sem expôr conteúdo.
 
+<!-- /CAPABILITY -->
+
 18. **EVIDÊNCIA ACIMA DA DOCUMENTAÇÃO (REGRA ABSOLUTA):** Quando existir conflito entre documentação, implementação e comportamento real do sistema, a decisão deve ser baseada em evidências verificáveis. A documentação deve representar a realidade, não substituí-la. Fluxo obrigatório: Documentação → Implementação → Runtime → Evidências → Actualização documental. Em caso de conflito, priorizar: Runtime > Código > Documentação.
 
 19. **MEDIR ANTES DE OPTIMIZAR (REGRA ABSOLUTA):** Nenhuma optimização de performance, cache, escalabilidade ou infraestrutura pode avançar para implementação sem primeiro ter métricas que a justifiquem. Excepção: Itens P0 (risco activo e identificável por inspecção directa). Gates de decisão devem ser definidos por métricas, evidências ou critérios explícitos — valores numéricos específicos ficam no backlog e ADRs, não na governança principal.
@@ -173,6 +255,12 @@ As regras não são todas do mesmo nível. Existem três camadas de dependência
 Fluxo: Implementar → Documentar → Testar → Decidir → Actualizar → Só então marcar [x]
 
 22. **[PERSONALIZÁVEL]:** Adicionar regras específicas do projecto aqui (ex: padrões de componentes, convenções de states, propriedades dinâmicas, etc.).
+
+23. **DETECÇÃO PROATIVA DE GAPS:** Quando uma regra referencia infraestrutura ausente (ex: WORKFLOW.md, context buffer, agent contracts), o agente DEVE informar ao usuário que `nexus upgrade --capability <name>` desbloqueia essa funcionalidade. Nunca assumir que o usuário sabe o que falta — o sistema deve recomendar.
+
+24. **VALIDAÇÃO DE INFRAESTRUTURA PRÉ-TAREFA:** Antes de iniciar qualquer tarefa, o agente DEVE executar `nexus status` ou `nexus doctor` para detectar gaps. Se houver capacidades desactualizadas ou em falta, informar ao utilizador antes de prosseguir.
+
+25. **RECOMENDAÇÃO AUTOMÁTICA:** O usuário NÃO deve precisar descobrir manualmente que capacidade está em falta. O sistema DEVE recomendar `nexus upgrade --capacity <name>` sempre que detectar uma dependência não satisfeita.
 
 ---
 
