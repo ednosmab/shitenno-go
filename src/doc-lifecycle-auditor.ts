@@ -5,6 +5,8 @@
  * by lifecycle status (planned, in_progress, completed, superseded, stale).
  * Proposes moves to directories that reflect that status.
  *
+ * SCOPE: Plans + ADRs only. Workflow documents (governance/, skills/) are excluded.
+ *
  * PRINCIPLE: This module SUGGESTS ONLY, never applies.
  * The decision to move documentation is always manual.
  */
@@ -14,6 +16,9 @@ import { join, relative, dirname, basename } from "node:path";
 import { logger } from "./logger.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+/** Type of document being audited. */
+export type DocType = "plan" | "adr";
 
 /** Lifecycle status of a document. */
 export type DocLifecycleStatus =
@@ -56,6 +61,20 @@ export interface DetectionSignals {
   crossReferences: CrossReference[];
   gitCorrelation: GitCorrelation;
   staleness: StalenessSignals;
+  /** For ADRs: keyword-based supersession detection */
+  supersessionSignals?: SupersessionSignals;
+}
+
+/** Signals indicating an ADR may be superseded. */
+export interface SupersessionSignals {
+  /** Keywords found suggesting supersession */
+  keywordsFound: string[];
+  /** Topic similarity with newer ADRs */
+  topicSimilarity: number;
+  /** IDs of ADRs that may supersede this one */
+  supersededBy: string[];
+  /** Combined confidence score */
+  confidence: number;
 }
 
 /** Information about a document to classify. */
@@ -64,31 +83,25 @@ export interface DocumentInfo {
   relativePath: string;
   title: string;
   content: string;
+  docType: DocType;
 }
 
 /** Classification result for a document. */
 export interface DocumentClassification {
   path: string;
   relativePath: string;
+  docType: DocType;
   status: DocLifecycleStatus;
   confidence: number;
   evidence: string[];
   suggestedDestination: string;
-  clusterId?: string;
-}
-
-/** Cluster of semantically similar documents. */
-export interface DocumentCluster {
-  id: string;
-  description: string;
-  documents: string[];
-  recommendation: "consolidate" | "supersede" | "keep_separate";
 }
 
 /** Proposed move for a document. */
 export interface ProposedMove {
   source: string;
   destination: string;
+  docType: DocType;
   status: DocLifecycleStatus;
   reason: string;
 }
@@ -96,9 +109,9 @@ export interface ProposedMove {
 /** Complete lifecycle audit report. */
 export interface DocLifecycleReport {
   auditedAt: string;
-  totalDocuments: number;
+  totalPlans: number;
+  totalAdrs: number;
   classifications: DocumentClassification[];
-  clusters: DocumentCluster[];
   proposedMoves: ProposedMove[];
   summary: string;
 }
@@ -110,29 +123,48 @@ export interface MoveResult {
   errors: string[];
 }
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
+/** Threshold in days for considering a document stale. */
+const STALENESS_THRESHOLD_DAYS = 90;
+
+/** Keywords indicating ADR supersession. */
+const SUPERSESSION_KEYWORDS = [
+  "supersedes",
+  "superseded by",
+  "replaces",
+  "replaced by",
+  "substitui",
+  "substituído por",
+  "obsolete",
+  "no longer valid",
+  "see instead",
+  "ver instead",
+];
+
 // ── Status Marker Detection ──────────────────────────────────────────────────
 
 /** Patterns for detecting status markers in document content. */
 const STATUS_PATTERNS: Array<{ regex: RegExp; status: DocLifecycleStatus; confidence: number }> = [
   // Completed patterns
-  { regex: /\*\*Status:\*\*\s*(?:Concluído|Completed|Done|Finished)/gi, status: "completed", confidence: 0.9 },
-  { regex: /Status:\s*(?:Concluído|Completed|Done|Finished)/gi, status: "completed", confidence: 0.85 },
+  { regex: /\*\*Status:\*\*\s*(?:Concluído|Completed|Done|Finished|Aceite|Accepted)/gi, status: "completed", confidence: 0.9 },
+  { regex: /Status:\s*(?:Concluído|Completed|Done|Finished|Aceite|Accepted)/gi, status: "completed", confidence: 0.85 },
   { regex: /(?:✓|✔|✅)\s*(?:Concluído|Completed|Done)/gi, status: "completed", confidence: 0.8 },
 
   // Planned patterns
-  { regex: /\*\*Status:\*\*\s*(?:Pendente|Pending|Planned|Todo)/gi, status: "planned", confidence: 0.9 },
-  { regex: /Status:\s*(?:Pendente|Pending|Planned|Todo)/gi, status: "planned", confidence: 0.85 },
+  { regex: /\*\*Status:\*\*\s*(?:Pendente|Pending|Planned|Todo|Proposed)/gi, status: "planned", confidence: 0.9 },
+  { regex: /Status:\s*(?:Pendente|Pending|Planned|Todo|Proposed)/gi, status: "planned", confidence: 0.85 },
   { regex: /TODO:\s/gi, status: "planned", confidence: 0.6 },
   { regex: /\*\*Objetivo:\*\*/gi, status: "planned", confidence: 0.5 },
 
   // In progress patterns
-  { regex: /\*\*Status:\*\*\s*(?:Em andamento|In Progress|In Progress|Active)/gi, status: "in_progress", confidence: 0.9 },
-  { regex: /Status:\s*(?:Em andamento|In Progress|In Progress|Active)/gi, status: "in_progress", confidence: 0.85 },
+  { regex: /\*\*Status:\*\*\s*(?:Em andamento|In Progress|Active)/gi, status: "in_progress", confidence: 0.9 },
+  { regex: /Status:\s*(?:Em andamento|In Progress|Active)/gi, status: "in_progress", confidence: 0.85 },
   { regex: /(?:🔄|⏳|🚧)\s*(?:Em andamento|In Progress)/gi, status: "in_progress", confidence: 0.8 },
 
-  // Superseded patterns
+  // Superseded patterns (for ADRs)
+  { regex: /\*\*Status:\*\*\s*(?:Superseded|Deprecated|Substituído)/gi, status: "superseded", confidence: 0.9 },
   { regex: /(?:Substituído por|Superseded by|Replaced by|See instead)[:\s]+/gi, status: "superseded", confidence: 0.9 },
-  { regex: /\*\*Status:\*\*\s*(?:Substituído|Superseded|Obsolete)/gi, status: "superseded", confidence: 0.85 },
 ];
 
 /**
@@ -151,7 +183,6 @@ export function detectStatusMarkers(content: string): StatusMarkerResult {
     stale: 0,
   };
 
-  // Check each pattern
   for (const pattern of STATUS_PATTERNS) {
     const matches = content.match(pattern.regex);
     if (matches) {
@@ -162,7 +193,6 @@ export function detectStatusMarkers(content: string): StatusMarkerResult {
     }
   }
 
-  // Find the status with the most evidence
   let maxCount = 0;
   let detectedStatus: DocLifecycleStatus | null = null;
 
@@ -177,7 +207,6 @@ export function detectStatusMarkers(content: string): StatusMarkerResult {
     return { status: null, confidence: 0, evidence: [] };
   }
 
-  // Calculate confidence based on consistency
   const totalMarkers = Object.values(statusCounts).reduce((a, b) => a + b, 0);
   const consistency = maxCount / totalMarkers;
   const confidence = Math.min(0.95, consistency * 0.9);
@@ -221,18 +250,32 @@ export function detectCrossReferences(content: string, allDocs: string[]): Cross
   return refs;
 }
 
-// ── Semantic Duplication Detection ───────────────────────────────────────────
+// ── ADR Supersession Detection ──────────────────────────────────────────────
 
 /**
- * Calculate similarity between two titles using simple word overlap.
+ * Extract topic words from an ADR title for similarity comparison.
  *
- * @param title1 - First title
- * @param title2 - Second title
+ * @param title - The ADR title
+ * @returns Array of significant words (> 3 chars)
+ */
+function extractTopicWords(title: string): string[] {
+  return title
+    .toLowerCase()
+    .replace(/^adr-\d+:\s*/, "") // Remove ADR-NNN: prefix
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !["this", "that", "with", "from", "about", "using", "should"].includes(w));
+}
+
+/**
+ * Calculate topic similarity between two ADR titles.
+ *
+ * @param title1 - First ADR title
+ * @param title2 - Second ADR title
  * @returns Similarity score between 0 and 1
  */
-function calculateTitleSimilarity(title1: string, title2: string): number {
-  const words1 = title1.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
-  const words2 = title2.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+function calculateTopicSimilarity(title1: string, title2: string): number {
+  const words1 = extractTopicWords(title1);
+  const words2 = extractTopicWords(title2);
 
   if (words1.length === 0 || words2.length === 0) return 0;
 
@@ -244,48 +287,72 @@ function calculateTitleSimilarity(title1: string, title2: string): number {
 }
 
 /**
- * Detect clusters of semantically similar documents.
+ * Detect if an ADR may be superseded by newer ADRs.
  *
- * @param docs - Array of document information
- * @returns Array of document clusters
+ * @param adr - The ADR document to check
+ * @param allAdrs - All ADR documents in the project
+ * @returns Supersession signals with confidence score
  */
-export function detectSemanticDuplication(docs: DocumentInfo[]): DocumentCluster[] {
-  const clusters: DocumentCluster[] = [];
-  const used = new Set<number>();
+export function detectSupersession(adr: DocumentInfo, allAdrs: DocumentInfo[]): SupersessionSignals {
+  const keywordsFound: string[] = [];
+  const supersededBy: string[] = [];
+  let maxSimilarity = 0;
+  const adrName = basename(adr.path, ".md").toLowerCase();
 
-  for (let i = 0; i < docs.length; i++) {
-    if (used.has(i)) continue;
+  // Check for keywords indicating THIS ADR is superseded
+  // Focus on "superseded by", "replaced by", "substituído por" patterns
+  const contentLower = adr.content.toLowerCase();
+  const supersededByPatterns = [
+    /superseded by/i,
+    /supersedes/i,
+    /replaced by/i,
+    /replaces/i,
+    /substituído por/i,
+    /substitui/i,
+    /see instead/i,
+    /ver instead/i,
+    /obsolete/i,
+    /no longer valid/i,
+  ];
 
-    const docI = docs[i];
-    if (!docI) continue;
-
-    const cluster: string[] = [docI.relativePath];
-    used.add(i);
-
-    for (let j = i + 1; j < docs.length; j++) {
-      if (used.has(j)) continue;
-
-      const docJ = docs[j];
-      if (!docJ) continue;
-
-      const similarity = calculateTitleSimilarity(docI.title, docJ.title);
-      if (similarity >= 0.5) {
-        cluster.push(docJ.relativePath);
-        used.add(j);
-      }
-    }
-
-    if (cluster.length >= 2) {
-      clusters.push({
-        id: `cluster-${clusters.length + 1}`,
-        description: `Documents with similar scope: ${docI.title}`,
-        documents: cluster,
-        recommendation: "consolidate",
-      });
+  for (const pattern of supersededByPatterns) {
+    if (pattern.test(contentLower)) {
+      keywordsFound.push(pattern.source);
     }
   }
 
-  return clusters;
+  // Check for topic similarity with other ADRs and find superseded-by references
+  for (const other of allAdrs) {
+    if (other.path === adr.path) continue;
+
+    const similarity = calculateTopicSimilarity(adr.title, other.title);
+    if (similarity > maxSimilarity) {
+      maxSimilarity = similarity;
+    }
+
+    // Check if other ADR references this one as superseded
+    const otherContentLower = other.content.toLowerCase();
+    if (
+      otherContentLower.includes(`supersedes ${adrName}`) ||
+      otherContentLower.includes(`substitui ${adrName}`) ||
+      otherContentLower.includes(`replaces ${adrName}`)
+    ) {
+      supersededBy.push(basename(other.path, ".md"));
+    }
+  }
+
+  // Calculate combined confidence
+  let confidence = 0;
+  if (keywordsFound.length > 0) confidence += 0.4;
+  if (supersededBy.length > 0) confidence += 0.4;
+  if (maxSimilarity > 0.5) confidence += 0.2;
+
+  return {
+    keywordsFound,
+    topicSimilarity: maxSimilarity,
+    supersededBy,
+    confidence: Math.min(0.95, confidence),
+  };
 }
 
 // ── Document Classification ──────────────────────────────────────────────────
@@ -293,10 +360,24 @@ export function detectSemanticDuplication(docs: DocumentInfo[]): DocumentCluster
 /**
  * Determine the suggested destination directory for a document based on status.
  *
+ * @param docType - The type of document (plan or adr)
  * @param status - The lifecycle status of the document
  * @returns The suggested destination path relative to docs/
  */
-function getSuggestedDestination(status: DocLifecycleStatus): string {
+function getSuggestedDestination(docType: DocType, status: DocLifecycleStatus): string {
+  if (docType === "adr") {
+    switch (status) {
+      case "superseded":
+        return "_archive/superseded";
+      case "completed":
+      case "planned":
+      case "in_progress":
+      default:
+        return "adrs";
+    }
+  }
+
+  // Plans
   switch (status) {
     case "planned":
     case "in_progress":
@@ -318,7 +399,6 @@ function getSuggestedDestination(status: DocLifecycleStatus): string {
  * @returns Classification result with status, confidence, and suggested destination
  */
 export function classifyDocument(doc: DocumentInfo, signals: DetectionSignals): DocumentClassification {
-  // Priority: status markers > cross-refs > staleness
   let status: DocLifecycleStatus;
   let confidence: number;
   const evidence: string[] = [];
@@ -329,19 +409,28 @@ export function classifyDocument(doc: DocumentInfo, signals: DetectionSignals): 
     confidence = signals.statusMarkers.confidence;
     evidence.push(...signals.statusMarkers.evidence);
   }
-  // 2. Cross-references (check for superseded)
+  // 2. ADR supersession signals
+  else if (doc.docType === "adr" && signals.supersessionSignals && signals.supersessionSignals.confidence >= 0.4) {
+    status = "superseded";
+    confidence = signals.supersessionSignals.confidence;
+    evidence.push(`Supersession keywords: ${signals.supersessionSignals.keywordsFound.join(", ")}`);
+    if (signals.supersessionSignals.supersededBy.length > 0) {
+      evidence.push(`Referenced by: ${signals.supersessionSignals.supersededBy.join(", ")}`);
+    }
+  }
+  // 3. Cross-references (check for superseded)
   else if (signals.crossReferences.some((r) => !r.exists)) {
     status = "superseded";
     confidence = 0.7;
     evidence.push("References non-existent documents");
   }
-  // 3. Staleness (fallback)
-  else if (signals.staleness.ageInDays > 30 && !signals.staleness.referencedByOtherDocs && !signals.staleness.recentCommits) {
+  // 4. Staleness (fallback) - use 90 days threshold
+  else if (signals.staleness.ageInDays > STALENESS_THRESHOLD_DAYS && !signals.staleness.referencedByOtherDocs && !signals.staleness.recentCommits) {
     status = "stale";
     confidence = 0.6;
-    evidence.push(`No references in ${signals.staleness.ageInDays} days`);
+    evidence.push(`No activity in ${signals.staleness.ageInDays} days (threshold: ${STALENESS_THRESHOLD_DAYS})`);
   }
-  // 4. Default to stale (requires human decision)
+  // 5. Default (requires human decision)
   else {
     status = "stale";
     confidence = 0.4;
@@ -362,17 +451,18 @@ export function classifyDocument(doc: DocumentInfo, signals: DetectionSignals): 
   return {
     path: doc.path,
     relativePath: doc.relativePath,
+    docType: doc.docType,
     status,
     confidence,
     evidence,
-    suggestedDestination: getSuggestedDestination(status),
+    suggestedDestination: getSuggestedDestination(doc.docType, status),
   };
 }
 
 // ── Data Readers ─────────────────────────────────────────────────────────────
 
 /**
- * Discover all markdown documents in the project that should be audited.
+ * Discover all auditable documents (plans + ADRs) in the project.
  *
  * @param projectRoot - The project root directory
  * @param nexusDir - The nexus-system directory
@@ -380,34 +470,57 @@ export function classifyDocument(doc: DocumentInfo, signals: DetectionSignals): 
  */
 function discoverDocuments(projectRoot: string, nexusDir: string): DocumentInfo[] {
   const docs: DocumentInfo[] = [];
-  const dirsToScan = [
-    join(nexusDir, "docs"),
-    join(nexusDir, "plans"),
-    join(projectRoot, "plans"),
-  ];
 
-  for (const dir of dirsToScan) {
+  // Scan plans directories
+  const planDirs = [join(nexusDir, "plans"), join(projectRoot, "plans")];
+  for (const dir of planDirs) {
     if (!existsSync(dir)) continue;
 
     const files = readdirSync(dir, { recursive: true })
-      .filter((f): f is string => typeof f === "string" && f.endsWith(".md") && !basename(f as string).startsWith("README"));
+      .filter((f): f is string => typeof f === "string" && f.endsWith(".md") && !basename(f).startsWith("README"));
 
     for (const file of files) {
-      const fullPath = join(dir, file as string);
+      const fullPath = join(dir, file);
       if (!existsSync(fullPath)) continue;
 
       const content = readFileSync(fullPath, "utf-8");
       const relPath = relative(projectRoot, fullPath);
 
-      // Extract title from first heading or filename
       const titleMatch = content.match(/^#\s+(.+)$/m);
-      const title = titleMatch?.[1] ?? basename(file as string, ".md");
+      const title = titleMatch?.[1] ?? basename(file, ".md");
 
       docs.push({
         path: fullPath,
         relativePath: relPath,
         title,
         content,
+        docType: "plan",
+      });
+    }
+  }
+
+  // Scan ADRs directory
+  const adrDir = join(nexusDir, "docs", "adrs");
+  if (existsSync(adrDir)) {
+    const files = readdirSync(adrDir, { recursive: true })
+      .filter((f): f is string => typeof f === "string" && f.endsWith(".md") && !basename(f).startsWith("README") && !basename(f).startsWith("ADR-TEMPLATE"));
+
+    for (const file of files) {
+      const fullPath = join(adrDir, file);
+      if (!existsSync(fullPath)) continue;
+
+      const content = readFileSync(fullPath, "utf-8");
+      const relPath = relative(projectRoot, fullPath);
+
+      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const title = titleMatch?.[1] ?? basename(file, ".md");
+
+      docs.push({
+        path: fullPath,
+        relativePath: relPath,
+        title,
+        content,
+        docType: "adr",
       });
     }
   }
@@ -459,6 +572,7 @@ function getLastModified(filePath: string): string {
 
 /**
  * Audit documentation lifecycle status in a project.
+ * Scoped to Plans + ADRs only.
  *
  * @param projectRoot - The project root directory
  * @param nexusDir - The nexus-system directory
@@ -468,11 +582,13 @@ export function auditDocLifecycle(projectRoot: string, nexusDir: string): DocLif
   const docs = discoverDocuments(projectRoot, nexusDir);
   const allDocPaths = docs.map((d) => d.path);
 
+  // Separate plans and ADRs
+  const plans = docs.filter((d) => d.docType === "plan");
+  const adrs = docs.filter((d) => d.docType === "adr");
+
   const classifications: DocumentClassification[] = [];
-  const clusters = detectSemanticDuplication(docs);
 
   for (const doc of docs) {
-    // Collect detection signals
     const statusMarkers = detectStatusMarkers(doc.content);
     const crossReferences = detectCrossReferences(doc.content, allDocPaths);
 
@@ -495,30 +611,31 @@ export function auditDocLifecycle(projectRoot: string, nexusDir: string): DocLif
       recentCommits: gitCorrelation.recentCommits,
     };
 
+    // ADR-specific supersession detection
+    let supersessionSignals: SupersessionSignals | undefined;
+    if (doc.docType === "adr") {
+      supersessionSignals = detectSupersession(doc, adrs);
+    }
+
     const signals: DetectionSignals = {
       statusMarkers,
       crossReferences,
       gitCorrelation,
       staleness,
+      supersessionSignals,
     };
 
     const classification = classifyDocument(doc, signals);
-
-    // Assign cluster ID if document belongs to a cluster
-    const cluster = clusters.find((c) => c.documents.includes(doc.relativePath));
-    if (cluster) {
-      classification.clusterId = cluster.id;
-    }
-
     classifications.push(classification);
   }
 
-  // Generate proposed moves
+  // Generate proposed moves (only for confidence >= 0.5)
   const proposedMoves: ProposedMove[] = classifications
     .filter((c) => c.confidence >= 0.5)
     .map((c) => ({
       source: c.relativePath,
       destination: join("nexus-system", "docs", c.suggestedDestination, basename(c.path)),
+      docType: c.docType,
       status: c.status,
       reason: c.evidence.join("; "),
     }));
@@ -536,19 +653,18 @@ export function auditDocLifecycle(projectRoot: string, nexusDir: string): DocLif
   }
 
   const summary = [
-    `Analysed ${docs.length} documents.`,
+    `Analysed ${plans.length} plan(s) and ${adrs.length} ADR(s).`,
     `Found: ${statusCounts.planned} planned, ${statusCounts.in_progress} in progress,`,
     `${statusCounts.completed} completed, ${statusCounts.superseded} superseded,`,
     `${statusCounts.stale} stale.`,
-    `${clusters.length} cluster(s) detected.`,
     `${proposedMoves.length} move(s) proposed.`,
   ].join(" ");
 
   return {
     auditedAt: new Date().toISOString(),
-    totalDocuments: docs.length,
+    totalPlans: plans.length,
+    totalAdrs: adrs.length,
     classifications,
-    clusters,
     proposedMoves,
     summary,
   };
@@ -584,10 +700,7 @@ export function applyMoves(report: DocLifecycleReport, nexusDir: string, dryRun:
     }
 
     try {
-      // Create destination directory
       mkdirSync(destDir, { recursive: true });
-
-      // Move file
       renameSync(sourcePath, destPath);
       result.movesApplied++;
 
@@ -597,6 +710,7 @@ export function applyMoves(report: DocLifecycleReport, nexusDir: string, dryRun:
         `## ${new Date().toISOString().split("T")[0]}`,
         "",
         `- **Moved:** \`${move.source}\` → \`${move.destination}\``,
+        `- **Type:** ${move.docType}`,
         `- **Status:** ${move.status}`,
         `- **Reason:** ${move.reason}`,
         "",

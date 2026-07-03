@@ -3,6 +3,7 @@
 **Status:** Proposed | Accepted | Deprecated | Superseded by ADR-NNN
 **Date:** YYYY-MM-DD
 **Deciders:** [List of people involved]
+**Supersedes:** ADR-YYY (optional — fill if this ADR replaces a previous one)
 
 ## Context
 
@@ -39,3 +40,9 @@ What becomes easier or more difficult to do because of this change?
 ## References
 
 - [Link to related ADRs, docs, or discussions]
+
+---
+
+> **Note:** If this ADR replaces a previous one, fill in the `Supersedes` field above.
+> The lifecycle auditor will automatically detect the relationship and propose archiving
+> the superseded ADR.

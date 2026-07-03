@@ -8,13 +8,14 @@ import {
   writeDocLifecycleReport,
   type DocLifecycleReport,
   type DocLifecycleStatus,
+  type DocType,
 } from "../doc-lifecycle-auditor.js";
-import { outputJson, healthBar } from "../formatting.js";
+import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 
 export const docsAuditCommand = new Command("docs-audit")
-  .description("Audit documentation lifecycle status and propose organization")
+  .description("Audit documentation lifecycle (Plans + ADRs) and propose organization")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--apply", "Apply proposed moves (requires confirmation)")
   .option("--json", "Output results as JSON")
@@ -24,7 +25,7 @@ export const docsAuditCommand = new Command("docs-audit")
     if (!isJson) {
       console.log("");
       console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║    nexus docs-audit — Doc Lifecycle  ║"));
+      console.log(chalk.bold.cyan("  ║  nexus docs-audit — Plans + ADRs    ║"));
       console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
       console.log("");
     }
@@ -34,26 +35,22 @@ export const docsAuditCommand = new Command("docs-audit")
 
     if (!checkLifecycleGate("docs-audit", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
-    const spinner = isJson ? null : ora("Auditing documentation lifecycle...").start();
+    const spinner = isJson ? null : ora("Auditing Plans + ADRs lifecycle...").start();
 
     try {
-      // Run audit
       const report = auditDocLifecycle(ctx.projectRoot, ctx.nexusDir);
-
-      // Write report
       const reportFile = writeDocLifecycleReport(ctx.nexusDir, report);
 
       if (spinner) {
-        spinner.succeed(`Audit complete — ${report.totalDocuments} documents analysed`);
+        spinner.succeed(`Audit complete — ${report.totalPlans} plan(s), ${report.totalAdrs} ADR(s)`);
       }
 
-      // JSON output
       if (isJson) {
         outputJson({
           projectRoot: ctx.projectRoot,
-          totalDocuments: report.totalDocuments,
+          totalPlans: report.totalPlans,
+          totalAdrs: report.totalAdrs,
           statusCounts: getStatusCounts(report),
-          clusters: report.clusters,
           proposedMoves: report.proposedMoves,
           summary: report.summary,
           reportFile,
@@ -64,49 +61,44 @@ export const docsAuditCommand = new Command("docs-audit")
 
       // Human-readable output
       console.log(chalk.bold("  📊 Documentation Lifecycle Report:"));
+      console.log(chalk.gray("     Scoped to Plans + ADRs only"));
       console.log("");
 
       const statusCounts = getStatusCounts(report);
-      console.log(chalk.gray(`    Total documents: ${report.totalDocuments}`));
+      console.log(chalk.gray(`    Plans:          ${report.totalPlans}`));
+      console.log(chalk.gray(`    ADRs:           ${report.totalAdrs}`));
       console.log(chalk.gray(`    Active:         ${statusCounts.planned + statusCounts.in_progress}`));
       console.log(chalk.gray(`    Completed:      ${statusCounts.completed}`));
       console.log(chalk.gray(`    Superseded:     ${statusCounts.superseded}`));
       console.log(chalk.gray(`    Stale:          ${statusCounts.stale}`));
-      console.log(chalk.gray(`    Clusters:       ${report.clusters.length}`));
       console.log("");
 
       // Proposed moves
       if (report.proposedMoves.length > 0) {
-        const mode = options.apply ? "Apply" : "Proposed Moves (dry-run)";
+        const mode = options.apply ? chalk.green("Apply") : chalk.yellow("Proposed Moves (dry-run)");
         console.log(chalk.bold(`  🔍 ${mode}:`));
         console.log("");
 
-        for (const move of report.proposedMoves) {
-          const statusColor = getStatusColor(move.status);
-          console.log(chalk.cyan(`    ${move.source}`));
-          console.log(chalk.gray(`      → ${move.destination}`));
-          console.log(chalk.gray(`      Status: ${statusColor(move.status)} (confidence: ${getConfidenceForMove(report, move)})`));
-          console.log(chalk.gray(`      Reason: ${move.reason}`));
-          console.log("");
+        // Group moves by type
+        const planMoves = report.proposedMoves.filter((m) => m.docType === "plan");
+        const adrMoves = report.proposedMoves.filter((m) => m.docType === "adr");
+
+        if (planMoves.length > 0) {
+          console.log(chalk.bold("    Plans:"));
+          for (const move of planMoves) {
+            printMove(move, report);
+          }
+        }
+
+        if (adrMoves.length > 0) {
+          console.log(chalk.bold("    ADRs:"));
+          for (const move of adrMoves) {
+            printMove(move, report);
+          }
         }
       } else {
-        console.log(chalk.green("  ✔ No moves proposed. Documentation is well organized."));
+        console.log(chalk.green("  ✔ No moves proposed. Plans and ADRs are well organized."));
         console.log("");
-      }
-
-      // Clusters
-      if (report.clusters.length > 0) {
-        console.log(chalk.bold("  💡 Clusters detected:"));
-        console.log("");
-
-        for (const cluster of report.clusters) {
-          console.log(chalk.yellow(`    ${cluster.id}: ${cluster.description}`));
-          for (const doc of cluster.documents) {
-            console.log(chalk.gray(`      - ${doc}`));
-          }
-          console.log(chalk.gray(`      Recommendation: ${cluster.recommendation}`));
-          console.log("");
-        }
       }
 
       // Apply moves if requested
@@ -131,7 +123,6 @@ export const docsAuditCommand = new Command("docs-audit")
         console.log("");
       }
 
-      // Summary
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
       console.log("");
@@ -141,11 +132,10 @@ export const docsAuditCommand = new Command("docs-audit")
         console.log("");
       }
 
-      // Publish event
       getEventBus().publish("doc.lifecycle.audited", {
-        totalDocuments: report.totalDocuments,
+        totalDocuments: report.totalPlans + report.totalAdrs,
         classified: getStatusCounts(report),
-        clustersDetected: report.clusters.length,
+        clustersDetected: 0,
         movesProposed: report.proposedMoves.length,
       });
 
@@ -195,10 +185,19 @@ function getStatusColor(status: DocLifecycleStatus) {
   }
 }
 
-function getConfidenceForMove(report: DocLifecycleReport, move: { source: string }): string {
+function getDocTypeIcon(docType: DocType) {
+  return docType === "plan" ? "📋" : "📐";
+}
+
+function printMove(move: { source: string; destination: string; docType: DocType; status: DocLifecycleStatus; reason: string }, report: DocLifecycleReport) {
+  const statusColor = getStatusColor(move.status);
+  const icon = getDocTypeIcon(move.docType);
   const classification = report.classifications.find((c) => c.path.endsWith(move.source));
-  if (classification) {
-    return `${Math.round(classification.confidence * 100)}%`;
-  }
-  return "unknown";
+  const confidence = classification ? `${Math.round(classification.confidence * 100)}%` : "unknown";
+
+  console.log(chalk.cyan(`    ${icon} ${move.source}`));
+  console.log(chalk.gray(`      → ${move.destination}`));
+  console.log(chalk.gray(`      Status: ${statusColor(move.status)} (confidence: ${confidence})`));
+  console.log(chalk.gray(`      Reason: ${move.reason}`));
+  console.log("");
 }
