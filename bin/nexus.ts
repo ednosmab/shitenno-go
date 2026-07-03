@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -41,7 +41,7 @@ import { initializeKnowledgeGraph } from "../src/knowledge-graph.js";
 import { initializeCapabilityEngine } from "../src/capability-engine.js";
 import { startSession, endSession } from "../src/session-tracker.js";
 import { installMiddleware } from "../src/cli-middleware.js";
-import { startWatching } from "../src/file-watcher.js";
+import { startWatching, stopWatching } from "../src/file-watcher.js";
 import { registerDocSyncHook } from "../src/doc-sync-hook.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
@@ -91,6 +91,61 @@ if (isInitialized) {
     enableAutoSync: true,
     minSignificance: 0.3,
   });
+
+  // Show session briefing summary
+  console.error("DEBUG: before briefing");
+  showBriefingSummary(projectRoot, nexusDir);
+  console.error("DEBUG: after briefing");
+}
+
+/**
+ * Show a brief session summary in the terminal.
+ */
+function showBriefingSummary(projectRoot: string, nexusDir: string): void {
+  try {
+    const briefingPath = join(nexusDir, "BRIEFING.md");
+    if (!existsSync(briefingPath)) return;
+
+    const content = readFileSync(briefingPath, "utf-8");
+
+    // Extract key metrics from BRIEFING.md format
+    const riskMatch = content.match(/\*\*Overall:\*\*\s*(\w+)/i);
+    const areasMatch = content.match(/\*\*Critical:\*\*\s*(.+)/i);
+    const testsMatch = content.match(/\*\*Areas Without Tests:\*\*\s*(\d+)/i);
+
+    const risk = riskMatch?.[1] || "unknown";
+    const areas = areasMatch?.[1]?.trim() || "none";
+    const testsWithout = testsMatch?.[1] || "0";
+
+    // Get plans and ADRs count from latest report if available
+    let plans = "0";
+    let adrs = "0";
+    try {
+      const reportsDir = join(nexusDir, "reports");
+      if (existsSync(reportsDir)) {
+        const files = readdirSync(reportsDir)
+          .filter((f) => f.startsWith("doc-lifecycle-") && f.endsWith(".json"))
+          .sort()
+          .reverse();
+        if (files.length > 0) {
+          const reportPath = join(reportsDir, files[0]!);
+          const report = JSON.parse(readFileSync(reportPath, "utf-8"));
+          plans = String(report.totalPlans || 0);
+          adrs = String(report.totalAdrs || 0);
+        }
+      }
+    } catch {
+      // Report not available — skip
+    }
+
+    console.log("");
+    console.log(chalk.gray("  📋 Briefing:"));
+    console.log(chalk.gray(`     Risco: ${risk} | Áreas críticas: ${areas} | Testes sem cobertura: ${testsWithout}`));
+    console.log(chalk.gray(`     Plans: ${plans} | ADRs: ${adrs}`));
+    console.log("");
+  } catch {
+    // Briefing not available — skip silently
+  }
 }
 
 // ── CLI Program ─────────────────────────────────────────────────────────────
@@ -224,6 +279,7 @@ installMiddleware(program, {
 });
 
 program.parse();
+console.error("DEBUG: parse done");
 
 // ── Post-Execution: Session End ─────────────────────────────────────────────
 
@@ -235,4 +291,8 @@ if (isInitialized && currentSessionId) {
     outcome: "success",
   });
   endSession(nexusDir, currentSessionId);
+  stopWatching();
 }
+
+// Force exit to prevent hanging on open handles (chokidar, etc.)
+process.exit(process.exitCode ?? 0);

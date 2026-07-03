@@ -48,4 +48,5 @@ export const VALID_ACTION_TYPES = [
   "trigger_health_check",
   "update_backlog",
   "run_script",
+  "run_nexus_command",
 ] as const;

@@ -24,8 +24,20 @@ const ALLOWED_SCRIPTS: Record<string, string> = {
   "list-files": "find . -maxdepth 2 -type f | head -20",
 };
 
+/** Comandos Nexus permitidos para execução via regras. */
+const ALLOWED_NEXUS_COMMANDS: Record<string, string> = {
+  "briefing": "briefing --summary",
+  "docs-audit": "docs-audit --json",
+  "status": "status --quiet",
+  "validate": "validate",
+};
+
 function isScriptAllowed(script: string): boolean {
   return script in ALLOWED_SCRIPTS;
+}
+
+function isNexusCommandAllowed(command: string): boolean {
+  return command in ALLOWED_NEXUS_COMMANDS;
 }
 
 // ── Security: Rule ID Validation ────────────────────────────────────────────
@@ -54,6 +66,7 @@ interface ValidationResult {
 const VALID_ACTION_TYPES = [
   "create_reminder", "update_quick_board", "log_event",
   "trigger_assessment", "trigger_health_check", "update_backlog", "run_script",
+  "run_nexus_command",
 ];
 
 function validateRule(rule: unknown): ValidationResult {
@@ -141,6 +154,7 @@ export type ActionType =
   | "trigger_health_check"
   | "update_backlog"
   | "run_script"
+  | "run_nexus_command"
   | "update_file"
   | "create_file"
   | "remove_file";
@@ -462,6 +476,31 @@ function executeAction(
         return { success: true, message: `Script executed: ${script}` };
       } catch (error) {
         return { success: false, message: `Script failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+
+    case "run_nexus_command": {
+      const command = String(action.params.command || "");
+      if (!command) return { success: false, message: "No nexus command specified" };
+
+      if (!isNexusCommandAllowed(command)) {
+        return {
+          success: false,
+          message: `Nexus command "${command}" not in allowlist. Allowed: ${Object.keys(ALLOWED_NEXUS_COMMANDS).join(", ")}`,
+        };
+      }
+
+      try {
+        const nexusCommand = ALLOWED_NEXUS_COMMANDS[command]!;
+        const result = execSync(`node dist/nexus.js ${nexusCommand}`, {
+          cwd: context.projectRoot,
+          timeout: 30000,
+          encoding: "utf-8",
+          stdio: "pipe",
+        });
+        return { success: true, message: `Nexus command executed: ${command}\n${result.trim()}` };
+      } catch (error) {
+        return { success: false, message: `Nexus command failed: ${error instanceof Error ? error.message : String(error)}` };
       }
     }
 
