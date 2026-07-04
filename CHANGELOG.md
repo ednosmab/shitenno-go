@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] — 2026-07-04
+
+### Added
+
+- **Audit levels:** `--level quick|full` for granular audit depth control
+- **33 audit detectors:** Expanded from basic checks to comprehensive governance analysis
+- **Taint analysis:** Track data flow through governance rules and detect contamination
+- **13 new CLI commands:** `act`, `plan`, `goal`, `decide`, `policy`, `console`, `digest`, `bench`, `briefing`, `feedback`, `profile`, `dashboard`, `shell-init`
+- **`nexus docs-audit`:** Validate documentation synchronization with codebase
+- **Dashboard command:** Visual governance overview with real-time metrics
+- **Shell integration:** Auto-completion setup for bash/zsh/fish
+
+### Changed
+
+- Expanded test suite from 484 to 1045+ tests across 63 files
+- Updated all documentation to reflect 26 CLI commands
+- Improved audit coverage from 79% to 93%
+
+### Fixed
+
+- Documentation sync issues across 6 critical files
+- Broken reference to `Requisitos_plataforma.md` in AGENTS.md
+- Incorrect test and command counts in README
+
 ## [0.1.0] — 2026-06-26
 
 ### Added

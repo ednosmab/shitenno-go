@@ -100,6 +100,20 @@ The problem is not limited to large enterprises. It affects any team that makes 
 | `nexus sync` | Sync governance from external source | Multi-project setups |
 | `nexus clean` | Clean cache and temp files | Housekeeping |
 | `nexus report` | Generate reports | Sharing status with stakeholders |
+| `nexus act` | Execute agent actions | Run agent-driven tasks |
+| `nexus plan` | Generate execution plans | Create step-by-step plans |
+| `nexus goal` | Set and track goals | Define project objectives |
+| `nexus decide` | Decision tracking | Record and manage decisions |
+| `nexus policy` | Manage governance policies | Configure rules and policies |
+| `nexus console` | Interactive console | Real-time governance monitoring |
+| `nexus digest` | Generate digest summaries | Quick status overviews |
+| `nexus bench` | Run benchmarks | Performance testing |
+| `nexus briefing` | Pre-session briefing | Context loading before sessions |
+| `nexus feedback` | Submit session feedback | Record session outcomes |
+| `nexus profile` | View maturity profile | Detailed maturity analysis |
+| `nexus dashboard` | Open governance dashboard | Visual project overview |
+| `nexus shell-init` | Shell integration setup | Configure shell completions |
+| `nexus docs-audit` | Audit documentation sync | Validate docs match code |
 
 ---
 
@@ -140,7 +154,7 @@ Nexus operates on three layers:
 └─────────────────────────────────────────────┘
 ```
 
-9 capabilities. 7 maturity dimensions. 13 CLI commands. 40+ core modules.
+9 capabilities. 7 maturity dimensions. 26 CLI commands. 40+ core modules.
 
 For the complete architecture, see [docs/INDEX.md](docs/INDEX.md).
 
@@ -167,7 +181,7 @@ For the complete architecture, see [docs/INDEX.md](docs/INDEX.md).
 npm install
 npm run dev status     # development mode
 npm run build          # build with tsup
-npm test               # 484+ tests (31 files)
+npm test               # 1045+ tests (63 files)
 npm run typecheck      # type checking
 npm run lint           # ESLint with TypeScript rules
 npm run bench          # benchmarks
