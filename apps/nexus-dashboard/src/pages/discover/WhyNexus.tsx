@@ -4,51 +4,51 @@ export default function WhyNexus() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h1 className="text-2xl font-bold text-text-primary">Por que o Nexus existe?</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Why does Nexus exist?</h1>
         <p className="text-text-secondary max-w-2xl">
-          O Nexus nasceu da necessidade real de manter engenharia saudavel em projetos onde IA e humenos trabalham juntos.
+          Engineering teams accumulate knowledge but fail to govern it. ADRs are written but never referenced. Decisions are repeated because no one remembers the previous one.
         </p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-text-primary">O problema que resolve</h2>
+        <h2 className="text-lg font-semibold text-text-primary">The problem it solves</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="layer-card space-y-2">
-            <h3 className="text-sm font-medium text-danger">Sem Nexus</h3>
+            <h3 className="text-sm font-medium text-danger">Without Nexus</h3>
             <ul className="text-sm text-text-secondary space-y-1">
-              <li>Decisoes esquecidas apos mudanca de sessao</li>
-              <li>Conhecimento tacito perdido entre membros</li>
-              <li>Erros repetidos por falta de padronizacao</li>
-              <li>Qualidade dificil de medir e acompanhar</li>
+              <li>Decisions forgotten after session change</li>
+              <li>Tacit knowledge lost between team members</li>
+              <li>Repeated errors from lack of standardization</li>
+              <li>Quality impossible to measure or track</li>
             </ul>
           </div>
           <div className="layer-card space-y-2">
-            <h3 className="text-sm font-medium text-neon">Com Nexus</h3>
+            <h3 className="text-sm font-medium text-neon">With Nexus</h3>
             <ul className="text-sm text-text-secondary space-y-1">
-              <li>Estado explicito preservado em arquivos</li>
-              <li>Conhecimento operacional acessivel</li>
-              <li>Regras vinculantes verificaveis automaticamente</li>
-              <li>Complexidade medida e monitorada</li>
+              <li>Explicit state preserved in files</li>
+              <li>Operational knowledge accessible to everyone</li>
+              <li>Binding rules verified automatically</li>
+              <li>Complexity measured and monitored</li>
             </ul>
           </div>
         </div>
       </section>
 
       <section className="layer-card space-y-3">
-        <h2 className="text-lg font-semibold text-text-primary">Como funciona</h2>
+        <h2 className="text-lg font-semibold text-text-primary">How it works</h2>
         <p className="text-sm text-text-secondary">
-          O Nexus detecta o contexto do seu projeto, gera um profile de configuracao, e fornece ferramentas para manter a engenharia sadia ao longo do tempo.
+          Nexus detects your project's context, generates a maturity profile, and provides tools to keep engineering healthy over time.
         </p>
-        <div className="flex gap-2 mt-2">
-          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Detecta stack</span>
-          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Gera profile</span>
-          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Monitora saude</span>
-          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Evolve adaptativamente</span>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Detects stack</span>
+          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Generates profile</span>
+          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Monitors health</span>
+          <span className="px-2 py-1 rounded bg-surface-2 text-xs text-text-secondary">Evolves adaptively</span>
         </div>
       </section>
 
-      <Link to="/discover/who" className="inline-flex px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
-        Para quem e?
+      <Link to="/use/first-steps" className="inline-flex px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+        Start using Nexus
       </Link>
     </div>
   )

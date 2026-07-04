@@ -1,56 +1,126 @@
 # Nexus System
 
-> A system that thinks about how you work.
-
-Nexus is not a tool. It is not a framework. It is not a linter. It is not a CI pipeline.
-
-Nexus is a system that organizes engineering knowledge so that humans and AI agents can continuously understand a project's state, make better decisions, and evolve with confidence.
-
-**Proprietary Software** — This software is owned by Edson Ramos. All rights reserved. See [LICENSE](LICENSE) for details.
+Nexus is a CLI that gives persistent context about your project to you and AI agents, so no one — human or AI — starts each session from zero.
 
 ---
 
-## Why Does Nexus Exist
+## Quick Start
 
-Engineering teams accumulate knowledge but fail to govern it.
+### 1. Install
 
-ADRs are written but never referenced. Skills are documented but never extracted from patterns. Workflows are defined but never enforced. Context is lost between sessions. Decisions are repeated because no one remembers the previous one.
-
-This is **Knowledge Debt** — the silent killer of engineering productivity.
-
-Nexus detects Knowledge Debt before it compounds. It connects the artifacts that should be connected. It recommends the knowledge that should exist but does not.
-
----
-
-## How Does Nexus Think
-
-Nexus interprets projects through a conceptual flow:
-
-```
-Reality
-  ↓ (observation)
-Observation
-  ↓ (formalization)
-Knowledge
-  ↓ (persistence)
-Engineering Assets
-  ↓ (evaluation)
-Capabilities
-  ↓ (measurement)
-Engineering State
-  ↓ (analysis)
-Decisions
-  ↓ (selection)
-Actions
-  ↓ (execution)
-Project Evolution
+```bash
+npm install -g nexus-system
 ```
 
-This is not a pipeline. It is the mental model of the Nexus — how understanding transforms into evolution.
+### 2. Initialize your project
+
+```bash
+nexus init
+```
+
+```
+╔══════════════════════════════════════════╗
+║  nexus init — Maturity-Based Discovery   ║
+╚══════════════════════════════════════════╝
+
+- Analysing project...
+✔ Project analysis complete
+
+  Detected:
+    Stack:     typescript
+    Packages:  3
+    Apps:      2
+    Source:    255 files
+    Manager:   pnpm
+    TypeScript: yes
+    Tests:     yes
+    CI/CD:     yes
+```
+
+Nexus detects your stack, generates a maturity profile, and creates the governance structure (`opencode.json`, `nexus-system/`, skills, scripts).
+
+### 3. Check status
+
+```bash
+nexus status
+```
+
+```
+╔══════════════════════════════════════╗
+║      nexus status — Health Check     ║
+╚══════════════════════════════════════╝
+
+  Governance Health:
+    ✔ opencode.json: Configured with 4 agents
+    ✔ AGENTS.md: 45 rules configured
+    ✔ skills/: 22 skills installed
+    ✔ context_buffer.yaml: Valid
+  Summary: ✔ 7 passed  ⚠ 0 warnings  ✘ 0 failed
+
+  🎯 Maturity Profile:
+    Overall Score: 59/100 ████████████░░░░░░░░ 59%
+    Quality       ████████████████ 100%
+    Automation    ████████████████ 100%
+    AI            ████████████░░░░  75%
+
+  📊 Complexity Score: 12/20
+```
+
+That's it. Your project now has governed context for you and your AI agents.
 
 ---
 
-## The Nexus Engineering Model
+## Who Is This For
+
+| Team size | Profile | What Nexus solves |
+|---|---|---|
+| **Solo** | Developer working alone who loses context between sessions | Preserves state so you resume without re-reading everything |
+| **2-5 people** | Small team where knowledge lives in one person's head | Makes tacit knowledge explicit and verifiable |
+| **5-15 people** | Growing team where onboarding is painful | New members onboard in hours, not weeks |
+| **AI-assisted teams** | Teams where AI agents operate without governance context | Agents receive governed, hierarchical context |
+
+The problem is not limited to large enterprises. It affects any team that makes decisions and does not record them, detects patterns and does not formalize them, or uses AI agents without governed context.
+
+---
+
+## All Commands
+
+| Command | Purpose | When to use |
+|---|---|---|
+| `nexus init` | Initialize governance in a project | First time setup |
+| `nexus status` | Health check + complexity scoring | During development, before commits |
+| `nexus run` | Full 5-stage pipeline | Periodic health audits |
+| `nexus upgrade` | Add governance capabilities | When you need more features |
+| `nexus validate` | Session integrity check | Before important commits |
+| `nexus detect` | Pattern detection from history | Find recurring errors |
+| `nexus audit` | Self-evaluation of governance | Find dead rules, hotspots |
+| `nexus evolve` | Adaptive recommendations | Get next-step suggestions |
+| `nexus assess` | Re-evaluate maturity profile | After major changes |
+| `nexus doctor` | System diagnostics | When something feels off |
+| `nexus sync` | Sync governance from external source | Multi-project setups |
+| `nexus clean` | Clean cache and temp files | Housekeeping |
+| `nexus report` | Generate reports | Sharing status with stakeholders |
+
+---
+
+## Token Economy — How Nexus Saves You Money
+
+> **Note:** The numbers below are projected estimates based on typical session patterns, not measured benchmarks. Actual savings depend on project size, session complexity, and cache hit rates.
+
+Without Nexus, every AI session starts from zero context — the agent must read multiple files to understand the project. Nexus compresses all of that into a cached briefing.
+
+| Scenario | Without Nexus | With Nexus | Savings |
+|---|---|---|---|
+| Average session (feature) | ~15-25k tokens | ~2-5k tokens | **60-80%** |
+| Cache hit (stable project) | ~15-25k tokens | ~0-1k tokens | **95-100%** |
+| Trivial task (typo, rename) | ~10-15k tokens | ~3-4k tokens | **70-75%** |
+| Complex refactor | ~20-30k tokens | ~8-10k tokens | **50-65%** |
+
+Loading profiles (`minimal`, `lite`, `full`) control how much context is loaded per task type. See [docs/ROI.md](docs/ROI.md) for the full analysis.
+
+---
+
+## How It Works
 
 Nexus operates on three layers:
 
@@ -70,168 +140,9 @@ Nexus operates on three layers:
 └─────────────────────────────────────────────┘
 ```
 
-Every piece of information belongs to one of three tiers:
-
-- **Knowledge** (Permanent) — ADRs, Skills, Contracts, Workflows
-- **State** (Current) — Maturity, Capabilities, Complexity
-- **Memory** (Temporary) — Session, Task, Blockers, Reminders
-
----
-
-## How Humans and AI Collaborate
-
-Nexus provides governed context for AI agents. It ensures that AI agents receive the right knowledge, at the right time, in the right format.
-
-```
-Human Knowledge → Engineering Assets → Governed Context → AI Agent
-```
-
-The governance loop:
-
-```
-ASSESS → RECOMMEND → APPROVE → IMPLEMENT → (re-assess)
-```
-
-Nexus proposes. Humans decide. This rule is absolute.
-
----
-
-## Core Principles
-
-1. **Code is consequence of knowledge** — Code exists because knowledge was organized
-2. **Architecture is consequence of domain** — Architecture serves the domain, not itself
-3. **Capabilities evolve before features** — Maturity before functionality
-4. **AI amplifies good engineering** — Structure makes AI useful
-5. **Every decision generates knowledge** — Recorded decisions compound
-6. **Engineering State is more important than code state** — What it means matters more than what exists
-
----
-
-## Meta Model
-
-The Meta Model defines how Nexus sees a project:
-
-| Element | Definition |
-|---------|-----------|
-| **Reality** | The actual project: code, team, processes |
-| **Observation** | A perception of something that deserves attention |
-| **Knowledge** | Validated understanding, formalized and stored |
-| **Engineering Assets** | Persistent containers of knowledge |
-| **Capabilities** | Modular units of governance maturity |
-| **Engineering State** | Measurable condition of engineering practices |
-| **Decisions** | Choices between alternatives, recorded with context |
-| **Actions** | Operations that modify the project |
-| **Project Evolution** | Continuous improvement of engineering practices |
-
-For the complete specification, see [docs/domain/ubiquitous-language.md](docs/domain/ubiquitous-language.md).
-
----
-
-## Architecture Overview
-
-```
-                    ┌─────────┐
-                    │  core   │
-                    └────┬────┘
-          ┌──────────────┼──────────────┐
-          │              │              │
-     ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
-     │knowledge│   │ quality │   │  ops    │
-     └─────────┘   └────┬────┘   └─────────┘
-                        │
-                   ┌────┴────┐
-                   │ metrics │
-                   └─────────┘
-          │              │              │
-     ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
-     │  arch   │   │ govern. │   │         │
-     └─────────┘   └────┬────┘   └─────────┘
-                   ┌────┴────┐
-              ┌────┴────┐ ┌──┴──────┐
-              │  ai     │ │ compli. │
-              └─────────┘ └─────────┘
-```
-
 9 capabilities. 7 maturity dimensions. 13 CLI commands. 40+ core modules.
 
 For the complete architecture, see [docs/INDEX.md](docs/INDEX.md).
-
----
-
-## Token Economy — How Nexus Saves You Money
-
-Without Nexus, every AI session starts from zero context — the agent must read multiple files to understand the project. Nexus compresses all of that into a cached briefing.
-
-| Scenario | Without Nexus | With Nexus | Savings |
-|---|---|---|---|
-| Average session (feature) | ~15-25k tokens | ~2-5k tokens | **60-80%** |
-| Cache hit (stable project) | ~15-25k tokens | ~0-1k tokens | **95-100%** |
-| Trivial task (typo, rename) | ~10-15k tokens | ~3-4k tokens | **70-75%** |
-| Complex refactor | ~20-30k tokens | ~8-10k tokens | **50-65%** |
-
-**Monthly projection (10 sessions/month):** ~100-200k tokens saved.
-
-Loading profiles (`minimal`, `lite`, `full`) control how much context is loaded per task type. See [docs/ROI.md](docs/ROI.md) for the full analysis.
-
----
-
-## Quick Start
-
-### Install
-
-```bash
-npm install -g nexus-system
-```
-
-### Initialize
-
-```bash
-nexus init
-```
-
-Creates governance structure: `opencode.json`, `nexus-system/`, `nexus-profile/`, skills, scripts, templates.
-
-### Check Status
-
-```bash
-nexus status
-```
-
-Shows complexity score, governance health, and actionable suggestions.
-
-### Detect Patterns
-
-```bash
-nexus detect
-```
-
-Reads history and reports to identify recurring errors, reverted decisions, and hot areas.
-
-### Full Pipeline
-
-```bash
-nexus run
-```
-
-Executes the 5-stage pipeline: Analyse → Score → Detect → Audit → Evolve.
-
-### All Commands
-
-| Command | Function |
-|---------|----------|
-| `nexus init` | Initialize governance structure |
-| `nexus status` | Health check + complexity scoring |
-| `nexus detect` | Pattern detection from history |
-| `nexus audit` | Self-evaluation: dead rules, violation hotspots |
-| `nexus evolve` | Adaptive recommendations based on maturity |
-| `nexus run` | Full 5-stage pipeline execution |
-| `nexus upgrade` | Install governance capabilities |
-| `nexus validate` | Session integrity validation |
-| `nexus sync` | Sync governance from external nexus |
-| `nexus clean` | Clean cache and temp files |
-| `nexus assess` | Re-evaluate maturity profile |
-| `nexus doctor` | System health diagnostics |
-| `nexus report` | Generate reports |
 
 ---
 
@@ -268,8 +179,6 @@ Local validation: `bash tests/e2e/validate.sh` (36 tests across 3 personas).
 
 ## License
 
-**Proprietary** — Copyright (c) 2026 Edson Ramos. All rights reserved.
-
-This software is proprietary and confidential. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without express written permission from the author.
+**Proprietary** — Copyright (c) 2026 Edson Ramos. All rights reserved. See [LICENSE](LICENSE) for details.
 
 For licensing inquiries, contact: edson.ramos@nexus-system.com

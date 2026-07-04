@@ -21,9 +21,9 @@ const layers: Layer[] = [
     label: 'Descubra',
     items: [
       { to: '/discover', label: 'O que e o Nexus' },
-      { to: '/discover/why', label: 'Por que existe' },
       { to: '/discover/who', label: 'Para quem' },
       { to: '/discover/start', label: 'Comecar' },
+      { to: '/discover/why', label: 'Por que existe' },
     ],
   },
   {
@@ -35,6 +35,7 @@ const layers: Layer[] = [
       { to: '/use/first-steps', label: 'Primeiros passos' },
       { to: '/use/commands', label: 'Comandos' },
       { to: '/use/best-practices', label: 'Boas praticas' },
+      { to: '/use/team-onboarding', label: 'Team Onboarding' },
     ],
   },
   {

@@ -13,6 +13,7 @@ import Installation from './pages/use/Installation'
 import FirstSteps from './pages/use/FirstSteps'
 import Commands from './pages/use/Commands'
 import BestPractices from './pages/use/BestPractices'
+import TeamOnboarding from './pages/use/TeamOnboarding'
 
 import EngineeringState from './pages/concepts/EngineeringState'
 import ESM from './pages/concepts/ESM'
@@ -56,6 +57,7 @@ const titles: Record<string, string> = {
   '/use/first-steps': 'Primeiros passos',
   '/use/commands': 'Comandos',
   '/use/best-practices': 'Boas praticas',
+  '/use/team-onboarding': 'Team Onboarding',
   '/concepts': 'Engineering State',
   '/concepts/esm': 'ESM',
   '/concepts/capabilities': 'Capabilities',
@@ -112,6 +114,7 @@ export function App() {
               <Route path="/use/first-steps" element={<FirstSteps />} />
               <Route path="/use/commands" element={<Commands />} />
               <Route path="/use/best-practices" element={<BestPractices />} />
+              <Route path="/use/team-onboarding" element={<TeamOnboarding />} />
 
               <Route path="/concepts" element={<EngineeringState />} />
               <Route path="/concepts/esm" element={<ESM />} />
