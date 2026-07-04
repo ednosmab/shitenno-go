@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-02 — 606 testes, 0 erros TypeScript, auto-backlog feature, 141 itens no backlog
+> **Ultima atualizacao:** 2026-07-04 — 60 testes health-auditor, 33 detectores, P0 doc-sync adicionado
 
 ---
 
@@ -111,6 +111,18 @@
 | **Descricao** | Dois problemas combinados: (A) A documentacao (AGENTS.md, SYSTEM_MAP.md) descreve a arquitetura completa como se tudo estivesse presente, mas o sistema ja suporta entrega incremental por capacidades. A documentacao nao indica claramente o que esta instalado vs disponivel vs futuro. (B) O AGENTS.md nao inclui regras que obriguem o agente a detectar gaps proativamente e informar ao usuario. A capacidade tecnica ja existe (auto-evolution.ts, doctor.ts, status.ts, knowledge-debt.ts) mas nao esta acionada pelas regras do time. |
 | **Resolucao parcial** | (2026-07-01) `nexus init` agora re-analisa complexidade quando projeto ja inicializado. `nexus assess` mostra proximo passo claro com `nexus upgrade --accept-recommended`. |
 | **Correcao** | **Fase 1 — Documentacao dinamica:** (1) AGENTS.md com secoes condicionais por capacidade: `<!-- CAPABILITY: governance -->...<!-- /CAPABILITY -->`. (2) SYSTEM_MAP.md com legenda: ✅ instalado, 📋 disponivel, 🔮 futuro. (3) `docs/capabilities.md` com mapeamento capacidade→regras→arquivos. (4) Scaffolder copia apenas secoes das capacidades instaladas. (5) `upgrade.ts` ativa novas secoes ao adicionar capacidade. **Fase 2 — Regra proativa no AGENTS.md:** (6) Adicionar regra: "Quando uma regra referencia infraestrutura ausente, o agente DEVE informar ao usuario que `nexus upgrade --capability <name>` desbloqueia essa funcionalidade". (7) Adicionar regra: "O agente DEVE executar `nexus status` ou `nexus doctor` para detectar gaps antes de iniciar tarefa". (8) Adicionar regra: "O usuario NAO deve precisar descobrir manualmente o que falta — o sistema recomenda". **Fase 3 — Validacao:** (9) Testar: init com core apenas → documentacao minima + recomenda upgrade. (10) Testar: upgrade governance → documentacao expandida + novas regras ativadas. (11) Testar: regra #11 detecta WORKFLOW.md ausente e sugere `nexus upgrade --capability governance`. |
+
+### 0.7 Actualizar documentação desactualizada (6 ficheiros)
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Critico |
+| **Owner** | Agente IA |
+| **Descricao** | 6 ficheiros de documentação contêm informações desactualizadas. README.md lista 13 comandos (existentes 26), 484 testes (existentes ~1056). AGENTS.md referencia ficheiros inexistentes (Requisitos_plataforma.md, docs/plans/TEMPLATE.md). GUIDE tem contagens erradas ("6 relatórios" = 12+, "15 registos" = 14). CONCEPTUAL_MODEL tem paths incompletos. SYSTEM_MAP não lista docs/audits/. |
+| **Plano** | `plans/2026-07-04-docs-sync-critical.md` |
+| **Arquivos** | README.md, docs/AGENTS.md, Nexus-System_GUIDE.md, CONCEPTUAL_MODEL.md, SYSTEM_MAP.md, CHANGELOG.md |
+| **Tempo estimado** | ~30 min |
 
 ---
 
@@ -452,6 +464,21 @@
 | **Arquivo** | `docs/` |
 | **Descricao** | Nao existe documentacao de limitacoes conhecidas: race condition no cache, projetos sem git, monorepos parciais, etc. |
 | **Correcao** | Criar `docs/KNOWN_LIMITATIONS.md` listando todas as limitacoes e workarounds. |
+
+### 2.15 Teste manual de onboarding (5 minutos)
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-03 |
+| **Fonte** | Briefing de onboarding (briefing-onboarding-nexus.md, criterio de aceite #5) |
+| **Arquivos** | `docs/tests/onboarding-5min-test.md`, README.md, `apps/nexus-dashboard/src/pages/discover/`, `apps/nexus-dashboard/src/pages/use/` |
+| **Descricao** | Validar que o reescrita de onboarding (README + dashboard discover/use) atinge o criterio dos 5 minutos: pessoa sem contexto consegue correr `nexus init` e entender o output sem perguntar nada. Teste manual com participante real. |
+| **Correcao** | (1) Seguir o protocolo em `docs/tests/onboarding-5min-test.md`. (2) Participante deve ser alguem que nunca usou Nexus. (3) Cronometrar tempo ate primeiro comando e tempo ate compreensao. (4) Se falhar, identificar a pagina/secao que causou confusao e corrigir. (5) Repetir apos correcao. |
+| **Criterio de aceite** | Todos os 4 criterios do teste passam: encontrou install em ≤60s, rodou init em ≤3min, explicou o que Nexus faz em ≤5min, nao pediu ajuda. |
 
 ---
 
@@ -1257,6 +1284,6 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 | **Done** | 41 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog |
 | **P0** (≤ 7d) | 4 | Auto-analise: WORKFLOW.md, digest bug, governanca 0%, governance infrastructure |
 | **P1** (≤ 30d) | 19 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
-| **P2** (≤ 90d) | 40 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX |
+| **P2** (≤ 90d) | 41 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
 | **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
-| **Total** | **141** | |
+| **Total** | **142** | |
