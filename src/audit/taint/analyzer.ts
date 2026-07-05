@@ -6,6 +6,8 @@
  */
 
 import * as ts from "typescript";
+import { statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import type { TaintNode, TaintEdge, TaintIssue, TaintPath } from "./types.js";
 import { isTaintSource } from "./sources.js";
 import { findTaintSink } from "./sinks.js";
@@ -87,7 +89,8 @@ export class TaintAnalyzer {
     const srcDir = this.options.projectRoot + "/src";
     const fileNames = this.collectSourceFiles(srcDir);
 
-    const cacheKey = this.options.projectRoot;
+    // Build cache key from tsconfig hash + file mtimes so cache invalidates on changes
+    const cacheKey = this.buildCacheKey(configPath, fileNames);
     this.program = TaintAnalyzer.programCache.get(cacheKey) ?? ts.createProgram(fileNames, compilerOptions);
     TaintAnalyzer.programCache.set(cacheKey, this.program);
     this.checker = this.program.getTypeChecker();
@@ -106,6 +109,24 @@ export class TaintAnalyzer {
       }
     }
     return files;
+  }
+
+  /** Build a cache key from tsconfig content + source file mtimes */
+  private buildCacheKey(configPath: string | undefined, fileNames: string[]): string {
+    const hash = createHash("md5");
+    if (configPath) {
+      try {
+        const stat = statSync(configPath);
+        hash.update(String(stat.mtimeMs));
+      } catch { /* ignore */ }
+    }
+    for (const f of fileNames) {
+      try {
+        const stat = statSync(f);
+        hash.update(f + ":" + stat.mtimeMs);
+      } catch { /* ignore */ }
+    }
+    return hash.digest("hex");
   }
 
   /** Generate a unique node ID */
