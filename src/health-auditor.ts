@@ -3345,9 +3345,15 @@ function detectPathTraversal(projectRoot: string, files: SourceFileInfo[]): Heal
     /readFile(?:Sync)?\s*\([^)]*\$\{/, /writeFile(?:Sync)?\s*\([^)]*\$\{/,
     /createReadStream\s*\([^)]*\+/, /unlink(?:Sync)?\s*\([^)]*\+/,
     /path\.join\s*\([^)]*req\./, /path\.resolve\s*\([^)]*req\./,
+    /readFile(?:Sync)?\s*\([^)]*\breq\.(query|params|body)\b/,
+    /writeFile(?:Sync)?\s*\([^)]*\breq\.(query|params|body)\b/,
+    /unlink(?:Sync)?\s*\([^)]*\breq\.(query|params|body)\b/,
+    /createReadStream\s*\([^)]*\breq\.(query|params|body)\b/,
   ];
 
   for (const file of files) {
+    if (file.relPath.includes("__tests__")) continue;
+    if (isDetectorDefinitionFile(file.relPath)) continue;
     const lines = file.content.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
