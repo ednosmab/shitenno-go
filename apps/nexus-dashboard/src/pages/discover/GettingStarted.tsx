@@ -2,16 +2,16 @@ import { Link } from 'react-router-dom'
 
 export default function GettingStarted() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Get started in 3 commands</h1>
         <p className="text-text-secondary max-w-2xl">
           Install, initialize, and check your project's health. Takes about 2 minutes.
         </p>
       </section>
 
-      <section className="space-y-4">
-        <div className="layer-card space-y-2">
+      <section className="flex flex-col gap-4">
+        <div className="layer-card flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-accent-subtle text-accent flex items-center justify-center text-xs font-bold">1</span>
             <h3 className="text-sm font-semibold text-text-primary">Install the CLI</h3>
@@ -19,7 +19,7 @@ export default function GettingStarted() {
           <div className="command-block">npm install -g nexus-system</div>
         </div>
 
-        <div className="layer-card space-y-2">
+        <div className="layer-card flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-accent-subtle text-accent flex items-center justify-center text-xs font-bold">2</span>
             <h3 className="text-sm font-semibold text-text-primary">Initialize your project</h3>
@@ -34,7 +34,7 @@ export default function GettingStarted() {
           <p className="text-xs text-text-muted">Detects your stack and creates governance structure automatically.</p>
         </div>
 
-        <div className="layer-card space-y-2">
+        <div className="layer-card flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-accent-subtle text-accent flex items-center justify-center text-xs font-bold">3</span>
             <h3 className="text-sm font-semibold text-text-primary">Check your status</h3>
@@ -48,10 +48,10 @@ export default function GettingStarted() {
       </section>
 
       <div className="flex gap-3">
-        <Link to="/use/first-steps" className="px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+        <Link to="/use/first-steps" className="btn btn-primary">
           What next?
         </Link>
-        <Link to="/discover/why" className="px-4 py-2 rounded-lg border border-border-default text-text-secondary text-sm hover:bg-surface-2 transition-colors">
+        <Link to="/discover/why" className="btn btn-secondary">
           Why does this exist?
         </Link>
       </div>

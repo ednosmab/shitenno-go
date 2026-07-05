@@ -33,15 +33,15 @@ const contracts = [
 
 export default function Contracts() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Contratos</h1>
         <p className="text-text-secondary max-w-2xl">
           4 contratos que definem o comportamento, permissoes e restricoes de cada agente IA.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         {contracts.map(contract => (
           <div key={contract.name} className="layer-card space-y-3">
             <div className="flex items-center gap-2">
@@ -52,13 +52,13 @@ export default function Contracts() {
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <div className="text-xs font-medium text-neon mb-1">Permitido</div>
-                <ul className="text-xs text-text-secondary space-y-0.5">
+                <ul className="text-xs text-text-secondary flex flex-col gap-0 .5">
                   {contract.allowed.map(a => <li key={a}>✓ {a}</li>)}
                 </ul>
               </div>
               <div>
                 <div className="text-xs font-medium text-danger mb-1">Restrito</div>
-                <ul className="text-xs text-text-secondary space-y-0.5">
+                <ul className="text-xs text-text-secondary flex flex-col gap-0 .5">
                   {contract.restricted.map(r => <li key={r}>✗ {r}</li>)}
                 </ul>
               </div>
@@ -67,7 +67,7 @@ export default function Contracts() {
         ))}
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts/governance" className="block text-sm">→ Governanca</Link>
         <Link to="/reference/contracts" className="block text-sm">→ Contratos (Referencia)</Link>

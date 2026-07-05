@@ -29,8 +29,8 @@ const practices = [
 
 export default function BestPractices() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Boas praticas</h1>
         <p className="text-text-secondary max-w-2xl">
           Siga estas praticas para tirar o maximo proveito do Nexus.
@@ -47,10 +47,10 @@ export default function BestPractices() {
       </section>
 
       <div className="flex gap-3">
-        <Link to="/concepts" className="px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+        <Link to="/concepts" className="btn btn-primary">
           Entender conceitos
         </Link>
-        <Link to="/architecture" className="px-4 py-2 rounded-lg border border-border-default text-text-secondary text-sm hover:bg-surface-2 transition-colors">
+        <Link to="/architecture" className="btn btn-secondary">
           Ver arquitetura
         </Link>
       </div>

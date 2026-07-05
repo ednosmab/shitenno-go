@@ -149,10 +149,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   onClick={() => toggleLayer(layer.id)}
                   className={`
                     w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                    transition-colors duration-100
+                    transition-colors duration-100 font-medium
                     ${isExpanded
-                      ? 'bg-accent-subtle text-accent-hover font-medium'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'
+                      ? 'text-text-primary bg-surface-2/50'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/30'
                     }
                   `}
                 >
@@ -164,18 +164,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 </button>
 
                 {isExpanded && (
-                  <div className="ml-4 mt-0.5 space-y-0.5">
+                  <div className="ml-5 pl-3 border-l border-border-subtle mt-1.5 space-y-1">
                     {layer.items.map(item => (
                       <NavLink
                         key={item.to}
                         to={item.to}
+                        end
                         onClick={onClose}
                         className={({ isActive }) => `
-                          block px-3 py-1.5 rounded-md text-xs
-                          transition-colors duration-100
+                          block px-2.5 py-1.5 rounded-md text-[13px] font-medium
+                          transition-all duration-200
                           ${isActive
-                            ? 'bg-surface-2 text-accent-hover font-medium'
-                            : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'
+                            ? 'bg-accent-subtle/20 text-accent font-semibold'
+                            : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/40'
                           }
                         `}
                       >

@@ -29,15 +29,15 @@ const types = [
 
 export default function Types() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Tipos</h1>
         <p className="text-text-secondary max-w-2xl">
           Definicoes de tipos TypeScript usados no Nexus System.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         {types.map(type => (
           <div key={type.name} className="layer-card space-y-2">
             <h3 className="text-sm font-semibold text-accent font-mono">{type.name}</h3>
@@ -46,7 +46,7 @@ export default function Types() {
         ))}
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/engineering/interfaces" className="block text-sm">→ Interfaces (Engenharia)</Link>
         <Link to="/reference/schemas" className="block text-sm">→ Esquemas</Link>

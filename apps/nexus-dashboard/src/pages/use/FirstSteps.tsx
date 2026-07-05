@@ -2,18 +2,18 @@ import { Link } from 'react-router-dom'
 
 export default function FirstSteps() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">What happens after nexus init</h1>
         <p className="text-text-secondary max-w-2xl">
           You've initialized Nexus. Here's what it created and how to use it.
         </p>
       </section>
 
-      <section className="space-y-4">
-        <div className="layer-card space-y-3">
+      <section className="flex flex-col gap-4">
+        <div className="layer-card flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-text-primary">What was created</h3>
-          <ul className="text-sm text-text-secondary space-y-1">
+          <ul className="text-sm text-text-secondary flex flex-col gap-1">
             <li><code className="text-accent">opencode.json</code> — Agent configuration (4 agents: planner, build, review, orchestrator)</li>
             <li><code className="text-accent">nexus-system/</code> — Governance framework (skills, scripts, contracts)</li>
             <li><code className="text-accent">nexus-system/docs/skills/</code> — 22 engineering skills</li>
@@ -21,7 +21,7 @@ export default function FirstSteps() {
           </ul>
         </div>
 
-        <div className="layer-card space-y-3">
+        <div className="layer-card flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-text-primary">Check the full picture</h3>
           <div className="command-block">nexus status</div>
           <pre className="text-xs text-text-secondary bg-surface-2 rounded-lg p-3 overflow-x-auto">{`  Governance Health:
@@ -45,7 +45,7 @@ export default function FirstSteps() {
           </p>
         </div>
 
-        <div className="layer-card space-y-3">
+        <div className="layer-card flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-text-primary">Run the full pipeline</h3>
           <div className="command-block">nexus run</div>
           <p className="text-xs text-text-muted">
@@ -54,7 +54,7 @@ export default function FirstSteps() {
         </div>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Now explore your data</h2>
         <p className="text-sm text-text-secondary">
           This dashboard shows real data from your project. Navigate through the sections to see your governance health, architecture, and engineering state.
@@ -65,10 +65,10 @@ export default function FirstSteps() {
       </section>
 
       <div className="flex gap-3">
-        <Link to="/use/commands" className="px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+        <Link to="/use/commands" className="btn btn-primary">
           All commands
         </Link>
-        <Link to="/use/team-onboarding" className="px-4 py-2 rounded-lg border border-border-default text-text-secondary text-sm hover:bg-surface-2 transition-colors">
+        <Link to="/use/team-onboarding" className="btn btn-secondary">
           Joining a team?
         </Link>
       </div>

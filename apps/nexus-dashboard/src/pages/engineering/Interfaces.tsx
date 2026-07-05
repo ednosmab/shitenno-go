@@ -13,15 +13,15 @@ const interfaces = [
 
 export default function Interfaces() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Interfaces</h1>
         <p className="text-text-secondary max-w-2xl">
           Tipos e interfaces principais usados no Nexus System.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         {interfaces.map(iface => (
           <div key={iface.name} className="layer-card space-y-2">
             <h3 className="text-sm font-semibold text-accent font-mono">{iface.name}</h3>
@@ -34,7 +34,7 @@ export default function Interfaces() {
         ))}
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/reference/types" className="block text-sm">→ Tipos (Referencia)</Link>
         <Link to="/engineering/contracts" className="block text-sm">→ Contratos</Link>

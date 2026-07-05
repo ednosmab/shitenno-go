@@ -11,17 +11,17 @@ const entryPoints = [
 
 export default function SourceCode() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Codigo Fonte</h1>
         <p className="text-text-secondary max-w-2xl">
           Estrutura de pastas e entry points do Nexus System.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Entry Points</h2>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           {entryPoints.map(ep => (
             <div key={ep.path} className="flex items-center gap-2 py-1">
               <code className="text-accent text-xs font-mono">{ep.path}</code>
@@ -31,9 +31,9 @@ export default function SourceCode() {
         </div>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Convencoes</h2>
-        <ul className="text-sm text-text-secondary space-y-1">
+        <ul className="text-sm text-text-secondary flex flex-col gap-1">
           <li>Ficheiros em ingles</li>
           <li>Nomenclatura kebab-case para ficheiros</li>
           <li>PascalCase para componentes</li>
@@ -42,7 +42,7 @@ export default function SourceCode() {
         </ul>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/engineering/modules" className="block text-sm">→ Modulos</Link>
         <Link to="/architecture/structure" className="block text-sm">→ Estrutura do Sistema</Link>

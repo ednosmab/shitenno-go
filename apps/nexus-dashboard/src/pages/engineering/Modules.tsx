@@ -13,16 +13,16 @@ const modules = [
 
 export default function Modules() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Modulos</h1>
         <p className="text-text-secondary max-w-2xl">
           Organizacao modular do Nexus System. Cada modulo tem uma responsabilidade unica.
         </p>
       </section>
 
-      <section className="space-y-3">
-        <div className="space-y-2">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {modules.map(mod => (
             <div key={mod.name} className="layer-card">
               <h3 className="text-sm font-semibold text-accent">{mod.name}</h3>
@@ -32,7 +32,7 @@ export default function Modules() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/engineering" className="block text-sm">→ Codigo Fonte</Link>
         <Link to="/engineering/contracts" className="block text-sm">→ Contratos</Link>

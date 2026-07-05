@@ -29,8 +29,8 @@ const profiles = [
 
 export default function WhoIsItFor() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Who is this for?</h1>
         <p className="text-text-secondary max-w-2xl">
           Nexus works for any team size. The value scales with complexity — but even solo developers feel the difference on day one.
@@ -52,7 +52,7 @@ export default function WhoIsItFor() {
         ))}
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Joining a team that already uses Nexus?</h2>
         <p className="text-sm text-text-secondary">
           If you just joined a project that runs Nexus, you don't need to read everything. One command gives you the full picture.
@@ -62,7 +62,7 @@ export default function WhoIsItFor() {
         </Link>
       </section>
 
-      <Link to="/discover/start" className="inline-flex px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+      <Link to="/discover/start" className="btn btn-primary">
         Get started
       </Link>
     </div>

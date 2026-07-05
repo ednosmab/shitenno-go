@@ -14,24 +14,24 @@ const stages = [
 
 export default function Knowledge() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Conhecimento</h1>
         <p className="text-text-secondary max-w-2xl">
           Como o Nexus gerencia o ciclo de vida do conhecimento no projeto.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Knowledge Graph</h2>
         <p className="text-sm text-text-secondary">
           O Nexus mantem um grafo de conhecimento que conecta conceitos, componentes e decisoes. Este grafo e consultado para sugestoes e validacoes.
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">9 Estagios do ciclo de vida</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {stages.map((stage, i) => (
             <div key={stage.name} className="layer-card flex items-start gap-3">
               <span className="law-number">{i + 1}</span>
@@ -44,7 +44,7 @@ export default function Knowledge() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts" className="block text-sm">→ Engineering State</Link>
         <Link to="/concepts/esm" className="block text-sm">→ ESM</Link>

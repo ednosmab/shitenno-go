@@ -17,17 +17,17 @@ const contractSchema = {
 
 export default function ContractsRef() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Contratos — Referencia</h1>
         <p className="text-text-secondary max-w-2xl">
           Schema dos contratos de agentes IA do Nexus System.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Schema do contrato</h2>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           {Object.entries(contractSchema.agent).map(([field, type]) => (
             <div key={field} className="flex items-center gap-2 py-1">
               <code className="text-accent text-xs font-mono">{field}</code>
@@ -37,7 +37,7 @@ export default function ContractsRef() {
         </div>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Exemplo</h2>
         <div className="command-block text-[10px] whitespace-pre-wrap">
 {`agent:
@@ -53,7 +53,7 @@ export default function ContractsRef() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/engineering/contracts" className="block text-sm">→ Contratos (Engenharia)</Link>
         <Link to="/concepts/governance" className="block text-sm">→ Governanca</Link>

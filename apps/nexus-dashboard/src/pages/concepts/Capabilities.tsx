@@ -16,17 +16,17 @@ const lifecycle = ['Detectar', 'Instalar', 'Configurar', 'Monitorar', 'Reportar'
 
 export default function Capabilities() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Capabilities</h1>
         <p className="text-text-secondary max-w-2xl">
           As 9 capacidades do Nexus System. Cada uma serve a um proposito especifico.
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Capacidades ativas</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {capabilities.map(cap => (
             <div key={cap.name} className="layer-card flex items-start gap-3">
               <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${cap.status === 'active' ? 'bg-success' : 'bg-text-muted'}`} />
@@ -39,7 +39,7 @@ export default function Capabilities() {
         </div>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Lifecycle</h2>
         <div className="flex flex-wrap gap-2">
           {lifecycle.map(stage => (
@@ -48,7 +48,7 @@ export default function Capabilities() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts" className="block text-sm">→ Engineering State</Link>
         <Link to="/concepts/esm" className="block text-sm">→ ESM</Link>

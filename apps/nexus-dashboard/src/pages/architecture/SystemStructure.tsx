@@ -19,16 +19,16 @@ const structure = [
 
 export default function SystemStructure() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Estrutura do Sistema</h1>
         <p className="text-text-secondary max-w-2xl">
           Arvore de directorios e ficheiros do Nexus System.
         </p>
       </section>
 
-      <section className="layer-card space-y-2">
-        <div className="space-y-1">
+      <section className="layer-card flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {structure.map(item => (
             <div key={item.path} className="flex items-center gap-2 py-1">
               <span className={`text-xs ${item.type === 'dir' ? 'text-accent' : 'text-text-muted'}`}>
@@ -41,7 +41,7 @@ export default function SystemStructure() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/architecture" className="block text-sm">→ Componentes</Link>
         <Link to="/architecture/dependencies" className="block text-sm">→ Dependencias</Link>

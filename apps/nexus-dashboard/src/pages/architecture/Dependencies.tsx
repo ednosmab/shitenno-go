@@ -13,24 +13,24 @@ const dependencies = [
 
 export default function Dependencies() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Dependencias</h1>
         <p className="text-text-secondary max-w-2xl">
           Mapa de dependencias entre componentes do Nexus System.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Grafo de dependencias</h2>
         <p className="text-sm text-text-secondary">
           Dependencias devem sempre apontar "para dentro" (em direcao ao nucleo). Componentes externos dependem de componentes internos, nunca o inverso.
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Relacoes</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {dependencies.map((dep, i) => (
             <div key={i} className="layer-card flex items-center gap-3">
               <code className="text-accent font-mono text-xs">{dep.from}</code>
@@ -42,7 +42,7 @@ export default function Dependencies() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/architecture" className="block text-sm">→ Componentes</Link>
         <Link to="/architecture/responsibilities" className="block text-sm">→ Responsabilidades</Link>

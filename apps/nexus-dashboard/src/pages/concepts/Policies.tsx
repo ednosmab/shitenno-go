@@ -17,16 +17,16 @@ const policies = [
 
 export default function Policies() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Politicas</h1>
         <p className="text-text-secondary max-w-2xl">
           12 regras vinculantes que governam o comportamento do sistema e dos agentes.
         </p>
       </section>
 
-      <section className="space-y-3">
-        <div className="space-y-2">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {policies.map(pol => (
             <div key={pol.id} className="layer-card flex items-start gap-3">
               <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-xs font-mono font-bold flex-shrink-0">{pol.id}</span>
@@ -39,7 +39,7 @@ export default function Policies() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts/governance" className="block text-sm">→ Governanca</Link>
         <Link to="/concepts/esm" className="block text-sm">→ ESM</Link>

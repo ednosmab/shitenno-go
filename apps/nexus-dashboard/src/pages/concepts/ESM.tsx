@@ -21,15 +21,15 @@ const principles = [
 
 export default function ESM() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Engineering State Method (ESM)</h1>
         <p className="text-text-secondary max-w-2xl">
           Metodologia que define as 7 Leis Fundamentais e 6 Principios do Nexus.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Ciclo de vida</h2>
         <div className="flex flex-wrap gap-2">
           {['Detectar', 'Analisar', 'Decidir', 'Implementar', 'Validar', 'Monitorar', 'Evolver'].map(stage => (
@@ -38,9 +38,9 @@ export default function ESM() {
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">7 Leis Fundamentais</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {laws.map(law => (
             <div key={law.num} className="law-card">
               <span className="law-number">{law.num}</span>
@@ -53,7 +53,7 @@ export default function ESM() {
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">6 Principios</h2>
         <div className="grid sm:grid-cols-2 gap-3">
           {principles.map(p => (
@@ -65,7 +65,7 @@ export default function ESM() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts" className="block text-sm">→ Engineering State</Link>
         <Link to="/concepts/capabilities" className="block text-sm">→ Capabilities</Link>

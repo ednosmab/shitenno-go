@@ -89,15 +89,15 @@ const advancedCommands = [
 
 export default function Commands() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Commands</h1>
         <p className="text-text-secondary max-w-2xl">
           These 3 commands cover 90% of daily use. The rest are for specific situations.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-text-primary">Essential</h2>
         {essentialCommands.map(cmd => (
           <div key={cmd.name} className="layer-card space-y-3">
@@ -106,7 +106,7 @@ export default function Commands() {
               <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-medium">ESSENTIAL</span>
             </div>
             <p className="text-sm text-text-secondary">{cmd.purpose}</p>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <div className="text-xs text-text-muted">When to use:</div>
               <p className="text-xs text-text-secondary">{cmd.when}</p>
             </div>
@@ -116,7 +116,7 @@ export default function Commands() {
         ))}
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-text-primary">Advanced</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           {advancedCommands.map(cmd => (
@@ -129,7 +129,7 @@ export default function Commands() {
         </div>
       </section>
 
-      <Link to="/use/best-practices" className="inline-flex px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+      <Link to="/use/best-practices" className="btn btn-primary">
         Best practices
       </Link>
     </div>

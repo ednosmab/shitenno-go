@@ -35,19 +35,19 @@ const schemas = [
 
 export default function Schemas() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Esquemas</h1>
         <p className="text-text-secondary max-w-2xl">
           Esquemas dos principais ficheiros de dados do Nexus System.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         {schemas.map(schema => (
           <div key={schema.name} className="layer-card space-y-3">
             <h3 className="text-sm font-semibold text-accent font-mono">{schema.name}</h3>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               {schema.fields.map(field => (
                 <div key={field.key} className="flex items-center gap-2 py-1">
                   <code className="text-xs text-text-primary font-mono">{field.key}</code>
@@ -60,7 +60,7 @@ export default function Schemas() {
         ))}
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/reference/types" className="block text-sm">→ Tipos</Link>
         <Link to="/reference/config" className="block text-sm">→ Configuracao</Link>

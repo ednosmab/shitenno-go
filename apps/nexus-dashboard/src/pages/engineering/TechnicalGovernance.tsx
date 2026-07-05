@@ -11,16 +11,16 @@ const rules = [
 
 export default function TechnicalGovernance() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Governanca Tecnica</h1>
         <p className="text-text-secondary max-w-2xl">
           Regras tecnicas que devem ser cumpridas antes de considerar uma tarefa completa.
         </p>
       </section>
 
-      <section className="space-y-3">
-        <div className="space-y-2">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {rules.map(rule => (
             <div key={rule.id} className="layer-card flex items-start gap-3">
               <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-xs font-mono font-bold flex-shrink-0">{rule.id}</span>
@@ -33,7 +33,7 @@ export default function TechnicalGovernance() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts/governance" className="block text-sm">→ Governanca</Link>
         <Link to="/concepts/policies" className="block text-sm">→ Politicas</Link>

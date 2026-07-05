@@ -3,8 +3,8 @@ import { Logo } from '../../components/shared/Logo'
 
 export default function WhatIsNexus() {
   return (
-    <div className="space-y-8">
-      <section className="layer-hero text-center space-y-4">
+    <div className="flex flex-col gap-8">
+      <section className="layer-hero text-center flex flex-col gap-4">
         <Logo size="lg" className="mx-auto" />
         <h1 className="text-2xl font-bold text-text-primary">What is Nexus?</h1>
         <p className="text-text-secondary max-w-2xl mx-auto">
@@ -12,10 +12,10 @@ export default function WhatIsNexus() {
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-text-primary">See it in action</h2>
 
-        <div className="layer-card space-y-2">
+        <div className="layer-card flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <code className="text-accent font-mono text-sm font-bold">nexus init</code>
             <span className="text-xs text-text-muted">— detect your stack and set up governance</span>
@@ -38,7 +38,7 @@ export default function WhatIsNexus() {
     CI/CD:     yes`}</pre>
         </div>
 
-        <div className="layer-card space-y-2">
+        <div className="layer-card flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <code className="text-accent font-mono text-sm font-bold">nexus status</code>
             <span className="text-xs text-text-muted">— check governance health and maturity</span>
@@ -54,22 +54,22 @@ export default function WhatIsNexus() {
         </div>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">What you get</h2>
         <div className="grid sm:grid-cols-3 gap-4">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="text-accent text-sm font-bold">Governed context</div>
             <p className="text-xs text-text-secondary">
               AI agents receive the right knowledge, at the right time, in the right format.
             </p>
           </div>
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="text-neon text-sm font-bold">Measured complexity</div>
             <p className="text-xs text-text-secondary">
               Static + behavioral scoring tells you exactly where your project stands.
             </p>
           </div>
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="text-purple text-sm font-bold">Debt detection</div>
             <p className="text-xs text-text-secondary">
               Stale decisions, disconnected knowledge, repeated errors — caught before they compound.
@@ -79,10 +79,10 @@ export default function WhatIsNexus() {
       </section>
 
       <div className="flex gap-3">
-        <Link to="/discover/who" className="px-4 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:bg-accent-hover transition-colors">
+        <Link to="/discover/who" className="btn btn-primary">
           Who is this for?
         </Link>
-        <Link to="/discover/start" className="px-4 py-2 rounded-lg border border-border-default text-text-secondary text-sm hover:bg-surface-2 transition-colors">
+        <Link to="/discover/start" className="btn btn-secondary">
           Get started
         </Link>
       </div>

@@ -13,16 +13,16 @@ const components = [
 
 export default function Components() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Componentes</h1>
         <p className="text-text-secondary max-w-2xl">
           Todos os componentes que formam o Nexus System e suas responsabilidades.
         </p>
       </section>
 
-      <section className="space-y-3">
-        <div className="space-y-2">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {components.map(comp => (
             <div key={comp.name} className="layer-card flex items-start gap-3">
               <span className="px-2 py-0.5 rounded bg-surface-2 text-[10px] text-text-muted font-mono flex-shrink-0">{comp.type}</span>
@@ -35,7 +35,7 @@ export default function Components() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/architecture/responsibilities" className="block text-sm">→ Responsabilidades</Link>
         <Link to="/architecture/dependencies" className="block text-sm">→ Dependencias</Link>

@@ -14,24 +14,24 @@ const events = [
 
 export default function Events() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Eventos</h1>
         <p className="text-text-secondary max-w-2xl">
           Eventos que o sistema emite quando ocorrem mudancas de estado relevantes.
         </p>
       </section>
 
-      <section className="layer-card space-y-3">
+      <section className="layer-card flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Event Bus</h2>
         <p className="text-sm text-text-secondary">
           O Nexus usa um event bus para comunicacao desacoplada entre componentes. Eventos sao disparados de forma sincrona ou assincrona.
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Tipos de eventos</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {events.map(evt => (
             <div key={evt.name} className="layer-card flex items-start gap-3">
               <code className="text-accent font-mono text-xs font-bold flex-shrink-0">{evt.name}</code>
@@ -44,7 +44,7 @@ export default function Events() {
         </div>
       </section>
 
-      <div className="cross-links space-y-2">
+      <div className="cross-links flex flex-col gap-2">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">Conceitos relacionados</div>
         <Link to="/concepts" className="block text-sm">→ Engineering State</Link>
         <Link to="/concepts/capabilities" className="block text-sm">→ Capabilities</Link>
