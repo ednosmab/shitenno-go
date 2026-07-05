@@ -115,6 +115,7 @@ const CAPABILITY_MAPPINGS: Record<Capability, CapabilityMapping> = {
     directories: [],
     files: [
       { src: "scripts/validate-session.ts", dest: "nexus-system/scripts/validate-session.ts" },
+      { src: "scripts/sync-docs.ts", dest: "nexus-system/scripts/sync-docs.ts" },
     ],
   },
   metrics: {

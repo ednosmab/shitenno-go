@@ -857,7 +857,13 @@ export function initializeRuleEngine(
   for (const [eventType, trigger] of Object.entries(EVENT_TO_TRIGGER)) {
     bus.subscribe(eventType as NexusEventType, (payload: unknown) => {
       const rules = loadRules(nexusDir);
-      if (rules.length === 0) return;
+      if (rules.length === 0) {
+        logger.debug(
+          "rule-engine",
+          `No rules loaded for event "${eventType}" — seed rules via governance/rules/ or see docs/adr/` 
+        );
+        return;
+      }
 
       const context: RuleContext = {
         trigger,

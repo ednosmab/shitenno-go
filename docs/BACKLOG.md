@@ -48,6 +48,10 @@
 | Auto-backlog feature | Alto | nexus audit --auto-backlog — detecta gaps e escreve no BACKLOG.md (606 testes) |
 | AUDIT-EXPANSION | Alto | Expandir audit coverage 79% → ~93% (taint, rule-engine) — 2026-07-04 |
 | QUICK-BOARD-FIX | Alto | Corrigir loadQuickBoard() — require() em contexto ESM — 2026-07-04 |
+| SA1 | Critico | governance/WORKFLOW.md criado — 2026-07-01 |
+| SA6 | Alto | Artefactos orfaos conectados via SYSTEM_MAP.md — 2026-07-01 |
+| SA14 | Baixo | docs/session-template.md criado — 2026-07-01 |
+| BACKLOG-0.7 | Critico | Actualizar documentação desactualizada (6 ficheiros) — 2026-07-05 |
 
 ---
 
@@ -118,13 +122,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Critico |
 | **Owner** | Agente IA |
-| **Descricao** | 6 ficheiros de documentação contêm informações desactualizadas. README.md lista 13 comandos (existentes 26), 484 testes (existentes ~1056). AGENTS.md referencia ficheiros inexistentes (Requisitos_plataforma.md, docs/plans/TEMPLATE.md). GUIDE tem contagens erradas ("6 relatórios" = 12+, "15 registos" = 14). CONCEPTUAL_MODEL tem paths incompletos. SYSTEM_MAP não lista docs/audits/. |
+| **Resolucao** | Todos os 6 ficheiros actualizados (2026-07-05) — README.md (27 comandos, 1045+ testes), AGENTS.md (refs partidas removidas), GUIDE.md (contagens correctas), CONCEPTUAL_MODEL.md (paths corrigidos), SYSTEM_MAP.md (árvore actualizada), CHANGELOG.md (v0.2.0) |
 | **Plano** | `plans/2026-07-04-docs-sync-critical.md` |
 | **Arquivos** | README.md, docs/AGENTS.md, Nexus-System_GUIDE.md, CONCEPTUAL_MODEL.md, SYSTEM_MAP.md, CHANGELOG.md |
-| **Tempo estimado** | ~30 min |
 
 ---
 
@@ -1054,12 +1057,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Critico |
 | **Prioridade** | P0 |
-| **Owner** | unassigned |
+| **Owner** | Agente IA |
 | **Data** | 2026-06-30 |
-| **Fonte** | nexus audit (severity 3) |
+| **Resolucao** | Criado governance/WORKFLOW.md (2026-07-01) |
 | **Modulos** | nexus-system/governance/ |
 | **Descricao** | Documento governance/WORKFLOW.md nao encontrado. Critico para lifecycle state — impede comandos que requerem estado governed. |
 | **Correcao** | Criar WORKFLOW.md com fluxo de governanca do projeto. |
@@ -1124,12 +1127,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | Agente IA |
 | **Data** | 2026-06-30 |
-| **Fonte** | nexus audit --json (knowledgeGraph.orphanCount = 15) |
+| **Resolucao** | SYSTEM_MAP.md actualizado com referências a todos os ficheiros (2026-07-01) |
 | **Modulos** | nexus-system/ |
 | **Descricao** | 15 artifacts no knowledge graph sem relacoes conectando-os. Impossivel rastrear fluxo de conhecimento. |
 | **Correcao** | Adicionar relacoes entre artifacts órfãos e existentes. |
@@ -1236,12 +1239,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Agente IA |
 | **Data** | 2026-06-30 |
-| **Fonte** | nexus audit --json (severity 1) |
+| **Resolucao** | Criado docs/session-template.md (2026-07-01) |
 | **Modulos** | nexus-system/docs/ |
 | **Descricao** | Documento session-template.md nao encontrado. Recomendado para estruturar sessoes de trabalho. |
 | **Correcao** | Criar session-template.md a partir do template base. |
@@ -1314,9 +1317,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 41 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog |
-| **P0** (≤ 7d) | 4 | Auto-analise: WORKFLOW.md, digest bug, governanca 0%, governance infrastructure |
-| **P1** (≤ 30d) | 19 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
-| **P2** (≤ 90d) | 41 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
+| **Done** | 45 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync |
+| **P0** (≤ 7d) | 2 | Auto-analise: digest bug, governanca 0% |
+| **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
+| **P2** (≤ 90d) | 40 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
 | **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
-| **Total** | **142** | |
+| **Total** | **143** | |
