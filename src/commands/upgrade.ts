@@ -25,6 +25,7 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { recordFeedback } from "../feedback-loops.js";
 import { readManifest, writeManifest, updateManifest } from "../manifest.js";
+import { updateSystemMapCapabilityStatus } from "../scaffolder.js";
 
 const { copySync, ensureDirSync } = fse;
 
@@ -108,6 +109,11 @@ export const upgradeCommand = new Command("upgrade")
       const spinner = ora(`Installing ${toInstall.length} capability(ies)...`).start();
       const result = installCapabilities(targetDir, toInstall);
       spinner.succeed(`Installed ${result.filesInstalled} file(s) in ${result.directoriesCreated} directory(ies)`);
+
+      // Update AGENTS.md and SYSTEM_MAP.md with new capability sections
+      const allInstalled = [...installed, ...toInstall];
+      updateAgentsMdWithCapabilities(targetDir, allInstalled);
+      updateSystemMapStatus(targetDir, allInstalled);
 
       // Update manifest
       const currentManifest = readManifest(ctx.nexusDir);
@@ -235,6 +241,9 @@ export const upgradeCommand = new Command("upgrade")
         // Update AGENTS.md with new capability sections
         updateAgentsMdWithCapabilities(targetDir, [...installed, targetCapability as Capability]);
 
+        // Update SYSTEM_MAP.md capability status indicators
+        updateSystemMapStatus(targetDir, [...installed, targetCapability as Capability]);
+
         // Update manifest
         const currentManifest = readManifest(ctx.nexusDir);
         const { readFileSync: readFS } = await import("node:fs");
@@ -313,6 +322,31 @@ export const upgradeCommand = new Command("upgrade")
       return;
     }
   });
+
+// ── SYSTEM_MAP.md Update ─────────────────────────────────────────────────────
+
+/**
+ * Update SYSTEM_MAP.md capability status indicators.
+ * Regenerates the file from template with dynamic ✅/📋 status.
+ */
+function updateSystemMapStatus(
+  targetDir: string,
+  installedCapabilities: Capability[]
+): void {
+  const systemMapPath = join(targetDir, "nexus-system", "governance", "SYSTEM_MAP.md");
+  if (!existsSync(systemMapPath)) return;
+
+  const templatesDir = getTemplatesDir();
+  const templatePath = join(templatesDir, "governance", "SYSTEM_MAP.md");
+  if (!existsSync(templatePath)) return;
+
+  // Read template and apply capability status
+  let content = readFileSync(templatePath, "utf-8");
+  content = updateSystemMapCapabilityStatus(content, installedCapabilities);
+
+  // Write updated file
+  writeFileSync(systemMapPath, content, "utf-8");
+}
 
 // ── AGENTS.md Update ─────────────────────────────────────────────────────────
 

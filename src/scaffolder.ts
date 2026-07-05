@@ -280,7 +280,7 @@ const CAPABILITY_DEFS: Array<{ id: string; name: string; description: string } >
  * Within those markers, each row is replaced with the actual status:
  *   ✅ = installed, 📋 = available, 🔮 = future
  */
-function updateSystemMapCapabilityStatus(
+export function updateSystemMapCapabilityStatus(
   content: string,
   installedCapabilities: Capability[]
 ): string {
