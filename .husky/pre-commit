@@ -1,1 +1,23 @@
-pnpm test
+#!/bin/sh
+# pre-commit hook — fast checks only (lint + typecheck)
+# Full test suite runs in CI, not in pre-commit (too slow: ~240s for 1045 tests).
+
+echo "🔍 Running lint..."
+pnpm run lint
+LINT_EXIT=$?
+
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "❌ Lint failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "🔍 Running typecheck..."
+pnpm run typecheck
+TSC_EXIT=$?
+
+if [ $TSC_EXIT -ne 0 ]; then
+  echo "❌ Typecheck failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed."
