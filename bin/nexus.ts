@@ -37,13 +37,12 @@ import { docsAuditCommand } from "../src/commands/docs-audit.js";
 import { updateCommand } from "../src/commands/update.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
-import { initializeRuleEngine } from "../src/rule-engine.js";
+import { initializeRuleEngine, initializeRules } from "../src/rule-engine.js";
 import { initializeKnowledgeGraph } from "../src/knowledge-graph.js";
 import { initializeCapabilityEngine } from "../src/capability-engine.js";
 import { startSession, endSession } from "../src/session-tracker.js";
 import { installMiddleware } from "../src/cli-middleware.js";
 import { startWatching, stopWatching } from "../src/file-watcher.js";
-import { registerDocSyncHook } from "../src/doc-sync-hook.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -60,6 +59,7 @@ let currentSessionId: string | null = null;
 
 if (isInitialized) {
   enableEventPersistence(nexusDir);
+  initializeRules(nexusDir);
   initializeRuleEngine(projectRoot, nexusDir);
   initializeKnowledgeGraph(nexusDir);
   initializeCapabilityEngine(projectRoot, nexusDir);
@@ -87,12 +87,6 @@ if (isInitialized) {
     });
 
     startWatching(nexusDir);
-
-    registerDocSyncHook({
-      projectRoot,
-      enableAutoSync: true,
-      minSignificance: 0.3,
-    });
 
     showBriefingSummary(projectRoot, nexusDir);
   }

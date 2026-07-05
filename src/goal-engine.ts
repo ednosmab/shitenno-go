@@ -109,12 +109,12 @@ export class FileGoalRepository implements GoalRepository {
     return goals;
   }
 
-    delete(id: string): boolean {
-      const filepath = join(this.dir, `${id}.json`);
-      if (!existsSync(filepath)) return false;
-      try {
-        unlinkSync(filepath);
-        return true;
+  delete(id: string): boolean {
+    const filepath = join(this.dir, `${id}.json`);
+    if (!existsSync(filepath)) return false;
+    try {
+      unlinkSync(filepath);
+      return true;
     } catch {
       return false;
     }

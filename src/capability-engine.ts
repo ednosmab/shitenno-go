@@ -201,7 +201,7 @@ function getCapabilityFilesForEngine(capability: Capability): string[] {
   const fileMap: Record<Capability, string[]> = {
     core: ["opencode.json", "docs/AGENTS.md"],
     knowledge: ["docs/skills/", "docs/AGENTS.md"],
-    architecture: ["docs/adrs/", "docs/sdr/", "docs/plans/"],
+    architecture: ["docs/adr/", "docs/plans/"],
     governance: ["governance/WORKFLOW.md", "governance/context/"],
     ai: ["governance/agents/", "cognition/"],
     quality: ["scripts/validate-session.ts"],

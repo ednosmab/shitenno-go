@@ -2,7 +2,7 @@
  * section-box.tsx — Section container with title
  *
  * Renders a titled box section with consistent styling.
- * Supports mouse click to expand/focus.
+ * (Mouse click to expand/focus: not implemented — see backlog)
  */
 
 import React from "react";

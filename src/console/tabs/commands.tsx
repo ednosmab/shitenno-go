@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useCallback } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useInput } from "ink";
 import { CommandCard } from "../components/command-card.js";
 import { CommandOutput } from "../components/command-output.js";
 import {
@@ -115,6 +115,31 @@ export function CommandsTab({ projectRoot }: CommandsTabProps): React.ReactEleme
       handleCancel();
     }
   }, [viewMode, handleBack, handleCancel]);
+
+  // Wire local keyboard handlers. Multiple useInput hooks coexist in Ink.
+  // The global handler in index.tsx still processes q/Ctrl+C and tab switching
+  // (left/right arrows) — we only intercept keys relevant to this tab.
+  useInput((input, key) => {
+    if (viewMode === "list") {
+      if (key.upArrow) {
+        navigateUp();
+      } else if (key.downArrow) {
+        navigateDown();
+      } else if (key.return) {
+        handleEnter();
+      }
+    } else if (viewMode === "output") {
+      if (key.escape) {
+        handleEscape();
+      }
+    } else if (viewMode === "confirm") {
+      if (key.escape) {
+        handleEscape();
+      } else if (input === "y" || input === "Y") {
+        handleConfirm();
+      }
+    }
+  });
 
   // Confirmation view
   if (viewMode === "confirm" && pendingCommand) {

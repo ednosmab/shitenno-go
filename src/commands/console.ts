@@ -52,17 +52,17 @@ function displayConsole(
 
   // ── Token Economy ──────────────────────────────────────────────
   console.log(chalk.bold("  💰 Token Economy"));
-  console.log(`     Total saved:    ${chalk.green("~" + summary.tokenEconomy.totalTokensSaved.toLocaleString() + " tokens")}`);
-  console.log(`     Avg per session: ${chalk.green("~" + summary.tokenEconomy.avgTokensSaved.toLocaleString() + " tokens")}`);
+  console.log(`     Total saved (estimated):    ${chalk.green("~" + summary.tokenEconomy.totalTokensSaved.toLocaleString() + " tokens")}`);
+  console.log(`     Avg per session (estimated): ${chalk.green("~" + summary.tokenEconomy.avgTokensSaved.toLocaleString() + " tokens")}`);
   console.log(`     Cache hits:     ${chalk.cyan(String(summary.tokenEconomy.cacheHits))} / ${summary.totalSessions}`);
   console.log(`     Cache hit rate: ${healthBar(summary.tokenEconomy.cacheHitRate * 100, 100)} ${Math.round(summary.tokenEconomy.cacheHitRate * 100)}%`);
   console.log("");
 
   // ── Monthly Projection ─────────────────────────────────────────
   console.log(chalk.bold("  📈 Monthly Projection (10 sessions)"));
-  console.log(`     Tokens saved:   ${chalk.green("~" + summary.tokenEconomy.monthlyProjection.toLocaleString())}`);
+  console.log(`     Tokens saved (estimated):   ${chalk.green("~" + summary.tokenEconomy.monthlyProjection.toLocaleString())}`);
   const monthlyCost = (summary.tokenEconomy.monthlyProjection / 1_000_000) * 5;
-  console.log(`     Cost saved:     ${chalk.green("~$" + monthlyCost.toFixed(2) + "/month")}`);
+  console.log(`     Cost saved (estimated, heuristic baseline):     ${chalk.green("~$" + monthlyCost.toFixed(2) + "/month")}`);
   console.log("");
 
   // ── Failure Hotspots ───────────────────────────────────────────
@@ -99,7 +99,7 @@ function displayConsole(
     console.log("");
   }
 
-  // ── Health Score ───────────────────────────────────────────────
+  // ── Session Score ───────────────────────────────────────────────
   const healthScore = Math.round(
     (summary.successRate * 40) +
     (summary.tokenEconomy.cacheHitRate * 30) +

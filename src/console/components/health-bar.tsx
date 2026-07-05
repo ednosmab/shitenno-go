@@ -2,7 +2,7 @@
  * health-bar.tsx — Reusable health bar component
  *
  * Renders a colored ASCII health bar with label and value.
- * Supports mouse hover and screen reader labels.
+ * Supports screen reader labels. (Mouse hover: not implemented — see backlog)
  */
 
 import React from "react";
