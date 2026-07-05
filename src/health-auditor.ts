@@ -924,14 +924,13 @@ function detectAdrCoverage(nexusDir: string): HealthIssue[] {
 
 // ── Health Score ─────────────────────────────────────────────────────────────
 
-function calculateHealthScore(issues: HealthIssue[]): number {
-  let score = 100;
-  for (const issue of issues) {
-    if (issue.severity === 3) score -= 20;
-    else if (issue.severity === 2) score -= 10;
-    else score -= 3;
-  }
-  return Math.max(0, Math.min(100, score));
+function calculateHealthScore(issues: HealthIssue[], totalFiles: number): number {
+  const weights: Record<number, number> = { 3: 5, 2: 2, 1: 0.5 };
+  const rawPenalty = issues.reduce((sum, issue) => sum + (weights[issue.severity] ?? 0), 0);
+  const normalizer = Math.max(totalFiles, 10);
+  const density = rawPenalty / normalizer;
+  const score = 100 * Math.exp(-density * 2);
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 // ── Optimization Proposer ────────────────────────────────────────────────────
@@ -3802,7 +3801,7 @@ export function auditHealth(
   }
 
   const deduped = deduplicateIssues(issues);
-  const healthScore = calculateHealthScore(deduped);
+  const healthScore = calculateHealthScore(deduped, sourceFiles.length);
   const optimizations = proposeOptimizations(deduped);
 
   const critical = deduped.filter((i) => i.severity === 3).length;
