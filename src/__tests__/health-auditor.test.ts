@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { auditHealth, writeHealthReport } from "../health-auditor.js";
+import { TaintAnalyzer } from "../audit/taint/index.js";
 
 let tempDir: string;
 let nexusDir: string;
@@ -14,6 +15,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  TaintAnalyzer.clearCache();
   rmSync(tempDir, { recursive: true, force: true });
 });
 

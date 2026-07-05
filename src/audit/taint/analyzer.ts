@@ -41,6 +41,11 @@ export class TaintAnalyzer {
   private static programCache = new Map<string, ts.Program>();
   private nodeCounter = 0;
 
+  /** Clear the static program cache (useful between test runs to avoid OOM) */
+  static clearCache(): void {
+    TaintAnalyzer.programCache.clear();
+  }
+
   constructor(options: TaintAnalyzerOptions) {
     this.options = {
       maxDepth: options.maxDepth ?? 20,
