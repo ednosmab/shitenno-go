@@ -1,8 +1,18 @@
 # SYSTEM_MAP — Mapa Centralizado
 
-> **Versão:** 1.0
+> **Versão:** 1.1
 > **Data:** YYYY-MM-DD
 > **Propósito:** Mapa de todos os directórios e arquivos do sistema
+
+---
+
+## Legenda de Estados
+
+| Ícone | Estado | Significado |
+|---|---|---|
+| ✅ | **Instalado** | Capacidade activa e operacional no projecto |
+| 📋 | **Disponível** | Capacidade pode ser instalada via `nexus upgrade` |
+| 🔮 | **Futuro** | Capacidade planeada mas ainda não disponível |
 
 ---
 
@@ -33,6 +43,27 @@ nexus-system/
 │   └── reviews/                        ← Reviews de sessão
 └── scripts/                            ← Scripts de validação
 ```
+
+---
+
+## Capacidades Instaladas
+
+<!-- CAPABILITY_STATUS -->
+As capacidades instaladas neste projecto determinam quais secções do AGENTS.md
+estão activas. Execute `nexus upgrade --list` para ver todas as capacidades.
+
+| Capacidade | Estado | Descrição |
+|---|---|---|
+| `core` | ✅ | Fundação básica (docs, scripts, opencode.json) |
+| `knowledge` | ✅ | Skills, AGENTS.md regras, documentação |
+| `governance` | ✅ | Workflows, context buffer, handoffs |
+| `architecture` | ✅ | ADRs, SDRs, planos, session templates |
+| `ai` | ✅ | Contratos de agentes, cognition, prompts |
+| `quality` | ✅ | Scripts de validação, sync-docs |
+| `metrics` | ✅ | Relatórios, histórico |
+| `operations` | ✅ | Runbooks, close-session, premortem |
+| `compliance` | ✅ | Premortem reviews, session reviews |
+<!-- /CAPABILITY_STATUS -->
 
 ---
 
@@ -69,6 +100,7 @@ nexus-system/
 | validate-session | `scripts/validate-session.ts` | Validar integridade da sessão |
 | close-session | `scripts/close-session.ts` | Encerrar sessão |
 | premortem-check | `scripts/premortem-check.ts` | Análise de riscos |
+| sync-docs | `scripts/sync-docs.ts` | Sincronizar documentação |
 
 ---
 
@@ -88,4 +120,25 @@ nexus-system/
 
 - `governance/WORKFLOW.md` — Fluxos de sessão
 - `docs/AGENTS.md` — Regras do time
+- `docs/capabilities.md` — Mapeamento capacidade→regras→arquivos
 - `docs/Nexus-System_GUIDE.md` — Guia completo
+
+---
+
+## Diagnóstico de Capacidades
+
+Quando uma regra do AGENTS.md referencia infraestrutura ausente (ex: WORKFLOW.md,
+context buffer, agent contracts), o agente DEVE informar ao utilizador:
+
+```
+nexus upgrade --capability <name>
+```
+
+para desbloquear essa funcionalidade. O `nexus upgrade --list` mostra todas as
+capacidades e o seu estado actual.
+
+**Fluxo de detecção:**
+1. Detectar regra que referencia arquivo/capacidade ausente
+2. Identificar capacidade necessária
+3. Recomendar `nexus upgrade --capability <capacidade>`
+4. Nunca assumir que o utilizador sabe o que falta

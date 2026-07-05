@@ -156,6 +156,11 @@ export function scaffoldNexusSystem(
         content = filterAgentsMdByCapabilities(content, capabilities);
       }
 
+      // Update SYSTEM_MAP.md capability status indicators
+      if (file.dest.includes("SYSTEM_MAP.md")) {
+        content = updateSystemMapCapabilityStatus(content, capabilities);
+      }
+
       writeFileSync(destPath, content, "utf-8");
     } else {
       copySync(srcPath, destPath);
@@ -247,6 +252,60 @@ function filterAgentsMdByCapabilities(
     // Remove entire block for uninstalled capabilities
     return "";
   });
+}
+
+// ── SYSTEM_MAP.md Capability Status ─────────────────────────────────────────
+
+/**
+ * Available capability definitions with metadata.
+ */
+const CAPABILITY_DEFS: Array<{ id: string; name: string; description: string } > = [
+  { id: "core", name: "core", description: "Fundação básica (docs, scripts, opencode.json)" },
+  { id: "knowledge", name: "knowledge", description: "Skills, AGENTS.md regras, documentação" },
+  { id: "governance", name: "governance", description: "Workflows, context buffer, handoffs" },
+  { id: "architecture", name: "architecture", description: "ADRs, SDRs, planos, session templates" },
+  { id: "ai", name: "ai", description: "Contratos de agentes, cognition, prompts" },
+  { id: "quality", name: "quality", description: "Scripts de validação, sync-docs" },
+  { id: "metrics", name: "metrics", description: "Relatórios, histórico" },
+  { id: "operations", name: "operations", description: "Runbooks, close-session, premortem" },
+  { id: "compliance", name: "compliance", description: "Premortem reviews, session reviews" },
+];
+
+/**
+ * Update the capability status table in SYSTEM_MAP.md.
+ *
+ * The template contains markers:
+ *   <!-- CAPABILITY_STATUS --> ... <!-- /CAPABILITY_STATUS -->
+ *
+ * Within those markers, each row is replaced with the actual status:
+ *   ✅ = installed, 📋 = available, 🔮 = future
+ */
+function updateSystemMapCapabilityStatus(
+  content: string,
+  installedCapabilities: Capability[]
+): string {
+  // Match the CAPABILITY_STATUS block
+  const blockRegex = /<!-- CAPABILITY_STATUS -->[\s\S]*?<!-- \/CAPABILITY_STATUS -->/;
+
+  const newRows = CAPABILITY_DEFS.map((cap) => {
+    const isInstalled = installedCapabilities.includes(cap.id as Capability);
+    const icon = isInstalled ? "✅" : "📋";
+    const status = isInstalled ? "instalado" : "disponível";
+    return `| \`${cap.name}\` | ${icon} ${status} | ${cap.description} |`;
+  });
+
+  const newBlock = [
+    "<!-- CAPABILITY_STATUS -->",
+    "As capacidades instaladas neste projecto determinam quais secções do AGENTS.md",
+    "estão activas. Execute `nexus upgrade --list` para ver todas as capacidades.",
+    "",
+    "| Capacidade | Estado | Descrição |",
+    "|---|---|---|",
+    ...newRows,
+    "<!-- /CAPABILITY_STATUS -->",
+  ].join("\n");
+
+  return content.replace(blockRegex, newBlock);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
