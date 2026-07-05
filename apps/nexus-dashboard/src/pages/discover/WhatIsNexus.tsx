@@ -4,10 +4,10 @@ import { Logo } from '../../components/shared/Logo'
 export default function WhatIsNexus() {
   return (
     <div className="flex flex-col gap-8">
-      <section className="layer-hero text-center flex flex-col gap-4">
-        <Logo size="lg" className="mx-auto" />
+      <section className="layer-hero">
+        <Logo size="lg" />
         <h1 className="text-2xl font-bold text-text-primary">What is Nexus?</h1>
-        <p className="text-text-secondary max-w-2xl mx-auto">
+        <p className="text-text-secondary max-w-xl">
           Nexus is a CLI that gives persistent context about your project to you and AI agents, so no one starts each session from zero.
         </p>
       </section>

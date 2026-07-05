@@ -140,45 +140,48 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <span className="text-[10px] text-text-muted font-mono ml-auto">v0.1</span>
         </div>
 
-        <nav className="p-3 space-y-0.5 overflow-y-auto h-[calc(100%-3.5rem-2.5rem)]">
+        <nav className="flex flex-col gap-0.5 p-3 overflow-y-auto h-[calc(100%-3.5rem-2.5rem)]">
           {layers.map(layer => {
             const isExpanded = expandedLayer === layer.id
             return (
-              <div key={layer.id}>
+              <div key={layer.id} className="flex flex-col">
                 <button
                   onClick={() => toggleLayer(layer.id)}
-                  className={`
-                    w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                    transition-colors duration-100 font-medium
-                    ${isExpanded
-                      ? 'text-text-primary bg-surface-2/50'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/30'
-                    }
-                  `}
+                  className={[
+                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium',
+                    'transition-all duration-150',
+                    isExpanded
+                      ? 'text-text-primary bg-surface-2'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/50',
+                  ].join(' ')}
                 >
-                  <span className="w-5 text-center text-xs opacity-70">{layer.icon}</span>
+                  <span className="w-5 text-center text-xs shrink-0">{layer.icon}</span>
                   <span className="flex-1 text-left">{layer.label}</span>
-                  <span className={`text-[10px] text-text-muted transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}>
+                  <span
+                    style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
+                    className="text-[10px] text-text-muted shrink-0"
+                  >
                     ▸
                   </span>
                 </button>
 
                 {isExpanded && (
-                  <div className="ml-5 pl-3 border-l border-border-subtle mt-1.5 space-y-1">
+                  <div
+                    style={{ borderLeft: '2px solid var(--color-border-default)', marginLeft: '20px', paddingLeft: '12px', marginTop: '4px' }}
+                    className="flex flex-col gap-0.5"
+                  >
                     {layer.items.map(item => (
                       <NavLink
                         key={item.to}
                         to={item.to}
                         end
                         onClick={onClose}
-                        className={({ isActive }) => `
-                          block px-2.5 py-1.5 rounded-md text-[13px] font-medium
-                          transition-all duration-200
-                          ${isActive
-                            ? 'bg-accent-subtle/20 text-accent font-semibold'
-                            : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/40'
-                          }
-                        `}
+                        className={({ isActive }) => [
+                          'block px-3 py-1.5 rounded-md text-[13px] transition-all duration-150',
+                          isActive
+                            ? 'text-accent font-semibold bg-accent-subtle/10'
+                            : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/50',
+                        ].join(' ')}
                       >
                         {item.label}
                       </NavLink>
