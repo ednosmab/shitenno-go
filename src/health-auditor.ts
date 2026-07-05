@@ -141,7 +141,11 @@ export interface HealthIssue {
     | "proto_pollution"
     | "regex_dos"
     | "unsafe_deserialize"
-    | "dep_confusion";
+    | "dep_confusion"
+    // New detectors (Fase 5)
+    | "dependency_vulnerability"
+    | "incompatible_license"
+    | "config_secret";
   severity: 1 | 2 | 3;
   description: string;
   location: string;
@@ -3695,6 +3699,126 @@ function detectDeprecatedPackages(projectRoot: string): HealthIssue[] {
   return issues;
 }
 
+// ── New detectors (Fase 5) ───────────────────────────────────────────────────
+
+/**
+ * VULN-01: Detecta dependências com vulnerabilidades conhecidas via npm audit.
+ */
+function detectDependencyVulnerabilities(projectRoot: string): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  const lockPath = join(projectRoot, "package-lock.json");
+  if (!existsSync(lockPath)) return issues;
+
+  try {
+    const output = execSync("npm audit --json 2>/dev/null", {
+      cwd: projectRoot,
+      encoding: "utf-8",
+      timeout: 15000,
+    });
+    const audit = JSON.parse(output);
+    const vulns = audit.vulnerabilities ?? {};
+
+    for (const [name, info] of Object.entries(vulns)) {
+      const v = info as { severity?: string; via?: Array<{ title?: string; url?: string }> };
+      if (!v.severity) continue;
+      const severity = v.severity === "critical" || v.severity === "high" ? 3
+        : v.severity === "moderate" ? 2 : 1;
+      const via = v.via?.filter((x: { title?: string }) => x.title).map((x: { title?: string }) => x.title).join(", ") ?? "";
+      issues.push({
+        type: "dependency_vulnerability",
+        severity: severity as 1 | 2 | 3,
+        description: `Dependência "${name}" possui vulnerabilidade (${v.severity}): ${via}`,
+        location: "package-lock.json",
+        recommendation: `Rodar "npm audit fix" ou atualizar ${name} para versão segura`,
+      });
+    }
+  } catch { /* npm audit returns non-zero on vulns, that's expected */ }
+  return issues;
+}
+
+/**
+ * LIC-01: Detecta licenças potencialmente incompatíveis em dependências.
+ */
+const BLOCKED_LICENSES = ["GPL-3.0", "AGPL-3.0", "SSPL-1.0", "EUPL-1.1"];
+
+function detectIncompatibleLicenses(projectRoot: string): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  const nodeModules = join(projectRoot, "node_modules");
+  if (!existsSync(nodeModules)) return issues;
+
+  try {
+    const entries = readdirSync(nodeModules, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+      const pkgJsonPath = join(nodeModules, entry.name, "package.json");
+      if (!existsSync(pkgJsonPath)) continue;
+      try {
+        const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+        const license = typeof pkg.license === "string" ? pkg.license
+          : typeof pkg.license === "object" ? pkg.license.type : "";
+        if (BLOCKED_LICENSES.some((bl) => license.includes(bl))) {
+          issues.push({
+            type: "incompatible_license",
+            severity: 2,
+            description: `Dependência "${entry.name}" usa licença ${license} — potencialmente incompatível com uso comercial`,
+            location: `node_modules/${entry.name}/package.json`,
+            recommendation: `Verificar compatibilidade da licença ${license} ou buscar alternativa`,
+          });
+        }
+      } catch { /* skip malformed package.json */ }
+    }
+  } catch { /* skip */ }
+  return issues;
+}
+
+/**
+ * CFG-01: Detecta segredos em arquivos de config versionados (.env, credentials, etc.).
+ */
+function detectConfigSecrets(projectRoot: string): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  const SECRET_PATTERNS = [
+    { regex: /(?:password|passwd|pwd)\s*[=:]\s*\S+/i, name: "password" },
+    { regex: /(?:api[_-]?key|apikey)\s*[=:]\s*\S+/i, name: "API key" },
+    { regex: /(?:secret|token)\s*[=:]\s*\S+/i, name: "secret/token" },
+    { regex: /(?:private[_-]?key)\s*[=:]\s*\S+/i, name: "private key" },
+  ];
+  const CONFIG_FILES = [".env", ".env.local", ".env.production", "credentials.json", "secrets.json", ".npmrc"];
+
+  for (const fileName of CONFIG_FILES) {
+    const filePath = join(projectRoot, fileName);
+    if (!existsSync(filePath)) continue;
+    // Skip .env files that are in .gitignore (not version-controlled)
+    const gitignorePath = join(projectRoot, ".gitignore");
+    if (existsSync(gitignorePath)) {
+      const gitignore = readFileSync(gitignorePath, "utf-8");
+      if (gitignore.split("\n").some((line) => line.trim() === fileName || line.trim() === `/${fileName}`)) {
+        continue;
+      }
+    }
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (line.trim().startsWith("#") || !line.trim()) continue;
+        for (const { regex, name } of SECRET_PATTERNS) {
+          if (regex.test(line)) {
+            issues.push({
+              type: "config_secret",
+              severity: 3,
+              description: `Possível ${name} em "${fileName}:${i + 1}" — arquivo de config versionado contém segredo`,
+              location: `${fileName}:${i + 1}`,
+              recommendation: `Mover segredo para variável de ambiente ou .env gitignored; adicionar ${fileName} ao .gitignore`,
+            });
+            break;
+          }
+        }
+      }
+    } catch { /* skip unreadable files */ }
+  }
+  return issues;
+}
+
 // ── Remove issues duplicadas por (type, description, location).
 function deduplicateIssues(issues: HealthIssue[]): HealthIssue[] {
   const seen = new Map<string, HealthIssue>();
@@ -3780,6 +3904,9 @@ export function auditHealth(
     detectLockFileDrift: () => detectLockFileDrift(projectRoot),
     detectPhantomDependencies: () => detectPhantomDependencies(projectRoot, sourceFiles),
     detectDeprecatedPackages: () => detectDeprecatedPackages(projectRoot),
+    detectDependencyVulnerabilities: () => detectDependencyVulnerabilities(projectRoot),
+    detectIncompatibleLicenses: () => detectIncompatibleLicenses(projectRoot),
+    detectConfigSecrets: () => detectConfigSecrets(projectRoot),
     // Security pattern detectors (SEC-*)
     detectHardcodedSecrets: () => detectHardcodedSecrets(projectRoot, sourceFiles),
     detectSQLInjection: () => detectSQLInjection(projectRoot, sourceFiles),
