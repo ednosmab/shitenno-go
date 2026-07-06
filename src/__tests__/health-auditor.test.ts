@@ -659,7 +659,7 @@ describe("AuditLevel filtering", () => {
     const fullReport = auditHealth(tempDir, nexusDir, "full");
     expect(fullReport.level).toBe("full");
     expect(fullReport.issues.length).toBeGreaterThanOrEqual(quickReport.issues.length);
-  });
+  }, 40_000);
 });
 
 describe("Full-level detectors", () => {

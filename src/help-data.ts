@@ -39,12 +39,19 @@ export const COMMAND_CATEGORIES: CommandCategory[] = [
         ],
       },
       {
-        name: "sync",
-        description: "Sync governance files from nexus-system to project",
-        usage: "nexus sync [options]",
+        name: "mcp",
+        description: "MCP server for AI agents — start server or install globally",
+        usage: "nexus mcp [options] [command]",
         examples: [
-          "nexus sync                # Sync all governance files",
-          "nexus sync --dir ./app    # Sync specific project",
+          "nexus mcp                    # Start MCP server",
+          "nexus mcp --project-root .   # Specify project root",
+          "nexus mcp install            # Install MCP Filesystem server",
+          "nexus mcp install --check    # Check installation status",
+          "nexus mcp install --upgrade  # Upgrade to latest version",
+        ],
+        tips: [
+          "Connect your AI agent to this server for live project context",
+          "Run 'nexus mcp install' once to fix MCP timeout issues",
         ],
       },
       {
