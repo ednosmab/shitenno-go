@@ -40,7 +40,7 @@ function setupNexusDirGoverned(dir: string) {
 
 function getJsonOutput(): Record<string, unknown> {
   const jsonCalls = consoleSpy.mock.calls.find(
-    (call) => typeof call[0] === "string" && call[0].startsWith("{")
+    (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).startsWith("{")
   );
   if (!jsonCalls) return {};
   return JSON.parse(jsonCalls[0] as string);
