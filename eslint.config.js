@@ -28,6 +28,7 @@ export default [
       "no-console": "off",
       "prefer-const": "warn",
       "no-var": "error",
+      "no-restricted-globals": ["error", "__dirname", "__filename"],
     },
   },
 ];

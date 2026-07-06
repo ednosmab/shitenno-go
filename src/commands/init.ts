@@ -10,7 +10,8 @@
 
 import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
@@ -362,6 +363,8 @@ export const initCommand = new Command("init")
       const { readFileSync: readFS } = await import("node:fs");
       let cliVersion = "unknown";
       try {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
         const pkg = JSON.parse(readFS(join(__dirname, "..", "..", "package.json"), "utf-8"));
         cliVersion = pkg.version || "unknown";
       } catch {

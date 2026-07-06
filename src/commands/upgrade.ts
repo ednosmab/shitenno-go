@@ -118,6 +118,8 @@ export const upgradeCommand = new Command("upgrade")
       // Update manifest
       const currentManifest = readManifest(ctx.nexusDir);
       const { readFileSync: readFS } = await import("node:fs");
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
       let cliVersion = "unknown";
       try {
         const pkg = JSON.parse(readFS(join(__dirname, "..", "..", "package.json"), "utf-8"));
@@ -247,9 +249,11 @@ export const upgradeCommand = new Command("upgrade")
         // Update manifest
         const currentManifest = readManifest(ctx.nexusDir);
         const { readFileSync: readFS } = await import("node:fs");
+        const __filename2 = fileURLToPath(import.meta.url);
+        const __dirname2 = dirname(__filename2);
         let cliVersion = "unknown";
         try {
-          const pkg = JSON.parse(readFS(join(__dirname, "..", "..", "package.json"), "utf-8"));
+          const pkg = JSON.parse(readFS(join(__dirname2, "..", "..", "package.json"), "utf-8"));
           cliVersion = pkg.version || "unknown";
         } catch {
           // Skip

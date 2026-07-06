@@ -930,7 +930,11 @@ function detectAdrCoverage(nexusDir: string): HealthIssue[] {
 
 function calculateHealthScore(issues: HealthIssue[], totalFiles: number): number {
   const weights: Record<number, number> = { 3: 5, 2: 2, 1: 0.5 };
-  const rawPenalty = issues.reduce((sum, issue) => sum + (weights[issue.severity] ?? 0), 0);
+  const bySeverity = { 3: 0, 2: 0, 1: 0 };
+  for (const issue of issues) bySeverity[issue.severity] = (bySeverity[issue.severity] ?? 0) + 1;
+  const rawPenalty = Object.entries(bySeverity).reduce(
+    (sum, [sev, count]) => sum + (weights[Number(sev)] ?? 0) * Math.sqrt(count), 0
+  );
   const normalizer = Math.max(totalFiles, 10);
   const density = rawPenalty / normalizer;
   const score = 100 * Math.exp(-density * 2);

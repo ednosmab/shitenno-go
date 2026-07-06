@@ -207,9 +207,8 @@ export class TaintAnalyzer {
 
         this.graph.addNode(taintNode);
 
-        // Mark the variable as tainted
-        const symbol = this.checker.getSymbolAtLocation(node);
-        const varName = symbol?.getName() ?? fullName;
+        // Mark the variable as tainted (chave consistente com getSymbolName)
+        const varName = fullName;
         this.variableTaint.set(varName, {
           name: varName,
           tainted: true,

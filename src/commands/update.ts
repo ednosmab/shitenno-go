@@ -9,6 +9,9 @@ import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
