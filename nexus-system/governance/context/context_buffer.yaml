@@ -40,7 +40,15 @@ documents_loaded:
 
 impediments: []
 
-technical_debt: []
+technical_debt:
+  - id: "NEW-001"
+    description: "Runtime validation nexus-system/profile — erro cryptico se nexus init nao foi feito"
+    severity: "medium"
+    added_at: "2026-07-06T04:15:00Z"
+  - id: "NEW-002"
+    description: "Feedback pessoal do agente nunca executado automaticamente — investigar causa raiz"
+    severity: "medium"
+    added_at: "2026-07-06T04:15:00Z"
 
 model_assignments:
   planner: "opencode/mimo-v2.5-free"

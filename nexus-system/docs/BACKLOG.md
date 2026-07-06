@@ -1302,6 +1302,15 @@
 
 ---
 
+## Novos Itens (2026-07-06)
+
+| ID | Prioridade | Severidade | Titulo | Descricao |
+|---|---|---|---|---|
+| NEW-001 | P1 | Medio | Runtime validation nexus-system/profile | Adicionar validacao em runtime para existencia de `nexus-system/profile/` antes de ler config. Actualmente o utilizador ve erro cryptico se ainda nao fez `nexus init`. Sugestao: verificar existencia do directorio e dar mensagem amigavel. |
+| NEW-002 | P1 | Medio | Investigar feedback pessoal do agente | O protocolo de feedback em AGENTS.md (regra #17) exige que o agente gere e apresente feedback pessoal ao utilizador no fim de sessao. No entanto, este feedback nunca e executado automaticamente. Investigar: (1) e a skill `quick-board-enforcement.md` que bloqueia? (2) e o `loading_profile` lite que nao carrega a regra #17? (3) e o `opencode.json` que nao activa o modo review no fim de sessao? Documentar causa raiz e corrigir. |
+
+---
+
 ## Metricas de Qualidade (snapshot 2026-06-30)
 
 ```
@@ -1326,9 +1335,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 47 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync |
+| **Done** | 48 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync, nexus-system consolidation |
 | **P0** (≤ 7d) | 1 | Auto-analise: governanca 0% |
-| **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
+| **P1** (≤ 30d) | 19 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template, runtime validation nexus-system/profile, feedback pessoal do agente |
 | **P2** (≤ 90d) | 39 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
 | **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
-| **Total** | **143** | |
+| **Total** | **145** | |
