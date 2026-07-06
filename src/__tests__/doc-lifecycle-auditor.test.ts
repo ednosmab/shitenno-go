@@ -387,9 +387,10 @@ describe("applyMoves", () => {
       "# Plan\n\n### 1.1\n- **Status:** Concluído\n"
     );
 
+    const report = auditDocLifecycle(tempDir, nexusDir);
+    const result = applyMoves(report, nexusDir, false);
 
-
-
+    expect(result.movesApplied).toBeGreaterThanOrEqual(1);
     expect(existsSync(join(nexusDir, "docs", "_archive", "completed"))).toBe(true);
   });
 

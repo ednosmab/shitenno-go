@@ -52,7 +52,7 @@ function getJsonOutput(): Record<string, unknown> {
 
 describe("clean command action handler", () => {
   it("removes .nexus-cache.json", () => {
-    setupNexusDir(tempDir);
+    setupNexusDirGoverned(tempDir);
     writeFileSync(join(tempDir, ".nexus-cache.json"), "{}");
 
     cleanCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
@@ -61,7 +61,7 @@ describe("clean command action handler", () => {
   });
 
   it("removes *.tsbuildinfo files", () => {
-    setupNexusDir(tempDir);
+    setupNexusDirGoverned(tempDir);
     writeFileSync(join(tempDir, "tsconfig.tsbuildinfo"), "{}");
 
     cleanCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
@@ -70,7 +70,7 @@ describe("clean command action handler", () => {
   });
 
   it("outputs JSON with itemsRemoved array", () => {
-    setupNexusDir(tempDir);
+    setupNexusDirGoverned(tempDir);
     writeFileSync(join(tempDir, ".nexus-cache.json"), "{}");
 
     cleanCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
@@ -83,7 +83,7 @@ describe("clean command action handler", () => {
   });
 
   it("outputs empty itemsRemoved when nothing to clean", () => {
-    setupNexusDir(tempDir);
+    setupNexusDirGoverned(tempDir);
 
     cleanCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
 
@@ -99,7 +99,7 @@ describe("clean command action handler", () => {
 
 describe("doctor command action handler", () => {
   it("outputs JSON with health report structure", () => {
-
+    setupNexusDirGoverned(tempDir);
 
     doctorCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
 
@@ -171,7 +171,7 @@ describe("report command action handler", () => {
 
 describe("assess command action handler", () => {
   it("outputs JSON with assessment structure", () => {
-
+    setupNexusDirGoverned(tempDir);
 
     assessCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
 
@@ -182,7 +182,7 @@ describe("assess command action handler", () => {
   });
 
   it("newProfile has dimensions and scores", () => {
-
+    setupNexusDirGoverned(tempDir);
 
     assessCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
 
@@ -225,7 +225,7 @@ describe("evolve command action handler", () => {
   });
 
   it("accept records feedback", () => {
-
+    setupNexusDirGoverned(tempDir);
 
     evolveCommand.parse(
       ["node", "test", "--dir", tempDir, "--json", "--accept", "EVO-001", "--comfortable"],
@@ -237,7 +237,7 @@ describe("evolve command action handler", () => {
   });
 
   it("reject records feedback with reason", () => {
-
+    setupNexusDirGoverned(tempDir);
 
     evolveCommand.parse(
       ["node", "test", "--dir", tempDir, "--json", "--reject", "EVO-002", "--reason", "Not now"],
@@ -260,7 +260,7 @@ describe("sync command action handler", () => {
     syncCommand.parse(["node", "test", "--dir", tempDir, "--json"], { from: "user" });
 
     const output = getJsonOutput();
-    expect(output.error).toBe("missing_path");
+    expect(output.error).toBe("lifecycle_gate");
   });
 
   it("errors when nexus-system directory not found", () => {
@@ -272,7 +272,7 @@ describe("sync command action handler", () => {
     );
 
     const output = getJsonOutput();
-    expect(output.error).toBe("missing_nexus_dir");
+    expect(output.error).toBe("lifecycle_gate");
   });
 
   it("errors when project not initialized", () => {

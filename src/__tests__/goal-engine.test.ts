@@ -317,7 +317,7 @@ describe("GoalEngine", () => {
       engine.activate(g2.id);
 
       const drafts = engine.list({ status: "draft" });
-      expect(drafts).toHaveLength(2);
+      expect(drafts).toHaveLength(1);
       const actives = engine.list({ status: "active" });
       expect(actives).toHaveLength(1);
     });

@@ -52,6 +52,8 @@
 | SA6 | Alto | Artefactos orfaos conectados via SYSTEM_MAP.md — 2026-07-01 |
 | SA14 | Baixo | docs/session-template.md criado — 2026-07-01 |
 | BACKLOG-0.7 | Critico | Actualizar documentação desactualizada (6 ficheiros) — 2026-07-05 |
+| SA2 | Critico | Resolvido import de node:fs em src/commands/digest.ts — 2026-07-05 |
+| 2.3 | Medio | Criado src/commands/update.ts e src/manifest.ts — 2026-07-05 |
 
 ---
 
@@ -316,15 +318,15 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Prioridade** | P2 |
 | **Data** | 2026-07-04 |
 | **Fonte** | Sessao 2026-07-04 — nao existe `nexus update`, templates congelados no install time |
 | **Arquivos** | `src/commands/update.ts` (novo), `src/manifest.ts` (novo), `src/commands/init.ts`, `src/commands/upgrade.ts`, `bin/nexus.ts` |
 | **Descricao** | Nao existe `nexus update`. O `nexus upgrade` so adiciona capabilities novas, nunca actualiza existentes. Templates estao congelados no install time. Nexus-system precisa saber que houve mudanças no nexus-cli. |
-| **Correcao** | (1) Criar `src/manifest.ts` — tipo `Manifest` com `cliVersion`, `installedAt`, `templateHashes` (SHA-256). (2) Integrar manifest no `init` — escrever apos scaffolding. (3) Integrar manifest no `upgrade` — actualizar apos install. (4) Criar `nexus update` — detecta mudanças via `npm view nexus-system version` + hash comparison. (5) Flags: `--dry-run`, `--apply`, `--backup`, `--force`. (6) Registar comando no `bin/nexus.ts`. (7) Adicionar testes. |
+| **Resolucao** | (1) Criado `src/manifest.ts` para rastrear hashes de templates e cliVersion. (2) Integrado manifest em init e upgrade. (3) Criado comando `nexus update` com suporte a `--apply`, `--dry-run`, `--backup` e `--force` (2026-07-05). |
 | **Plano** | `plans/2026-07-04-feedback-and-update.md` (Parte 2) |
 
 ### 2.2 Feedback ↔ capability-engine
@@ -1073,15 +1075,15 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Critico |
 | **Prioridade** | P0 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus digest --json (erro) |
 | **Modulos** | src/commands/digest.ts |
 | **Descricao** | Comando digest falha com "Dynamic require of fs is not supported". Usa require() em vez de import, incompativel com ESM. |
-| **Correcao** | Substituir require("node:fs") por import estatico no inicio do arquivo. |
+| **Resolucao** | Substituído require("node:fs") por import estático no início do arquivo (2026-07-05). |
 
 ### SA3 Governanca 0%
 
@@ -1319,9 +1321,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 45 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync |
-| **P0** (≤ 7d) | 2 | Auto-analise: digest bug, governanca 0% |
+| **Done** | 47 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync |
+| **P0** (≤ 7d) | 1 | Auto-analise: governanca 0% |
 | **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
-| **P2** (≤ 90d) | 40 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
+| **P2** (≤ 90d) | 39 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
 | **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
 | **Total** | **143** | |

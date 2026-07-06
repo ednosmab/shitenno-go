@@ -7,6 +7,8 @@ import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { recordFeedback } from "../feedback-loops.js";
+import { loadGrowthProfile } from "../growth-profile.js";
+import { formatGrowthProgress } from "../dual-path-presenter.js";
 
 export const detectCommand = new Command("detect")
   .description("Detect patterns in history and propose candidate rules (Phase 2)")
@@ -59,6 +61,7 @@ export const detectCommand = new Command("detect")
 
       // JSON output
       if (isJson) {
+        const growthProfile = loadGrowthProfile(ctx.nexusDir);
         outputJson({
           projectRoot: ctx.projectRoot,
           historyEntriesAnalyzed: report.historyEntriesAnalyzed,
@@ -69,6 +72,12 @@ export const detectCommand = new Command("detect")
           cacheHit,
           reportFile: reportFile || null,
           detectedAt: report.detectedAt,
+          growthProfile: {
+            growthCapacity: growthProfile.growthCapacity,
+            challengeLevel: growthProfile.challengeLevel,
+            pattern: growthProfile.patterns[0]?.type || "balanced",
+            totalChoices: growthProfile.pathHistory.length,
+          },
         });
         return;
       }
@@ -140,6 +149,11 @@ export const detectCommand = new Command("detect")
       // Summary
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
+      console.log("");
+
+      // Growth profile
+      const growthProfile = loadGrowthProfile(ctx.nexusDir);
+      console.log(formatGrowthProgress(growthProfile));
       console.log("");
 
       // Publish event

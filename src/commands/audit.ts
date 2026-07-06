@@ -10,6 +10,8 @@ import { getEventBus } from "../event-bus.js";
 import { getHookBus } from "../plugin-system.js";
 import { discoverArtifacts, discoverRelations, analyzeGraph } from "../knowledge-graph.js";
 import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../backlog-writer.js";
+import { loadGrowthProfile } from "../growth-profile.js";
+import { formatGrowthProgress } from "../dual-path-presenter.js";
 
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")
@@ -41,6 +43,9 @@ export const auditCommand = new Command("audit")
     try {
       // Validate level
       const level = ["quick", "standard", "full", "code-review"].includes(options.level) ? options.level : "standard";
+
+      // Load growth profile (needed for both JSON and human output)
+      const growthProfile = loadGrowthProfile(ctx.nexusDir);
 
       // Check cache first (skip cache for full level to get fresh results)
       let report: HealthAuditReport;
@@ -134,6 +139,12 @@ export const auditCommand = new Command("audit")
           cacheHit,
           reportFile: reportFile || null,
           auditedAt: report.auditedAt,
+          growthProfile: {
+            growthCapacity: growthProfile.growthCapacity,
+            challengeLevel: growthProfile.challengeLevel,
+            pattern: growthProfile.patterns[0]?.type || "balanced",
+            totalChoices: growthProfile.pathHistory.length,
+          },
         });
         return;
       }
@@ -305,6 +316,10 @@ export const auditCommand = new Command("audit")
       // Summary
       console.log(chalk.bold("  📝 Summary:"));
       console.log(chalk.gray(`    ${report.summary}`));
+      console.log("");
+
+      // Growth profile
+      console.log(formatGrowthProgress(growthProfile));
       console.log("");
 
       // Publish event

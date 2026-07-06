@@ -9,6 +9,8 @@ import { healthBar, miniBar, outputJson, statusIcon } from "../formatting.js";
 import { loadMaturityProfile, detectInstalledCapabilities, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
+import { loadGrowthProfile } from "../growth-profile.js";
+import { formatGrowthProgress } from "../dual-path-presenter.js";
 
 interface StatusCheck {
   name: string;
@@ -66,6 +68,9 @@ export const statusCommand = new Command("status")
     const maturityProfile = loadMaturityProfile(ctx.nexusDir);
     const installedCapabilities = detectInstalledCapabilities(ctx.nexusDir);
 
+    // Load growth profile (needed for both JSON and human output)
+    const growthProfile = loadGrowthProfile(ctx.nexusDir);
+
     // JSON output
     if (isJson) {
       outputJson({
@@ -99,6 +104,12 @@ export const statusCommand = new Command("status")
         cacheHit,
         reportFile: reportFile || null,
         computedAt: complexity.computedAt,
+        growthProfile: {
+          growthCapacity: growthProfile.growthCapacity,
+          challengeLevel: growthProfile.challengeLevel,
+          pattern: growthProfile.patterns[0]?.type || "balanced",
+          totalChoices: growthProfile.pathHistory.length,
+        },
       });
       return;
     }
@@ -182,6 +193,10 @@ export const statusCommand = new Command("status")
     } catch {
       // Skip capability engine on error
     }
+
+    // Growth profile
+    console.log(formatGrowthProgress(growthProfile));
+    console.log("");
 
     if (cacheHit) {
       console.log(chalk.gray("  📦 Used cached results"));
