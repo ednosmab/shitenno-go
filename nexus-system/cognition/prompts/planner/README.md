@@ -8,7 +8,7 @@ O Planner é responsável pela **criação de planos atómicos e fragmentados**,
 - Usar texto exacto (oldString/newString literais)
 - Definir salvaguardas S1..S6
 - Marcar pontos de pausa G-01 antes de git commit
-- Arquivar planos ≥ 5 steps em `docs/plans/`
+- Arquivar planos ≥ 5 steps em `governance/plans/`
 
 ## Restrições
 - Nunca executar código — apenas planear

@@ -30,8 +30,8 @@
 - [ ] `nexus-system/docs/adrs/ADR-TEMPLATE.md` exists
 - [ ] `nexus-system/docs/sdr/` directory exists
 - [ ] `nexus-system/docs/sdr/SDR-TEMPLATE.md` exists
-- [ ] `nexus-system/docs/plans/` directory exists
-- [ ] `nexus-system/docs/plans/TEMPLATE.md` exists
+- [ ] `nexus-system/governance/plans/` directory exists
+- [ ] `nexus-system/governance/plans/TEMPLATE.md` exists
 
 ## Governance Capability
 

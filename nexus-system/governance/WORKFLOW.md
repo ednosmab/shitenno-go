@@ -51,7 +51,7 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 1. Determinar tipo via WORKFLOW.md
 2. Ler context_buffer.yaml → estado actual
 3. Executar premortem-check → o que pode quebrar?
-4. Criar plano em `docs/plans/`
+4. Criar plano em `governance/plans/`
 5. Actualizar buffer com tarefa em execução
 6. Implementar código cirurgicamente
 7. Executar testes e lint
@@ -90,7 +90,7 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 
 1. Identificar como PLANNING via WORKFLOW.md
 2. Ler contexto completo (P0 + P1)
-3. Gerar plano atómico em `docs/plans/`
+3. Gerar plano atómico em `governance/plans/`
 4. Apresentar ao utilizador para aprovação
 5. Aguardar autorização antes de executar
 
