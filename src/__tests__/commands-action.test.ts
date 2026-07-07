@@ -275,7 +275,9 @@ describe("sync command action handler", () => {
     expect(output.error).toBe("lifecycle_gate");
   });
 
-  it("errors when project not initialized", () => {
+  it("errors when project not initialized (lifecycle gate blocks first)", () => {
+    // After decoupling from opencode.json, nexus-system/ alone = initialized.
+    // sync requires governed state; discovered state triggers lifecycle_gate first.
     const nexusDir = setupNexusDir(tempDir);
     rmSync(join(tempDir, "opencode.json"));
 
@@ -285,7 +287,18 @@ describe("sync command action handler", () => {
     );
 
     const output = getJsonOutput();
-    expect(output.error).toBe("not_initialized");
+    expect(output.error).toBe("lifecycle_gate");
+  });
+
+  it("errors when nexus-system/ missing (truly uninitialized)", () => {
+    syncCommand.parse(
+      ["node", "test", "--dir", tempDir, "--json"],
+      { from: "user" }
+    );
+
+    const output = getJsonOutput();
+    // sync checks nexus-dir existence first, returns missing_nexus_dir
+    expect(output.error).toBe("missing_nexus_dir");
   });
 
   it("--dry-run does not modify files", () => {

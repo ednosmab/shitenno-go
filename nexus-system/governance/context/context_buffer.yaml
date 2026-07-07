@@ -1,16 +1,16 @@
 session:
-  id: "session-2026-07-06-001"
-  started_at: "2026-07-06T03:30:00Z"
+  id: "session-2026-07-07-001"
+  started_at: "2026-07-07T00:00:00Z"
   status: "completed"
 
 current_task:
-  id: "ADR-005-PIPELINE"
-  description: "Implementar ADR-005: Automated Task Completion Pipeline (Camada 1+2+3)"
+  id: "DESCOPLAMENTO-OPENCODE"
+  description: "B.7 rule engine guards + A.5 MCP registration no init"
   status: "completed"
-  started_at: "2026-07-06T03:30:00Z"
-  completed_at: "2026-07-06T15:21:47.723Z"
+  started_at: "2026-07-07T00:00:00Z"
+  completed_at: "2026-07-07T03:00:00Z"
 
-next_p0: "Nenhum P0 activo — todos concluídos"
+next_p0: "Nenhum P0 activo — desacoplamento e pendências concluídos"
 
 documents_loaded:
   - path: "docs/AGENTS.md"
@@ -31,12 +31,8 @@ documents_loaded:
     loaded_at: "2026-07-04T00:00:00Z"
   - path: "docs/KNOWLEDGE_LIFECYCLE.md"
     loaded_at: "2026-07-04T00:00:00Z"
-  - path: "plans/2026-07-04-docs-sync-critical.md"
-    loaded_at: "2026-07-04T00:00:00Z"
   - path: "docs/REMINDER-2026-07-05.md"
     loaded_at: "2026-07-04T00:00:00Z"
-  - path: "plans/2026-07-04-feedback-and-update.md"
-    loaded_at: "2026-07-04T07:30:00Z"
 
 impediments: []
 

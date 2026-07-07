@@ -21,6 +21,8 @@ export interface UserAnswers {
   maturity: MaturityAnswers;
   /** Capacidades selecionadas pelo usuário (override do perfil) */
   selectedCapabilities?: string[];
+  /** Whether to register nexus-mcp in .mcp.json */
+  enableMcpRegistration?: boolean;
   /** User profile for personalized feedback */
   userProfile?: {
     name: string;
@@ -377,12 +379,31 @@ export async function askQuestions(
     },
   ]);
 
+  // ── Bloco 10: MCP Server ──
+  console.log("");
+  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  console.log(chalk.bold.cyan("  │   🔌  MCP Server                     │"));
+  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  console.log("");
+  console.log(chalk.gray("  Regista o nexus-mcp em .mcp.json para AI agents (Claude Code, Cursor, etc.)."));
+  console.log("");
+
+  const mcpConfig = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "enableMcpRegistration",
+      message: "Registar servidor MCP (.mcp.json)?",
+      default: true,
+    },
+  ]);
+
   return {
     principalModel: aiConfig.principalModel,
     executorModel: aiConfig.executorModel,
     stack: stackConfig.stack,
     database: stackConfig.database,
     styling: stackConfig.styling,
+    enableMcpRegistration: mcpConfig.enableMcpRegistration,
     maturity: {
       ...experience,
       ...projectInfo,

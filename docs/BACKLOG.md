@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-05 — auditoria completa concluida (items de baixo risco)
+> **Ultima atualizacao:** 2026-07-07 — desacoplamento concluido, BACKLOG reconciliado
 
 ---
 
@@ -59,6 +59,16 @@
 | AUDIT-CLEANUP-03 | Baixo | Removidos 4 casts as NexusEventType em pipeline.ts — 2026-07-05 |
 | AUDIT-CLEANUP-04 | Baixo | run_script → run_local_script (deprecated fallback) — 2026-07-05 |
 | AUDIT-CLEANUP-05 | Baixo | Planos de auditoria movidos para plans/done/ — 2026-07-05 |
+| DESOPLAMENTO A.1-A.4 | Critico | Desacoplamento de opencode.json — shared.ts, nexus-state-machine.ts, analyser.ts, capability-engine.ts — 2026-07-07 |
+| DESOPLAMENTO A.5 | Alto | MCP multi-formato (.mcp.json + .cursor/mcp.json) — init.ts — 2026-07-07 |
+| DESOPLAMENTO B.1 | Alto | Path do BACKLOG.md corrigido no scaffolder — capability-mapping.ts — 2026-07-07 |
+| DESOPLAMENTO B.2 | Medio | Falso positivo de XSS eliminado — engineering-detectors.ts — 2026-07-07 |
+| DESOPLAMENTO B.3 | Medio | Sync restaurado em bin/nexus.ts, gate valido — 2026-07-07 |
+| DESOPLAMENTO B.5 | Alto | OOM em vitest resolvido — programCache no TaintAnalyzer — 2026-07-07 |
+| DESOPLAMENTO B.6 | Medio | healthScore recalibrado com sqrt e normalizacao — 2026-07-07 |
+| DESOPLAMENTO B.7 | Alto | Rule engine auto-cria directories (history/, context/) — ensureContextBuffer() — 2026-07-07 |
+| MCP-SERVER | Alto | Servidor MCP com 3 tools (getBriefing, getRiskMap, getRules) — mcp-server.ts — 2026-07-07 |
+| SA3 | Critico | Governance 0% resolvido — maturity-profile.ts + policies + answers.json — 2026-07-06 |
 
 ---
 
@@ -304,11 +314,12 @@
 | **Descricao** | `detectPatterns()` gera `candidateRules` com status "proposed" mas nao existe mecanismo para aprovar/rejeitar. |
 | **Correcao** | Criar `nexus detect --approve RULE-001` e `nexus detect --reject RULE-001`. Persistir decisoes em `nexus-system/governance/rules-decisions.json`. |
 
-### 2.2 Feedback do utilizador (user rating + comment)
+### 2.2a Feedback do utilizador (user rating + comment)
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done (schema + campos) |
+| **Resolucao** | userRating, userComment, userTags ja existem em session-feedback.ts. CLI flags ainda nao implementadas. |
 | **Severidade** | Medio |
 | **Owner** | unassigned |
 | **Prioridade** | P2 |
@@ -334,7 +345,7 @@
 | **Resolucao** | (1) Criado `src/manifest.ts` para rastrear hashes de templates e cliVersion. (2) Integrado manifest em init e upgrade. (3) Criado comando `nexus update` com suporte a `--apply`, `--dry-run`, `--backup` e `--force` (2026-07-05). |
 | **Plano** | `plans/2026-07-04-feedback-and-update.md` (Parte 2) |
 
-### 2.2 Feedback ↔ capability-engine
+### 2.2b Feedback ↔ capability-engine
 
 | Campo | Valor |
 |---|---|
@@ -345,7 +356,7 @@
 | **Descricao** | O capability-engine recomenda instalacoes mas nao aprende com falhas. |
 | **Correcao** | No `evaluateCapabilities()`, consultar `failureHotspots` do feedback. Se uma area com capability instalada tem muitos failures, sugerir downgrade. |
 
-### 2.3 nexus bench --compare historico
+### 2.3b nexus bench --compare historico
 
 | Campo | Valor |
 |---|---|
@@ -528,7 +539,7 @@
 
 ## P2 — Performance (≤ 90 dias)
 
-### 2.15 Cache intermediario no collectContext
+### 2.15b Cache intermediario no collectContext
 
 | Campo | Valor |
 |---|---|
@@ -816,7 +827,8 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
+| **Resolucao** | mcp-server.ts com 3 tools (getBriefing, getRiskMap, getRules). mcp-install.ts para filesystem server. Comando nexus mcp registado em bin/nexus.ts. |
 | **Severidade** | Alto |
 | **Owner** | unassigned |
 | **Descricao** | Servidor MCP (Model Context Protocol) para agentes IA consumirem contexto do Nexus. Ferramentas: getBriefing, getRiskMap, getRules. |
@@ -1094,7 +1106,8 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
+| **Resolucao** | maturity-profile.ts actualizado com auto-deteccao de artefactos, policies de governance criadas, answers.json — 2026-07-06 |
 | **Severidade** | Critico |
 | **Prioridade** | P0 |
 | **Owner** | unassigned |
@@ -1326,9 +1339,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 47 | Bugs, integracao, qualidade, pipeline, testes, catch blocks, auto-backlog, governance, orfaos, session-template, docs-sync |
-| **P0** (≤ 7d) | 1 | Auto-analise: governanca 0% |
-| **P1** (≤ 30d) | 18 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
+| **Done** | 60 | Desacoplamento (A.1-A.5, B.1-B.7), SA3, MCP server, bugs, integracao, qualidade, pipeline, testes, governance, docs-sync |
+| **P0** (≤ 7d) | 0 | Nenhum P0 activo |
+| **P1** (≤ 30d) | 17 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
 | **P2** (≤ 90d) | 39 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
 | **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
-| **Total** | **143** | |
+| **Total** | **154** | |

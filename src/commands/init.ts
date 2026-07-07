@@ -9,12 +9,13 @@
  */
 
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import ora from "ora";
 import fse from "fs-extra";
+const { copySync } = fse;
 import { analyseProject } from "../analyser.js";
 import { askQuestions, type UserAnswers } from "../prompts.js";
 import { scaffoldNexusSystem } from "../scaffolder.js";
@@ -314,6 +315,32 @@ export const initCommand = new Command("init")
 
       // Invalidate cache
       invalidateCache(targetDir);
+
+      // Generate .mcp.json at project root if user opted in
+      if (answers.enableMcpRegistration) {
+        const mcpJsonPath = join(targetDir, ".mcp.json");
+        const currentDir = dirname(fileURLToPath(import.meta.url));
+        const mcpTemplatePath = join(currentDir, "..", "templates", "base", ".mcp.json");
+        const nexusMcpEntry = { "nexus-mcp": { command: "nexus", args: ["mcp"] } };
+
+        if (existsSync(mcpJsonPath)) {
+          try {
+            const existing = JSON.parse(readFileSync(mcpJsonPath, "utf-8"));
+            if (!existing.mcpServers) existing.mcpServers = {};
+            existing.mcpServers["nexus-mcp"] = nexusMcpEntry["nexus-mcp"];
+            writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
+          } catch {
+            const merged = { mcpServers: { ...nexusMcpEntry } };
+            writeFileSync(mcpJsonPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
+          }
+        } else if (existsSync(mcpTemplatePath)) {
+          copySync(mcpTemplatePath, mcpJsonPath);
+        } else {
+          const content = { mcpServers: nexusMcpEntry };
+          writeFileSync(mcpJsonPath, JSON.stringify(content, null, 2) + "\n", "utf-8");
+        }
+        result.filesCreated.push(".mcp.json");
+      }
 
       // Load and register plugins
       const plugins = await loadPlugins(targetDir);

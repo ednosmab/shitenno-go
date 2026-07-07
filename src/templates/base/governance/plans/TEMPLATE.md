@@ -17,13 +17,11 @@
 - **Ficheiro:** <path>
 - **Acção:** <descrição atómica>
 - **Verificação:** <comando>
-- [ ] (preenchido pelo build)
 
 ### Step 2: <NOME>
 - **Ficheiro:** <path>
 - **Acção:** <descrição atómica>
 - **Verificação:** <comando>
-- [ ] (preenchido pelo build)
 
 ## 🛡️ Salvaguardas S1..S6
 

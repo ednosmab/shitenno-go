@@ -94,6 +94,27 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 4. Apresentar ao utilizador para aprovação
 5. Aguardar autorização antes de executar
 
+### 2.6 Formato de Planos Markdown
+
+**Regra:** Planos ativos NÃO devem conter checkboxes (`- [ ]` ou `- [x]`). O rastreamento de progresso é feito exclusivamente pelo campo `**Status:**` no frontmatter.
+
+**Status válidos:** `andamento`, `parado`, `done`
+
+**Fluxo:**
+1. Criar plano com `**Status:** andamento`
+2. Atualizar `**Status:**` conforme progresso
+3. Ao concluir: `**Status:** done` + mover para `done/`
+
+**Exemplo:**
+```markdown
+**Status:** andamento
+...
+### Step 1: Nome
+- **Ficheiro:** path
+- **Acção:** descrição
+- **Verificação:** comando
+```
+
 ---
 
 ## 3. Hierarquia de Leitura

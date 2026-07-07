@@ -529,17 +529,17 @@ cd apps/nexus-dashboard && pnpm dev
 
 ## 13. Criterios de Conclusao
 
-- [ ] Sidebar mostra 6 camadas expansiveis
-- [ ] Header mostra Logo "N" + breadcrumb hierarquico
-- [ ] Camada 1-6 funcionais com conteudo real
-- [ ] CrossLinks entre conceitos funcionam
-- [ ] Mobile: hamburger menu + bottom nav
-- [ ] Breadcrumb actualiza ao navegar
-- [ ] Favicon "N" no browser
-- [ ] TypeScript zero erros
-- [ ] Build passa sem erros
-- [ ] Paginas antigas removidas
-- [ ] Conteudo deriva das fontes oficiais (living documentation)
+- Sidebar mostra 6 camadas expansiveis
+- Header mostra Logo "N" + breadcrumb hierarquico
+- Camada 1-6 funcionais com conteudo real
+- CrossLinks entre conceitos funcionam
+- Mobile: hamburger menu + bottom nav
+- Breadcrumb actualiza ao navegar
+- Favicon "N" no browser
+- TypeScript zero erros
+- Build passa sem erros
+- Paginas antigas removidas
+- Conteudo deriva das fontes oficiais (living documentation)
 
 ---
 

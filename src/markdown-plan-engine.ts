@@ -26,8 +26,10 @@ export interface MarkdownPlan {
   status: MarkdownPlanStatus;
   /** Absolute file path. */
   filePath: string;
-  /** Relative path from nexusDir. */
+  /** Relative path from project root (e.g. nexus-system/governance/plans/...). */
   relativePath: string;
+  /** Whether the plan is in the active directory (not done, not reference). */
+  isActive: boolean;
   /** Creation date from frontmatter. */
   createdAt: string;
   /** Last update timestamp. */
@@ -142,7 +144,7 @@ export class MarkdownPlanEngine {
     for (const file of files) {
       const id = file.replace(".md", "");
       const filePath = join(this.plansDir, file);
-      const plan = this.parsePlan(id, filePath, `governance/plans/${file}`);
+      const plan = this.parsePlan(id, filePath, `nexus-system/governance/plans/${file}`);
       if (plan && plan.status !== "done") {
         plans.push(plan);
       }
@@ -165,7 +167,7 @@ export class MarkdownPlanEngine {
     for (const file of files) {
       const id = file.replace(".md", "");
       const filePath = join(this.doneDir, file);
-      const plan = this.parsePlan(id, filePath, `governance/plans/done/${file}`);
+      const plan = this.parsePlan(id, filePath, `nexus-system/governance/plans/done/${file}`);
       if (plan) {
         plans.push(plan);
       }
@@ -182,19 +184,19 @@ export class MarkdownPlanEngine {
     // Search in active plans
     const activePath = join(this.plansDir, `${id}.md`);
     if (existsSync(activePath)) {
-      return this.parsePlan(id, activePath, `governance/plans/${id}.md`);
+      return this.parsePlan(id, activePath, `nexus-system/governance/plans/${id}.md`);
     }
 
     // Search in done plans
     const donePath = join(this.doneDir, `${id}.md`);
     if (existsSync(donePath)) {
-      return this.parsePlan(id, donePath, `governance/plans/done/${id}.md`);
+      return this.parsePlan(id, donePath, `nexus-system/governance/plans/done/${id}.md`);
     }
 
     // Search in reference plans
     const refPath = join(this.referenceDir, `${id}.md`);
     if (existsSync(refPath)) {
-      return this.parsePlan(id, refPath, `governance/plans/reference/${id}.md`);
+      return this.parsePlan(id, refPath, `nexus-system/governance/plans/reference/${id}.md`);
     }
 
     return null;
@@ -280,7 +282,7 @@ export class MarkdownPlanEngine {
 
     writeFileSync(filePath, content, "utf-8");
 
-    return this.parsePlan(id, filePath, `governance/plans/${id}.md`)!;
+    return this.parsePlan(id, filePath, `nexus-system/governance/plans/${id}.md`)!;
   }
 
   /**
@@ -344,6 +346,7 @@ ${content || ""}
       const metadata = parseFrontmatter(content);
       const title = extractTitle(content);
       const status = extractStatus(metadata);
+      const isActive = !relativePath.includes("/done/") && !relativePath.includes("/reference/");
 
       return {
         id,
@@ -351,6 +354,7 @@ ${content || ""}
         status,
         filePath,
         relativePath,
+        isActive,
         createdAt: metadata["date"] || metadata["created_at"] || "",
         updatedAt: metadata["updated_at"] || "",
         metadata,

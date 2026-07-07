@@ -29,9 +29,9 @@ export const syncCommand = new Command("sync")
     const isJson = options.json === true;
 
     // Lifecycle gate check
-    if (existsSync(resolve(targetDir, "opencode.json"))) {
-      const nexusDir = resolve(targetDir, "nexus-system");
-      if (!checkLifecycleGate("sync", targetDir, nexusDir, isJson)) return;
+    if (existsSync(resolve(targetDir, "nexus-system"))) {
+      const gateNexusDir = resolve(targetDir, "nexus-system");
+      if (!checkLifecycleGate("sync", targetDir, gateNexusDir, isJson)) return;
     }
 
     if (!isJson) {
@@ -65,8 +65,8 @@ export const syncCommand = new Command("sync")
       return;
     }
 
-    // Check if target project has opencode.json (initialized)
-    if (!existsSync(resolve(targetDir, "opencode.json"))) {
+    // Check if target project has nexus-system/ (initialized)
+    if (!existsSync(resolve(targetDir, "nexus-system"))) {
       if (isJson) {
         outputJson({ error: "not_initialized", message: "Run 'nexus init' first, then 'nexus sync' to update." });
       } else {

@@ -35,6 +35,7 @@ import { consoleCommand } from "../src/commands/console.js";
 import { docsAuditCommand } from "../src/commands/docs-audit.js";
 import { updateCommand } from "../src/commands/update.js";
 import { mcpCommand } from "../src/commands/mcp.js";
+import { syncCommand } from "../src/commands/sync.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine, initializeRules } from "../src/rule-engine.js";
@@ -52,8 +53,7 @@ const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"
 
 const projectRoot = process.cwd();
 const nexusDir = join(projectRoot, "nexus-system");
-const isInitialized =
-  existsSync(join(projectRoot, "opencode.json")) && existsSync(nexusDir);
+const isInitialized = existsSync(nexusDir);
 
 let currentSessionId: string | null = null;
 
@@ -264,6 +264,7 @@ program.addCommand(shellInitCommand);
 program.addCommand(docsAuditCommand);
 program.addCommand(updateCommand);
 program.addCommand(mcpCommand());
+program.addCommand(syncCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────
 

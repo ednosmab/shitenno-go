@@ -361,6 +361,21 @@ function resolveField(
   return current as string | number | boolean | undefined;
 }
 
+// ── Action Helpers ────────────────────────────────────────────────────────
+
+/** Garante que governance/context/context_buffer.yaml existe, criando-o se necessário. */
+function ensureContextBuffer(nexusDir: string): string {
+  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+  if (!existsSync(bufferPath)) {
+    const contextDir = join(nexusDir, "governance", "context");
+    if (!existsSync(contextDir)) {
+      mkdirSync(contextDir, { recursive: true });
+    }
+    writeFileSync(bufferPath, "reminders:\n\nproximo:\n\nsession:\n  id: \"auto-created\"\n  status: \"in_progress\"\n", "utf-8");
+  }
+  return bufferPath;
+}
+
 // ── Action Executor ─────────────────────────────────────────────────────────
 
 /** Executa uma acção. */
@@ -372,9 +387,7 @@ function executeAction(
     case "update_context_buffer": {
       const bufferPath = join(context.nexusDir, "governance", "context", "context_buffer.yaml");
       if (!existsSync(bufferPath)) {
-        const bufferDir = join(context.nexusDir, "governance", "context");
-        mkdirSync(bufferDir, { recursive: true });
-        writeFileSync(bufferPath, "session:\n  status: idle\n", "utf-8");
+        return { success: false, message: "Skipped: governance capability not installed (context_buffer.yaml not found)" };
       }
 
       try {
@@ -401,12 +414,7 @@ function executeAction(
     }
 
     case "create_reminder": {
-      const bufferPath = join(context.nexusDir, "governance", "context", "context_buffer.yaml");
-      if (!existsSync(bufferPath)) {
-        const bufferDir = join(context.nexusDir, "governance", "context");
-        mkdirSync(bufferDir, { recursive: true });
-        writeFileSync(bufferPath, "reminders:\n", "utf-8");
-      }
+      const bufferPath = ensureContextBuffer(context.nexusDir);
 
       try {
         let content = readFileSync(bufferPath, "utf-8");
@@ -428,12 +436,7 @@ function executeAction(
     }
 
     case "update_quick_board": {
-      const bufferPath = join(context.nexusDir, "governance", "context", "context_buffer.yaml");
-      if (!existsSync(bufferPath)) {
-        const bufferDir = join(context.nexusDir, "governance", "context");
-        mkdirSync(bufferDir, { recursive: true });
-        writeFileSync(bufferPath, "quick_board:\n  em_curso: null\n", "utf-8");
-      }
+      const bufferPath = ensureContextBuffer(context.nexusDir);
 
       try {
         let content = readFileSync(bufferPath, "utf-8");
