@@ -99,13 +99,13 @@
 
 **Regras activas (após instalação):**
 - Registros de Arquitetura (ADRs) obrigatórios
-- Planos de execução em `docs/plans/`
+- Planos de execução em `governance/plans/`
 - Session template
 
 **Arquivos:**
 - `docs/adrs/ADR-TEMPLATE.md`
 - `docs/sdr/SDR-TEMPLATE.md`
-- `docs/plans/TEMPLATE.md`
+- `governance/plans/TEMPLATE.md`
 - `docs/session-template.md`
 - `docs/AGENTS.md` (seções: architecture)
 

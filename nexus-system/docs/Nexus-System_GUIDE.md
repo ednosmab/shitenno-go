@@ -148,7 +148,7 @@ Cada agente IA num projecto Nexus tem um contrato definido:
 ### Planner (Planeador)
 - **Ficheiro:** `AI-CONTRACT-planner-v1.yaml`
 - **Função:** Lê contexto do projecto e produz planos atómicos
-- **Permissões:** Leitura ampla, escrita apenas em `docs/plans/`
+- **Permissões:** Leitura ampla, escrita apenas em `governance/plans/`
 
 ### Executor (Construtor)
 - **Ficheiro:** `AI-CONTRACT-executor-v1.yaml`
@@ -259,7 +259,7 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 1. Ler WORKFLOW.md → Determinar tipo
 2. Ler context_buffer.yaml → Estado actual
 3. Executar PREMORTEM → O que pode quebrar?
-4. Criar plano em docs/plans/
+4. Criar plano em governance/plans/
 5. Actualizar buffer com tarefa em execução
 6. Implementar código cirurgicamente
 7. Executar testes e lint
@@ -417,7 +417,7 @@ nexus-system/
 | `docs/adrs/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `docs/feedback/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `docs/history/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `docs/plans/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `governance/plans/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `docs/sdr/` | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
