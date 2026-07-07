@@ -15,7 +15,7 @@ Nexus models knowledge as a directed graph. Artifacts are nodes. Relations are e
 | `contract` | AI agent governance contract | `governance/agents/` |
 | `workflow` | Defined workflow process | `governance/WORKFLOW.md` |
 | `runbook` | Step-by-step procedure | `docs/runbooks/` |
-| `plan` | Execution plan | `docs/plans/` |
+| `plan` | Execution plan | `governance/plans/` |
 | `sdr` | Solution Decision Record | `docs/sdr/` |
 | `doc` | General documentation | `docs/` |
 | `script` | Automation script | `scripts/` |
