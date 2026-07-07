@@ -115,6 +115,29 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 - **Verificação:** comando
 ```
 
+### 2.7 Lifecycle de Planos — Auto-Archival
+
+**Trigger:** Após execução completa do plano + validação (build/test/lint OK) + confirmação do utilizador.
+
+**Comando:** `nexus plan md lifecycle`
+
+**Opções:**
+- `--auto` — Auto-archiva sem prompts (CI/CD)
+- `--dry` — Dry run, mostra o que faria sem alterar
+
+**Fluxo:**
+1. Sistema detecta planos activos em `governance/plans/`
+2. Para cada plano: valida build, testes e lint
+3. Pergunta ao utilizador: "Review pelo agente [A] ou pelo utilizador [U]?"
+4. Se [A]: reporta resultado da validação automática
+5. Se [U]: pede confirmação manual
+6. Após confirmação: `engine.updateStatus(id, "done")` automático
+7. Plano movido para `governance/plans/done/`
+
+**Excepção:** Planos com `**Status:** parado` são ignorados (não concluídos).
+
+**Integração com close:session:** O passo 8 do `close-session.ts` detecta planos activos e emite aviso. Não arquiva automaticamente — apenas informa.
+
 ---
 
 ## 3. Hierarquia de Leitura

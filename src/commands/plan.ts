@@ -541,5 +541,36 @@ export function planCommand(): Command {
       }
     });
 
+  // ── md lifecycle ─────────────────────────────────────────────────────────
+  mdCmd
+    .command("lifecycle")
+    .description("Detect, review and archive completed plans")
+    .option("--auto", "Archive without prompts (CI/CD)")
+    .option("--dry", "Dry run — show what would happen")
+    .option("--json", "Output as JSON")
+    .action(async (opts: Record<string, unknown>) => {
+      const isJson = opts.json === true;
+      const ctx = guardNotInitialized(opts, isJson);
+      if (!ctx) return;
+
+      const { runLifecycleReview } = await import("../plan-lifecycle.js");
+      try {
+        const result = await runLifecycleReview(ctx.projectRoot, {
+          auto: opts.auto === true,
+          dry: opts.dry === true,
+        });
+
+        if (isJson) {
+          outputJson(result as unknown as Record<string, unknown>);
+        }
+      } catch (error) {
+        if (isJson) {
+          outputJson({ error: error instanceof Error ? error.message : String(error) });
+        } else {
+          console.log(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
+        }
+      }
+    });
+
   return cmd;
 }

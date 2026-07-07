@@ -1,47 +1,10 @@
 import { useLocation } from 'react-router-dom'
 import { Logo } from '../shared/Logo'
+import { breadcrumbMap, subPageMap } from '@/data/navigation'
 
 interface HeaderProps {
   onMenuToggle: () => void
   title: string
-}
-
-const breadcrumbMap: Record<string, string> = {
-  discover: 'Descubra',
-  use: 'Utilize',
-  concepts: 'Entenda',
-  architecture: 'Arquitetura',
-  engineering: 'Engenharia',
-  reference: 'Referencia',
-}
-
-const subPageMap: Record<string, string> = {
-  '': '',
-  'why': 'Por que existe',
-  'who': 'Para quem',
-  'start': 'Comecar',
-  'first-steps': 'Primeiros passos',
-  'commands': 'Comandos',
-  'best-practices': 'Boas praticas',
-  'esm': 'ESM',
-  'capabilities': 'Capabilities',
-  'governance': 'Governanca',
-  'events': 'Eventos',
-  'policies': 'Politicas',
-  'knowledge': 'Conhecimento',
-  'evolution': 'Evolucao',
-  'responsibilities': 'Responsabilidades',
-  'dependencies': 'Dependencias',
-  'flows': 'Fluxos',
-  'domain': 'Modelo de Dominio',
-  'structure': 'Estrutura',
-  'modules': 'Modulos',
-  'contracts': 'Contratos',
-  'interfaces': 'Interfaces',
-  'adrs': 'ADRs',
-  'state': 'Estado Detalhado',
-  'config': 'Configuracao',
-  'schemas': 'Esquemas',
 }
 
 export function Header({ onMenuToggle, title }: HeaderProps) {

@@ -1,12 +1,16 @@
 import { NavLink } from 'react-router-dom'
+import { layers } from '@/data/navigation'
 
-const items = [
-  { to: '/discover', icon: '◈', label: 'Descubra' },
-  { to: '/use', icon: '◎', label: 'Utilize' },
-  { to: '/concepts', icon: '◆', label: 'Entenda' },
-  { to: '/architecture', icon: '⬡', label: 'Arq' },
-  { to: '/engineering', icon: '▣', label: 'Eng' },
-]
+const shortLabels: Record<string, string> = {
+  architecture: 'Arq',
+  engineering: 'Eng',
+}
+
+const items = layers.slice(0, 5).map(l => ({
+  to: l.items[0]?.to ?? '/',
+  icon: l.icon,
+  label: shortLabels[l.id] ?? l.label,
+}))
 
 export function BottomNav() {
   return (

@@ -130,6 +130,24 @@ async function checkCompletionGate() {
   }
 }
 
+// ── 8. Plan lifecycle — detect active plans ────────────────────────────────
+async function checkPlanLifecycle() {
+  try {
+    const { detectActivePlans } = await import(resolve(ROOT, 'dist', 'plan-lifecycle.js'));
+    const plans = detectActivePlans(resolve(GOV, 'plans'));
+    if (plans.length > 0) {
+      warn('PLAN_LIFECYCLE', `${plans.length} active plan(s) — run "nexus plan md lifecycle" to review and archive`);
+      for (const p of plans) {
+        console.log(`         → ${p.id}: ${p.title} [${p.status}]`);
+      }
+    } else {
+      pass('PLAN_LIFECYCLE', 'No active plans — all archived');
+    }
+  } catch {
+    warn('PLAN_LIFECYCLE', 'Plan lifecycle module not available — run pnpm build first');
+  }
+}
+
 // ── Execute ───────────────────────────────────────────────────────────────
 console.log('\n🔒 CLOSE SESSION — Closing session checklist\n');
 
@@ -140,6 +158,7 @@ checkBacklog();
 checkCommit();
 checkBuild();
 await checkCompletionGate();
+await checkPlanLifecycle();
 
 console.log(`\n${exitCode === 0 ? '✅ Session ready to close' : '❌ Session has issues to resolve'}`);
 if (warnings.length > 0) {
