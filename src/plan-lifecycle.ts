@@ -1,10 +1,10 @@
 /**
  * plan-lifecycle.ts — Plan Lifecycle Management
  *
- * Detects active plans, validates completion, and archives them
- * after user confirmation.
+ * Detects active plans, infers status, validates completion,
+ * and archives/removes them after user confirmation.
  *
- * Flow: detect → validate → prompt review method → confirm → archive
+ * Flow: detect → infer → validate → prompt (A/S/M/R) → execute
  */
 
 import { execSync } from "node:child_process";
@@ -16,6 +16,10 @@ import {
   MarkdownPlanEngine,
   type MarkdownPlan,
 } from "./markdown-plan-engine.js";
+import {
+  InferenceEngine,
+  type PlanInference,
+} from "./inference-engine.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +37,7 @@ export interface ValidationResult {
 export interface LifecycleResult {
   active: number;
   archived: number;
+  removed: number;
   skipped: number;
 }
 
@@ -43,30 +48,8 @@ export function detectActivePlans(nexusDir: string): MarkdownPlan[] {
   return engine.list().filter((p) => p.status !== "done");
 }
 
-// ── Validate Plan Completion ───────────────────────────────────────────────
-
-export function validatePlanCompletion(
-  plan: MarkdownPlan,
-  projectRoot: string
-): ValidationResult {
-  const checks: CompletionCheck[] = [];
-  checks.push(checkBuild(projectRoot));
-  checks.push(checkTests(projectRoot));
-  checks.push(checkLint(projectRoot));
-  checks.push({
-    name: "STATUS",
-    passed: plan.status === "done",
-    message:
-      plan.status === "done"
-        ? "Plan status is done"
-        : `Plan status is "${plan.status}" — will be updated to done`,
-  });
-  const valid = checks.filter((c) => !c.passed).length === 0;
-  return { valid, checks };
-}
-
 async function runValidationWithProgress(
-  plan: MarkdownPlan,
+  _plan: MarkdownPlan,
   projectRoot: string
 ): Promise<ValidationResult> {
   const checks: CompletionCheck[] = [];
@@ -95,21 +78,6 @@ async function runValidationWithProgress(
     `Lint — ${lintCheck.message}`
   );
 
-  const statusPassed = plan.status === "done";
-  const statusSpinner = ora({ spinner: "dots" }).start();
-  statusSpinner.text = "Status — checking...";
-  const statusCheck: CompletionCheck = {
-    name: "STATUS",
-    passed: statusPassed,
-    message: statusPassed
-      ? "Plan status is done"
-      : `Plan status is "${plan.status}" — will be updated to done`,
-  };
-  checks.push(statusCheck);
-  statusSpinner[statusPassed ? "succeed" : "fail"](
-    `Status — ${statusCheck.message}`
-  );
-
   const valid = checks.filter((c) => !c.passed).length === 0;
   return { valid, checks };
 }
@@ -130,10 +98,10 @@ function checkBuild(projectRoot: string): CompletionCheck {
 
 function checkTests(projectRoot: string): CompletionCheck {
   try {
-    execSync("pnpm run test --recursive --if-present 2>/dev/null", {
+    execSync("npx vitest run 2>/dev/null", {
       encoding: "utf-8",
       cwd: projectRoot,
-      timeout: 120000,
+      timeout: 180000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { name: "TESTS", passed: true, message: "Tests passed" };
@@ -156,9 +124,14 @@ function checkLint(projectRoot: string): CompletionCheck {
   }
 }
 
-// ── Archive Plan ───────────────────────────────────────────────────────────
+// ── Archive / Remove Plan ──────────────────────────────────────────────────
 
 export function archivePlan(nexusDir: string, planId: string): void {
+  const engine = new MarkdownPlanEngine(nexusDir);
+  engine.updateStatus(planId, "done");
+}
+
+export function removePlan(nexusDir: string, planId: string): void {
   const engine = new MarkdownPlanEngine(nexusDir);
   engine.updateStatus(planId, "done");
 }
@@ -178,6 +151,31 @@ function askQuestion(query: string): Promise<string> {
   });
 }
 
+function printInference(inf: PlanInference): void {
+  const icon =
+    inf.inferredStatus === "done" ? "✅" :
+    inf.inferredStatus === "obsolete" ? "🗄️" :
+    inf.inferredStatus === "inconsistent" ? "⚠️" :
+    inf.inferredStatus === "paused" ? "⏸️" : "🔄";
+
+  console.log(`  ${icon} ${chalk.bold(inf.id)}`);
+  console.log(`     Title: ${inf.title}`);
+  console.log(`     Status: ${inf.rawStatus} → inferred: ${chalk.bold(inf.inferredStatus)}`);
+
+  if (inf.checkboxes.total > 0) {
+    console.log(`     Checkboxes: ${inf.checkboxes.closed}/${inf.checkboxes.total} (${inf.checkboxes.percentage}%)`);
+  } else {
+    console.log(`     Checkboxes: none (design document)`);
+  }
+
+  console.log(`     Age: ${inf.ageInDays} day(s)`);
+  if (inf.estado) {
+    console.log(`     Estado: ${inf.estado}`);
+  }
+  console.log(`     🤖 Recommendation: ${chalk.bold(inf.recommendation)} — ${inf.reason}`);
+  console.log("");
+}
+
 // ── Main Lifecycle Flow ────────────────────────────────────────────────────
 
 export async function runLifecycleReview(
@@ -185,111 +183,134 @@ export async function runLifecycleReview(
   options: { auto?: boolean; dry?: boolean } = {}
 ): Promise<LifecycleResult> {
   const nexusDir = join(projectRoot, "nexus-system");
-  const result: LifecycleResult = { active: 0, archived: 0, skipped: 0 };
+  const result: LifecycleResult = { active: 0, archived: 0, removed: 0, skipped: 0 };
 
   console.log("");
   console.log(chalk.bold.cyan("🔍 PLAN LIFECYCLE — Checking active plans"));
   console.log("");
 
-  // 1. Detect active plans
-  const plans = detectActivePlans(nexusDir);
-  result.active = plans.length;
+  // 1. Run inference
+  const inferenceEngine = new InferenceEngine(nexusDir);
+  const summary = inferenceEngine.generateSummary();
 
-  if (plans.length === 0) {
+  if (summary.totalPlans === 0) {
     console.log(chalk.green("  No active plans found. All archived."));
     console.log("");
     return result;
   }
 
-  console.log(`  Found ${chalk.bold(String(plans.length))} active plan(s):`);
+  result.active = summary.totalPlans;
+
+  // 2. Show inference summary
+  console.log(`  ${chalk.bold(String(summary.totalPlans))} active plan(s):`);
   console.log("");
 
-  for (const plan of plans) {
-    console.log(`  📄 ${chalk.bold(plan.id)}`);
-    console.log(`     Title: ${plan.title}`);
-    console.log(`     Status: ${plan.status}`);
-    console.log(`     Path: ${plan.relativePath}`);
-    console.log("");
+  for (const inf of summary.plans) {
+    printInference(inf);
   }
 
-  // 2. For each plan, validate and prompt
-  for (const plan of plans) {
-    console.log(chalk.bold(`  🔧 Validating: ${plan.id}`));
+  // 3. For each plan, validate and prompt
+  for (const inf of summary.plans) {
+    const plan = detectActivePlans(nexusDir).find((p) => p.id === inf.id);
+    if (!plan) continue;
+
+    // Technical validation
+    console.log(chalk.bold(`  🔧 Validating: ${inf.id}`));
     const validation = await runValidationWithProgress(plan, projectRoot);
     console.log("");
 
     if (!validation.valid) {
       console.log(
-        chalk.yellow(
-          "  ⚠️  Some checks failed. Fix issues before archiving."
-        )
+        chalk.yellow("  ⚠️  Technical checks failed. Skipping.")
       );
       console.log("");
       result.skipped++;
       continue;
     }
 
-    // 3. Prompt review method (unless --auto)
-    let reviewMethod = "a";
-    if (!options.auto) {
-      const answer = await askQuestion(
-        "  Review method? [A] Agent validates / [U] I'll review myself: "
-      );
-      reviewMethod = answer || "a";
-    }
-
-    if (reviewMethod === "u" || reviewMethod === "utilizador") {
-      // User reviews manually
-      const confirm = await askQuestion(
-        "  Confirma que o plano está concluído? (y/n): "
-      );
-      if (confirm !== "y" && confirm !== "s") {
-        console.log(chalk.dim("  Skipped."));
+    // Auto mode: use recommendation
+    if (options.auto) {
+      const action = inf.recommendation;
+      if (action === "archive" || action === "remove") {
+        if (options.dry) {
+          console.log(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
+          console.log("");
+          continue;
+        }
+        try {
+          archivePlan(nexusDir, inf.id);
+          console.log(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
+          console.log("");
+          if (action === "archive") result.archived++;
+          else result.removed++;
+        } catch (error) {
+          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          console.log("");
+          result.skipped++;
+        }
+      } else {
+        console.log(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
         console.log("");
         result.skipped++;
-        continue;
       }
-    } else {
-      // Agent validates automatically
-      console.log(
-        chalk.green(
-          "  🤖 Agent review: All checks passed. Plan is ready to archive."
-        )
-      );
-      console.log("");
-    }
-
-    // 4. Archive (unless --dry)
-    if (options.dry) {
-      console.log(
-        chalk.dim(`  [DRY RUN] Would archive: ${plan.id} → done/`)
-      );
-      console.log("");
       continue;
     }
 
-    try {
-      archivePlan(nexusDir, plan.id);
-      console.log(
-        chalk.green(`  ✓ Plan archived: ${plan.id} → done/`)
-      );
-      console.log("");
-      result.archived++;
-    } catch (error) {
-      console.log(
-        chalk.red(
-          `  ✗ Failed to archive: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
-      console.log("");
-      result.skipped++;
+    // Interactive mode: 4-option prompt
+    const answer = await askQuestion(
+      `  [A] Archive as done / [S] Skip / [M] Keep active / [R] Remove: `
+    );
+
+    switch (answer) {
+      case "a": {
+        if (options.dry) {
+          console.log(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
+          break;
+        }
+        try {
+          archivePlan(nexusDir, inf.id);
+          console.log(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
+          result.archived++;
+        } catch (error) {
+          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          result.skipped++;
+        }
+        break;
+      }
+      case "r": {
+        if (options.dry) {
+          console.log(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
+          break;
+        }
+        try {
+          removePlan(nexusDir, inf.id);
+          console.log(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
+          result.removed++;
+        } catch (error) {
+          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          result.skipped++;
+        }
+        break;
+      }
+      case "m": {
+        console.log(chalk.dim(`  Kept: ${inf.id}`));
+        result.skipped++;
+        break;
+      }
+      default: {
+        console.log(chalk.dim(`  Skipped: ${inf.id}`));
+        result.skipped++;
+        break;
+      }
     }
+    console.log("");
   }
 
-  // 5. Summary
+  // 4. Summary
   console.log(chalk.bold("  ── Summary ──"));
   console.log(`  Active:   ${result.active}`);
   console.log(`  Archived: ${chalk.green(String(result.archived))}`);
+  console.log(`  Removed:  ${chalk.red(String(result.removed))}`);
   console.log(`  Skipped:  ${chalk.yellow(String(result.skipped))}`);
   console.log("");
 

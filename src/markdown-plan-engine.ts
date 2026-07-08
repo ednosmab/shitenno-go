@@ -58,19 +58,27 @@ export interface CreatePlanInput {
 /**
  * Parse frontmatter from markdown content.
  * Format: **Field:** value (not YAML, per project convention).
+ *
+ * Looks for **Field:** patterns in the header area (before first `---` separator
+ * or first `##` heading). Handles both formats:
+ *   1. Frontmatter before `# Title`
+ *   2. `**Field:** value` after `# Title` but before `---`
  */
 function parseFrontmatter(content: string): Record<string, string> {
   const metadata: Record<string, string> = {};
   const lines = content.split("\n");
 
   for (const line of lines) {
-    // Stop at first heading or separator
-    if (line.startsWith("#") || line === "---") break;
+    // Stop at horizontal rule separator (---)
+    if (line.trim() === "---") break;
 
-    // Match **Field:** value pattern
-    const match = line.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
+    // Stop at second-level heading (## Section)
+    if (line.startsWith("## ")) break;
+
+    // Match **Field:** value pattern (format: **FieldName:** Value)
+    const match = line.match(/^\*\*(.+?:)\*\*\s*(.+)$/);
     if (match && match[1] && match[2]) {
-      const key = match[1].toLowerCase().replace(/\s+/g, "_");
+      const key = match[1].replace(/:$/, "").toLowerCase().replace(/\s+/g, "_");
       const value = match[2].trim();
       metadata[key] = value;
     }
@@ -95,14 +103,20 @@ function extractTitle(content: string): string {
 /**
  * Extract status from frontmatter.
  */
-function extractStatus(metadata: Record<string, string>): MarkdownPlanStatus {
+function extractStatus(metadata: Record<string, string>, content: string): MarkdownPlanStatus {
   const statusField = metadata["status"];
-  if (!statusField) return "andamento";
+  if (statusField) {
+    const lower = statusField.toLowerCase();
+    if (lower.includes("done") || lower.includes("conclu")) return "done";
+    if (lower.includes("parado") || lower.includes("paused") || lower.includes("stopped")) return "parado";
+    return "andamento";
+  }
 
-  // Normalize status
-  const lower = statusField.toLowerCase();
-  if (lower.includes("done") || lower.includes("conclu")) return "done";
-  if (lower.includes("parado") || lower.includes("paused") || lower.includes("stopped")) return "parado";
+  // Fallback: check if all checkboxes are [x] (plan used checklist format)
+  const openBoxes = (content.match(/^- \[ \]/gm) || []).length;
+  const closedBoxes = (content.match(/^- \[x\]/gm) || []).length;
+  if (closedBoxes > 0 && openBoxes === 0) return "done";
+
   return "andamento";
 }
 
@@ -137,7 +151,7 @@ export class MarkdownPlanEngine {
     if (!existsSync(this.plansDir)) return [];
 
     const files = readdirSync(this.plansDir).filter(
-      (f) => f.endsWith(".md") && !f.startsWith("TEMPLATE")
+      (f) => f.endsWith(".md") && !f.startsWith("TEMPLATE") && f !== "README.md"
     );
 
     const plans: MarkdownPlan[] = [];
@@ -146,6 +160,30 @@ export class MarkdownPlanEngine {
       const filePath = join(this.plansDir, file);
       const plan = this.parsePlan(id, filePath, `nexus-system/governance/plans/${file}`);
       if (plan && plan.status !== "done") {
+        plans.push(plan);
+      }
+    }
+
+    return plans;
+  }
+
+  /**
+   * List all plans including done — used by inference engine
+   * to detect inconsistencies (status=done but checkboxes open).
+   */
+  listAll(): MarkdownPlan[] {
+    if (!existsSync(this.plansDir)) return [];
+
+    const files = readdirSync(this.plansDir).filter(
+      (f) => f.endsWith(".md") && !f.startsWith("TEMPLATE") && f !== "README.md"
+    );
+
+    const plans: MarkdownPlan[] = [];
+    for (const file of files) {
+      const id = file.replace(".md", "");
+      const filePath = join(this.plansDir, file);
+      const plan = this.parsePlan(id, filePath, `nexus-system/governance/plans/${file}`);
+      if (plan) {
         plans.push(plan);
       }
     }
@@ -338,14 +376,37 @@ ${content || ""}
   }
 
   /**
+   * Normalize plan header: if **Status:** is missing, infer from checkboxes
+   * and write it to the file.
+   */
+  private normalizePlanHeader(filePath: string, content: string): string {
+    if (/^\*\*Status:\*\*/m.test(content)) return content;
+
+    const openBoxes = (content.match(/^- \[ \]/gm) || []).length;
+    const closedBoxes = (content.match(/^- \[x\]/gm) || []).length;
+    const status = (closedBoxes > 0 && openBoxes === 0) ? "Done" : "In Progress";
+
+    const lines = content.split("\n");
+    const titleIndex = lines.findIndex((l) => l.startsWith("# "));
+    if (titleIndex === -1) return content;
+
+    lines.splice(titleIndex + 1, 0, "", `**Status:** ${status}`);
+    const updated = lines.join("\n");
+
+    writeFileSync(filePath, updated, "utf-8");
+    return updated;
+  }
+
+  /**
    * Parse a plan file into MarkdownPlan object.
    */
   private parsePlan(id: string, filePath: string, relativePath: string): MarkdownPlan | null {
     try {
       const content = readFileSync(filePath, "utf-8");
-      const metadata = parseFrontmatter(content);
-      const title = extractTitle(content);
-      const status = extractStatus(metadata);
+      const normalized = this.normalizePlanHeader(filePath, content);
+      const metadata = parseFrontmatter(normalized);
+      const title = extractTitle(normalized);
+      const status = extractStatus(metadata, normalized);
       const isActive = !relativePath.includes("/done/") && !relativePath.includes("/reference/");
 
       return {
