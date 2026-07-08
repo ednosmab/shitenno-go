@@ -193,6 +193,13 @@ export function collectContext(
  *
  * Gap 4: patterns.recurringErrors populated from feedback failure hotspots.
  * Gap 5: patterns.detected populated from pattern-detector DetectedPattern[].
+ *
+ * @param briefing - The base briefing to enrich.
+ * @param projectRoot - Root directory of the project.
+ * @param nexusDir - Path to nexus-system/ directory.
+ * @param deps - Injectable dependencies (for testing).
+ * @param existingPatternReport - Optional pre-computed pattern report to avoid re-detection.
+ * @returns The enriched briefing with recurringErrors and detected patterns populated.
  */
 function enrichBriefingWithPatterns(
   briefing: Briefing,

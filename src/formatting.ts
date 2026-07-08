@@ -32,7 +32,8 @@ export function calculateHealthPenalty(severity: "critical" | "high" | "medium" 
 export function healthBar(
   score: number,
   max: number = 100,
-  width: number = 20
+  width: number = 20,
+  showPercentage: boolean = true
 ): string {
   const pct = Math.min(1, Math.max(0, score / max));
   const filled = Math.round(pct * width);
@@ -42,8 +43,9 @@ export function healthBar(
     pct >= 0.8 ? chalk.green : pct >= 0.5 ? chalk.yellow : chalk.red;
 
   const bar = barColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
-  const pctStr = `${Math.round(pct * 100)}%`;
+  if (!showPercentage) return bar;
 
+  const pctStr = `${Math.round(pct * 100)}%`;
   return `${bar} ${chalk.bold(pctStr)}`;
 }
 

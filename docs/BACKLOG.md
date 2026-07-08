@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-08 — 12 itens marcados Done (quick wins + SA5, SA9, SA13, 2.2a, 2.18), BACKLOG reconciliado
+> **Ultima atualizacao:** 2026-07-08 — 15 itens marcados Done (+3.29, 2.11, 3.5), healthBar dedup, JSDoc, KNOWN_LIMITATIONS.md
 
 ---
 
@@ -81,6 +81,9 @@
 | SA13 | Baixo | ADRs documentados (resolvido pelo SA5) — 2026-07-08 |
 | 2.2a | Medio | Feedback CLI flags (--user-rating, --user-comment) + testes — 2026-07-08 |
 | 2.18 | Medio | Dashboard cliques do mouse funcionais — 2026-07-08 |
+| 3.5 | Baixo | Plugin system com registerPlugin(), hooks, validacao — 2026-07-08 |
+| 3.29 | Medio | Session-tracker ja usa appendFileSync (append-only) — 2026-07-08 |
+| 2.11 | Baixo | ROI.md linkado em README.md:133 — 2026-07-08 |
 
 ---
 
@@ -480,12 +483,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Arquivos** | `README.md`, `docs/ROI.md` |
-| **Descricao** | `docs/ROI.md` foi criado mas nao e referenciado do README.md. |
-| **Correcao** | Adicionar link na secao Token Economy do README. |
+| **Owner** | Edson |
+| **Resolucao** | ROI.md ja linkado em README.md:133 ("See [docs/ROI.md](docs/ROI.md)") — 2026-07-08 |
 
 ### 2.12 JSDoc nas funcoes novas
 
@@ -581,7 +582,7 @@
 | 3.2 | Dashboard web para scores historicos | Baixo | Visualizacao web dos dados de benchmark/feedback |
 | 3.3 | Suportar monorepos com workspaces | Medio | pnpm/yarn workspaces, deteccao automatica |
 | 3.4 | Integrar com GitHub API | Baixo | Churn real baseado em PR reviews, issues abertas |
-| 3.5 | Plugin system para skills customizadas | Baixo | Allow third-party plugins via hook system |
+| ~~3.5~~ | ~~Plugin system para skills customizadas~~ | ~~Baixo~~ | ~~Done: plugin-system.ts com registerPlugin(), hooks, validacao~~ |
 | 3.6 | nexus dashboard --live | Baixo | Watch mode com atualizacao periodica |
 | 3.7 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
 | 3.8 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
@@ -604,7 +605,7 @@
 | 3.26 | nexus status --fix | Baixo | Auto-fix para problemas de governance (como doctor) |
 | 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
 | 3.28 | Briefing --watch | Baixo | Regenerar briefing automaticamente a cada N segundos |
-| 3.29 | Session-tracker com append-only (remover overwrite) | Medio | session-tracker usa read-all-write-all — migrar para append-only como session-feedback |
+| ~~3.29~~ | ~~Session-tracker com append-only (remover overwrite)~~ | ~~Medio~~ | ~~Done: ja usa appendFileSync (nao writeFileSync)~~ |
 | 3.30 | Validacao de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
 | 3.31 | nexus detect --format markdown | Baixo | Saida markdown para detect (atualmente so text/json) |
 | 3.32 | Briefing cache com compressao | Baixo | Comprimir cache JSON para reduzir tamanho em disco |
@@ -1127,9 +1128,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 72 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard |
+| **Done** | 75 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
 | **P1** (≤ 30d) | 7 | Arquitetura (Clean/SOLID), AI agents (OpenCode, Cursor, Git hooks, skills) |
 | **P2** (≤ 90d) | 16 | Features (detect approve, bench compare), docs, performance, developer experience, security |
-| **P3** (sem SLA) | 31 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
+| **P3** (sem SLA) | 28 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
 | **Total** | **126** | |

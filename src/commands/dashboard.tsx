@@ -9,7 +9,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
-import { outputJson } from "../formatting.js";
+import { outputJson, healthBar as sharedHealthBar } from "../formatting.js";
 import { collectConsoleData } from "../console/data-collector.js";
 
 export function dashboardCommand(): Command {
@@ -84,10 +84,10 @@ function displayStaticDashboard(data: ReturnType<typeof collectConsoleData>): vo
   const { health, maturity, lifecycle, capabilities, stats, graph } = data;
 
   console.log(chalk.bold.cyan("  ┌─ Health Score ─────────────────────────────────┐"));
-  console.log(`  │ Overall:   ${healthBar(health.overall)}  ${health.overall}/100  │`);
-  console.log(`  │ Debt:      ${healthBar(health.knowledgeDebt)}  ${health.knowledgeDebt}/100  │`);
-  console.log(`  │ Graph:     ${healthBar(health.knowledgeGraph)}  ${health.knowledgeGraph}/100  │`);
-  console.log(`  │ Entropy:   ${healthBar(health.entropy)}  ${health.entropy}/100  │`);
+  console.log(`  │ Overall:   ${sharedHealthBar(health.overall, 100, 15, false)}  ${health.overall}/100  │`);
+  console.log(`  │ Debt:      ${sharedHealthBar(health.knowledgeDebt, 100, 15, false)}  ${health.knowledgeDebt}/100  │`);
+  console.log(`  │ Graph:     ${sharedHealthBar(health.knowledgeGraph, 100, 15, false)}  ${health.knowledgeGraph}/100  │`);
+  console.log(`  │ Entropy:   ${sharedHealthBar(health.entropy, 100, 15, false)}  ${health.entropy}/100  │`);
   console.log(chalk.bold.cyan("  └────────────────────────────────────────────────┘"));
   console.log("");
 
@@ -116,9 +116,4 @@ function displayStaticDashboard(data: ReturnType<typeof collectConsoleData>): vo
   console.log(chalk.bold.cyan("  └────────────────────────────────────────────────┘"));
 }
 
-function healthBar(value: number, width = 15): string {
-  const filled = Math.round((value / 100) * width);
-  const empty = width - filled;
-  const color = value >= 70 ? chalk.green : value >= 40 ? chalk.yellow : chalk.red;
-  return color("█".repeat(filled)) + chalk.gray("░".repeat(empty));
-}
+
