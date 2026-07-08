@@ -133,7 +133,24 @@ export function createFileStorage(nexusDir: string) {
       try {
         const content = readFileSync(recordsPath, "utf-8").trim();
         if (!content) return [];
-        return content.split("\n").map((line) => JSON.parse(line));
+        return content.split("\n")
+          .map((line) => {
+            try {
+              const parsed = JSON.parse(line) as Record<string, unknown>;
+              if (
+                typeof parsed === "object" && parsed !== null &&
+                typeof parsed.id === "string" &&
+                typeof parsed.timestamp === "string" &&
+                typeof parsed.outcome === "string"
+              ) {
+                return parsed as unknown as SessionFeedbackRecord;
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          })
+          .filter((r): r is SessionFeedbackRecord => r !== null);
       } catch {
         return [];
       }

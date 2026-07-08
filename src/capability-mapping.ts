@@ -34,6 +34,7 @@ const CAPABILITY_MAPPINGS: Record<Capability, CapabilityMapping> = {
       "nexus-system/core/complexity",
       "nexus-system/governance",
       "nexus-system/governance/agents",
+      "nexus-system/governance/context",
       "nexus-system/profile",
       "nexus-system/docs/feedback",
     ],
@@ -50,6 +51,7 @@ const CAPABILITY_MAPPINGS: Record<Capability, CapabilityMapping> = {
       { src: "core/complexity/types.ts", dest: "nexus-system/core/complexity/types.ts" },
       { src: "docs/feedback/README.md", dest: "nexus-system/docs/feedback/README.md" },
       { src: "governance/SYSTEM_MAP.md", dest: "nexus-system/governance/SYSTEM_MAP.md", customize: true },
+      { src: "governance/context/context_buffer.yaml", dest: "nexus-system/governance/context/context_buffer.yaml" },
     ],
   },
   knowledge: {

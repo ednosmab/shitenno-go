@@ -26,6 +26,8 @@ import { detectPatterns as _detectPatterns, type PatternDetectionReport, type De
 import { getFeedbackRecords, computeFeedbackSummary } from "./session-feedback.js";
 import { logger } from "./logger.js";
 import { computeInputHash } from "./briefing-cache.js";
+import { computeKeyChecksums, getCached, setCache } from "./cache.js";
+
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +44,12 @@ export interface ContextDeps {
   generateDynamicRules: (root: string, nexusDir: string) => DynamicRule[];
   generateBriefing: (fp: ProjectFingerprint, risk: RiskMap, ctx: ContextRule[], dyn: DynamicRule[], mat?: MaturityProfile, quickBoard?: { currentTask: string; nextP0: string; p1Debts: string; impediments: string; lastSessionStatus: string }) => Briefing;
   detectPatterns: (projectRoot: string, nexusDir: string) => PatternDetectionReport;
+  /** Optional: compute checksums for snapshot cache invalidation. */
+  computeKeyChecksums?: (projectRoot: string, nexusDir: string) => Record<string, string>;
+  /** Optional: read cached snapshot. Return null to disable cache reads. */
+  getCached?: <T>(projectRoot: string, nexusDir: string, key: string, checksumsFn: () => Record<string, string>) => T | null;
+  /** Optional: write snapshot to cache. No-op to disable cache writes. */
+  setCache?: <T>(projectRoot: string, nexusDir: string, key: string, data: T, checksums: Record<string, string>) => void;
 }
 
 /** The collected context snapshot. */
@@ -86,6 +94,10 @@ export const defaultDeps: ContextDeps = {
 /**
  * Collect all project context into a single snapshot.
  *
+ * Uses an intermediate disk cache keyed by a lightweight pre-hash
+ * (git HEAD + nexus-system dir). On cache hit, all heavy computation
+ * (fingerprint, risk map, rules, briefing) is skipped.
+ *
  * @param projectRoot - Root directory of the project.
  * @param nexusDir - Path to nexus-system/ directory.
  * @param deps - Injectable dependencies (for testing). Uses real I/O if omitted.
@@ -96,6 +108,22 @@ export function collectContext(
   nexusDir: string,
   deps: ContextDeps = defaultDeps
 ): ContextSnapshot {
+  // 0. Snapshot cache check (intermediate cache — 2.15b)
+  const computeChecksums = deps.computeKeyChecksums ?? computeKeyChecksums;
+  const cacheGet = deps.getCached ?? getCached;
+  const cacheSet = deps.setCache ?? setCache;
+  try {
+    const cached = cacheGet<ContextSnapshot>(projectRoot, nexusDir, "complexity", () =>
+      computeChecksums(projectRoot, nexusDir)
+    );
+    if (cached && (cached as ContextSnapshot).inputHash) {
+      logger.debug("collectContext", "Snapshot cache hit — skipping recomputation");
+      return cached as ContextSnapshot;
+    }
+  } catch {
+    logger.debug("collectContext", "Cache read failed — computing fresh snapshot");
+  }
+
   // 1. Fingerprint
   let fingerprint = deps.loadFingerprint(nexusDir);
   if (!fingerprint || deps.isFingerprintStale(nexusDir)) {
@@ -135,7 +163,7 @@ export function collectContext(
     maturityScore: maturityProfile?.overallScore ?? null,
   });
 
-  return {
+  const snapshot: ContextSnapshot = {
     collectedAt: new Date().toISOString(),
     inputHash,
     fingerprint,
@@ -145,6 +173,16 @@ export function collectContext(
     maturityProfile,
     briefing: enrichedBriefing,
   };
+
+  // 9. Store snapshot in cache (reuse complexity slot in nexus-cache.json)
+  try {
+    const checksums = computeChecksums(projectRoot, nexusDir);
+    cacheSet(projectRoot, nexusDir, "complexity", snapshot, checksums);
+  } catch (err) {
+    logger.debug("collectContext", "Failed to cache snapshot:", err instanceof Error ? err.message : err);
+  }
+
+  return snapshot;
 }
 
 // ── Pattern Enrichment (Gaps 4+5) ─────────────────────────────────────────

@@ -6,8 +6,8 @@
     { "field": "eventData.delta", "operator": "greater_than", "value": 5 }
   ],
   "actions": [
-    { "type": "update_context_buffer", params: { "field": "current_task.description", "value": "Maturity changed significantly" } },
-    { "type": "log_event", params: { "event": "maturity_shift", "message": "Significant maturity change detected" } }
+    { "type": "update_context_buffer", "params": { "field": "current_task.description", "value": "Maturity changed significantly" } },
+    { "type": "log_event", "params": { "event": "maturity_shift", "message": "Significant maturity change detected" } }
   ],
   "priority": 2,
   "dependencies": [],

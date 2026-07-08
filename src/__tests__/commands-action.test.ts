@@ -10,6 +10,7 @@ import { assessCommand } from "../commands/assess.js";
 import { evolveCommand } from "../commands/evolve.js";
 import { syncCommand } from "../commands/sync.js";
 
+
 let tempDir: string;
 let consoleSpy: ReturnType<typeof vi.spyOn>;
 
@@ -313,5 +314,81 @@ describe("sync command action handler", () => {
     const output = getJsonOutput();
     expect(output.dryRun).toBe(true);
     expect(existsSync(join(tempDir, "docs", "AGENTS.md"))).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// feedback command — user rating/comment/tags flags
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { recordOutcome, type SessionFeedbackRecord } from "../session-feedback.js";
+import { parseUserRating, parseUserTags } from "../feedback-utils.js";
+
+describe("feedback command — user rating/comment/tags parsing", () => {
+  // These tests verify the shared parsing helpers from feedback-utils.ts
+  // and their integration with recordOutcome.
+
+  it("parses valid user rating", () => {
+    expect(parseUserRating("4")).toBe(4);
+  });
+
+  it("clamps user rating below 1 to 1", () => {
+    expect(parseUserRating("0")).toBe(1);
+  });
+
+  it("clamps user rating above 5 to 5", () => {
+    expect(parseUserRating("9")).toBe(5);
+  });
+
+  it("returns undefined when user rating not provided", () => {
+    expect(parseUserRating(undefined)).toBeUndefined();
+  });
+
+  it("parses comma-separated user tags", () => {
+    expect(parseUserTags("refactor,audit,perf")).toEqual(["refactor", "audit", "perf"]);
+  });
+
+  it("trims whitespace from user tags", () => {
+    expect(parseUserTags(" refactor , audit ")).toEqual(["refactor", "audit"]);
+  });
+
+  it("returns undefined when user tags not provided", () => {
+    expect(parseUserTags(undefined)).toBeUndefined();
+  });
+
+  it("records all user fields through recordOutcome", () => {
+    const appended: SessionFeedbackRecord[] = [];
+    const storage = { append: (r: SessionFeedbackRecord) => { appended.push(r); } };
+
+    recordOutcome(storage, {
+      outcome: "partial",
+      briefingHash: "abc",
+      briefingTimestamp: "2026-01-01",
+      userRating: 3,
+      userComment: "Needs improvement",
+      userTags: ["bug", "urgent"],
+    });
+
+    const record = appended[0]!;
+    expect(record.outcome).toBe("partial");
+    expect(record.userRating).toBe(3);
+    expect(record.userComment).toBe("Needs improvement");
+    expect(record.userTags).toEqual(["bug", "urgent"]);
+  });
+
+  it("omits user fields when not provided", () => {
+    const appended: SessionFeedbackRecord[] = [];
+    const storage = { append: (r: SessionFeedbackRecord) => { appended.push(r); } };
+
+    recordOutcome(storage, {
+      outcome: "success",
+      briefingHash: "abc",
+      briefingTimestamp: "2026-01-01",
+    });
+
+    const record = appended[0]!;
+    expect(record.userRating).toBeUndefined();
+    expect(record.userComment).toBeUndefined();
+    expect(record.userTags).toBeUndefined();
   });
 });

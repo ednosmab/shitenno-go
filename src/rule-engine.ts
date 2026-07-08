@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { logger } from "./logger.js";
 import { type Capability, detectInstalledCapabilities } from "./maturity-profile.js";
+import { transitionTask, type BacklogState } from "./backlog-state-machine.js";
 
 // ── Security: Allowed Scripts ────────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ const VALID_ACTION_TYPES = [
   "update_context_buffer", "create_reminder", "update_quick_board", "log_event",
   "trigger_assessment", "trigger_health_check", "update_backlog",
   "run_local_script", "run_script", "run_nexus_command",
+  "update_backlog_status", "archive_plan",
 ];
 
 function validateRule(rule: unknown): ValidationResult {
@@ -161,7 +163,9 @@ export type ActionType =
   | "run_nexus_command"
   | "update_file"
   | "create_file"
-  | "remove_file";
+  | "remove_file"
+  | "update_backlog_status"
+  | "archive_plan";
 
 /** Uma regra declarativa. */
 export interface Rule {
@@ -379,10 +383,10 @@ function ensureContextBuffer(nexusDir: string): string {
 // ── Action Executor ─────────────────────────────────────────────────────────
 
 /** Executa uma acção. */
-function executeAction(
+async function executeAction(
   action: RuleAction,
   context: RuleContext
-): { success: boolean; message: string } {
+): Promise<{ success: boolean; message: string }> {
   switch (action.type) {
     case "update_context_buffer": {
       const bufferPath = join(context.nexusDir, "governance", "context", "context_buffer.yaml");
@@ -534,6 +538,42 @@ function executeAction(
       }
     }
 
+    case "update_backlog_status": {
+      const taskId = String(action.params.taskId || "");
+      const fromState = String(action.params.fromState || "");
+      const toState = String(action.params.toState || "");
+
+      if (!taskId || !fromState || !toState) {
+        return { success: false, message: "Missing required params: taskId, fromState, toState" };
+      }
+
+      try {
+        const result = transitionTask(context.nexusDir, taskId, fromState as BacklogState, toState as BacklogState);
+        return { success: result.success, message: result.message };
+      } catch (error) {
+        return { success: false, message: `Failed to transition backlog: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+
+    case "archive_plan": {
+      const planId = String(action.params.planId || "");
+      if (!planId) {
+        return { success: false, message: "No plan ID specified" };
+      }
+
+      try {
+        execSync(`NEXUS_CHILD=1 node dist/nexus.js plan md done ${planId}`, {
+          cwd: context.projectRoot,
+          timeout: 30000,
+          encoding: "utf-8",
+          stdio: "pipe",
+        });
+        return { success: true, message: `Plan archived: ${planId}` };
+      } catch (error) {
+        return { success: false, message: `Failed to archive plan: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+
     case "run_local_script": {
       const script = String(action.params.script || "");
       if (!script) return { success: false, message: "No script specified" };
@@ -620,10 +660,10 @@ function executeAction(
 /**
  * Executa o engine de regras para um determinado trigger.
  */
-export function executeRules(
+export async function executeRules(
   rules: Rule[],
   context: RuleContext
-): EngineResult {
+): Promise<EngineResult> {
   const results: RuleResult[] = [];
   let executed = 0;
   let skipped = 0;
@@ -687,7 +727,7 @@ export function executeRules(
     let allSuccess = true;
 
     for (const action of rule.actions) {
-      const result = executeAction(action, context);
+      const result = await executeAction(action, context);
       if (result.success) {
         actionsExecuted++;
       } else {
@@ -982,7 +1022,7 @@ export function initializeRuleEngine(
   const bus = getEventBus();
 
   for (const [eventType, trigger] of Object.entries(EVENT_TO_TRIGGER)) {
-    bus.subscribe(eventType as NexusEventType, (payload: unknown) => {
+    bus.subscribe(eventType as NexusEventType, async (payload: unknown) => {
       const rules = loadRules(nexusDir);
       if (rules.length === 0) {
         logger.debug(
@@ -1008,7 +1048,7 @@ export function initializeRuleEngine(
         installedCapabilities: detectInstalledCapabilities(nexusDir),
       };
 
-      executeRules(rules, context);
+      await executeRules(rules, context);
     });
   }
 }

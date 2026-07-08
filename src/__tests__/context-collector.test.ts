@@ -86,6 +86,16 @@ const mockDeps: ContextDeps = {
   generateContextRules: () => [],
   generateDynamicRules: () => [],
   generateBriefing: () => mockBriefing,
+  detectPatterns: () => ({
+    detectedAt: "2024-01-01T00:00:00Z",
+    historyEntriesAnalyzed: 0,
+    reportsAnalyzed: 0,
+    patterns: [],
+    candidateRules: [],
+    summary: "No patterns detected",
+  }),
+  getCached: () => null,   // disable cache reads in tests
+  setCache: () => {},      // disable cache writes in tests
 };
 
 describe("context-collector", () => {

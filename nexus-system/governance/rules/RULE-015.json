@@ -1,10 +1,16 @@
 {
   "id": "RULE-015",
-  "description": "Verify active plans on session end",
+  "description": "Archive active plans on session end",
   "trigger": "session_end",
   "conditions": [],
   "actions": [
-    { "type": "log_event", params: { "event": "session_end_check", "message": "Session ended — verify no pending plans" } }
+    {
+      "type": "log_event",
+      "params": {
+        "event": "session_end_plans",
+        "message": "Session ended — run 'nexus plan md lifecycle' to archive active plans"
+      }
+    }
   ],
   "priority": 3,
   "dependencies": [],

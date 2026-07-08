@@ -24,7 +24,7 @@ import { computeInputHash, setCachedBriefing, invalidateBriefingCache, readCache
 import { briefingToMarkdown, briefingToJson, generateDiff, type Briefing } from "../briefing.js";
 import { compressedSummary, generateOptimizationHints, suggestDepth, type BriefingDepth } from "../token-optimizer.js";
 
-import { outputJson } from "../formatting.js";
+import { outputJson, banner } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
 
 // ── Output Helpers ─────────────────────────────────────────────────────────
@@ -41,11 +41,9 @@ function writeBriefingMarkdown(projectRoot: string, briefing: Briefing): string 
   return filePath;
 }
 
-function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: string): void {
+function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: BriefingDepth): void {
   console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║    nexus briefing — Context Pipeline  ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+  banner("nexus briefing", "Context Pipeline");
   console.log("");
   const tokenLabel = depth === "minimal" ? "~200" : depth === "standard" ? "~500" : "~1000";
   console.log(chalk.gray(`  Depth: ${depth} (${tokenLabel} tokens)`));

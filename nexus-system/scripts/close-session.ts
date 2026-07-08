@@ -108,8 +108,48 @@ function checkBuild() {
   }
 }
 
-// ── 7. Completion Gate (Rule #21) ─────────────────────────────────────────
-async function checkCompletionGate() {
+// ── 7. Completion Pipeline (5 gates + backlog + plan archive) ──────────────
+async function checkCompletionPipeline() {
+  try {
+    const mod = await import(resolve(ROOT, 'dist', 'task-completion-pipeline.js'));
+    const result = mod.runCurrentTaskPipeline(ROOT, resolve(ROOT, 'nexus-system'));
+    
+    if (!result) {
+      warn('COMPLETION_PIPELINE', 'No active task found — skipping pipeline');
+      return;
+    }
+
+    if (result.success) {
+      pass('COMPLETION_PIPELINE', 'All 5 gates passed + backlog updated + plan archived');
+      if (result.backlogUpdated) {
+        pass('BACKLOG_AUTO', 'Backlog status auto-transitioned to "concluído"');
+      }
+      if (result.planArchived) {
+        pass('PLAN_AUTO_ARCHIVE', 'Active plan auto-archived to done/');
+      }
+      if (result.eventPublished) {
+        pass('EVENT_PUBLISHED', 'task.completed event published to event bus');
+      }
+    } else {
+      const failures = result.gates.gates
+        .filter((g: { passed: boolean }) => !g.passed)
+        .map((g: { name: string; message: string }) => `${g.name}: ${g.message}`);
+      
+      if (failures.length > 0) {
+        fail('COMPLETION_PIPELINE', `Gate(s) failed: ${failures.join('; ')}`);
+      } else {
+        warn('COMPLETION_PIPELINE', `Pipeline completed with warnings: ${result.errors.join('; ')}`);
+      }
+    }
+  } catch {
+    warn('COMPLETION_PIPELINE', 'Completion pipeline module not available — falling back to legacy checks');
+    await checkCompletionGateLegacy();
+    await checkPlanLifecycle();
+  }
+}
+
+// ── 7b. Legacy completion gate (fallback) ─────────────────────────────────
+async function checkCompletionGateLegacy() {
   try {
     const mod = await import(resolve(ROOT, 'dist', 'task-completion.js'));
     const result = mod.validateCompletionGate({
@@ -118,7 +158,7 @@ async function checkCompletionGate() {
       taskId: 'session-close',
     });
     if (result.passed) {
-      pass('COMPLETION_GATE', 'All 4 gates passed (tests, lint, docs, backlog)');
+      pass('COMPLETION_GATE', 'All 5 gates passed (tests, lint, docs, backlog, plan_status)');
     } else {
       const failures = result.gates
         .filter((g: { passed: boolean }) => !g.passed)
@@ -157,8 +197,7 @@ checkBuffer();
 checkBacklog();
 checkCommit();
 checkBuild();
-await checkCompletionGate();
-await checkPlanLifecycle();
+await checkCompletionPipeline();
 
 console.log(`\n${exitCode === 0 ? '✅ Session ready to close' : '❌ Session has issues to resolve'}`);
 if (warnings.length > 0) {

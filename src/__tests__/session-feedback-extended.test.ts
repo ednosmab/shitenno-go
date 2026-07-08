@@ -200,5 +200,46 @@ describe("session-feedback extended functions", () => {
       expect(summary.avgUserRating).toBeNull();
       expect(summary.ratedSessions).toBe(0);
     });
+
+    it("handles all sessions rated", () => {
+      const records: SessionFeedbackRecord[] = [
+        { id: "1", timestamp: "t1", outcome: "success", briefingHash: "a", briefingTimestamp: "t1", userRating: 3 },
+        { id: "2", timestamp: "t2", outcome: "failure", briefingHash: "b", briefingTimestamp: "t2", userRating: 2 },
+        { id: "3", timestamp: "t3", outcome: "partial", briefingHash: "c", briefingTimestamp: "t3", userRating: 5 },
+      ];
+
+      const summary = computeFeedbackSummary(records);
+      expect(summary.avgUserRating).toBe(3.3);
+      expect(summary.ratedSessions).toBe(3);
+      expect(summary.totalSessions).toBe(3);
+    });
+
+    it("rounds avgUserRating to one decimal", () => {
+      const records: SessionFeedbackRecord[] = [
+        { id: "1", timestamp: "t1", outcome: "success", briefingHash: "a", briefingTimestamp: "t1", userRating: 1 },
+        { id: "2", timestamp: "t2", outcome: "success", briefingHash: "b", briefingTimestamp: "t2", userRating: 4 },
+      ];
+
+      const summary = computeFeedbackSummary(records);
+      // (1 + 4) / 2 = 2.5
+      expect(summary.avgUserRating).toBe(2.5);
+      expect(summary.ratedSessions).toBe(2);
+    });
+
+    it("includes avgUserRating and ratedSessions in summary output shape", () => {
+      const records: SessionFeedbackRecord[] = [
+        { id: "1", timestamp: "t1", outcome: "success", briefingHash: "a", briefingTimestamp: "t1", userRating: 5 },
+      ];
+
+      const summary = computeFeedbackSummary(records);
+      expect(summary).toHaveProperty("avgUserRating");
+      expect(summary).toHaveProperty("ratedSessions");
+      expect(summary).toHaveProperty("totalSessions");
+      expect(summary).toHaveProperty("successRate");
+      expect(summary).toHaveProperty("byOutcome");
+      expect(summary).toHaveProperty("tokenEconomy");
+      expect(summary.avgUserRating).toBe(5);
+      expect(summary.ratedSessions).toBe(1);
+    });
   });
 });

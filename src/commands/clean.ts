@@ -3,7 +3,7 @@ import { existsSync, unlinkSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { invalidateCache } from "../cache.js";
-import { outputJson } from "../formatting.js";
+import { outputJson, banner } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { logger } from "../logger.js";
@@ -22,9 +22,7 @@ export const cleanCommand = new Command("clean")
 
     if (!isJson) {
       console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║     nexus clean — Clear Cache        ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      banner("nexus clean", "Clear Cache");
       console.log("");
     }
 

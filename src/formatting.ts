@@ -84,3 +84,40 @@ export function statusIcon(
       return { icon: "✘", color: chalk.red };
   }
 }
+
+// ── Display Helpers (banner, section, kv) ──────────────────────────────────
+
+/**
+ * Render a boxed banner with command name and subtitle.
+ * Replaces the duplicated 3-line `╔══╗` pattern across all commands.
+ *
+ * @param title - Command name (e.g. "nexus status")
+ * @param subtitle - Description (e.g. "Health Check")
+ */
+export function banner(title: string, subtitle: string): void {
+  const label = `${title} — ${subtitle}`;
+  const width = label.length + 4;
+  const line = "═".repeat(width);
+  const inner = `  ${label}${" ".repeat(Math.max(0, width - 2 - label.length))}`;
+  console.log(chalk.bold.cyan(`╔${line}╗`));
+  console.log(chalk.bold.cyan(`║${inner}║`));
+  console.log(chalk.bold.cyan(`╚${line}╝`));
+}
+
+/**
+ * Render a section header with emoji.
+ * Replaces duplicated `chalk.bold("  ⚠ Risk Status")` patterns.
+ */
+export function section(emoji: string, title: string): void {
+  console.log("");
+  console.log(chalk.bold(`  ${emoji} ${title}`));
+}
+
+/**
+ * Render a key-value pair with consistent formatting.
+ * Replaces duplicated `console.log(chalk.gray(...))` patterns.
+ */
+export function kv(key: string, value: string, indent: number = 5): void {
+  const pad = " ".repeat(indent);
+  console.log(`${pad}${chalk.gray(key.padEnd(12))} ${chalk.cyan(value)}`);
+}

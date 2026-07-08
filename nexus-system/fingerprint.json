@@ -1,8 +1,10 @@
 {
-  "hash": "00cf0602ed40",
-  "detectedAt": "2026-06-30T15:06:52.188Z",
+  "hash": "7c7491acd1ea",
+  "detectedAt": "2026-07-07T15:25:56.835Z",
   "domain": "monorepo",
-  "stack": [],
+  "stack": [
+    "react"
+  ],
   "scale": "medium",
   "tooling": {
     "typescript": true,
@@ -11,6 +13,6 @@
     "linter": true,
     "monorepo": true
   },
-  "maturityScore": 49,
+  "maturityScore": 73,
   "version": 1
 }

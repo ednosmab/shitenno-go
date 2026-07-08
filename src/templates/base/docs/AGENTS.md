@@ -70,12 +70,25 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 **Ver resumo de feedback:**
 - `nexus feedback --summary` — mostra taxa de sucesso, hotspots de falha, e estatísticas
 
-**Formatos disponíveis para briefing:**
-- `nexus briefing` — output markdown para IA
-- `nexus briefing --json` — JSON estruturado para ferramentas
-- `nexus briefing --write` — escreve `.nexus/BRIEFING.md` para leitura offline
-- `nexus briefing --diff` — mostra mudanças desde o último briefing
-- `nexus briefing --invalidate` — força regeneração ignorando cache
+**Comandos disponíveis:**
+- `nexus briefing` — output markdown para IA (opções: `--json`, `--write`, `--diff`, `--summary`, `--invalidate`, `--profile <minimal|standard|full>`)
+- `nexus feedback` — registar resultado da sessão (opções: `--outcome success|failure|partial`, `--areas <lista>`, `--notes <texto>`, `--user-rating <1-5>`, `--user-comment <texto>`, `--user-tags <lista>`, `--summary`, `--personalized`)
+- `nexus status` — estado actual do projecto e capabilities instaladas
+- `nexus detect` — detectar padrões no histórico e propor regras candidatas
+- `nexus audit` — auditoria de saúde completa (opções: `--level quick|standard|full`, `--json`, `--auto-backlog`)
+- `nexus assess` — avaliar maturidade e recomendar próximo passo
+- `nexus doctor` — diagnóstico rápido de problemas comuns
+- `nexus bench` — benchmark de tokens e economia
+- `nexus dashboard` — métricas de token economy
+- `nexus upgrade` — adicionar capabilities novas (opções: `--capability <nome>`, `--accept-recommended`)
+- `nexus validate` — verificar integridade da sessão (opções: `--fix`)
+- `nexus clean` — limpar artefactos desactualizados
+- `nexus run` — executar pipeline completo de análise
+- `nexus evolve` — gerar recomendações de evolução
+- `nexus sync` — sincronizar regras e governance com o estado actual
+- `nexus report` — gerar relatório de complexidade
+- `nexus update` — actualizar templates do nexus-cli (opções: `--apply`, `--dry-run`, `--backup`)
+- `nexus profile` — configurar perfil do utilizador
 
 ---
 
@@ -380,9 +393,22 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 **Ver resumo de feedback:**
 - `nexus feedback --summary` — mostra taxa de sucesso, hotspots de falha, e estatísticas
 
-**Formatos disponíveis para briefing:**
-- `nexus briefing` — output markdown para IA
-- `nexus briefing --json` — JSON estruturado para ferramentas
-- `nexus briefing --write` — escreve `.nexus/BRIEFING.md` para leitura offline
-- `nexus briefing --diff` — mostra mudanças desde o último briefing
-- `nexus briefing --invalidate` — força regeneração ignorando cache
+**Comandos disponíveis:**
+- `nexus briefing` — output markdown para IA (opções: `--json`, `--write`, `--diff`, `--summary`, `--invalidate`, `--profile <minimal|standard|full>`)
+- `nexus feedback` — registar resultado da sessão (opções: `--outcome success|failure|partial`, `--areas <lista>`, `--notes <texto>`, `--user-rating <1-5>`, `--user-comment <texto>`, `--user-tags <lista>`, `--summary`, `--personalized`)
+- `nexus status` — estado actual do projecto e capabilities instaladas
+- `nexus detect` — detectar padrões no histórico e propor regras candidatas
+- `nexus audit` — auditoria de saúde completa (opções: `--level quick|standard|full`, `--json`, `--auto-backlog`)
+- `nexus assess` — avaliar maturidade e recomendar próximo passo
+- `nexus doctor` — diagnóstico rápido de problemas comuns
+- `nexus bench` — benchmark de tokens e economia
+- `nexus dashboard` — métricas de token economy
+- `nexus upgrade` — adicionar capabilities novas (opções: `--capability <nome>`, `--accept-recommended`)
+- `nexus validate` — verificar integridade da sessão (opções: `--fix`)
+- `nexus clean` — limpar artefactos desactualizados
+- `nexus run` — executar pipeline completo de análise
+- `nexus evolve` — gerar recomendações de evolução
+- `nexus sync` — sincronizar regras e governance com o estado actual
+- `nexus report` — gerar relatório de complexidade
+- `nexus update` — actualizar templates do nexus-cli (opções: `--apply`, `--dry-run`, `--backup`)
+- `nexus profile` — configurar perfil do utilizador

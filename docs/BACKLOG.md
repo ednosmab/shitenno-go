@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-07 — desacoplamento concluido, BACKLOG reconciliado
+> **Ultima atualizacao:** 2026-07-07 — quick wins concluidos (2.6, 2.8, 2.10, SA8, 2.5), comercializacao removida do BACKLOG
 
 ---
 
@@ -584,9 +584,8 @@
 | 3.4 | Integrar com GitHub API | Baixo | Churn real baseado em PR reviews, issues abertas |
 | 3.5 | Plugin system para skills customizadas | Baixo | Allow third-party plugins via hook system |
 | 3.6 | nexus dashboard --live | Baixo | Watch mode com atualizacao periodica |
-| 3.7 | Publicar npm package | Alto | Definir scope, registry, permissoes |
-| 3.8 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
-| 3.9 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
+| 3.7 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
+| 3.8 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
 | 3.10 | nexus --quiet / --no-color | Baixo | Modo scriptavel para CI/CD |
 | 3.11 | nexus init --dry-run | Baixo | Preview do que seria criado sem criar |
 | 3.12 | nexus upgrade --dry-run | Baixo | Preview do que seria instalado sem instalar |
@@ -616,208 +615,6 @@
 | 3.36 | Decidir nome do produto | Baixo | Nexus Gaude, Prism, Codex, ou outro — decisao estrategica pendente |
 | 3.37 | Refinamento do logo | Baixo | Vetorizacao, variações, assets finais — logo atual e AI-generated com watermark |
 | 3.38 | Optimizar economia de tokens na abertura de sessão | Baixo | Reduzir consumo actual de 12% por sessão. Ficheiros alvo: opencode-context.md (3.8KB→1.5KB), quick-board-enforcement.md (3.4KB→1.5KB), AGENTS.md (8.8KB→5KB), BRIEFING.md (1.7KB→0.8KB). Potencial: ~50% redução |
-
----
-
-## P1 — Produto & Go-to-Market (≤ 30 dias)
-
-### G1 Landing page
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Site one-page com proposta de valor, demonstracao visual, CTA para waitlist. Deve comunicar: (1) O problema (context loss entre sessoes), (2) A solucao (briefing dinamico), (3) O resultado (60-80% menos tokens). |
-| **Correcao** | Criar `docs/landing/` com copy, wireframe e assets. Ferramenta: Astro, Next.js, ou HTML statico. |
-
-### G2 Waitlist / early access
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Formulario de captura de emails para early access. Validar demanda antes de investir em monetizacao. |
-| **Correcao** | Integrar com Resend, Loops, ou Buttondown. Meta: 100 emails antes de lancar. |
-
-### G3 Definicao de personas
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Quem e o usuario? (1) Tech Lead que quer governance, (2) Dev Solo que quer produtividade, (3) AI Engineer que quer context para agentes. Cada persona tem dor diferente. |
-| **Correcao** | Criar `docs/personas.md` com 3 personas detalhadas: nome, dor, fluxo, tom de voz, objecoes. |
-
-### G4 Analise competitiva
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | Mapear Credo AI, Modulos, Govern365, Packmind. Como nos diferenciar? Resposta: context engineering para AI coding — ninguem faz isso. |
-| **Correcao** | Criar `docs/competitive-analysis.md` com matriz de features, precos, posicionamento. |
-
-### G5 Pricing model concreto
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Definir tiers: Free (CLI basico), Starter ($29/mo), Team ($99/mo), Enterprise (custom). Cada tier com features claras. |
-| **Correcao** | Criar `docs/pricing.md` com tabela de features por tier, justificativa de precos, comparacao com concorrentes. |
-
-### G6 Case studies
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | 3 casos de uso reais com metricas antes/depois. Ex: "Reduzi 70% do tempo de onboarding de um dev junior com Nexus." |
-| **Correcao** | Criar `docs/case-studies/` com 3 estudos: web-app, API, monorepo. |
-
-### G7 Product Hunt launch
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Descricao** | Preparar materiais para Product Hunt: tagline, screenshots, maker comment, first comment. |
-| **Correcao** | Criar `docs/launch/product-hunt.md` com copy e assets. |
-
----
-
-## P1 — Monetizacao & Licenciamento (≤ 30 dias)
-
-### M1 Sistema de license key
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Chave de ativação por projeto. Formato: `NXS-XXXX-XXXX-XXXX`. Validacao offline com grace period. |
-| **Correcao** | Criar `src/license.ts` com: generate(), validate(), deactivate(). Usar SHA-256 para assinatura. |
-
-### M2 Tier enforcement
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Limitar features por tier. Free: init, status, detect. Starter: todos. Team: + dashboard, bench. Enterprise: + SSO, compliance. |
-| **Correcao** | Criar `src/tier-gate.ts`. Modificar `bin/nexus.ts` para verificar tier antes de executar comandos restritos. |
-
-### M3 Usage tracking
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Owner** | unassigned |
-| **Descricao** | Rastrear comandos executos para billing. Metricas: comandos/mes, briefings gerados, feedback records. |
-| **Correcao** | Extender `session-tracker.ts` para gravar `usage.jsonl` com timestamps e tipo de comando. |
-
-### M4 Trial mechanism
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | 14 dias de tier superior automaticamente apos `nexus init`. Depois, downgrade para free. |
-| **Correcao** | Adicionar campo `trialEndsAt` no `nexus-system/config.json`. Verificar antes de comandos restritos. |
-
-### M5 Payment integration
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | Stripe ou Paddle para cobranca recorrente. Webhook para atualizar license. |
-| **Correcao** | Criar `src/commands/subscribe.ts` que abre checkout URL. Webhook em `src/webhooks/` para confirmar pagamento. |
-
-### M6 License server
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | API central para validar licenses, verificar tier, registrar uso. |
-| **Correcao** | Criar `server/` com Express/Fastify. Endpoints: POST /validate, POST /usage, GET /status. |
-
-### M7 Offline license
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Descricao** | Modo offline com grace period de 30 dias. After that, features bloqueadas. |
-| **Correcao** | Cache de license local com TTL. Verificacao periodica quando online. |
-
----
-
-## P2 — Enterprise (≤ 90 dias)
-
-### E1 SSO/SAML
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | Autenticacao empresarial via SAML 2.0 ou OIDC. Integrar com Okta, Azure AD, Google Workspace. |
-| **Correcao** | Adicionar `nexus auth --sso` que redireciona para IdP. Callback salva token localmente. |
-
-### E2 Compliance exports
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | Relatorios para SOC 2, ISO 42001, EU AI Act. Exportar historico de decisoes, feedback, mudancas. |
-| **Correcao** | Criar `nexus compliance --framework soc2` que gera relatorio PDF/JSON com evidencias. |
-
-### E3 Audit trail
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Descricao** | Log imutavel de todas as operacoes: quem fez, quando, o que mudou. |
-| **Correcao** | Extender event-bus para gravar `audit.jsonl` com hash encadeado (cada entry referencia a anterior). |
-
-### E4 Role-based access
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Descricao** | Admin (tudo), Operator (executa), Viewer (leitura). Por projeto. |
-| **Correcao** | Criar `nexus acl --add user@company.com operator`. Verificar permissao antes de cada operacao. |
-
-### E5 Private deployment
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Baixo |
-| **Owner** | unassigned |
-| **Descricao** | Self-hosted sem dependencia de npm registry. Bundle unico com binaries. |
-| **Correcao** | Usar `pkg` ou `sea` (Node.js single executable) para gerar binarios. Distribuir via GitHub Releases privado. |
 
 ---
 
@@ -1341,7 +1138,7 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 |---|---|---|
 | **Done** | 60 | Desacoplamento (A.1-A.5, B.1-B.7), SA3, MCP server, bugs, integracao, qualidade, pipeline, testes, governance, docs-sync |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
-| **P1** (≤ 30d) | 17 | Auto-analise: arquitetura, docs, knowledge graph, Clean/SOLID, contracts, skill template |
-| **P2** (≤ 90d) | 39 | Auto-analise: DDD, TDD, Commander; Features, enterprise, docs, performance, dashboard UX, onboarding test |
-| **P3** (sem SLA) | 38 | Nice-to-have, ecosystem, observability, i18n, nome/logo, dashboard responsividade |
-| **Total** | **154** | |
+| **P1** (≤ 30d) | 10 | AI Agent Integration (MCP, OpenCode, Cursor, Git hooks, skills), arquitetura, docs, knowledge graph |
+| **P2** (≤ 90d) | 25 | Features (detect approve, bench compare, dashboard UX), docs, performance, developer experience, security |
+| **P3** (sem SLA) | 31 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
+| **Total** | **126** | |

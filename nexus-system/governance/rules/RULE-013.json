@@ -6,8 +6,8 @@
     { "field": "eventData.gapCount", "operator": "greater_than", "value": 3 }
   ],
   "actions": [
-    { "type": "update_backlog", params: { "item": "Address critical knowledge debt (3+ gaps detected)" } },
-    { "type": "create_reminder", params: { "message": "High knowledge debt detected — create ADRs and skills" } }
+    { "type": "update_backlog", "params": { "item": "Address critical knowledge debt (3+ gaps detected)" } },
+    { "type": "create_reminder", "params": { "message": "High knowledge debt detected — create ADRs and skills" } }
   ],
   "priority": 1,
   "dependencies": [],

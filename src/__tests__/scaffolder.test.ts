@@ -96,10 +96,15 @@ describe("scaffoldNexusSystem", () => {
       expect(content).not.toContain("[PERSONALIZAR:");
     });
 
-    it("does NOT create governance files for core only", () => {
+    it("does NOT create governance-only files for core only", () => {
       const result = scaffoldNexusSystem(tempDir, makeAnswers(), ["core"]);
-      expect(result.filesCreated).not.toContain(
+      // context_buffer.yaml IS now in core (always created)
+      expect(result.filesCreated).toContain(
         "nexus-system/governance/context/context_buffer.yaml"
+      );
+      // WORKFLOW.md is governance-only
+      expect(result.filesCreated).not.toContain(
+        "nexus-system/governance/WORKFLOW.md"
       );
     });
 

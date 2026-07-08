@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -33,6 +33,7 @@ export function validateCompletionGate(
   gates.push(checkLintPass(options.projectRoot, execFn));
   gates.push(checkDocumentationUpdated(options.projectRoot, options.nexusDir, execFn, options.affectedFiles));
   gates.push(checkBacklogUpdated(options.nexusDir, options.taskId));
+  gates.push(checkPlanStatus(options.nexusDir, options.taskId));
 
   const allPassed = gates.every((g) => g.passed);
 
@@ -177,4 +178,68 @@ function checkBacklogUpdated(nexusDir: string, taskId: string): CompletionGate {
     passed: true,
     message: "No BACKLOG.md found — skipping",
   };
+}
+
+function checkPlanStatus(nexusDir: string, taskId: string): CompletionGate {
+  const plansDir = join(nexusDir, "governance", "plans");
+  if (!existsSync(plansDir)) {
+    return {
+      name: "plan_status",
+      passed: true,
+      message: "No plans directory found — skipping",
+    };
+  }
+
+  try {
+    const files = readdirSync(plansDir).filter(
+      (f: string) => f.endsWith(".md") && !f.startsWith("TEMPLATE")
+    );
+
+    const matchingPlan = files.find((f: string) => {
+      const id = f.replace(".md", "").toLowerCase();
+      return id.includes(taskId.toLowerCase()) || taskId.toLowerCase().includes(id);
+    });
+
+    if (!matchingPlan) {
+      return {
+        name: "plan_status",
+        passed: true,
+        message: `No active plan found for task ${taskId} — skipping`,
+      };
+    }
+
+    const planPath = join(plansDir, matchingPlan);
+    const content = readFileSync(planPath, "utf-8");
+
+    const statusMatch = content.match(/\*\*Status:\*\*\s*(.+)/i);
+    if (!statusMatch) {
+      return {
+        name: "plan_status",
+        passed: false,
+        message: `Plan ${matchingPlan} has no status field`,
+      };
+    }
+
+    const statusValue = statusMatch[1] || "";
+    const status = statusValue.trim().toLowerCase();
+    if (status === "done" || status === "concluído" || status === "concluido") {
+      return {
+        name: "plan_status",
+        passed: true,
+        message: `Plan ${matchingPlan} status is "${statusValue.trim()}"`,
+      };
+    }
+
+    return {
+      name: "plan_status",
+      passed: false,
+      message: `Plan ${matchingPlan} status is "${statusValue.trim()}" — run "nexus plan md done ${matchingPlan.replace(".md", "")}" to archive`,
+    };
+  } catch {
+    return {
+      name: "plan_status",
+      passed: true,
+      message: "Could not check plan status — skipping",
+    };
+  }
 }
