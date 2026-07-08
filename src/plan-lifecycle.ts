@@ -11,6 +11,7 @@ import { execSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
 import chalk from "chalk";
+import ora from "ora";
 import {
   MarkdownPlanEngine,
   type MarkdownPlan,
@@ -49,17 +50,9 @@ export function validatePlanCompletion(
   projectRoot: string
 ): ValidationResult {
   const checks: CompletionCheck[] = [];
-
-  // Check 1: Build passes
   checks.push(checkBuild(projectRoot));
-
-  // Check 2: Tests pass
   checks.push(checkTests(projectRoot));
-
-  // Check 3: Lint passes
   checks.push(checkLint(projectRoot));
-
-  // Check 4: Plan file has status markers (not still "andamento")
   checks.push({
     name: "STATUS",
     passed: plan.status === "done",
@@ -68,6 +61,54 @@ export function validatePlanCompletion(
         ? "Plan status is done"
         : `Plan status is "${plan.status}" — will be updated to done`,
   });
+  const valid = checks.filter((c) => !c.passed).length === 0;
+  return { valid, checks };
+}
+
+async function runValidationWithProgress(
+  plan: MarkdownPlan,
+  projectRoot: string
+): Promise<ValidationResult> {
+  const checks: CompletionCheck[] = [];
+
+  const buildSpinner = ora({ spinner: "dots" }).start();
+  buildSpinner.text = "Build — checking...";
+  const buildCheck = checkBuild(projectRoot);
+  checks.push(buildCheck);
+  buildSpinner[buildCheck.passed ? "succeed" : "fail"](
+    `Build — ${buildCheck.message}`
+  );
+
+  const testSpinner = ora({ spinner: "dots" }).start();
+  testSpinner.text = "Tests — checking...";
+  const testCheck = checkTests(projectRoot);
+  checks.push(testCheck);
+  testSpinner[testCheck.passed ? "succeed" : "fail"](
+    `Tests — ${testCheck.message}`
+  );
+
+  const lintSpinner = ora({ spinner: "dots" }).start();
+  lintSpinner.text = "Lint — checking...";
+  const lintCheck = checkLint(projectRoot);
+  checks.push(lintCheck);
+  lintSpinner[lintCheck.passed ? "succeed" : "fail"](
+    `Lint — ${lintCheck.message}`
+  );
+
+  const statusPassed = plan.status === "done";
+  const statusSpinner = ora({ spinner: "dots" }).start();
+  statusSpinner.text = "Status — checking...";
+  const statusCheck: CompletionCheck = {
+    name: "STATUS",
+    passed: statusPassed,
+    message: statusPassed
+      ? "Plan status is done"
+      : `Plan status is "${plan.status}" — will be updated to done`,
+  };
+  checks.push(statusCheck);
+  statusSpinner[statusPassed ? "succeed" : "fail"](
+    `Status — ${statusCheck.message}`
+  );
 
   const valid = checks.filter((c) => !c.passed).length === 0;
   return { valid, checks };
@@ -137,13 +178,6 @@ function askQuestion(query: string): Promise<string> {
   });
 }
 
-function printChecks(checks: CompletionCheck[]): void {
-  for (const check of checks) {
-    const icon = check.passed ? chalk.green("✅") : chalk.red("❌");
-    console.log(`     ${icon} ${check.name}: ${check.message}`);
-  }
-}
-
 // ── Main Lifecycle Flow ────────────────────────────────────────────────────
 
 export async function runLifecycleReview(
@@ -181,8 +215,7 @@ export async function runLifecycleReview(
   // 2. For each plan, validate and prompt
   for (const plan of plans) {
     console.log(chalk.bold(`  🔧 Validating: ${plan.id}`));
-    const validation = validatePlanCompletion(plan, projectRoot);
-    printChecks(validation.checks);
+    const validation = await runValidationWithProgress(plan, projectRoot);
     console.log("");
 
     if (!validation.valid) {
