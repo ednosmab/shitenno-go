@@ -1,0 +1,20 @@
+{
+  "id": "RULE-016",
+  "description": "Auto-transition backlog to concluido on task completion",
+  "trigger": "task_completed",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "update_backlog_status",
+      "params": {
+        "taskId": "${eventData.taskId}",
+        "fromState": "em implementação",
+        "toState": "concluído"
+      }
+    }
+  ],
+  "priority": 1,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["backlog", "automation", "completion"]
+}

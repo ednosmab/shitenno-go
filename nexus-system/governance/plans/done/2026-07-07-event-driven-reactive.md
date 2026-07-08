@@ -1,6 +1,6 @@
 # Plano: Nexus System — Modelo Híbrido Request-Driven + Event-Driven
 
-**Status:** andamento
+**Status:** Done
 **Data:** 2026-07-07
 **Autor:** AI Agent (planner)
 **Objetivo:** Transformar o sistema num pipeline híbrido onde request-initia e event-reakt

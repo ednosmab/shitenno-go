@@ -4,13 +4,13 @@ session:
   status: "completed"
 
 current_task:
-  id: "EVENT-DRIVEN-REACTIVE"
-  description: "Modelo híbrido request-driven + event-driven"
+  id: "ADR-005-PIPELINE"
+  description: "Automated Task Completion Pipeline"
   status: "completed"
-  started_at: "2026-07-07T00:00:00Z"
-  completed_at: "2026-07-07T12:00:00Z"
+  started_at: "2026-07-08T00:00:00Z"
+  completed_at: "2026-07-08T01:00:00Z"
 
-next_p0: "Nenhum P0 activo — event-driven implementado"
+next_p0: "Nenhum P0 activo — ADR-005 concluído"
 
 documents_loaded:
   - path: "docs/AGENTS.md"
@@ -130,3 +130,18 @@ completed_tasks:
       - "nexus-system/governance/rules/RULE-015.json"
       - "nexus-system/plugins/health-monitor/plugin.js"
       - "nexus-system/plugins/event-logger/plugin.js"
+  - id: "ADR-005-PIPELINE"
+    description: "Automated Task Completion Pipeline — 5 gates + backlog state machine + event-driven archive"
+    completed_at: "2026-07-08T01:00:00Z"
+    files_modified:
+      - "src/task-completion.ts"
+      - "src/backlog-state-machine.ts"
+      - "src/task-completion-pipeline.ts"
+      - "src/rule-engine.ts"
+      - "src/commands/close-session.ts"
+      - "nexus-system/governance/rules/RULE-015.json"
+      - "nexus-system/governance/rules/RULE-016.json"
+      - "nexus-system/governance/rules/RULE-017.json"
+      - "nexus-system/docs/adrs/ADR-005-automated-task-completion-pipeline.md"
+      - "src/__tests__/task-completion.test.ts"
+      - "src/__tests__/backlog-state-machine.test.ts"

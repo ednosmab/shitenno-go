@@ -1,0 +1,19 @@
+{
+  "id": "RULE-017",
+  "description": "Update context buffer on task completion",
+  "trigger": "task_completed",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "update_context_buffer",
+      "params": {
+        "field": "current_task.status",
+        "value": "completed"
+      }
+    }
+  ],
+  "priority": 1,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["buffer", "automation", "completion"]
+}

@@ -332,12 +332,12 @@ describe("feedback command — user rating/comment/tags parsing", () => {
     expect(parseUserRating("4")).toBe(4);
   });
 
-  it("clamps user rating below 1 to 1", () => {
-    expect(parseUserRating("0")).toBe(1);
+  it("returns undefined for rating below 1", () => {
+    expect(parseUserRating("0")).toBeUndefined();
   });
 
-  it("clamps user rating above 5 to 5", () => {
-    expect(parseUserRating("9")).toBe(5);
+  it("returns undefined for rating above 5", () => {
+    expect(parseUserRating("9")).toBeUndefined();
   });
 
   it("returns undefined when user rating not provided", () => {

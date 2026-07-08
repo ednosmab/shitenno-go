@@ -1,7 +1,8 @@
 # ADR-005: Automated Task Completion Pipeline
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-07-06
+**Implemented:** 2026-07-08
 **Deciders:** Tech Lead
 
 ## Context

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { validateCompletionGate } from "../task-completion.js";
 import { execSync } from "node:child_process";
-import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -18,7 +18,7 @@ function mockExecFailure(): typeof execSync {
 
 describe("task-completion", () => {
   describe("validateCompletionGate", () => {
-    it("returns result with 4 gates", () => {
+    it("returns result with 5 gates", () => {
       const result = validateCompletionGate({
         projectRoot: process.cwd(),
         nexusDir: process.cwd(),
@@ -26,7 +26,7 @@ describe("task-completion", () => {
         execFn: mockExecSuccess(),
       });
       expect(result.taskId).toBe("TEST-001");
-      expect(result.gates).toHaveLength(4);
+      expect(result.gates).toHaveLength(5);
     });
 
     it("returns gate names in order", () => {
@@ -40,6 +40,7 @@ describe("task-completion", () => {
       expect(result.gates[1]?.name).toBe("lint");
       expect(result.gates[2]?.name).toBe("documentation");
       expect(result.gates[3]?.name).toBe("backlog");
+      expect(result.gates[4]?.name).toBe("plan_status");
     });
 
     it("returns all gates passed when exec succeeds", () => {
@@ -107,7 +108,7 @@ describe("task-completion", () => {
       expect(backlogGate.passed).toBe(false);
       expect(backlogGate.message).toContain("TASK-010 found but not marked as Done");
 
-      unlinkSync(backlogPath);
+      rmSync(dir, { recursive: true, force: true });
     });
 
     it("passes backlog check when item is marked Done", () => {
@@ -127,7 +128,78 @@ describe("task-completion", () => {
       expect(backlogGate.passed).toBe(true);
       expect(backlogGate.message).toContain("TASK-020 marked as Done");
 
-      unlinkSync(backlogPath);
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("skips plan_status check when no plans directory", () => {
+      const result = validateCompletionGate({
+        projectRoot: process.cwd(),
+        nexusDir: "/nonexistent-nexus",
+        taskId: "TEST-PLAN",
+        execFn: mockExecSuccess(),
+      });
+      const planGate = result.gates[4]!;
+      expect(planGate.name).toBe("plan_status");
+      expect(planGate.passed).toBe(true);
+      expect(planGate.message).toContain("No plans directory found");
+    });
+
+    it("passes plan_status when no matching plan exists", () => {
+      const dir = join(tmpdir(), `completion-test-${randomUUID()}`);
+      mkdirSync(join(dir, "governance", "plans"), { recursive: true });
+
+      const result = validateCompletionGate({
+        projectRoot: process.cwd(),
+        nexusDir: dir,
+        taskId: "NONEXISTENT-PLAN",
+        execFn: mockExecSuccess(),
+      });
+      const planGate = result.gates[4]!;
+      expect(planGate.name).toBe("plan_status");
+      expect(planGate.passed).toBe(true);
+      expect(planGate.message).toContain("No active plan found");
+
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("fails plan_status when plan has andamento status", () => {
+      const dir = join(tmpdir(), `completion-test-${randomUUID()}`);
+      mkdirSync(join(dir, "governance", "plans"), { recursive: true });
+      const planPath = join(dir, "governance", "plans", "2026-07-08-test-plan.md");
+      writeFileSync(planPath, "# Test Plan\n\n**Status:** andamento\n", "utf-8");
+
+      const result = validateCompletionGate({
+        projectRoot: process.cwd(),
+        nexusDir: dir,
+        taskId: "test-plan",
+        execFn: mockExecSuccess(),
+      });
+      const planGate = result.gates[4]!;
+      expect(planGate.name).toBe("plan_status");
+      expect(planGate.passed).toBe(false);
+      expect(planGate.message).toContain("status is \"andamento\"");
+
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("passes plan_status when plan has done status", () => {
+      const dir = join(tmpdir(), `completion-test-${randomUUID()}`);
+      mkdirSync(join(dir, "governance", "plans"), { recursive: true });
+      const planPath = join(dir, "governance", "plans", "2026-07-08-test-plan.md");
+      writeFileSync(planPath, "# Test Plan\n\n**Status:** Done\n", "utf-8");
+
+      const result = validateCompletionGate({
+        projectRoot: process.cwd(),
+        nexusDir: dir,
+        taskId: "test-plan",
+        execFn: mockExecSuccess(),
+      });
+      const planGate = result.gates[4]!;
+      expect(planGate.name).toBe("plan_status");
+      expect(planGate.passed).toBe(true);
+      expect(planGate.message).toContain("status is \"Done\"");
+
+      rmSync(dir, { recursive: true, force: true });
     });
   });
 });
