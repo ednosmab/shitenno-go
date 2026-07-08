@@ -84,6 +84,9 @@
 | 3.5 | Baixo | Plugin system com registerPlugin(), hooks, validacao — 2026-07-08 |
 | 3.29 | Medio | Session-tracker ja usa appendFileSync (append-only) — 2026-07-08 |
 | 2.11 | Baixo | ROI.md linkado em README.md:133 — 2026-07-08 |
+| 3.6 | Baixo | nexus dashboard --live (--live <seconds>) — 2026-07-08 |
+| 3.21 | Baixo | Briefing --profile com minimal/standard/full — 2026-07-08 |
+| 3.24 | Baixo | Event history query API (getHistory()) — 2026-07-08 |
 
 ---
 
@@ -583,7 +586,7 @@
 | 3.3 | Suportar monorepos com workspaces | Medio | pnpm/yarn workspaces, deteccao automatica |
 | 3.4 | Integrar com GitHub API | Baixo | Churn real baseado em PR reviews, issues abertas |
 | ~~3.5~~ | ~~Plugin system para skills customizadas~~ | ~~Baixo~~ | ~~Done: plugin-system.ts com registerPlugin(), hooks, validacao~~ |
-| 3.6 | nexus dashboard --live | Baixo | Watch mode com atualizacao periodica |
+| ~~3.6~~ | ~~nexus dashboard --live~~ | ~~Baixo~~ | ~~Done: --live <seconds> opção existe em dashboard.tsx~~ |
 | 3.7 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
 | 3.8 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
 | 3.10 | nexus --quiet / --no-color | Baixo | Modo scriptavel para CI/CD |
@@ -597,10 +600,10 @@
 | 3.18 | Plugin versioning e dependency resolution | Baixo | Versao minima de plugins, dependencias entre plugins |
 | 3.19 | nexus detect --approve/--reject | Medio | Aprovar ou rejeitar regras candidatas do pattern-detector |
 | 3.20 | nexus feedback --outcome failure auto-link | Baixo | Ao reportar falha, sugerir areas baseado no pattern-detector |
-| 3.21 | Briefing --profile no briefingToMarkdown | Baixo | Gerar markdown com profundidade adaptativa |
+| ~~3.21~~ | ~~Briefing --profile no briefingToMarkdown~~ | ~~Baixo~~ | ~~Done: --profile com minimal/standard/full em briefing.ts~~ |
 | 3.22 | HealthBar compartilhado | Baixo | dashboard.ts duplica healthBar de formatting.ts — importar |
 | 3.23 | Colorblind-friendly mode | Baixo | Usar icons/texto em vez de apenas cores |
-| 3.24 | Event history query API | Baixo | Consultar historico de eventos do event-bus |
+| ~~3.24~~ | ~~Event history query API~~ | ~~Baixo~~ | ~~Done: getHistory() publico em event-bus.ts~~ |
 | 3.25 | nexus bench --save / --load | Baixo | Salvar/carregar benchmarks para comparacao offline |
 | 3.26 | nexus status --fix | Baixo | Auto-fix para problemas de governance (como doctor) |
 | 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
@@ -1128,9 +1131,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 75 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard |
+| **Done** | 80 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
 | **P1** (≤ 30d) | 7 | Arquitetura (Clean/SOLID), AI agents (OpenCode, Cursor, Git hooks, skills) |
 | **P2** (≤ 90d) | 16 | Features (detect approve, bench compare), docs, performance, developer experience, security |
-| **P3** (sem SLA) | 28 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
+| **P3** (sem SLA) | 23 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
 | **Total** | **126** | |
