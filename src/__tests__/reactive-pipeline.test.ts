@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { getEventBus, resetEventBus } from "../event-bus.js";
+import { getEventBus, resetEventBus, enableEventPersistence, readPersistedEvents } from "../event-bus.js";
 import {
   initializeRuleEngine,
   loadRules,
@@ -214,7 +214,14 @@ describe("reactive-pipeline", () => {
 
   describe("full reactive chain", () => {
     it("eventBus.publish triggers rule engine via initializeRuleEngine", async () => {
-      const rule = createRule();
+      const bufPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+      writeFileSync(bufPath, "current_task:\n  status: \"idle\"\n", "utf-8");
+
+      const rule = createRule({
+        actions: [
+          { type: "update_context_buffer", params: { field: "current_task.status", value: "active" } },
+        ],
+      });
       saveRule(nexusDir, rule);
 
       initializeRuleEngine(tmpDir, nexusDir);
@@ -222,15 +229,21 @@ describe("reactive-pipeline", () => {
       const bus = getEventBus();
       bus.publish("health.checked", { status: "critical" });
 
-      // Wait for async handler to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
 
-      // If we got here without throwing, the chain executed
-      expect(true).toBe(true);
+      const updated = readFileSync(bufPath, "utf-8");
+      expect(updated).toContain('"active"');
     });
 
     it("non-matching event does not trigger rules", async () => {
-      const rule = createRule({ trigger: "health_check" });
+      const bufPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+      writeFileSync(bufPath, "current_task:\n  status: \"idle\"\n", "utf-8");
+
+      const rule = createRule({
+        actions: [
+          { type: "update_context_buffer", params: { field: "current_task.status", value: "active" } },
+        ],
+      });
       saveRule(nexusDir, rule);
 
       initializeRuleEngine(tmpDir, nexusDir);
@@ -238,10 +251,11 @@ describe("reactive-pipeline", () => {
       const bus = getEventBus();
       bus.publish("session.start", {});
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
 
-      // No crash = success (rule was skipped because trigger mismatch)
-      expect(true).toBe(true);
+      const updated = readFileSync(bufPath, "utf-8");
+      expect(updated).toContain('"idle"');
+      expect(updated).not.toContain('"active"');
     });
 
     it("context_buffer.yaml is updated by update_context_buffer action", async () => {
@@ -294,6 +308,225 @@ describe("reactive-pipeline", () => {
 
       const backlog = readFileSync(backlogPath, "utf-8");
       expect(backlog).toContain("Reactive: critical health detected");
+    });
+
+    it("task.completed event triggers RULE-016 (update_backlog_status)", async () => {
+      const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+      writeFileSync(
+        backlogPath,
+        "# BACKLOG\n\n| ID | Title | Priority | Status |\n|---|---|---|---|\n| TASK-001 | Test task | High | em implementação |\n",
+        "utf-8"
+      );
+
+      const rule: Rule = {
+        id: "RULE-016",
+        description: "Auto-transition backlog on task completion",
+        trigger: "task_completed",
+        conditions: [],
+        actions: [
+          {
+            type: "update_backlog_status",
+            params: { taskId: "TASK-001", fromState: "em implementação", toState: "em validação" },
+          },
+        ],
+        priority: 1,
+        dependencies: [],
+        enabled: true,
+        tags: ["backlog"],
+      };
+      saveRule(nexusDir, rule);
+
+      const rules = loadRules(nexusDir);
+      expect(rules).toHaveLength(1);
+
+      const context: RuleContext = {
+        trigger: "task_completed",
+        eventData: { taskId: "TASK-001" },
+        projectRoot: tmpDir,
+        nexusDir,
+        timestamp: new Date().toISOString(),
+      };
+
+      const result = await executeRules(rules, context);
+      expect(result.rulesExecuted).toBe(1);
+
+      const updated = readFileSync(backlogPath, "utf-8");
+      expect(updated).toContain("em validação");
+    });
+
+    it("task.completed event triggers RULE-017 (update_context_buffer)", async () => {
+      const bufPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+      writeFileSync(bufPath, "current_task:\n  id: \"TASK-001\"\n  status: \"em implementação\"\n", "utf-8");
+
+      const rule: Rule = {
+        id: "RULE-017",
+        description: "Update context buffer on task completion",
+        trigger: "task_completed",
+        conditions: [],
+        actions: [
+          { type: "update_context_buffer", params: { field: "current_task.status", value: "completed" } },
+        ],
+        priority: 1,
+        dependencies: [],
+        enabled: true,
+        tags: ["buffer"],
+      };
+      saveRule(nexusDir, rule);
+
+      initializeRuleEngine(tmpDir, nexusDir);
+
+      const bus = getEventBus();
+      bus.publish("task.completed", { taskId: "TASK-001" });
+
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
+
+      const updated = readFileSync(bufPath, "utf-8");
+      expect(updated).toContain('"completed"');
+    });
+  });
+
+  // ── Layer 6: Event persistence ───────────────────────────────────────────
+
+  describe("event persistence", () => {
+    it("persists events to JSONL file on disk", () => {
+      enableEventPersistence(nexusDir);
+
+      const bus = getEventBus();
+      bus.publish("score.calculated", { score: 42 });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const events = readPersistedEvents(nexusDir, today);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe("score.calculated");
+      expect(events[0]!.payload).toEqual({ score: 42 });
+    });
+
+    it("multiple publishes append to same daily file", () => {
+      enableEventPersistence(nexusDir);
+
+      const bus = getEventBus();
+      bus.publish("score.calculated", { score: 10 });
+      bus.publish("score.calculated", { score: 20 });
+      bus.publish("score.calculated", { score: 30 });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const events = readPersistedEvents(nexusDir, today);
+
+      expect(events).toHaveLength(3);
+    });
+  });
+
+  // ── Layer 7: Multiple subscribers ────────────────────────────────────────
+
+  describe("multiple subscribers", () => {
+    it("multiple handlers receive the same event", () => {
+      const bus = getEventBus();
+      const received1: unknown[] = [];
+      const received2: unknown[] = [];
+
+      bus.subscribe("health.checked", (payload) => { received1.push(payload); });
+      bus.subscribe("health.checked", (payload) => { received2.push(payload); });
+
+      bus.publish("health.checked", { status: "ok" });
+
+      expect(received1).toHaveLength(1);
+      expect(received2).toHaveLength(1);
+      expect(received1[0]).toEqual({ status: "ok" });
+      expect(received2[0]).toEqual({ status: "ok" });
+    });
+
+    it("subscribers on different events are independent", () => {
+      const bus = getEventBus();
+      const healthReceived: unknown[] = [];
+      const sessionReceived: unknown[] = [];
+
+      bus.subscribe("health.checked", (payload) => { healthReceived.push(payload); });
+      bus.subscribe("session.start", (payload) => { sessionReceived.push(payload); });
+
+      bus.publish("health.checked", { status: "ok" });
+
+      expect(healthReceived).toHaveLength(1);
+      expect(sessionReceived).toHaveLength(0);
+    });
+  });
+
+  // ── Layer 8: Error isolation ─────────────────────────────────────────────
+
+  describe("error isolation", () => {
+    it("failing rule does not prevent other rules from executing", async () => {
+      const bufPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+      writeFileSync(bufPath, "current_task:\n  status: \"idle\"\n", "utf-8");
+
+      const failingRule: Rule = {
+        id: "RULE-FAILING",
+        description: "Rule that fails",
+        trigger: "health_check",
+        conditions: [],
+        actions: [
+          { type: "update_context_buffer", params: { field: "", value: "" } },
+        ],
+        priority: 1,
+        dependencies: [],
+        enabled: true,
+        tags: ["test"],
+      };
+
+      const successRule: Rule = {
+        id: "RULE-SUCCESS",
+        description: "Rule that succeeds",
+        trigger: "health_check",
+        conditions: [],
+        actions: [
+          { type: "update_context_buffer", params: { field: "current_task.status", value: "active" } },
+        ],
+        priority: 2,
+        dependencies: [],
+        enabled: true,
+        tags: ["test"],
+      };
+
+      saveRule(nexusDir, failingRule);
+      saveRule(nexusDir, successRule);
+
+      const rules = loadRules(nexusDir);
+      const context: RuleContext = {
+        trigger: "health_check",
+        eventData: { status: "critical" },
+        projectRoot: tmpDir,
+        nexusDir,
+        timestamp: new Date().toISOString(),
+      };
+
+      const result = await executeRules(rules, context);
+
+      expect(result.rulesFailed).toBeGreaterThanOrEqual(1);
+      expect(result.rulesExecuted).toBeGreaterThanOrEqual(1);
+
+      const updated = readFileSync(bufPath, "utf-8");
+      expect(updated).toContain('"active"');
+    });
+
+    it("initializeRuleEngine survives handler errors", async () => {
+      const rule = createRule({
+        actions: [
+          { type: "update_context_buffer", params: { field: "", value: "" } },
+        ],
+      });
+      saveRule(nexusDir, rule);
+
+      initializeRuleEngine(tmpDir, nexusDir);
+
+      const bus = getEventBus();
+      bus.publish("health.checked", { status: "critical" });
+
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
+
+      bus.publish("health.checked", { status: "ok" });
+
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
+
+      expect(true).toBe(true);
     });
   });
 
