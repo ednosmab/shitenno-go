@@ -47,6 +47,7 @@ export function feedbackCommand(): Command {
     .option("--user-rating <1-5>", "User rating for the session (1-5)")
     .option("--user-comment <text>", "User comment about the session")
     .option("--user-tags <list>", "Comma-separated user tags for categorization")
+    .option("--profile <depth>", "Briefing depth profile used (minimal/standard/full)")
     .option("--json", "Output as JSON")
     .option("--summary", "Show feedback summary statistics")
     .option("--personalized", "Generate personalized feedback based on user profile")
@@ -199,6 +200,7 @@ export function feedbackCommand(): Command {
         userRating: userRating as 1 | 2 | 3 | 4 | 5 | undefined,
         userComment,
         userTags,
+        briefingProfile: options.profile ? String(options.profile) : undefined,
       });
 
       // Update user profile based on session outcome

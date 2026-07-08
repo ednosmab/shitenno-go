@@ -43,6 +43,8 @@ export interface SessionFeedbackRecord {
   userComment?: string;
   /** User-provided tags for categorization. */
   userTags?: string[];
+  /** Briefing depth profile used for this session (minimal/standard/full). */
+  briefingProfile?: string;
   /** Token economy metrics for this session */
   tokenEconomy?: {
     /** Tokens saved by using briefing vs manual discovery */
