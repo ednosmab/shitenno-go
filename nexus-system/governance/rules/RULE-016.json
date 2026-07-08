@@ -1,6 +1,6 @@
 {
   "id": "RULE-016",
-  "description": "Auto-transition backlog to concluido on task completion",
+  "description": "Auto-transition backlog to em validacao on task completion",
   "trigger": "task_completed",
   "conditions": [],
   "actions": [
@@ -9,7 +9,7 @@
       "params": {
         "taskId": "${eventData.taskId}",
         "fromState": "em implementação",
-        "toState": "concluído"
+        "toState": "em validação"
       }
     }
   ],
