@@ -16,7 +16,7 @@ import { formatGrowthProgress } from "../dual-path-presenter.js";
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
-  .option("-l, --level <level>", "Audit level: quick, standard, full, code-review (default: standard)", "standard")
+  .option("-l, --level <level>", "Audit level: quick, standard, full, code-review, enterprise (default: standard)", "standard")
   .option("--no-cache", "Skip cache and recalculate")
   .option("--json", "Output results as JSON")
   .option("--auto-backlog", "Auto-detect gaps and add to BACKLOG.md")
@@ -24,7 +24,7 @@ export const auditCommand = new Command("audit")
     const isJson = options.json === true;
 
     if (!isJson) {
-      const levelLabel = options.level === "code-review" ? "code-review" : options.level === "full" ? "full" : options.level === "quick" ? "quick" : "standard";
+      const levelLabel = options.level === "enterprise" ? "enterprise" : options.level === "code-review" ? "code-review" : options.level === "full" ? "full" : options.level === "quick" ? "quick" : "standard";
       console.log("");
       banner("nexus audit", "Health Audit");
       console.log(chalk.gray(`    Level: ${levelLabel}`));
@@ -40,7 +40,7 @@ export const auditCommand = new Command("audit")
 
     try {
       // Validate level
-      const level = ["quick", "standard", "full", "code-review"].includes(options.level) ? options.level : "standard";
+      const level = ["quick", "standard", "full", "code-review", "enterprise"].includes(options.level) ? options.level : "standard";
 
       // Load growth profile (needed for both JSON and human output)
       const growthProfile = loadGrowthProfile(ctx.nexusDir);
@@ -48,7 +48,7 @@ export const auditCommand = new Command("audit")
       // Check cache first (skip cache for full level to get fresh results)
       let report: HealthAuditReport;
       let cacheHit = false;
-      if (options.cache !== false && level !== "full" && level !== "code-review") {
+      if (options.cache !== false && level !== "full" && level !== "code-review" && level !== "enterprise") {
         const cached = getCached<HealthAuditReport>(ctx.projectRoot, ctx.nexusDir, "health",
           () => computeKeyChecksums(ctx.projectRoot, ctx.nexusDir));
         if (cached) {

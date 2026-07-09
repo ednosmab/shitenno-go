@@ -156,6 +156,107 @@ import {
   detectTestStructure,
 } from "./audit/architecture-detectors.js";
 
+import {
+  detectVisionAlignment,
+  detectRoadmapConsistency,
+  detectKPICoverage,
+  detectOrphanRequirements,
+  detectRequirementTraceability,
+  detectAmbiguityPatterns,
+} from "./audit/product-detectors.js";
+
+import {
+  detectSchemaConsistency,
+  detectDataOwnership,
+  detectMissingMigrations,
+  detectIndexCoverage,
+} from "./audit/data-architecture-detectors.js";
+
+import {
+  detectCircuitBreaker,
+  detectRetryPolicy,
+  detectTimeoutConfig,
+  detectHealthChecks,
+  detectGracefulDegradation,
+  detectRaceConditions,
+  detectDeadlockRisk,
+} from "./audit/reliability-detectors.js";
+
+import {
+  detectNPlusOne,
+  detectMissingCaching,
+  detectStatefulServices,
+  detectMissingRateLimiting,
+  detectMissingTimeouts,
+} from "./audit/performance-detectors.js";
+
+import {
+  detectMissingTracing,
+  detectLogStructure,
+  detectAlertCoverage,
+  detectMetricEndpoints,
+  detectMissingDashboard,
+  detectLogRetention,
+  detectDistributedLogging,
+  detectSLODefinitions,
+} from "./audit/observability-detectors.js";
+
+import {
+  detectPipelineGaps,
+  detectRollbackCapability,
+  detectMissingRunbooks,
+  detectMonitoringGaps,
+  detectIncidentResponse,
+  detectDisasterRecovery,
+  detectCapacityPlanning,
+  detectChangeManagement,
+} from "./audit/operations-detectors.js";
+
+import {
+  detectOWASPTop10,
+  detectCWEMapping,
+  detectSOC2Controls,
+  detectNISTAlignment,
+  detectLGPDCompliance,
+  detectDataRetention,
+  detectConsentTracking,
+  detectSecretsInConfig,
+  detectEncryptionAtRest,
+  detectAccessControls,
+  detectAuditLogging,
+  detectComplianceReport,
+} from "./audit/compliance-detectors.js";
+
+import {
+  detectSBOMCoverage,
+  detectDependencyProvenance,
+  detectTyposquatting,
+  detectLicenseConflicts,
+  detectTransitiveVulns,
+  detectMalwarePatterns,
+} from "./audit/security-advanced-detectors.js";
+
+import {
+  detectTechDebtCost,
+  detectTDR,
+  detectRemediationEffort,
+  detectDebtTrend,
+  detectHotspotFiles,
+  detectDebtByDomain,
+  detectROIRefactoring,
+  detectDebtAccumulationRate,
+} from "./audit/tech-debt-detectors.js";
+
+import {
+  detectSBOMExists,
+  detectSBOMCompleteness,
+  detectOutdatedDeps,
+  detectUnusedDeps,
+  detectLockFileSync,
+  detectDuplicateDeps,
+  detectDepAuditStatus,
+} from "./audit/supply-chain-detectors.js";
+
 // ── Main Audit Function ──────────────────────────────────────────────────────
 
 /**
@@ -298,6 +399,87 @@ export function auditHealth(
     detectModuleCoupling: () => detectModuleCoupling(projectRoot, sourceFiles),
     detectImportConsistency: () => detectImportConsistency(projectRoot, sourceFiles),
     detectTestStructure: () => detectTestStructure(projectRoot),
+    // Enterprise: Product Strategy & Requirements (ENT-*)
+    detectVisionAlignment: () => detectVisionAlignment(projectRoot),
+    detectRoadmapConsistency: () => detectRoadmapConsistency(projectRoot),
+    detectKPICoverage: () => detectKPICoverage(projectRoot),
+    detectOrphanRequirements: () => detectOrphanRequirements(projectRoot, sourceFiles),
+    detectRequirementTraceability: () => detectRequirementTraceability(projectRoot, sourceFiles),
+    detectAmbiguityPatterns: () => detectAmbiguityPatterns(projectRoot),
+    // Enterprise: Data Architecture & Persistence (ENT-DATA-*)
+    detectSchemaConsistency: () => detectSchemaConsistency(projectRoot, sourceFiles),
+    detectDataOwnership: () => detectDataOwnership(projectRoot),
+    detectMissingMigrations: () => detectMissingMigrations(projectRoot, sourceFiles),
+    detectIndexCoverage: () => detectIndexCoverage(projectRoot, sourceFiles),
+    // Enterprise: Reliability, Resilience & Concurrency (ENT-REL-*)
+    detectCircuitBreaker: () => detectCircuitBreaker(projectRoot, sourceFiles),
+    detectRetryPolicy: () => detectRetryPolicy(projectRoot, sourceFiles),
+    detectTimeoutConfig: () => detectTimeoutConfig(projectRoot, sourceFiles),
+    detectHealthChecks: () => detectHealthChecks(projectRoot),
+    detectGracefulDegradation: () => detectGracefulDegradation(projectRoot, sourceFiles),
+    detectRaceConditions: () => detectRaceConditions(projectRoot, sourceFiles),
+    detectDeadlockRisk: () => detectDeadlockRisk(projectRoot, sourceFiles),
+    // Enterprise: Performance & Scalability (ENT-PERF-*)
+    detectNPlusOne: () => detectNPlusOne(projectRoot, sourceFiles),
+    detectMissingCaching: () => detectMissingCaching(projectRoot, sourceFiles),
+    detectStatefulServices: () => detectStatefulServices(projectRoot, sourceFiles),
+    detectMissingRateLimiting: () => detectMissingRateLimiting(projectRoot, sourceFiles),
+    detectMissingTimeouts: () => detectMissingTimeouts(projectRoot, sourceFiles),
+    // Enterprise: Observability (ENT-OBS-*)
+    detectMissingTracing: () => detectMissingTracing(projectRoot, sourceFiles),
+    detectLogStructure: () => detectLogStructure(projectRoot, sourceFiles),
+    detectAlertCoverage: () => detectAlertCoverage(projectRoot, sourceFiles),
+    detectMetricEndpoints: () => detectMetricEndpoints(projectRoot, sourceFiles),
+    detectMissingDashboard: () => detectMissingDashboard(projectRoot, sourceFiles),
+    detectLogRetention: () => detectLogRetention(projectRoot, sourceFiles),
+    detectDistributedLogging: () => detectDistributedLogging(projectRoot, sourceFiles),
+    detectSLODefinitions: () => detectSLODefinitions(projectRoot, sourceFiles),
+    // Enterprise: Operations (ENT-OPS-*)
+    detectPipelineGaps: () => detectPipelineGaps(projectRoot, sourceFiles),
+    detectRollbackCapability: () => detectRollbackCapability(projectRoot, sourceFiles),
+    detectMissingRunbooks: () => detectMissingRunbooks(projectRoot, sourceFiles),
+    detectMonitoringGaps: () => detectMonitoringGaps(projectRoot, sourceFiles),
+    detectIncidentResponse: () => detectIncidentResponse(projectRoot, sourceFiles),
+    detectDisasterRecovery: () => detectDisasterRecovery(projectRoot, sourceFiles),
+    detectCapacityPlanning: () => detectCapacityPlanning(projectRoot, sourceFiles),
+    detectChangeManagement: () => detectChangeManagement(projectRoot, sourceFiles),
+    // Enterprise: Compliance (ENT-COMP-*)
+    detectOWASPTop10: () => detectOWASPTop10(projectRoot, sourceFiles, []),
+    detectCWEMapping: () => detectCWEMapping(projectRoot, sourceFiles, []),
+    detectSOC2Controls: () => detectSOC2Controls(projectRoot, sourceFiles),
+    detectNISTAlignment: () => detectNISTAlignment(projectRoot, sourceFiles),
+    detectLGPDCompliance: () => detectLGPDCompliance(projectRoot, sourceFiles),
+    detectDataRetention: () => detectDataRetention(projectRoot, sourceFiles),
+    detectConsentTracking: () => detectConsentTracking(projectRoot, sourceFiles),
+    detectSecretsInConfig: () => detectSecretsInConfig(projectRoot, sourceFiles),
+    detectEncryptionAtRest: () => detectEncryptionAtRest(projectRoot, sourceFiles),
+    detectAccessControls: () => detectAccessControls(projectRoot, sourceFiles),
+    detectAuditLogging: () => detectAuditLogging(projectRoot, sourceFiles),
+    detectComplianceReport: () => detectComplianceReport(projectRoot, sourceFiles),
+    // Enterprise: Security Advanced (ENT-SEC-*)
+    detectSBOMCoverage: () => detectSBOMCoverage(projectRoot, sourceFiles),
+    detectDependencyProvenance: () => detectDependencyProvenance(projectRoot, sourceFiles),
+    detectTyposquatting: () => detectTyposquatting(projectRoot, sourceFiles),
+    detectLicenseConflicts: () => detectLicenseConflicts(projectRoot, sourceFiles),
+    detectTransitiveVulns: () => detectTransitiveVulns(projectRoot, sourceFiles),
+    detectMalwarePatterns: () => detectMalwarePatterns(projectRoot, sourceFiles),
+    // Enterprise: Tech Debt (ENT-DEBT-*)
+    detectTechDebtCost: () => detectTechDebtCost(projectRoot, sourceFiles, []),
+    detectTDR: () => detectTDR(projectRoot, sourceFiles, []),
+    detectRemediationEffort: () => detectRemediationEffort(projectRoot, sourceFiles, []),
+    detectDebtTrend: () => detectDebtTrend(projectRoot, sourceFiles),
+    detectHotspotFiles: () => detectHotspotFiles(projectRoot, sourceFiles, []),
+    detectDebtByDomain: () => detectDebtByDomain(projectRoot, sourceFiles, []),
+    detectROIRefactoring: () => detectROIRefactoring(projectRoot, sourceFiles, []),
+    detectDebtAccumulationRate: () => detectDebtAccumulationRate(projectRoot, sourceFiles),
+    // Enterprise: Supply Chain (ENT-SC-*)
+    detectSBOMExists: () => detectSBOMExists(projectRoot, sourceFiles),
+    detectSBOMCompleteness: () => detectSBOMCompleteness(projectRoot, sourceFiles),
+    detectOutdatedDeps: () => detectOutdatedDeps(projectRoot, sourceFiles),
+    detectUnusedDeps: () => detectUnusedDeps(projectRoot, sourceFiles),
+    detectLockFileSync: () => detectLockFileSync(projectRoot, sourceFiles),
+    detectDuplicateDeps: () => detectDuplicateDeps(projectRoot, sourceFiles),
+    detectDepAuditStatus: () => detectDepAuditStatus(projectRoot, sourceFiles),
   };
 
   const issues: HealthIssue[] = [];
