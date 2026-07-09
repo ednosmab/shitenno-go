@@ -12,6 +12,7 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, renameSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { getEventBus } from "./event-bus.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -281,9 +282,18 @@ export class MarkdownPlanEngine {
     // Write updated content
     writeFileSync(plan.filePath, content, "utf-8");
 
-    // If status is done, move to done/
+    // If status is done, move to done/ and publish event
     if (newStatus === "done") {
       this.moveToDone(id);
+
+      // Publish plan.archived event for reactive chain
+      const bus = getEventBus();
+      bus.publish("plan.archived", {
+        planId: id,
+        title: plan.title,
+        path: `nexus-system/governance/plans/done/${id}.md`,
+        finalStatus: "done",
+      });
     }
 
     // Return updated plan

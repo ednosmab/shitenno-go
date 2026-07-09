@@ -13,7 +13,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { logger } from "./logger.js";
-import { type Capability, detectInstalledCapabilities } from "./maturity-profile.js";
+import { type Capability, loadMaturityProfile } from "./maturity-profile.js";
 import { transitionTask, type BacklogState } from "./backlog-state-machine.js";
 
 // ── Security: Allowed Scripts ────────────────────────────────────────────────
@@ -65,14 +65,16 @@ interface ValidationResult {
   errors: string[];
 }
 
-const VALID_ACTION_TYPES = [
-  "update_context_buffer", "create_reminder", "update_quick_board", "log_event",
-  "trigger_assessment", "trigger_health_check", "update_backlog",
-  "run_local_script", "run_script", "run_nexus_command",
-  "update_backlog_status", "archive_plan",
+export const VALID_ACTION_TYPES: readonly ActionType[] = [
+  "update_context_buffer", "create_reminder", "remove_reminder",
+  "update_quick_board", "create_adr", "create_skill", "log_event",
+  "send_notification", "trigger_assessment", "trigger_health_check",
+  "update_backlog", "run_local_script", "run_script", "run_nexus_command",
+  "update_file", "create_file", "remove_file", "update_backlog_status",
+  "archive_plan", "auto_populate_next_p0",
 ];
 
-function validateRule(rule: unknown): ValidationResult {
+export function validateRule(rule: unknown): ValidationResult {
   const errors: string[] = [];
 
   if (typeof rule !== "object" || rule === null) {
@@ -96,7 +98,7 @@ function validateRule(rule: unknown): ValidationResult {
         continue;
       }
       const a = action as Record<string, unknown>;
-      if (!VALID_ACTION_TYPES.includes(a.type as string)) {
+      if (!VALID_ACTION_TYPES.includes(a.type as ActionType)) {
         errors.push(`Invalid action type: "${a.type}"`);
       }
       if (typeof a.params !== "object" || a.params === null) {
@@ -1225,7 +1227,7 @@ export function initializeRuleEngine(
         projectRoot,
         nexusDir,
         timestamp: new Date().toISOString(),
-        installedCapabilities: detectInstalledCapabilities(nexusDir),
+        installedCapabilities: loadMaturityProfile(nexusDir)?.installedCapabilities ?? ["core"],
       };
 
       await executeRules(rules, context);

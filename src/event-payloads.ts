@@ -269,6 +269,15 @@ export interface AssetArchivedPayload extends EventMeta {
   reason?: string;
 }
 
+// ── Plan Events ─────────────────────────────────────────────────────────────
+
+export interface PlanArchivedPayload extends EventMeta {
+  planId: string;
+  title: string;
+  path: string;
+  finalStatus: string;
+}
+
 // ── Entropy Events ─────────────────────────────────────────────────────────
 
 export interface EntropyCalculatedPayload extends EventMeta {
@@ -342,6 +351,7 @@ export interface EventPayloadMap {
   "asset.created": AssetCreatedPayload;
   "asset.updated": AssetUpdatedPayload;
   "asset.archived": AssetArchivedPayload;
+  "plan.archived": PlanArchivedPayload;
   "entropy.calculated": EntropyCalculatedPayload;
   "docs.sync.triggered": DocsSyncTriggeredPayload;
   "doc.lifecycle.audited": DocLifecycleAuditPayload;
