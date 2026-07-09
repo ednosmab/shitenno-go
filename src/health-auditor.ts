@@ -111,6 +111,51 @@ import {
   detectDependencyConfusion,
 } from "./audit/engineering-detectors.js";
 
+import {
+  detectCommitFormat,
+  detectBranchNaming,
+  detectDirectMainCommits,
+  detectForcePushes,
+  detectOrphanBranches,
+  detectCommitLanguage,
+  detectSecretsInGitHistory,
+  detectCommitWithoutGating,
+} from "./audit/git-detectors.js";
+
+import {
+  detectIncompleteSessionClose,
+  detectMissingFeedback,
+  detectInvalidBacklogStates,
+  detectPlanFormat,
+  detectRuleExecutionCompliance,
+  detectPolicyStructure,
+  detectMissingPremortem,
+  detectMissingAdrForChanges,
+} from "./audit/governance-enforcement-detectors.js";
+
+import {
+  detectJSDocCoverage,
+  detectUnsafeTypeAssertions,
+  detectUnreachableCode,
+  detectUnusedImports,
+  detectMagicNumbers,
+  detectLongParams,
+  detectDeepNesting,
+  detectDuplicateCode,
+  detectGodFunctions,
+  detectCoverageThreshold,
+} from "./audit/code-quality-detectors.js";
+
+import {
+  detectCleanArchitectureLayers,
+  detectSRPViolations,
+  detectDependencyInversion,
+  detectBarrelFileCycles,
+  detectModuleCoupling,
+  detectImportConsistency,
+  detectTestStructure,
+} from "./audit/architecture-detectors.js";
+
 // ── Main Audit Function ──────────────────────────────────────────────────────
 
 /**
@@ -216,6 +261,43 @@ export function auditHealth(
         return [] as HealthIssue[];
       }
     },
+    // Git Intelligence detectors (GIT-*)
+    detectCommitFormat: () => detectCommitFormat(projectRoot),
+    detectBranchNaming: () => detectBranchNaming(projectRoot),
+    detectDirectMainCommits: () => detectDirectMainCommits(projectRoot),
+    detectForcePushes: () => detectForcePushes(projectRoot),
+    detectOrphanBranches: () => detectOrphanBranches(projectRoot),
+    detectCommitLanguage: () => detectCommitLanguage(projectRoot),
+    detectSecretsInGitHistory: () => detectSecretsInGitHistory(projectRoot),
+    detectCommitWithoutGating: () => detectCommitWithoutGating(projectRoot),
+    // Governance Enforcement detectors (GOV-*)
+    detectIncompleteSessionClose: () => detectIncompleteSessionClose(nexusDir),
+    detectMissingFeedback: () => detectMissingFeedback(nexusDir),
+    detectInvalidBacklogStates: () => detectInvalidBacklogStates(nexusDir),
+    detectPlanFormat: () => detectPlanFormat(nexusDir),
+    detectRuleExecutionCompliance: () => detectRuleExecutionCompliance(nexusDir),
+    detectPolicyStructure: () => detectPolicyStructure(nexusDir),
+    detectMissingPremortem: () => detectMissingPremortem(nexusDir),
+    detectMissingAdrForChanges: () => detectMissingAdrForChanges(nexusDir),
+    // Code Quality Intelligence detectors (CQ-*)
+    detectJSDocCoverage: () => detectJSDocCoverage(projectRoot, sourceFiles),
+    detectUnsafeTypeAssertions: () => detectUnsafeTypeAssertions(projectRoot, sourceFiles),
+    detectUnreachableCode: () => detectUnreachableCode(projectRoot, sourceFiles),
+    detectUnusedImports: () => detectUnusedImports(projectRoot, sourceFiles),
+    detectMagicNumbers: () => detectMagicNumbers(projectRoot, sourceFiles),
+    detectLongParams: () => detectLongParams(projectRoot, sourceFiles),
+    detectDeepNesting: () => detectDeepNesting(projectRoot, sourceFiles),
+    detectDuplicateCode: () => detectDuplicateCode(projectRoot, sourceFiles),
+    detectGodFunctions: () => detectGodFunctions(projectRoot, sourceFiles),
+    detectCoverageThreshold: () => detectCoverageThreshold(projectRoot),
+    // Architecture Validation detectors (ARCH-*)
+    detectCleanArchitectureLayers: () => detectCleanArchitectureLayers(projectRoot, sourceFiles),
+    detectSRPViolations: () => detectSRPViolations(projectRoot, sourceFiles),
+    detectDependencyInversion: () => detectDependencyInversion(projectRoot, sourceFiles),
+    detectBarrelFileCycles: () => detectBarrelFileCycles(projectRoot, sourceFiles),
+    detectModuleCoupling: () => detectModuleCoupling(projectRoot, sourceFiles),
+    detectImportConsistency: () => detectImportConsistency(projectRoot, sourceFiles),
+    detectTestStructure: () => detectTestStructure(projectRoot),
   };
 
   const issues: HealthIssue[] = [];

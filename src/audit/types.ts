@@ -96,7 +96,48 @@ export interface HealthIssue {
     // New detectors (Fase 5)
     | "dependency_vulnerability"
     | "incompatible_license"
-    | "config_secret";
+    | "config_secret"
+    // Git Intelligence (Fase 6)
+    | "commit_format_violation"
+    | "branch_naming_violation"
+    | "direct_main_commits"
+    | "force_push_detected"
+    | "orphan_branches"
+    | "non_english_commit"
+    | "secret_in_git_history"
+    | "missing_quality_gates"
+    // Governance Enforcement (Fase 6)
+    | "session_not_closed"
+    | "buffer_not_pruned"
+    | "missing_feedback_dir"
+    | "no_feedback_records"
+    | "invalid_backlog_state"
+    | "plan_format_violation"
+    | "invalid_rule_structure"
+    | "malformed_rule_json"
+    | "missing_policies_dir"
+    | "missing_policy"
+    | "missing_premortem"
+    | "no_adrs_created"
+    // Code Quality Intelligence (Fase 6)
+    | "missing_jsdoc"
+    | "unsafe_type_assertion"
+    | "unreachable_code"
+    | "unused_import"
+    | "magic_numbers"
+    | "long_params"
+    | "deep_nesting"
+    | "duplicate_code"
+    | "god_function"
+    | "low_coverage_threshold"
+    // Architecture Validation (Fase 6)
+    | "layer_violation"
+    | "srp_violation"
+    | "dip_violation"
+    | "barrel_file_bloat"
+    | "high_coupling"
+    | "import_order_violation"
+    | "flat_test_structure";
   severity: 1 | 2 | 3;
   description: string;
   location: string;

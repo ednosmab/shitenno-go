@@ -28,10 +28,10 @@ function detectTestHealth(projectRoot: string): HealthIssue[] {
   if (!existsSync(pkgPath)) return issues;
 
   try {
-    execSync("npx vitest run 2>&1", {
+    execSync("npx vitest run --reporter=json --bail 2>&1", {
       cwd: projectRoot,
       encoding: "utf-8",
-      timeout: 120000,
+      timeout: 15_000,
       stdio: ["pipe", "pipe", "pipe"],
     });
   } catch (err: unknown) {
@@ -139,7 +139,7 @@ function detectLintIssues(projectRoot: string): HealthIssue[] {
     const output = execSync("npx eslint src/ --format=json 2>&1", {
       cwd: projectRoot,
       encoding: "utf-8",
-      timeout: 60000,
+      timeout: 15_000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     try {
@@ -378,6 +378,8 @@ function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]): Heal
   const importGraph = new Map<string, Set<string>>();
   const importRegex = /(?:from|import)\s+["']([^"']+)["']/g;
 
+  const pathToKey = (p: string) => p.replace(/\.ts$/, "").replace(/\.js$/, "").replace(/\/\.\//g, "/");
+
   for (const file of files) {
     const deps = new Set<string>();
     let match;
@@ -385,14 +387,14 @@ function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]): Heal
       const spec = match[1];
       if (!spec) continue;
       if (spec.startsWith(".") || spec.startsWith("/")) {
-        const resolved = spec.replace(/\.js$/, "");
-        const depBasename = resolved.split("/").pop() || resolved;
-        if (depBasename && depBasename !== file.basename) {
-          deps.add(depBasename);
+        const dirOfCurrentFile = file.relPath.split("/").slice(0, -1).join("/");
+        const resolved = pathToKey(dirOfCurrentFile + "/" + spec.replace(/\.js$/, ""));
+        if (resolved && resolved !== pathToKey(file.relPath)) {
+          deps.add(resolved);
         }
       }
     }
-    importGraph.set(file.basename, deps);
+    importGraph.set(pathToKey(file.relPath), deps);
   }
 
   const visited = new Set<string>();
@@ -441,7 +443,7 @@ function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]): Heal
       type: "circular_dep",
       severity: 3,
       description: `Dependência circular detectada: ${cyclePath}`,
-      location: cycle.map((c) => `src/${c}.ts`).join(", "),
+      location: cycle.join(", "),
       recommendation: `Extrair interface comum ou usar injeção de dependência para quebrar o ciclo entre ${cycle.join(", ")}`,
     });
   }
