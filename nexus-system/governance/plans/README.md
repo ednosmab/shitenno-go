@@ -11,14 +11,19 @@
 
 | Plano | Data | Estado | Descrição |
 |---|---|---|---|
+| [complete-architecture-plan](2026-07-09-complete-architecture-plan.md) | 2026-07-09 | **In Progress** | Reactive + Proactive + Histórico + Agentes IA (15 fases) |
 | [nexus-dashboard-restructure](2026-07-02-nexus-dashboard-restructure.md) | 2026-07-02 | **Em espera** | Reestruturar dashboard em 6 camadas de conhecimento progressivo |
-| [plano-correcao-nexus](2026-07-08-plano-correcao-nexus.md) | 2026-07-08 | **Done** | Corrigir bugs críticos (feedback-utils.ts, build, lint) |
 
 ---
 
 ## Histórico (Done)
 
 Planos concluídos, organizados por data:
+
+### 2026-07-09
+| Plano | Resumo |
+|---|---|
+| [nexus-single-source-of-truth](done/nexus-single-source-of-truth-plan.md) | Engineering State como SSOT — 5 bugs corrigidos, accessor + ESLint guard |
 
 ### 2026-07-08
 | Plano | Resumo |
@@ -98,4 +103,4 @@ Itens planeados mas ainda não iniciados, extraídos do BACKLOG:
 
 ---
 
-*Actualizado: 2026-07-08*
+*Actualizado: 2026-07-09*

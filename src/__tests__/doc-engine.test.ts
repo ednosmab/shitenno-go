@@ -30,6 +30,7 @@ const makeState = (overrides: Partial<EngineeringState> = {}): EngineeringState 
   },
   maturity: null,
   capabilities: [],
+  capabilityDrift: { detectedNotRegistered: [], registeredNotDetected: [] },
   knowledgeDebt: { totalGaps: 5, healthScore: 70, detectedAt: new Date().toISOString() },
   knowledgeGraph: { totalArtifacts: 10, totalRelations: 15, healthScore: 80 },
   assets: [

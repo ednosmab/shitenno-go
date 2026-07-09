@@ -1,0 +1,1913 @@
+{
+  "consolidatedAt": "2026-07-09T14:30:02.544Z",
+  "lifecycle": "governed",
+  "project": {
+    "name": "nexus-cli",
+    "root": "/media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli",
+    "stack": [
+      "typescript",
+      "node",
+      "react"
+    ],
+    "hasGit": true,
+    "hasCI": true,
+    "hasTests": true,
+    "hasTypeScript": true,
+    "packageCount": 0,
+    "sourceFileCount": 369,
+    "monorepo": true
+  },
+  "maturity": {
+    "dimensions": {
+      "architecture": 90,
+      "governance": 100,
+      "quality": 55,
+      "automation": 30,
+      "ai": 100,
+      "documentation": 100,
+      "observability": 35
+    },
+    "overallScore": 73,
+    "recommendedCapabilities": [],
+    "installedCapabilities": [
+      "core",
+      "knowledge",
+      "architecture",
+      "governance",
+      "ai",
+      "quality",
+      "metrics",
+      "operations",
+      "compliance"
+    ],
+    "futureCapabilities": [],
+    "computedAt": "2026-07-06T13:02:50.936Z"
+  },
+  "capabilities": [
+    "core",
+    "knowledge",
+    "architecture",
+    "governance",
+    "ai",
+    "quality",
+    "metrics",
+    "operations",
+    "compliance"
+  ],
+  "capabilityDrift": {
+    "detectedNotRegistered": [],
+    "registeredNotDetected": []
+  },
+  "knowledgeDebt": {
+    "totalGaps": 0,
+    "healthScore": 100,
+    "detectedAt": "2026-07-09T14:30:02.523Z"
+  },
+  "knowledgeGraph": null,
+  "assets": [
+    {
+      "id": "adr-ADR-001-single-agent-architecture",
+      "type": "adr",
+      "name": "ADR-001: Single Agent Architecture",
+      "path": "docs/adrs/ADR-001-single-agent-architecture.md",
+      "description": "Architecture Decision Record: ADR-001-single-agent-architecture.md",
+      "tags": [
+        "adr",
+        "decision",
+        "architecture"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "adr-ADR-002-event-driven-state",
+      "type": "adr",
+      "name": "ADR-002: Event-Driven Architecture with Centralized Engineering State",
+      "path": "docs/adrs/ADR-002-event-driven-state.md",
+      "description": "Architecture Decision Record: ADR-002-event-driven-state.md",
+      "tags": [
+        "adr",
+        "decision",
+        "architecture"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "adr-ADR-003-knowledge-graph-persistence",
+      "type": "adr",
+      "name": "ADR-003: Knowledge Graph as Foundation for Documentation",
+      "path": "docs/adrs/ADR-003-knowledge-graph-persistence.md",
+      "description": "Architecture Decision Record: ADR-003-knowledge-graph-persistence.md",
+      "tags": [
+        "adr",
+        "decision",
+        "architecture"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "adr-ADR-005-automated-task-completion-pipeline",
+      "type": "adr",
+      "name": "ADR-005: Automated Task Completion Pipeline",
+      "path": "docs/adrs/ADR-005-automated-task-completion-pipeline.md",
+      "description": "Architecture Decision Record: ADR-005-automated-task-completion-pipeline.md",
+      "tags": [
+        "adr",
+        "decision",
+        "architecture"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-animation_protocol",
+      "type": "skill",
+      "name": "animation protocol",
+      "path": "docs/skills/animation_protocol.md",
+      "description": "Engineering skill: animation_protocol.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-architectural_integrity",
+      "type": "skill",
+      "name": "architectural integrity",
+      "path": "docs/skills/architectural_integrity.md",
+      "description": "Engineering skill: architectural_integrity.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-ci_cd_pipeline",
+      "type": "skill",
+      "name": "ci cd pipeline",
+      "path": "docs/skills/ci_cd_pipeline.md",
+      "description": "Engineering skill: ci_cd_pipeline.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-clean_code_standards",
+      "type": "skill",
+      "name": "clean code standards",
+      "path": "docs/skills/clean_code_standards.md",
+      "description": "Engineering skill: clean_code_standards.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-codebase_hygiene_git",
+      "type": "skill",
+      "name": "codebase hygiene git",
+      "path": "docs/skills/codebase_hygiene_git.md",
+      "description": "Engineering skill: codebase_hygiene_git.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-ddd_patterns",
+      "type": "skill",
+      "name": "ddd patterns",
+      "path": "docs/skills/ddd_patterns.md",
+      "description": "Engineering skill: ddd_patterns.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-design_patterns",
+      "type": "skill",
+      "name": "design patterns",
+      "path": "docs/skills/design_patterns.md",
+      "description": "Engineering skill: design_patterns.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-domain_driven_design_(ddd)",
+      "type": "skill",
+      "name": "domain driven design (ddd)",
+      "path": "docs/skills/domain_driven_design_(ddd).md",
+      "description": "Engineering skill: domain_driven_design_(ddd).md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-error_handling_observability",
+      "type": "skill",
+      "name": "error handling observability",
+      "path": "docs/skills/error_handling_observability.md",
+      "description": "Engineering skill: error_handling_observability.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-nextjs_performance_seo",
+      "type": "skill",
+      "name": "nextjs performance seo",
+      "path": "docs/skills/nextjs_performance_seo.md",
+      "description": "Engineering skill: nextjs_performance_seo.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-operacao_no_nexus",
+      "type": "skill",
+      "name": "operacao no nexus",
+      "path": "docs/skills/operacao_no_nexus.md",
+      "description": "Engineering skill: operacao_no_nexus.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-optimistic_ui",
+      "type": "skill",
+      "name": "optimistic ui",
+      "path": "docs/skills/optimistic_ui.md",
+      "description": "Engineering skill: optimistic_ui.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-pnpm_management",
+      "type": "skill",
+      "name": "pnpm management",
+      "path": "docs/skills/pnpm_management.md",
+      "description": "Engineering skill: pnpm_management.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-postgresql_performance",
+      "type": "skill",
+      "name": "postgresql performance",
+      "path": "docs/skills/postgresql_performance.md",
+      "description": "Engineering skill: postgresql_performance.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-quick-board-enforcement",
+      "type": "skill",
+      "name": "quick-board-enforcement",
+      "path": "docs/skills/quick-board-enforcement.md",
+      "description": "Engineering skill: quick-board-enforcement.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-responsividade",
+      "type": "skill",
+      "name": "responsividade",
+      "path": "docs/skills/responsividade.md",
+      "description": "Engineering skill: responsividade.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-security_xss_prevention",
+      "type": "skill",
+      "name": "security xss prevention",
+      "path": "docs/skills/security_xss_prevention.md",
+      "description": "Engineering skill: security_xss_prevention.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-senior-engineer",
+      "type": "skill",
+      "name": "senior-engineer",
+      "path": "docs/skills/senior-engineer.md",
+      "description": "Engineering skill: senior-engineer.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-solid_principles",
+      "type": "skill",
+      "name": "solid principles",
+      "path": "docs/skills/solid_principles.md",
+      "description": "Engineering skill: solid_principles.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-state_management_protocol",
+      "type": "skill",
+      "name": "state management protocol",
+      "path": "docs/skills/state_management_protocol.md",
+      "description": "Engineering skill: state_management_protocol.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-system-first",
+      "type": "skill",
+      "name": "system-first",
+      "path": "docs/skills/system-first.md",
+      "description": "Engineering skill: system-first.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-tdd-agent",
+      "type": "skill",
+      "name": "tdd-agent",
+      "path": "docs/skills/tdd-agent.md",
+      "description": "Engineering skill: tdd-agent.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-tdd_workflow",
+      "type": "skill",
+      "name": "tdd workflow",
+      "path": "docs/skills/tdd_workflow.md",
+      "description": "Engineering skill: tdd_workflow.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "skill-ui_ux_principles",
+      "type": "skill",
+      "name": "ui ux principles",
+      "path": "docs/skills/ui_ux_principles.md",
+      "description": "Engineering skill: ui_ux_principles.md",
+      "tags": [
+        "skill",
+        "engineering"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "contract-AI-CONTRACT-executor-v1",
+      "type": "contract",
+      "name": "AI CONTRACT executor v1",
+      "path": "governance/agents/AI-CONTRACT-executor-v1.yaml",
+      "description": "AI agent contract: AI-CONTRACT-executor-v1.yaml",
+      "tags": [
+        "contract",
+        "agent",
+        "ai"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai",
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "contract-AI-CONTRACT-orchestrator-v1",
+      "type": "contract",
+      "name": "AI CONTRACT orchestrator v1",
+      "path": "governance/agents/AI-CONTRACT-orchestrator-v1.yaml",
+      "description": "AI agent contract: AI-CONTRACT-orchestrator-v1.yaml",
+      "tags": [
+        "contract",
+        "agent",
+        "ai"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai",
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "contract-AI-CONTRACT-planner-v1",
+      "type": "contract",
+      "name": "AI CONTRACT planner v1",
+      "path": "governance/agents/AI-CONTRACT-planner-v1.yaml",
+      "description": "AI agent contract: AI-CONTRACT-planner-v1.yaml",
+      "tags": [
+        "contract",
+        "agent",
+        "ai"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai",
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "contract-AI-CONTRACT-reviewer-v1",
+      "type": "contract",
+      "name": "AI CONTRACT reviewer v1",
+      "path": "governance/agents/AI-CONTRACT-reviewer-v1.yaml",
+      "description": "AI agent contract: AI-CONTRACT-reviewer-v1.yaml",
+      "tags": [
+        "contract",
+        "agent",
+        "ai"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai",
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-011",
+      "type": "policy",
+      "name": "Doc Lifecycle — check Plans + ADRs for staleness at session start",
+      "path": "governance/rules/RULE-011-doc-lifecycle-check.json",
+      "description": "Governance rule: RULE-011",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-011",
+      "type": "policy",
+      "name": "Auto-audit when health status is critical",
+      "path": "governance/rules/RULE-011.json",
+      "description": "Governance rule: RULE-011",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-012",
+      "type": "policy",
+      "name": "Session Briefing — show project summary at session start",
+      "path": "governance/rules/RULE-012-session-briefing.json",
+      "description": "Governance rule: RULE-012",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-012",
+      "type": "policy",
+      "name": "Update context buffer on significant maturity change",
+      "path": "governance/rules/RULE-012.json",
+      "description": "Governance rule: RULE-012",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-013",
+      "type": "policy",
+      "name": "Create backlog item when knowledge debt gaps exceed threshold",
+      "path": "governance/rules/RULE-013.json",
+      "description": "Governance rule: RULE-013",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-014",
+      "type": "policy",
+      "name": "Create reminder when validation fails",
+      "path": "governance/rules/RULE-014.json",
+      "description": "Governance rule: RULE-014",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-015",
+      "type": "policy",
+      "name": "Archive active plans on session end",
+      "path": "governance/rules/RULE-015.json",
+      "description": "Governance rule: RULE-015",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-016",
+      "type": "policy",
+      "name": "Auto-transition backlog to em validacao on task completion",
+      "path": "governance/rules/RULE-016.json",
+      "description": "Governance rule: RULE-016",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-017",
+      "type": "policy",
+      "name": "Update context buffer on task completion",
+      "path": "governance/rules/RULE-017.json",
+      "description": "Governance rule: RULE-017",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-018",
+      "type": "policy",
+      "name": "Update context buffer when a plan is archived (moved to done/)",
+      "path": "governance/rules/RULE-018.json",
+      "description": "Governance rule: RULE-018",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-019",
+      "type": "policy",
+      "name": "Auto-populate next_p0 from BACKLOG.md when a plan is archived",
+      "path": "governance/rules/RULE-019.json",
+      "description": "Governance rule: RULE-019",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "policy-RULE-001",
+      "type": "policy",
+      "name": "Session Hygiene — validate session close checklist",
+      "path": "governance/rules/RULE-TEMPLATE.json",
+      "description": "Governance rule: RULE-001",
+      "tags": [
+        "policy",
+        "rule",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "workflow-main",
+      "type": "workflow",
+      "name": "Main Workflow",
+      "path": "governance/WORKFLOW.md",
+      "description": "Main session workflow",
+      "tags": [
+        "workflow",
+        "session",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "runbook-merge",
+      "type": "runbook",
+      "name": "merge",
+      "path": "docs/runbooks/merge.md",
+      "description": "Operational runbook: merge.md",
+      "tags": [
+        "runbook",
+        "operations"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "operations",
+        "quality"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-2026-07-02-nexus-dashboard-restructure",
+      "type": "plan",
+      "name": "2026 07 02 nexus dashboard restructure",
+      "path": "governance/plans/2026-07-02-nexus-dashboard-restructure.md",
+      "description": "Execution plan: 2026-07-02-nexus-dashboard-restructure.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-2026-07-09-complete-architecture-plan",
+      "type": "plan",
+      "name": "2026 07 09 complete architecture plan",
+      "path": "governance/plans/2026-07-09-complete-architecture-plan.md",
+      "description": "Execution plan: 2026-07-09-complete-architecture-plan.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-2026-07-09-gap-analysis-coverage-plan",
+      "type": "plan",
+      "name": "2026 07 09 gap analysis coverage plan",
+      "path": "governance/plans/2026-07-09-gap-analysis-coverage-plan.md",
+      "description": "Execution plan: 2026-07-09-gap-analysis-coverage-plan.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-PLANO-CORRECAO-NEXUS",
+      "type": "plan",
+      "name": "PLANO CORRECAO NEXUS",
+      "path": "governance/plans/PLANO-CORRECAO-NEXUS.md",
+      "description": "Execution plan: PLANO-CORRECAO-NEXUS.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-README",
+      "type": "plan",
+      "name": "README",
+      "path": "governance/plans/README.md",
+      "description": "Execution plan: README.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-backlog",
+      "type": "script",
+      "name": "backlog",
+      "path": "scripts/backlog.ts",
+      "description": "Automation script: backlog.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-close-session",
+      "type": "script",
+      "name": "close session",
+      "path": "scripts/close-session.ts",
+      "description": "Automation script: close-session.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-generate-changelog",
+      "type": "script",
+      "name": "generate changelog",
+      "path": "scripts/generate-changelog.ts",
+      "description": "Automation script: generate-changelog.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-premortem-check",
+      "type": "script",
+      "name": "premortem check",
+      "path": "scripts/premortem-check.ts",
+      "description": "Automation script: premortem-check.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-sync-docs",
+      "type": "script",
+      "name": "sync docs",
+      "path": "scripts/sync-docs.ts",
+      "description": "Automation script: sync-docs.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "script-validate-session",
+      "type": "script",
+      "name": "validate session",
+      "path": "scripts/validate-session.ts",
+      "description": "Automation script: validate-session.ts",
+      "tags": [
+        "script",
+        "automation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "automation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-AGENTS",
+      "type": "doc",
+      "name": "AGENTS",
+      "path": "docs/AGENTS.md",
+      "description": "Documentation: AGENTS.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-BACKLOG-ARCHIVE",
+      "type": "doc",
+      "name": "BACKLOG-ARCHIVE",
+      "path": "docs/BACKLOG-ARCHIVE.md",
+      "description": "Documentation: BACKLOG-ARCHIVE.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-BACKLOG",
+      "type": "doc",
+      "name": "BACKLOG",
+      "path": "docs/BACKLOG.md",
+      "description": "Documentation: BACKLOG.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-CONCEPTUAL_MODEL",
+      "type": "doc",
+      "name": "CONCEPTUAL MODEL",
+      "path": "docs/CONCEPTUAL_MODEL.md",
+      "description": "Documentation: CONCEPTUAL_MODEL.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-DESDO",
+      "type": "doc",
+      "name": "DESDO",
+      "path": "docs/DESDO.md",
+      "description": "Documentation: DESDO.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-ENTERPRISE_AUDIT_PLAN",
+      "type": "doc",
+      "name": "ENTERPRISE AUDIT PLAN",
+      "path": "docs/ENTERPRISE_AUDIT_PLAN.md",
+      "description": "Documentation: ENTERPRISE_AUDIT_PLAN.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-ENTERPRISE_AUDIT_PLAN_V2",
+      "type": "doc",
+      "name": "ENTERPRISE AUDIT PLAN V2",
+      "path": "docs/ENTERPRISE_AUDIT_PLAN_V2.md",
+      "description": "Documentation: ENTERPRISE_AUDIT_PLAN_V2.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-FORBIDDEN_OPERATIONS",
+      "type": "doc",
+      "name": "FORBIDDEN OPERATIONS",
+      "path": "docs/FORBIDDEN_OPERATIONS.md",
+      "description": "Documentation: FORBIDDEN_OPERATIONS.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-INDEX",
+      "type": "doc",
+      "name": "INDEX",
+      "path": "docs/INDEX.md",
+      "description": "Documentation: INDEX.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-KNOWLEDGE_LIFECYCLE",
+      "type": "doc",
+      "name": "KNOWLEDGE LIFECYCLE",
+      "path": "docs/KNOWLEDGE_LIFECYCLE.md",
+      "description": "Documentation: KNOWLEDGE_LIFECYCLE.md",
+      "tags": [
+        "doc",
+        "documentation",
+        "governance"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance",
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-Nexus-System_GUIDE",
+      "type": "doc",
+      "name": "Nexus-System GUIDE",
+      "path": "docs/Nexus-System_GUIDE.md",
+      "description": "Documentation: Nexus-System_GUIDE.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-capabilities",
+      "type": "doc",
+      "name": "capabilities",
+      "path": "docs/capabilities.md",
+      "description": "Documentation: capabilities.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-opencode-context",
+      "type": "doc",
+      "name": "opencode-context",
+      "path": "docs/opencode-context.md",
+      "description": "Documentation: opencode-context.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-session-template",
+      "type": "doc",
+      "name": "session-template",
+      "path": "docs/session-template.md",
+      "description": "Documentation: session-template.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity---2026-06-30-session1",
+      "type": "report",
+      "name": "complexity   2026 06 30 session1",
+      "path": "reports/complexity---2026-06-30-session1.json",
+      "description": "Report: complexity---2026-06-30-session1.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-01-session1",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 01 session1",
+      "path": "reports/complexity-nexus-cli-2026-07-01-session1.json",
+      "description": "Report: complexity-nexus-cli-2026-07-01-session1.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-01-session2",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 01 session2",
+      "path": "reports/complexity-nexus-cli-2026-07-01-session2.json",
+      "description": "Report: complexity-nexus-cli-2026-07-01-session2.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-01-session3",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 01 session3",
+      "path": "reports/complexity-nexus-cli-2026-07-01-session3.json",
+      "description": "Report: complexity-nexus-cli-2026-07-01-session3.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-01-session4",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 01 session4",
+      "path": "reports/complexity-nexus-cli-2026-07-01-session4.json",
+      "description": "Report: complexity-nexus-cli-2026-07-01-session4.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-01-session5",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 01 session5",
+      "path": "reports/complexity-nexus-cli-2026-07-01-session5.json",
+      "description": "Report: complexity-nexus-cli-2026-07-01-session5.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-03-session1",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 03 session1",
+      "path": "reports/complexity-nexus-cli-2026-07-03-session1.json",
+      "description": "Report: complexity-nexus-cli-2026-07-03-session1.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-03-session2",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 03 session2",
+      "path": "reports/complexity-nexus-cli-2026-07-03-session2.json",
+      "description": "Report: complexity-nexus-cli-2026-07-03-session2.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-03-session3",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 03 session3",
+      "path": "reports/complexity-nexus-cli-2026-07-03-session3.json",
+      "description": "Report: complexity-nexus-cli-2026-07-03-session3.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-complexity-nexus-cli-2026-07-08-session1",
+      "type": "report",
+      "name": "complexity nexus cli 2026 07 08 session1",
+      "path": "reports/complexity-nexus-cli-2026-07-08-session1.json",
+      "description": "Report: complexity-nexus-cli-2026-07-08-session1.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-03",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 03",
+      "path": "reports/doc-lifecycle-2026-07-03.json",
+      "description": "Report: doc-lifecycle-2026-07-03.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-04",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 04",
+      "path": "reports/doc-lifecycle-2026-07-04.json",
+      "description": "Report: doc-lifecycle-2026-07-04.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-05",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 05",
+      "path": "reports/doc-lifecycle-2026-07-05.json",
+      "description": "Report: doc-lifecycle-2026-07-05.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-06",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 06",
+      "path": "reports/doc-lifecycle-2026-07-06.json",
+      "description": "Report: doc-lifecycle-2026-07-06.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-07",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 07",
+      "path": "reports/doc-lifecycle-2026-07-07.json",
+      "description": "Report: doc-lifecycle-2026-07-07.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-08",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 08",
+      "path": "reports/doc-lifecycle-2026-07-08.json",
+      "description": "Report: doc-lifecycle-2026-07-08.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-09",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 09",
+      "path": "reports/doc-lifecycle-2026-07-09.json",
+      "description": "Report: doc-lifecycle-2026-07-09.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-health-2026-06-30",
+      "type": "report",
+      "name": "health 2026 06 30",
+      "path": "reports/health-2026-06-30.json",
+      "description": "Report: health-2026-06-30.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-health-2026-07-03",
+      "type": "report",
+      "name": "health 2026 07 03",
+      "path": "reports/health-2026-07-03.json",
+      "description": "Report: health-2026-07-03.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-health-2026-07-04",
+      "type": "report",
+      "name": "health 2026 07 04",
+      "path": "reports/health-2026-07-04.json",
+      "description": "Report: health-2026-07-04.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-health-2026-07-06",
+      "type": "report",
+      "name": "health 2026 07 06",
+      "path": "reports/health-2026-07-06.json",
+      "description": "Report: health-2026-07-06.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-health-2026-07-09",
+      "type": "report",
+      "name": "health 2026 07 09",
+      "path": "reports/health-2026-07-09.json",
+      "description": "Report: health-2026-07-09.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "context-session",
+      "type": "context",
+      "name": "Session Context Buffer",
+      "path": "governance/context/context_buffer.yaml",
+      "description": "Current session context state",
+      "tags": [
+        "context",
+        "session",
+        "state"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "governance"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "prompt-executor-README",
+      "type": "prompt",
+      "name": "executor prompt: README",
+      "path": "cognition/prompts/executor/README.md",
+      "description": "AI prompt: executor/README.md",
+      "tags": [
+        "prompt",
+        "ai",
+        "executor"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "prompt-planner-README",
+      "type": "prompt",
+      "name": "planner prompt: README",
+      "path": "cognition/prompts/planner/README.md",
+      "description": "AI prompt: planner/README.md",
+      "tags": [
+        "prompt",
+        "ai",
+        "planner"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "prompt-reviewer-README",
+      "type": "prompt",
+      "name": "reviewer prompt: README",
+      "path": "cognition/prompts/reviewer/README.md",
+      "description": "AI prompt: reviewer/README.md",
+      "tags": [
+        "prompt",
+        "ai",
+        "reviewer"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-09T14:30:02.499Z",
+      "updatedAt": "2026-07-09T14:30:02.499Z",
+      "contributesTo": [
+        "ai"
+      ],
+      "dependencies": []
+    }
+  ],
+  "assetsByType": {
+    "adr": 4,
+    "skill": 24,
+    "contract": 4,
+    "policy": 12,
+    "workflow": 1,
+    "runbook": 1,
+    "plan": 5,
+    "script": 6,
+    "doc": 14,
+    "report": 22,
+    "context": 1,
+    "prompt": 3
+  },
+  "activeRules": 12,
+  "activePolicies": 12,
+  "healthScores": {
+    "knowledgeDebt": 100,
+    "knowledgeGraph": 100,
+    "overall": 70
+  },
+  "entropy": {
+    "orphanedAssets": 61,
+    "staleAssets": 0,
+    "missingDependencies": 0,
+    "score": 100
+  },
+  "summary": "97 assets. 9 capabilities. Health: 70/100. 61 orphaned. Lifecycle: governed."
+}

@@ -47,6 +47,8 @@ import { setSessionContext, clearSessionContext } from "../src/session-context.j
 import { installMiddleware } from "../src/cli-middleware.js";
 import { startWatching, stopWatching } from "../src/file-watcher.js";
 import { initializeTaskPipeline } from "../src/task-pipeline.js";
+import { initializeEngineeringState } from "../src/engineering-state.js";
+import { initializeProactiveEngine } from "../src/proactive-engine.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -68,6 +70,8 @@ if (isInitialized) {
   initializeKnowledgeGraph(nexusDir);
   initializeCapabilityEngine(projectRoot, nexusDir);
   initializeTaskPipeline({ projectRoot, nexusDir });
+  initializeEngineeringState(projectRoot, nexusDir);
+  initializeProactiveEngine(projectRoot, nexusDir);
 
   const session = startSession(nexusDir);
   currentSessionId = session.id;

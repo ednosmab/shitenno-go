@@ -194,7 +194,7 @@ export function calculateMaturityProfile(
 ): MaturityProfile {
   const dimensions = calculateDimensions(answers, analysis, nexusDir);
   const overallScore = calculateOverallScore(dimensions);
-  const installed: Capability[] = nexusDir ? detectInstalledCapabilities(nexusDir) : ["core"];
+  const installed: Capability[] = nexusDir ? detectCapabilitySignalsFromFilesystem(nexusDir) : ["core"];
   const recommended = recommendCapabilities(dimensions, installed);
   const future = getFutureCapabilities(installed, recommended);
 
@@ -354,8 +354,13 @@ function calculateOverallScore(dimensions: MaturityDimensions): number {
 
 // ── Capability Detection ────────────────────────────────────────────────────
 
-/** Detecta capacidades já instaladas no projeto. */
-export function detectInstalledCapabilities(nexusDir: string): Capability[] {
+/**
+ * Detecta capacidades por evidência de filesystem.
+ * ⚠️ Isto é um SINAL para reconciliação (usado por `init`, `upgrade`, `sync`),
+ * NUNCA a fonte de verdade para leitura de estado. Para saber o que está
+ * instalado, use `loadMaturityProfile(nexusDir).installedCapabilities`.
+ */
+export function detectCapabilitySignalsFromFilesystem(nexusDir: string): Capability[] {
   const installed: Capability[] = ["core"];
   if (!existsSync(nexusDir)) return installed;
 

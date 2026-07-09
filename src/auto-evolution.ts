@@ -10,7 +10,7 @@
 
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { consolidateState, type NexusState } from "./state-manager.js";
+import { consolidateEngineeringState, type EngineeringState } from "./engineering-state.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
 import { CAPABILITIES } from "./maturity-profile.js";
 import { getAllFeedbackSummaries, adjustConfidence, shouldSuppress, type FeedbackSummary } from "./feedback-loops.js";
@@ -94,11 +94,12 @@ export interface EvolutionReport {
 
 // ── Recommendation Generators ───────────────────────────────────────────────
 
-function generateCapabilityRecommendations(state: NexusState): EvolutionRecommendation[] {
+function generateCapabilityRecommendations(state: EngineeringState): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 1;
 
-  for (const capId of state.project.recommendedCapabilities) {
+  const recommendedCaps = state.maturity?.recommendedCapabilities ?? [];
+  for (const capId of recommendedCaps) {
     const capInfo = CAPABILITIES.find((c) => c.id === capId);
     if (!capInfo) continue;
 
@@ -123,14 +124,17 @@ function generateCapabilityRecommendations(state: NexusState): EvolutionRecommen
 }
 
 function generateKnowledgeRecommendations(
-  state: NexusState,
+  state: EngineeringState,
   debtReport: KnowledgeDebtReport | null
 ): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 100;
 
+  const adrs = state.assets.filter((a) => a.type === "adr");
+  const skills = state.assets.filter((a) => a.type === "skill");
+
   // ADR creation
-  if (state.knowledge.adrs.length === 0 && state.project.projectInfo.sourceFileCount > 10) {
+  if (adrs.length === 0 && state.project.sourceFileCount > 10) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
       type: "knowledge_creation",
@@ -148,19 +152,19 @@ function generateKnowledgeRecommendations(
   }
 
   // Skill extraction
-  if (state.knowledge.adrs.length > 3 && state.knowledge.skills.length === 0) {
+  if (adrs.length > 3 && skills.length === 0) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
       type: "pattern_extraction",
       priority: "medium",
       title: "Extract skills from ADRs",
-      description: `${state.knowledge.adrs.length} ADRs exist but no Skills — patterns not extracted`,
+      description: `${adrs.length} ADRs exist but no Skills — patterns not extracted`,
       expectedImpact: "Reusable patterns improve consistency across sessions",
       action: "Review ADRs and extract common patterns into Skills",
       affectedArtifacts: ["docs/skills/"],
       dependencies: [],
       confidence: 0.7,
-      evidence: [`${state.knowledge.adrs.length} ADRs, 0 skills`],
+      evidence: [`${adrs.length} ADRs, 0 skills`],
       feedbackAdjusted: false,
     });
   }
@@ -189,13 +193,13 @@ function generateKnowledgeRecommendations(
   return recs;
 }
 
-function generateGovernanceRecommendations(state: NexusState): EvolutionRecommendation[] {
+function generateGovernanceRecommendations(state: EngineeringState): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 200;
 
-  // No workflow
-  const hasWorkflow = state.knowledge.governanceDocs.some((d) => d.name === "WORKFLOW.md");
-  if (!hasWorkflow && state.project.installedCapabilities.includes("governance")) {
+  const governanceDocs = state.assets.filter((a) => a.type === "policy" || a.type === "doc");
+  const hasWorkflow = governanceDocs.some((d) => d.name === "WORKFLOW.md");
+  if (!hasWorkflow && state.capabilities.includes("governance")) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
       type: "governance_enhancement",
@@ -213,7 +217,7 @@ function generateGovernanceRecommendations(state: NexusState): EvolutionRecommen
   }
 
   // No system map
-  const hasSystemMap = state.knowledge.governanceDocs.some((d) => d.name === "SYSTEM_MAP.md");
+  const hasSystemMap = governanceDocs.some((d) => d.name === "SYSTEM_MAP.md");
   if (!hasSystemMap) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
@@ -234,23 +238,24 @@ function generateGovernanceRecommendations(state: NexusState): EvolutionRecommen
   return recs;
 }
 
-function generateAutomationRecommendations(state: NexusState): EvolutionRecommendation[] {
+function generateAutomationRecommendations(state: EngineeringState): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 300;
 
-  if (state.knowledge.scripts.length < 3 && state.project.projectInfo.sourceFileCount > 30) {
+  const scripts = state.assets.filter((a) => a.type === "script");
+  if (scripts.length < 3 && state.project.sourceFileCount > 30) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
       type: "automation_addition",
       priority: "medium",
       title: "Add more automation scripts",
-      description: `Only ${state.knowledge.scripts.length} script(s) for a project with ${state.project.projectInfo.sourceFileCount} files`,
+      description: `Only ${scripts.length} script(s) for a project with ${state.project.sourceFileCount} files`,
       expectedImpact: "Reduces manual work and human error",
       action: "Identify repetitive processes and create automation scripts",
       affectedArtifacts: ["nexus-system/scripts/"],
       dependencies: [],
       confidence: 0.7,
-      evidence: [`${state.knowledge.scripts.length} scripts, ${state.project.projectInfo.sourceFileCount} source files`],
+      evidence: [`${scripts.length} scripts, ${state.project.sourceFileCount} source files`],
       feedbackAdjusted: false,
     });
   }
@@ -260,13 +265,13 @@ function generateAutomationRecommendations(state: NexusState): EvolutionRecommen
 
 // ── Smart Suggestions ───────────────────────────────────────────────────────
 
-function generateSmartSuggestions(state: NexusState): EvolutionRecommendation[] {
+function generateSmartSuggestions(state: EngineeringState): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 400;
 
-  // Suggest daily digest if no recent activity
-  const hasRecentDigest = state.knowledge.scripts.some((s) => s.name.includes("digest"));
-  if (!hasRecentDigest && state.project.installedCapabilities.includes("governance")) {
+  const scripts = state.assets.filter((a) => a.type === "script");
+  const hasRecentDigest = scripts.some((s) => s.name.includes("digest"));
+  if (!hasRecentDigest && state.capabilities.includes("governance")) {
     recs.push({
       id: `EVO-${String(id++).padStart(3, "0")}`,
       type: "automation_addition",
@@ -284,8 +289,9 @@ function generateSmartSuggestions(state: NexusState): EvolutionRecommendation[] 
   }
 
   // Suggest context rules if high-risk areas detected
-  if (state.project.installedCapabilities.includes("governance")) {
-    const hasContextRules = state.knowledge.governanceDocs.some((d) => d.name === "CONTEXT_RULES.md");
+  if (state.capabilities.includes("governance")) {
+    const governanceDocs = state.assets.filter((a) => a.type === "policy" || a.type === "doc");
+    const hasContextRules = governanceDocs.some((d) => d.name === "CONTEXT_RULES.md");
     if (!hasContextRules) {
       recs.push({
         id: `EVO-${String(id++).padStart(3, "0")}`,
@@ -314,7 +320,7 @@ export function analyzeEvolution(
   projectRoot: string,
   nexusDir: string
 ): EvolutionReport {
-  const state = consolidateState(projectRoot, nexusDir);
+  const state = consolidateEngineeringState(projectRoot, nexusDir);
 
   let debtReport: KnowledgeDebtReport | null = null;
   try {
@@ -377,7 +383,7 @@ export function analyzeEvolution(
   const dualPaths: DualPath[] = [];
 
   for (const rec of recommendations) {
-    const challenging = generateChallengingAlternative(rec, growthProfile, state);
+    const challenging = generateChallengingAlternative(rec, growthProfile);
     dualPaths.push({
       comfortable: rec,
       challenging,
@@ -405,15 +411,15 @@ export function analyzeEvolution(
   if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
   if (byPriority.high) parts.push(`${byPriority.high} high.`);
   if (suppressedCount > 0) parts.push(`${suppressedCount} suppressed by feedback.`);
-  parts.push(`Maturity: ${state.project.maturity?.overallScore || 0}/100.`);
+  parts.push(`Maturity: ${state.maturity?.overallScore || 0}/100.`);
   parts.push(`Debt: ${debtReport?.healthScore || 100}/100.`);
   parts.push(`Growth capacity: ${Math.round(growthProfile.growthCapacity * 100)}%.`);
 
   return {
     analyzedAt: new Date().toISOString(),
     currentState: {
-      maturityScore: state.project.maturity?.overallScore || 0,
-      installedCapabilities: state.project.installedCapabilities,
+      maturityScore: state.maturity?.overallScore || 0,
+      installedCapabilities: state.capabilities,
       knowledgeDebtScore: debtReport?.healthScore || 100,
     },
     totalRecommendations: recommendations.length,

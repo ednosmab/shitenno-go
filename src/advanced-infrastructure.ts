@@ -104,6 +104,8 @@ const EVENT_VERSIONS: Record<NexusEventType, EventVersion> = {
   "docs.sync.triggered": 1,
   "doc.lifecycle.audited": 1,
   "system.updated": 1,
+  "challenge.generated": 1,
+  "state.mutated": 1,
 };
 
 /** Migrate a payload from one version to another. */

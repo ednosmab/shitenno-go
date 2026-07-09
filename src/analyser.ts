@@ -59,7 +59,12 @@ export function analyseProject(rootDir: string): ProjectAnalysis {
 function detectStack(rootDir: string): string[] {
   const stack: string[] = [];
   const pkg = readPackageJson(rootDir);
-  if (!pkg) return stack;
+
+  // Detect base language/runtime from filesystem signals
+  if (existsSync(join(rootDir, "tsconfig.json"))) stack.push("typescript");
+  if (pkg) stack.push("node");
+
+  if (!pkg) return [...new Set(stack)];
 
   const allDeps = {
     ...pkg.dependencies,
@@ -76,6 +81,9 @@ function detectStack(rootDir: string): string[] {
     expo: ["expo"],
     "react-native": ["react-native"],
     angular: ["@angular/core"],
+    express: ["express"],
+    fastify: ["fastify"],
+    nestjs: ["@nestjs/core"],
     tailwindcss: ["tailwindcss"],
     styledcomponents: ["styled-components"],
     emotion: ["@emotion/react"],
@@ -103,7 +111,7 @@ function detectStack(rootDir: string): string[] {
     }
   }
 
-  return stack;
+  return [...new Set(stack)];
 }
 
 function detectPackageManager(rootDir: string): "pnpm" | "npm" | "yarn" | "unknown" {

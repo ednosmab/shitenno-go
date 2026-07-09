@@ -39,15 +39,5 @@ export const GIT_TIMEOUT = 5000;
 /** Timeout for rule scripts (ms). */
 export const RULE_SCRIPT_TIMEOUT = 30000;
 
-/** Valid action types for rule engine. */
-export const VALID_ACTION_TYPES = [
-  "update_context_buffer",
-  "create_reminder",
-  "update_quick_board",
-  "log_event",
-  "trigger_assessment",
-  "trigger_health_check",
-  "update_backlog",
-  "run_script",
-  "run_nexus_command",
-] as const;
+/** Valid action types for rule engine — single source of truth in rule-engine.ts. */
+export { VALID_ACTION_TYPES } from "./rule-engine.js";

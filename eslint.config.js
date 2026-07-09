@@ -31,4 +31,50 @@ export default [
       "no-restricted-globals": ["error", "__dirname", "__filename"],
     },
   },
+  // Commands must not read filesystem directly — use getEngineeringState()
+  {
+    files: ["src/commands/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "node:fs",
+          message: "Commands must not read filesystem directly. Use getEngineeringState() from engineering-state-access.ts.",
+        }],
+      }],
+    },
+  },
+  // Exceptions: infrastructure modules that own filesystem access
+  {
+    files: [
+      "src/engineering-state.ts",
+      "src/maturity-profile.ts",
+      "src/state-manager.ts",
+      "src/analyser.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
+  // Exceptions: commands with legitimate write operations (init, clean, sync, upgrade, etc.)
+  {
+    files: [
+      "src/commands/init.ts",
+      "src/commands/clean.ts",
+      "src/commands/briefing.ts",
+      "src/commands/reminders.ts",
+      "src/commands/upgrade.ts",
+      "src/commands/sync.ts",
+      "src/commands/update.ts",
+      "src/commands/validate.ts",
+      "src/commands/assess.ts",
+      "src/commands/status.ts",
+      "src/commands/bench.ts",
+      "src/commands/digest.ts",
+      "src/commands/mcp.ts",
+      "src/commands/doctor.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
 ];

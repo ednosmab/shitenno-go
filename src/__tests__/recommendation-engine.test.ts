@@ -48,6 +48,7 @@ function makeState(overrides: Partial<EngineeringState> = {}): EngineeringState 
     },
     maturity: null,
     capabilities: [],
+    capabilityDrift: { detectedNotRegistered: [], registeredNotDetected: [] },
     knowledgeDebt: null,
     knowledgeGraph: null,
     assets: [],

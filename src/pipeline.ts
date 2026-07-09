@@ -42,7 +42,7 @@ export interface PipelineContext {
   startedAt: string;
   completedAt?: string;
   errors: Array<{ stage: string; error: Error }>;
-  stageResults: Array<{ stage: string; duration: number; success: boolean }>;
+  stageResults: Array<{ stage: string; duration: number; status: "success" | "failed" | "skipped" }>;
 }
 
 export interface PipelineStage {
@@ -93,10 +93,11 @@ export class Pipeline {
         current = await stage.execute(current);
         const duration = Date.now() - stageStart;
 
+        const skipped = (current as { __lastStageSkipped?: boolean }).__lastStageSkipped === true;
         current.stageResults.push({
           stage: stage.name,
           duration,
-          success: true,
+          status: skipped ? "skipped" : "success",
         });
 
         // Publish stage-specific events
@@ -149,7 +150,7 @@ export class Pipeline {
         current.stageResults.push({
           stage: stage.name,
           duration,
-          success: false,
+          status: "failed",
         });
 
         bus.publish("pipeline.stage.complete", {

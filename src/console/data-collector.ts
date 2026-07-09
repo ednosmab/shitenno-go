@@ -17,7 +17,7 @@ import { detectKnowledgeDebt, type KnowledgeDebtReport } from "../knowledge-debt
 import { detectLifecycleState, type NexusLifecycleState } from "../nexus-state-machine.js";
 import { getSessionMetrics, type SessionMetrics } from "../session-tracker.js";
 import { getEventBus, type EventEnvelope } from "../event-bus.js";
-import { detectInstalledCapabilities, type Capability } from "../maturity-profile.js";
+import { detectCapabilitySignalsFromFilesystem, type Capability } from "../maturity-profile.js";
 import { evaluateCapabilities, type CapabilityEntity } from "../capability-engine.js";
 import { loadGrowthProfile, type GrowthProfile } from "../growth-profile.js";
 
@@ -139,7 +139,7 @@ export function collectConsoleData(projectRoot: string, nexusDir: string): Conso
   const debt = detectKnowledgeDebt(projectRoot, nexusDir);
 
   // Capabilities
-  const capabilities = detectInstalledCapabilities(nexusDir);
+  const capabilities = detectCapabilitySignalsFromFilesystem(nexusDir);
 
   // Capability Entities (with full metadata)
   const capabilityResult = evaluateCapabilities(engineering, nexusDir);

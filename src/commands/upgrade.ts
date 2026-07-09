@@ -16,7 +16,7 @@ import { invalidateCache } from "../cache.js";
 import { outputJson } from "../formatting.js";
 import {
   CAPABILITIES,
-  detectInstalledCapabilities,
+  detectCapabilitySignalsFromFilesystem,
   loadMaturityProfile,
   type Capability,
 } from "../maturity-profile.js";
@@ -59,7 +59,7 @@ export const upgradeCommand = new Command("upgrade")
 
     if (!checkLifecycleGate("upgrade", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
-    const installed = detectInstalledCapabilities(ctx.nexusDir);
+    const installed = detectCapabilitySignalsFromFilesystem(ctx.nexusDir);
 
     // List capabilities
     if (options.list) {

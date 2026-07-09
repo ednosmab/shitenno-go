@@ -45,8 +45,8 @@ describe("Timeouts", () => {
 });
 
 describe("VALID_ACTION_TYPES", () => {
-  it("contains all 9 action types", () => {
-    expect(VALID_ACTION_TYPES).toHaveLength(9);
+  it("contains all 20 action types", () => {
+    expect(VALID_ACTION_TYPES).toHaveLength(20);
   });
 
   it("includes all required action types", () => {
@@ -54,5 +54,6 @@ describe("VALID_ACTION_TYPES", () => {
     expect(VALID_ACTION_TYPES).toContain("create_reminder");
     expect(VALID_ACTION_TYPES).toContain("log_event");
     expect(VALID_ACTION_TYPES).toContain("run_nexus_command");
+    expect(VALID_ACTION_TYPES).toContain("auto_populate_next_p0");
   });
 });

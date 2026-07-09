@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   calculateMaturityProfile,
   detectGovernanceArtifactsScore,
-  detectInstalledCapabilities,
+  detectCapabilitySignalsFromFilesystem,
   saveMaturityProfile,
   loadMaturityProfile,
   recordMaturitySnapshot,
@@ -187,72 +187,72 @@ describe("calculateMaturityProfile", () => {
 
 // ── Capability Detection ──────────────────────────────────────────────────
 
-describe("detectInstalledCapabilities", () => {
+describe("detectCapabilitySignalsFromFilesystem", () => {
   it("always includes core", () => {
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("core");
   });
 
   it("detects knowledge when docs/skills exists", () => {
     mkdirSync(join(tempDir, "docs", "skills"), { recursive: true });
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("knowledge");
   });
 
   it("detects knowledge when docs/AGENTS.md exists", () => {
     mkdirSync(join(tempDir, "docs"), { recursive: true });
     writeFileSync(join(tempDir, "docs", "AGENTS.md"), "# Agents");
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("knowledge");
   });
 
   it("detects architecture when docs/adrs exists", () => {
     mkdirSync(join(tempDir, "docs", "adrs"), { recursive: true });
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("architecture");
   });
 
   it("detects governance when governance/context exists", () => {
     mkdirSync(join(tempDir, "governance", "context"), { recursive: true });
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("governance");
   });
 
   it("detects ai when governance/agents exists", () => {
     mkdirSync(join(tempDir, "governance", "agents"), { recursive: true });
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("ai");
   });
 
   it("detects quality when scripts/validate-session.ts exists", () => {
     mkdirSync(join(tempDir, "scripts"), { recursive: true });
     writeFileSync(join(tempDir, "scripts", "validate-session.ts"), "// validate");
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("quality");
   });
 
   it("detects metrics when reports/ exists", () => {
     mkdirSync(join(tempDir, "reports"), { recursive: true });
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("metrics");
   });
 
   it("detects operations when scripts/close-session.ts exists", () => {
     mkdirSync(join(tempDir, "scripts"), { recursive: true });
     writeFileSync(join(tempDir, "scripts", "close-session.ts"), "// close");
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("operations");
   });
 
   it("detects compliance when docs/FORBIDDEN_OPERATIONS.md exists", () => {
     mkdirSync(join(tempDir, "docs"), { recursive: true });
     writeFileSync(join(tempDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# FORBIDDEN");
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toContain("compliance");
   });
 
   it("returns only core for empty directory", () => {
-    const caps = detectInstalledCapabilities(tempDir);
+    const caps = detectCapabilitySignalsFromFilesystem(tempDir);
     expect(caps).toEqual(["core"]);
   });
 });

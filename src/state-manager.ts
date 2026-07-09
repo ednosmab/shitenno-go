@@ -177,16 +177,16 @@ export function readKnowledgeState(nexusDir: string): KnowledgeState {
     }
   }
 
-  // Governance docs
-  const expectedDocs = [
-    { name: "AGENTS.md", path: "docs/AGENTS.md", critical: true },
-    { name: "FORBIDDEN_OPERATIONS.md", path: "docs/FORBIDDEN_OPERATIONS.md", critical: true },
-    { name: "DESDO.md", path: "docs/DESDO.md", critical: true },
-    { name: "CONCEPTUAL_MODEL.md", path: "docs/CONCEPTUAL_MODEL.md", critical: false },
-    { name: "KNOWLEDGE_LIFECYCLE.md", path: "docs/KNOWLEDGE_LIFECYCLE.md", critical: false },
-    { name: "WORKFLOW.md", path: "governance/WORKFLOW.md", critical: true },
-    { name: "SYSTEM_MAP.md", path: "governance/SYSTEM_MAP.md", critical: false },
-  ];
+  // Governance docs — criticality depends on installed capabilities
+  const maturityPathForDocs = join(nexusDir, "maturity-profile.json");
+  let capsForDocs: string[] = [];
+  if (existsSync(maturityPathForDocs)) {
+    try {
+      const profileContent = JSON.parse(readFileSync(maturityPathForDocs, "utf-8"));
+      capsForDocs = profileContent.installedCapabilities || [];
+    } catch { /* ignore */ }
+  }
+  const expectedDocs = buildExpectedDocs(capsForDocs);
   for (const doc of expectedDocs) {
     if (existsSync(join(nexusDir, doc.path))) {
       state.governanceDocs.push(doc);
@@ -225,6 +225,20 @@ export function readKnowledgeState(nexusDir: string): KnowledgeState {
 }
 
 // ── Project State Reader ────────────────────────────────────────────────────
+
+/** Build expected docs list with conditional criticality based on installed capabilities. */
+function buildExpectedDocs(installedCapabilities: string[]) {
+  return [
+    { name: "AGENTS.md", path: "docs/AGENTS.md", critical: true },
+    { name: "FORBIDDEN_OPERATIONS.md", path: "docs/FORBIDDEN_OPERATIONS.md", critical: true },
+    { name: "DESDO.md", path: "docs/DESDO.md", critical: true },
+    { name: "CONCEPTUAL_MODEL.md", path: "docs/CONCEPTUAL_MODEL.md", critical: false },
+    { name: "KNOWLEDGE_LIFECYCLE.md", path: "docs/KNOWLEDGE_LIFECYCLE.md", critical: false },
+    { name: "WORKFLOW.md", path: "governance/WORKFLOW.md",
+      critical: installedCapabilities.includes("governance") },
+    { name: "SYSTEM_MAP.md", path: "governance/SYSTEM_MAP.md", critical: false },
+  ];
+}
 
 /** Lê estado do projecto. */
 export function readProjectState(
@@ -380,7 +394,11 @@ export function readSessionMemory(nexusDir: string): SessionMemory {
 
 // ── Consolidation ───────────────────────────────────────────────────────────
 
-/** Consolida todos os estados num único objecto. */
+/**
+ * Consolida todos os estados num único objecto.
+ * @deprecated Use consolidateEngineeringState() from engineering-state.ts instead.
+ * This function will be removed in a future version.
+ */
 export function consolidateState(
   projectRoot: string,
   nexusDir: string

@@ -268,12 +268,14 @@ export function auditHealth(
   nexusDir: string,
   level: AuditLevel = "standard"
 ): HealthAuditReport {
+  const startTime = Date.now();
   const history = readHistory(nexusDir);
   const rules = readRules(nexusDir);
   const activeDetectors = new Set(DETECTORS_BY_LEVEL[level]);
 
   // Collect source files once — shared across all engineering detectors
   const sourceFiles = collectSourceFiles(projectRoot);
+  const filesScanned = sourceFiles.length;
 
   // Detector registry: name → function
   const detectorMap: Record<string, () => HealthIssue[]> = {
@@ -506,6 +508,8 @@ export function auditHealth(
   if (info > 0) parts.push(`${info} info.`);
   if (optimizations.length > 0) parts.push(`${optimizations.length} optimização(ões) proposta(s).`);
 
+  const durationMs = Date.now() - startTime;
+
   return {
     auditedAt: new Date().toISOString(),
     totalRules: rules.length,
@@ -516,6 +520,9 @@ export function auditHealth(
     healthScore,
     summary: parts.join(" "),
     level,
+    durationMs,
+    filesScanned,
+    detectorsRun: Array.from(activeDetectors),
   };
 }
 

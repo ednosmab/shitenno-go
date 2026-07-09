@@ -84,7 +84,7 @@ describe("Pipeline", () => {
 
     expect(result.stageResults).toHaveLength(1);
     expect(result.stageResults[0]!.stage).toBe("test");
-    expect(result.stageResults[0]!.success).toBe(true);
+    expect(result.stageResults[0]!.status).toBe("success");
     expect(result.stageResults[0]!.duration).toBeGreaterThanOrEqual(0);
   });
 

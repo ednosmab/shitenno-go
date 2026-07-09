@@ -13,6 +13,133 @@ import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../b
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 
+// ── Helper Functions for Issue Categorization ──────────────────────────────
+
+function categorizeIssues(issues: Array<{ severity: number; type: string; description: string; location: string; recommendation: string }>): {
+  critical: typeof issues;
+  warnings: typeof issues;
+  info: typeof issues;
+} {
+  return {
+    critical: issues.filter((i) => i.severity === 3),
+    warnings: issues.filter((i) => i.severity === 2),
+    info: issues.filter((i) => i.severity === 1),
+  };
+}
+
+function groupByType(issues: Array<{ type: string; description: string }>): Record<string, typeof issues> {
+  const groups: Record<string, typeof issues> = {};
+  for (const issue of issues) {
+    const key = issue.type;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(issue);
+  }
+  return groups;
+}
+
+function formatTypeGroup(type: string, issues: Array<{ description: string; location?: string }>): string {
+  const typeLabels: Record<string, string> = {
+    unused_export: "Unused exports",
+    empty_catch: "Empty catch blocks",
+    orphan_module: "Orphan modules",
+    console_log_outside_cmd: "Console.log usage",
+    high_complexity: "High complexity",
+    dead_code: "Dead code",
+    oversized_file: "Oversized files",
+  };
+  const label = typeLabels[type] || type;
+
+  // For unused exports, group by file
+  if (type === "unused_export" && issues.length > 3) {
+    const byFile: Record<string, number> = {};
+    for (const issue of issues) {
+      const fileMatch = issue.location?.match(/src\/([^:]+)/);
+      const file = fileMatch?.[1] ?? "unknown";
+      byFile[file] = (byFile[file] || 0) + 1;
+    }
+    const fileList = Object.entries(byFile)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([file, count]) => `${file}(${count})`)
+      .join(", ");
+    return `${label}: ${issues.length} total — top files: ${fileList}`;
+  }
+
+  return `${label}: ${issues.length} issue(s)`;
+}
+
+function groupOptimizationsByAction(opts: Array<{ action: string }>): Record<string, typeof opts> {
+  const groups: Record<string, typeof opts> = {};
+  for (const opt of opts) {
+    const key = opt.action;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(opt);
+  }
+  return groups;
+}
+
+interface QuickWin {
+  description: string;
+  effort: string;
+  impact: string;
+}
+
+function identifyQuickWins(issues: Array<{ type: string; severity: number; description: string; location: string }>): QuickWin[] {
+  const quickWins: QuickWin[] = [];
+
+  // Date placeholders - easy to fix
+  const datePlaceholders = issues.filter((i) => i.type === "date_placeholder");
+  if (datePlaceholders.length > 0) {
+    quickWins.push({
+      description: `Update ${datePlaceholders.length} date placeholder(s) to real dates`,
+      effort: "5 min",
+      impact: "Medium",
+    });
+  }
+
+  // Missing .gitignore
+  const missingGitignore = issues.filter((i) => i.type === "missing_gitignore");
+  if (missingGitignore.length > 0) {
+    quickWins.push({
+      description: "Add .gitignore file",
+      effort: "2 min",
+      impact: "High",
+    });
+  }
+
+  // Empty directories
+  const emptyDirs = issues.filter((i) => i.type === "empty_dir");
+  if (emptyDirs.length > 3) {
+    quickWins.push({
+      description: `Remove ${emptyDirs.length} empty directories`,
+      effort: "5 min",
+      impact: "Low",
+    });
+  }
+
+  // Broken references
+  const brokenRefs = issues.filter((i) => i.type === "broken_ref");
+  if (brokenRefs.length > 0) {
+    quickWins.push({
+      description: `Fix ${brokenRefs.length} broken file reference(s)`,
+      effort: "10 min",
+      impact: "Medium",
+    });
+  }
+
+  // Missing package.json
+  const missingPackageJson = issues.filter((i) => i.type === "missing_package_json");
+  if (missingPackageJson.length > 0) {
+    quickWins.push({
+      description: "Add missing package.json",
+      effort: "2 min",
+      impact: "High",
+    });
+  }
+
+  return quickWins;
+}
+
 export const auditCommand = new Command("audit")
   .description("Audit Nexus System health (Phase 3)")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
@@ -80,6 +207,19 @@ export const auditCommand = new Command("audit")
 
       if (spinner) {
         spinner.succeed(`Audit complete — code health: ${report.healthScore}/100`);
+      }
+
+      // What was measured section
+      if (!isJson) {
+        console.log("");
+        console.log(chalk.bold("  📏 What Was Measured:"));
+        console.log("");
+        console.log(chalk.gray(`    Duration:         ${report.durationMs}ms`));
+        console.log(chalk.gray(`    Files scanned:    ${report.filesScanned}`));
+        console.log(chalk.gray(`    Detectors run:    ${report.detectorsRun.length}`));
+        console.log(chalk.gray(`    Rules evaluated:  ${report.totalRules}`));
+        console.log(chalk.gray(`    History sessions: ${report.historyEntries}`));
+        console.log("");
       }
 
       // JSON output
@@ -254,37 +394,80 @@ export const auditCommand = new Command("audit")
         console.log(chalk.green("  ✔ No issues found. Governance is healthy!"));
         console.log("");
       } else {
-        // Display issues
-        console.log(chalk.bold("  🔍 Issues Found:"));
-        console.log("");
+        // Group issues by category and severity
+        const categorized = categorizeIssues(report.issues);
 
-        for (const issue of report.issues) {
-          const icon = issue.severity === 3 ? "🔴" : issue.severity === 2 ? "🟡" : "⚪";
-          const sevLabel = issue.severity === 3 ? "CRITICAL" : issue.severity === 2 ? "WARNING" : "INFO";
-          const sevColor = issue.severity === 3 ? chalk.red : issue.severity === 2 ? chalk.yellow : chalk.gray;
-
-          console.log(`    ${icon} ${sevColor(`[${sevLabel}]`)} ${issue.description}`);
-          console.log(chalk.gray(`       Location: ${issue.location}`));
-          console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
+        // Display critical issues first (top 5)
+        if (categorized.critical.length > 0) {
+          console.log(chalk.bold("  🚨 Critical Issues (require immediate attention):"));
           console.log("");
-        }
-
-        // Display optimizations
-        if (report.optimizations.length > 0) {
-          console.log(chalk.bold("  🔧 Proposed Optimizations (require Tech Lead approval):"));
-          console.log("");
-
-          for (const opt of report.optimizations) {
-            console.log(chalk.cyan(`    ${opt.id}: ${opt.title}`));
-            console.log(chalk.gray(`      Action: ${opt.action}`));
-            console.log(chalk.gray(`      ${opt.description}`));
+          for (const issue of categorized.critical.slice(0, 5)) {
+            console.log(`    🔴 ${chalk.red("[CRITICAL]")} ${issue.description}`);
+            console.log(chalk.gray(`       Location: ${issue.location}`));
+            console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
             console.log("");
           }
-
-          console.log(chalk.yellow("  ⚠ These are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
+          if (categorized.critical.length > 5) {
+            console.log(chalk.gray(`    ... and ${categorized.critical.length - 5} more critical issues`));
+            console.log("");
+          }
         }
 
-        console.log("");
+        // Display warnings (top 5)
+        if (categorized.warnings.length > 0) {
+          console.log(chalk.bold("  ⚠️  Warnings (should be addressed):"));
+          console.log("");
+          for (const issue of categorized.warnings.slice(0, 5)) {
+            console.log(`    🟡 ${chalk.yellow("[WARNING]")} ${issue.description}`);
+            console.log(chalk.gray(`       Location: ${issue.location}`));
+            console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
+            console.log("");
+          }
+          if (categorized.warnings.length > 5) {
+            console.log(chalk.gray(`    ... and ${categorized.warnings.length - 5} more warnings`));
+            console.log("");
+          }
+        }
+
+        // Display info issues grouped by type (condensed)
+        if (categorized.info.length > 0) {
+          console.log(chalk.bold("  ℹ️  Info (informational, low priority):"));
+          console.log("");
+          const groupedByType = groupByType(categorized.info);
+          for (const [type, issues] of Object.entries(groupedByType)) {
+            const first = issues[0];
+            if (first && issues.length === 1) {
+              console.log(chalk.gray(`    • ${first.description}`));
+            } else {
+              console.log(chalk.gray(`    • ${formatTypeGroup(type, issues)}`));
+            }
+          }
+          console.log("");
+        }
+
+        // Quick Wins section
+        const quickWins = identifyQuickWins(report.issues);
+        if (quickWins.length > 0) {
+          console.log(chalk.bold("  ⚡ Quick Wins (low effort, high impact):"));
+          console.log("");
+          for (const win of quickWins.slice(0, 5)) {
+            console.log(chalk.green(`    ✔ ${win.description}`));
+            console.log(chalk.gray(`       Effort: ${win.effort} | Impact: ${win.impact}`));
+          }
+          console.log("");
+        }
+
+        // Display optimizations (condensed)
+        if (report.optimizations.length > 0) {
+          console.log(chalk.bold("  🔧 Proposed Optimizations:"));
+          console.log("");
+          const optByAction = groupOptimizationsByAction(report.optimizations);
+          for (const [action, opts] of Object.entries(optByAction)) {
+            console.log(chalk.cyan(`    ${action}: ${opts.length} item(s)`));
+          }
+          console.log(chalk.yellow("  ⚠ These are PROPOSALS only. Manual approval required."));
+          console.log("");
+        }
       }
 
       if (reportFile) {

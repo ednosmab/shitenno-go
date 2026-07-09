@@ -9,14 +9,14 @@
  * every decision reads from it.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { analyseProject } from "./analyser.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "./knowledge-debt.js";
 import { getEventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
 import {
-  detectInstalledCapabilities,
+  detectCapabilitySignalsFromFilesystem,
   loadMaturityProfile,
   type Capability,
   type MaturityProfile,
@@ -96,6 +96,12 @@ export interface EngineeringState {
 
   /** Installed capabilities. */
   capabilities: Capability[];
+
+  /** Drift between registered capabilities and filesystem detection. */
+  capabilityDrift: {
+    detectedNotRegistered: Capability[];
+    registeredNotDetected: Capability[];
+  };
 
   /** Knowledge debt status. */
   knowledgeDebt: {
@@ -516,15 +522,38 @@ function calculateOverallHealth(
 
 // ── Main Consolidation ─────────────────────────────────────────────────────
 
+/** Re-entrancy guard to prevent infinite event loops. */
+let isConsolidating = false;
+
 /** Consolidate all engineering information into a single canonical state. */
 export function consolidateEngineeringState(
   projectRoot: string,
   nexusDir: string
 ): EngineeringState {
-  const projectAnalysis = analyseProject(projectRoot);
-  const lifecycle = detectLifecycleState(projectRoot, nexusDir);
-  const maturityProfile = loadMaturityProfile(nexusDir);
-  const installedCapabilities = detectInstalledCapabilities(nexusDir);
+  // Re-entrancy guard: prevent infinite event loops
+  if (isConsolidating) {
+    // Return cached state if available, otherwise build minimal state
+    const cached = loadEngineeringState(nexusDir);
+    if (cached) return cached;
+  }
+
+  isConsolidating = true;
+
+  try {
+    const projectAnalysis = analyseProject(projectRoot);
+    const lifecycle = detectLifecycleState(projectRoot, nexusDir);
+    const maturityProfile = loadMaturityProfile(nexusDir);
+
+  // Single source of truth for installed capabilities:
+  const installedCapabilities = maturityProfile?.installedCapabilities ?? ["core"];
+
+  // Filesystem heuristic as drift signal only (not the source of truth):
+  const fsDetected = detectCapabilitySignalsFromFilesystem(nexusDir);
+  const capabilityDrift = {
+    detectedNotRegistered: fsDetected.filter((c) => !installedCapabilities.includes(c)),
+    registeredNotDetected: installedCapabilities.filter((c) => !fsDetected.includes(c)),
+  };
+
   const assets = discoverAssets(nexusDir);
 
   // Knowledge graph
@@ -611,6 +640,7 @@ export function consolidateEngineeringState(
     },
     maturity: maturityProfile,
     capabilities: installedCapabilities,
+    capabilityDrift,
     knowledgeDebt: debtReport ? {
       totalGaps: debtReport.totalGaps,
       healthScore: debtReport.healthScore,
@@ -643,17 +673,88 @@ export function consolidateEngineeringState(
   });
 
   return state;
+  } finally {
+    isConsolidating = false;
+  }
 }
 
 // ── Persistence ────────────────────────────────────────────────────────────
 
 /** Save engineering state to disk. */
+// ── Retention Policy ────────────────────────────────────────────────────────
+
+const RETENTION_POLICY = {
+  keepAllWithinDays: 7,
+  keepDailyWithinDays: 90,
+  keepWeeklyBeyondDays: 90,
+};
+
+function pruneOldSnapshots(snapshotsDir: string): void {
+  const files = readdirSync(snapshotsDir)
+    .filter((f) => f.endsWith(".json"))
+    .sort()
+    .reverse();
+
+  if (files.length === 0) return;
+
+  const now = Date.now();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const keptFiles = new Set<string>();
+
+  for (const file of files) {
+    const timestamp = file.replace(".json", "").replace(/-/g, (m, offset) => {
+      if (offset === 4 || offset === 7) return "-";
+      if (offset === 10) return "T";
+      if (offset === 13 || offset === 16) return ":";
+      return m;
+    });
+    const fileDate = new Date(timestamp);
+    const daysSince = (now - fileDate.getTime()) / msPerDay;
+
+    let keep = false;
+
+    if (daysSince <= RETENTION_POLICY.keepAllWithinDays) {
+      keep = true;
+    } else if (daysSince <= RETENTION_POLICY.keepDailyWithinDays) {
+      const dayKey = fileDate.toISOString().slice(0, 10);
+      if (!keptFiles.has(`day:${dayKey}`)) {
+        keptFiles.add(`day:${dayKey}`);
+        keep = true;
+      }
+    } else if (daysSince <= RETENTION_POLICY.keepWeeklyBeyondDays) {
+      const weekKey = `${fileDate.getFullYear()}-W${Math.ceil(fileDate.getDate() / 7)}`;
+      if (!keptFiles.has(`week:${weekKey}`)) {
+        keptFiles.add(`week:${weekKey}`);
+        keep = true;
+      }
+    }
+
+    if (!keep) {
+      try {
+        unlinkSync(join(snapshotsDir, file));
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  }
+}
+
 export function saveEngineeringState(
   nexusDir: string,
   state: EngineeringState
 ): void {
   const filePath = join(nexusDir, "engineering-state.json");
   writeFileSync(filePath, JSON.stringify(state, null, 2), "utf-8");
+
+  // Accumulate snapshots
+  const snapshotsDir = join(nexusDir, "history", "snapshots");
+  mkdirSync(snapshotsDir, { recursive: true });
+
+  const snapshotId = state.consolidatedAt.replace(/[:.]/g, "-");
+  const snapshotPath = join(snapshotsDir, `${snapshotId}.json`);
+  writeFileSync(snapshotPath, JSON.stringify(state, null, 2), "utf-8");
+
+  pruneOldSnapshots(snapshotsDir);
 }
 
 /** Load engineering state from disk. */
@@ -731,4 +832,40 @@ export function engineeringStateToText(state: EngineeringState): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+// ── Reactive Initialization ─────────────────────────────────────────────────
+
+/**
+ * Initialize reactive Engineering State.
+ * Subscribes to relevant events and reconsolidates automatically.
+ * Returns an unsubscribe function for cleanup.
+ */
+export function initializeEngineeringState(
+  projectRoot: string,
+  nexusDir: string
+): () => void {
+  const bus = getEventBus();
+
+  const reconsolidate = () => {
+    const state = consolidateEngineeringState(projectRoot, nexusDir);
+    saveEngineeringState(nexusDir, state);
+    bus.publish("engineering_state.consolidated", {
+      consolidatedAt: state.consolidatedAt,
+      lifecycle: state.lifecycle,
+      overallHealth: state.healthScores.overall,
+    });
+  };
+
+  const unsubscribers = [
+    bus.subscribe("maturity.changed", reconsolidate),
+    bus.subscribe("debt.detected", reconsolidate),
+    bus.subscribe("knowledge.analyzed", reconsolidate),
+    bus.subscribe("lifecycle.state_changed", reconsolidate),
+    bus.subscribe("asset.created", reconsolidate),
+    bus.subscribe("asset.updated", reconsolidate),
+    bus.subscribe("asset.archived", reconsolidate),
+  ];
+
+  return () => unsubscribers.forEach((unsub) => unsub());
 }

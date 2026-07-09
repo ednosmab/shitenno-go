@@ -295,4 +295,10 @@ export interface HealthAuditReport {
   healthScore: number;
   summary: string;
   level: AuditLevel;
+  /** How long the audit took in milliseconds. */
+  durationMs: number;
+  /** Number of source files scanned. */
+  filesScanned: number;
+  /** List of detectors that were executed. */
+  detectorsRun: string[];
 }

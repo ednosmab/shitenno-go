@@ -6,7 +6,7 @@ import { calculateComplexityScore, writeComplexityReport, type ComplexityReport 
 import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, miniBar, outputJson, statusIcon, banner } from "../formatting.js";
-import { loadMaturityProfile, detectInstalledCapabilities, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
+import { loadMaturityProfile, CAPABILITIES, type MaturityProfile } from "../maturity-profile.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { loadGrowthProfile } from "../growth-profile.js";
@@ -63,7 +63,7 @@ export const statusCommand = new Command("status")
 
     // Load maturity profile
     const maturityProfile = loadMaturityProfile(ctx.nexusDir);
-    const installedCapabilities = detectInstalledCapabilities(ctx.nexusDir);
+    const installedCapabilities = maturityProfile?.installedCapabilities ?? ["core"];
 
     // Load growth profile (needed for both JSON and human output)
     const growthProfile = loadGrowthProfile(ctx.nexusDir);

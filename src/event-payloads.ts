@@ -278,6 +278,22 @@ export interface PlanArchivedPayload extends EventMeta {
   finalStatus: string;
 }
 
+// ── Challenge Events ──────────────────────────────────────────────────────
+
+export interface ChallengeGeneratedPayload extends EventMeta {
+  type: "entropy_reduction" | "knowledge_gap" | "capability_stale";
+  severity: "low" | "medium" | "high";
+  description: string;
+}
+
+// ── State Mutation Events ──────────────────────────────────────────────────
+
+export interface StateMutatedPayload extends EventMeta {
+  source: string;
+  trigger: string;
+  description: string;
+}
+
 // ── Entropy Events ─────────────────────────────────────────────────────────
 
 export interface EntropyCalculatedPayload extends EventMeta {
@@ -352,6 +368,8 @@ export interface EventPayloadMap {
   "asset.updated": AssetUpdatedPayload;
   "asset.archived": AssetArchivedPayload;
   "plan.archived": PlanArchivedPayload;
+  "challenge.generated": ChallengeGeneratedPayload;
+  "state.mutated": StateMutatedPayload;
   "entropy.calculated": EntropyCalculatedPayload;
   "docs.sync.triggered": DocsSyncTriggeredPayload;
   "doc.lifecycle.audited": DocLifecycleAuditPayload;

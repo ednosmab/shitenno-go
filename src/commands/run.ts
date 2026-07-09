@@ -73,12 +73,12 @@ const evolveStage: PipelineStage = {
   execute: async (ctx: PipelineContext) => {
     if (!checkLifecycleGate("evolve", ctx.projectRoot, ctx.nexusDir, false)) {
       console.log(chalk.yellow("  ⚠ Skipping evolve stage (requires 'governed' state)"));
-      return ctx;
+      return { ...ctx, __lastStageSkipped: true };
     }
     const report = analyzeEvolution(ctx.projectRoot, ctx.nexusDir);
     writeEvolutionReport(ctx.nexusDir, report);
     ctx.evolutionReport = report;
-    return ctx;
+    return { ...ctx, __lastStageSkipped: false };
   },
 };
 
@@ -118,10 +118,12 @@ export const runCommand = new Command("run")
       const result = await pipeline.execute(pipelineCtx);
 
       if (spinner) {
-        const successCount = result.stageResults.filter((s) => s.success).length;
-        const failCount = result.stageResults.filter((s) => !s.success).length;
+        const successCount = result.stageResults.filter((s) => s.status === "success").length;
+        const skippedCount = result.stageResults.filter((s) => s.status === "skipped").length;
+        const failCount = result.stageResults.filter((s) => s.status === "failed").length;
         spinner.succeed(
-          `Pipeline complete — ${successCount} stage(s) succeeded` +
+          `Pipeline complete — ${successCount} succeeded` +
+          (skippedCount > 0 ? `, ${skippedCount} skipped` : "") +
           (failCount > 0 ? `, ${failCount} failed` : "")
         );
       }
@@ -164,7 +166,9 @@ export const runCommand = new Command("run")
       console.log("");
 
       for (const sr of result.stageResults) {
-        const icon = sr.success ? chalk.green("✔") : chalk.red("✘");
+        const icon = sr.status === "success" ? chalk.green("✔")
+          : sr.status === "skipped" ? chalk.yellow("⊘")
+          : chalk.red("✘");
         const duration = chalk.gray(`(${sr.duration}ms)`);
         console.log(`    ${icon} ${sr.stage} ${duration}`);
       }

@@ -51,7 +51,9 @@ export type NexusEventType =
   | "docs.sync.triggered"
   | "doc.lifecycle.audited"
   | "plan.archived"
-  | "system.updated";
+  | "system.updated"
+  | "challenge.generated"
+  | "state.mutated";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

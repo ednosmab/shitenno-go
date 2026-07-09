@@ -211,6 +211,7 @@ describe("IncrementalConsolidator", () => {
     },
     maturity: null,
     capabilities: [],
+    capabilityDrift: { detectedNotRegistered: [], registeredNotDetected: [] },
     knowledgeDebt: null,
     knowledgeGraph: null,
     assets,
