@@ -9,7 +9,7 @@ nexus-system/plugins/
 # Config
 tsconfig.json
 vitest.config.ts
-.eslintrc.json
+eslint.config.js
 .gitignore
 .npmignore
 
