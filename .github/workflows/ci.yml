@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm audit --omit=dev || true
 
   test:
     name: Test (Node ${{ matrix.node-version }})
@@ -39,7 +40,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
-      - run: npm audit --omit=dev || true
 
   coverage:
     name: Coverage
