@@ -9,7 +9,7 @@
  */
 
 import { watch, type FSWatcher } from "chokidar";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { readFileSync } from "node:fs";
 import { getEventBus } from "./event-bus.js";
 import {
@@ -227,6 +227,21 @@ function handleFileChange(
       outputLevel: significance.outputLevel,
       reasons: significance.reasons,
     });
+  }
+
+  // Plan file change — publish event for rule engine to evaluate
+  const relativePath = filePath.slice(nexusDir.length + 1);
+  if (relativePath.startsWith("governance/plans/") && relativePath.endsWith(".md")) {
+    const fileName = basename(filePath);
+    if (fileName !== "TEMPLATE.md" && fileName !== "README.md" &&
+        !relativePath.includes("/done/") && !relativePath.includes("/reference/")) {
+      const planId = fileName.replace(".md", "");
+      bus.publish("plan.file_changed", {
+        planId,
+        path: relativePath,
+        content: newContent,
+      });
+    }
   }
 }
 

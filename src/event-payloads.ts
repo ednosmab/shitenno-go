@@ -285,6 +285,12 @@ export interface PlanStatusChangedPayload extends EventMeta {
   path: string;
 }
 
+export interface PlanFileChangedPayload extends EventMeta {
+  planId: string;
+  path: string;
+  content: string;
+}
+
 // ── Challenge Events ──────────────────────────────────────────────────────
 
 export interface ChallengeGeneratedPayload extends EventMeta {
@@ -375,6 +381,7 @@ export interface EventPayloadMap {
   "asset.updated": AssetUpdatedPayload;
   "asset.archived": AssetArchivedPayload;
   "plan.archived": PlanArchivedPayload;
+  "plan.file_changed": PlanFileChangedPayload;
   "plan.status_changed": PlanStatusChangedPayload;
   "challenge.generated": ChallengeGeneratedPayload;
   "state.mutated": StateMutatedPayload;

@@ -38,6 +38,7 @@ import { mcpCommand } from "../src/commands/mcp.js";
 import { syncCommand } from "../src/commands/sync.js";
 import { remindersCommand } from "../src/commands/reminders.js";
 import { historyCommand } from "../src/commands/history.js";
+import { eventsCommand } from "../src/commands/events.js";
 import { contextCommand } from "../src/commands/context.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
@@ -299,6 +300,7 @@ program.addCommand(mcpCommand());
 program.addCommand(syncCommand);
 program.addCommand(remindersCommand());
 program.addCommand(historyCommand);
+program.addCommand(eventsCommand);
 program.addCommand(contextCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────

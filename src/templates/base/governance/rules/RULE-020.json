@@ -1,0 +1,31 @@
+{
+  "id": "RULE-020",
+  "description": "Auto-archive plan when file status changes to done",
+  "trigger": "plan_file_changed",
+  "conditions": [
+    {
+      "field": "eventData.content",
+      "operator": "contains",
+      "value": "**Status:** Done"
+    }
+  ],
+  "actions": [
+    {
+      "type": "archive_plan",
+      "params": {
+        "planId": "${eventData.planId}"
+      }
+    },
+    {
+      "type": "log_event",
+      "params": {
+        "event": "plan_archived",
+        "message": "Plan auto-archived via reactive file watcher — status detected as Done"
+      }
+    }
+  ],
+  "priority": 1,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["plan", "lifecycle", "automation", "reactive"]
+}

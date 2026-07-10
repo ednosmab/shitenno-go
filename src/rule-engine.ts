@@ -9,7 +9,7 @@
  * Novos comportamentos sem alterar código — apenas adicionar regras.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { InvalidRuleError } from "./errors.js";
@@ -134,6 +134,7 @@ export type TriggerType =
   | "pipeline_complete"
   | "task_completed"
   | "plan_archived"
+  | "plan_file_changed"
   | "plan_status_changed"
   | "manual";
 
@@ -372,6 +373,17 @@ function resolveField(
 
 // ── Action Helpers ────────────────────────────────────────────────────────
 
+/** Resolve template variables in action params (e.g., "${eventData.planId}" → actual value). */
+function resolveParam(value: unknown, context: RuleContext): string {
+  if (typeof value !== "string") return String(value ?? "");
+  const templateMatch = value.match(/^\$\{(.+)\}$/);
+  if (templateMatch && templateMatch[1]) {
+    const resolved = resolveField(templateMatch[1], context);
+    return String(resolved ?? "");
+  }
+  return value;
+}
+
 /** Garante que governance/context/context_buffer.yaml existe, criando-o se necessário. */
 function ensureContextBuffer(nexusDir: string): string {
   const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
@@ -556,7 +568,7 @@ async function executeAction(
     }
 
     case "archive_plan": {
-      const planId = String(action.params.planId || "");
+      const planId = resolveParam(action.params.planId, context);
       if (!planId) {
         return { success: false, message: "No plan ID specified" };
       }
@@ -777,6 +789,32 @@ export async function executeRules(
   }
 
   const total = rules.filter((r) => r.enabled && r.trigger === context.trigger).length;
+
+  // Write audit trail to telemetry/rule-trace.jsonl
+  try {
+    const telemetryDir = join(context.nexusDir, "telemetry");
+    if (!existsSync(telemetryDir)) {
+      mkdirSync(telemetryDir, { recursive: true });
+    }
+    const traceEntry = {
+      timestamp: context.timestamp,
+      trigger: context.trigger,
+      eventType: context.eventData?.type || "unknown",
+      rulesEvaluated: total,
+      rulesExecuted: executed,
+      rulesSkipped: skipped,
+      rulesFailed: failed,
+      results: results.map((r) => ({
+        ruleId: r.ruleId,
+        success: r.success,
+        actionsExecuted: r.actionsExecuted,
+        duration: r.duration,
+      })),
+    };
+    appendFileSync(join(telemetryDir, "rule-trace.jsonl"), JSON.stringify(traceEntry) + "\n", "utf-8");
+  } catch {
+    // Audit trail is best-effort — never block rule execution
+  }
 
   return {
     rulesEvaluated: total,
@@ -1160,6 +1198,7 @@ const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
 
   // Plan events
   "plan.archived": "plan_archived",
+  "plan.file_changed": "plan_file_changed",
   "plan.status_changed": "plan_status_changed",
 
   // Knowledge events
