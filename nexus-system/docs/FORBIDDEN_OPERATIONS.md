@@ -1,7 +1,7 @@
 # FORBIDDEN_OPERATIONS — Regras Vinculantes
 
 > **Versão:** 1.0
-> **Data:** YYYY-MM-DD
+> **Data:** 2026-07-09
 > **Autoridade:** Tech Lead Humano
 > **Aplicável a:** Todos os agentes IA
 

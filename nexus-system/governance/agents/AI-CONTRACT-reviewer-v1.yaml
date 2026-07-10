@@ -10,7 +10,7 @@ inputs:
     format: markdown
 
 outputs:
-  - artifact: audit/executions/ | docs/context_buffer.md
+  - artifact: audit/executions/ | governance/context/context_buffer.yaml
     schema: audit_log_markdown
 
 allowed_actions:

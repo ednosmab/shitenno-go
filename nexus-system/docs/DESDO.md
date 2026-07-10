@@ -1,7 +1,7 @@
 # DESDO — Diretrizes de Engenharia
 
 > **Versão:** 1.0
-> **Data:** YYYY-MM-DD
+> **Data:** 2026-07-09
 > **Aplicável a:** Todos os agentes IA e developers
 
 ---

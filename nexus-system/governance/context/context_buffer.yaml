@@ -1,161 +1,39 @@
 reminders:
   - message: "Health status is CRITICAL — immediate action required"
-    priority: "medium"
-    category: "feature"
+    priority: "high"
+    category: "health"
     createdAt: "2026-07-09T04:07:05.619Z"
-  - message: "Health status is CRITICAL — immediate action required"
-    priority: "medium"
-    category: "feature"
-    createdAt: "2026-07-09T03:52:59.099Z"
-  - message: "Health status is CRITICAL — immediate action required"
-    priority: "medium"
-    category: "feature"
-    createdAt: "2026-07-09T03:51:36.621Z"
-  - message: Test medium priority reminder
-    priority: medium
-    category: feature
-    createdAt: 2026-07-08T08:16:34.504Z
-  - message: Test desktop notification
-    priority: high
-    category: bug
-    createdAt: 2026-07-08T08:19:09.342Z
+
 session:
-  id: session-2026-07-07-001
-  started_at: 2026-07-07T00:00:00Z
-  status: completed
+  id: session-2026-07-09-001
+  status: active
+
 current_task:
-  id: unknown
-  description: "Task completed via pipeline"
-  status: "completed"
-  started_at: "unknown"
-  completed_at: "2026-07-09T03:53:31.904Z"
-next_p0: Nenhum P0 activo — ADR-005 concluído
+  id: gap-analysis-coverage
+  description: "Execute gap analysis coverage plan — Phase 0 Quick Wins"
+  status: "in_progress"
+  started_at: "2026-07-10T00:00:00Z"
+
+next_p0: "Phase 0: Quick Wins — context buffer, broken refs, extension mismatches"
+
 documents_loaded:
-  - path: docs/AGENTS.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/FORBIDDEN_OPERATIONS.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/DESDO.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: governance/SYSTEM_MAP.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/Nexus-System_GUIDE.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/BACKLOG.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: governance/WORKFLOW.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/CONCEPTUAL_MODEL.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/KNOWLEDGE_LIFECYCLE.md
-    loaded_at: 2026-07-04T00:00:00Z
-  - path: docs/REMINDER-2026-07-05.md
-    loaded_at: 2026-07-04T00:00:00Z
+  - docs/BACKLOG.md
+  - docs/KNOWN_LIMITATIONS.md
+  - governance/WORKFLOW.md
+  - governance/context/context_buffer.yaml
+
 impediments: []
+
 technical_debt:
   - id: NEW-001
-    description: Runtime validation nexus-system/profile — erro cryptico se nexus init nao foi feito
+    description: "Runtime validation nexus-system/profile — erro cryptico se nexus init nao foi feito"
     severity: medium
-    added_at: 2026-07-06T04:15:00Z
   - id: NEW-002
-    description: Feedback pessoal do agente nunca executado automaticamente — investigar causa raiz
+    description: "Feedback pessoal do agente nunca executado automaticamente"
     severity: medium
-    added_at: 2026-07-06T04:15:00Z
-model_assignments:
-  planner: opencode/mimo-v2.5-free
-  executor: opencode/mimo-v2.5-free
-  reviewer: opencode/mimo-v2.5-free
+
 completed_tasks:
-  - id: BACKLOG-001
-    description: Criar governance/WORKFLOW.md
-    completed_at: 2026-07-01T00:05:00Z
-    files_created:
-      - governance/WORKFLOW.md
-  - id: BACKLOG-003
-    description: Criar docs/session-template.md
-    completed_at: 2026-07-01T00:10:00Z
-    files_created:
-      - docs/session-template.md
-  - id: BACKLOG-002
-    description: Resolver artefactos orfaos
-    completed_at: 2026-07-01T00:15:00Z
-    files_modified:
-      - governance/SYSTEM_MAP.md
-  - id: AUDIT-EXPANSION
-    description: Expandir audit coverage de 79% para ~93%
-    completed_at: 2026-07-04T00:00:00Z
-    files_modified:
-      - src/health-auditor.ts
-      - src/__tests__/health-auditor.test.ts
-      - src/commands/audit.ts
-      - src/audit/taint/
-      - bin/nexus.ts
-      - src/rule-engine.ts
-  - id: QUICK-BOARD-FIX
-    description: Corrigir loadQuickBoard() — require() em contexto ESM
-    completed_at: 2026-07-04T07:15:00Z
-    files_modified:
-      - src/context-collector.ts
-      - dist/nexus.js
-  - id: BACKLOG-0.7
-    description: Actualizar documentação desactualizada (6 ficheiros)
-    completed_at: 2026-07-05T00:00:00Z
-    files_modified:
-      - README.md
-      - docs/AGENTS.md
-      - nexus-system/docs/Nexus-System_GUIDE.md
-      - nexus-system/docs/CONCEPTUAL_MODEL.md
-      - nexus-system/governance/SYSTEM_MAP.md
-      - CHANGELOG.md
-  - id: SA3
-    description: Governance score 0% → auto-detect artifacts + policies + answers validation
-    completed_at: 2026-07-06T13:03:00Z
-    files_modified:
-      - src/maturity-profile.ts
-      - nexus-system/answers.json
-      - nexus-system/governance/policies/BRANCH-POLICY.md
-      - nexus-system/governance/policies/COMMIT-POLICY.md
-      - nexus-system/governance/policies/REVIEW-POLICY.md
-  - id: EVENT-DRIVEN-REACTIVE
-    description: Modelo híbrido request-driven + event-driven — 8 fases completas
-    completed_at: 2026-07-07T12:00:00Z
-    files_modified:
-      - src/session-tracker.ts
-      - src/session-context.ts
-      - bin/nexus.ts
-      - src/commands/feedback.ts
-      - src/cli-middleware.ts
-      - src/event-bus.ts
-      - src/event-payloads.ts
-      - src/commands/status.ts
-      - src/commands/init.ts
-      - src/commands/audit.ts
-      - src/commands/validate.ts
-      - src/commands/detect.ts
-      - src/commands/assess.ts
-      - src/commands/upgrade.ts
-      - src/pipeline.ts
-      - src/rule-engine.ts
-      - src/advanced-infrastructure.ts
-      - nexus-system/governance/rules/RULE-011.json
-      - nexus-system/governance/rules/RULE-012.json
-      - nexus-system/governance/rules/RULE-013.json
-      - nexus-system/governance/rules/RULE-014.json
-      - nexus-system/governance/rules/RULE-015.json
-      - nexus-system/plugins/health-monitor/plugin.js
-      - nexus-system/plugins/event-logger/plugin.js
-  - id: ADR-005-PIPELINE
-    description: Automated Task Completion Pipeline — 5 gates + backlog state machine + event-driven archive
-    completed_at: 2026-07-08T01:00:00Z
-    files_modified:
-      - src/task-completion.ts
-      - src/backlog-state-machine.ts
-      - src/task-completion-pipeline.ts
-      - src/rule-engine.ts
-      - src/commands/close-session.ts
-      - nexus-system/governance/rules/RULE-015.json
-      - nexus-system/governance/rules/RULE-016.json
-      - nexus-system/governance/rules/RULE-017.json
-      - nexus-system/docs/adrs/ADR-005-automated-task-completion-pipeline.md
-      - src/__tests__/task-completion.test.ts
-      - src/__tests__/backlog-state-machine.test.ts
+  - BACKLOG-001, BACKLOG-002, BACKLOG-003
+  - AUDIT-EXPANSION, QUICK-BOARD-FIX
+  - BACKLOG-0.7, SA3
+  - EVENT-DRIVEN-REACTIVE, ADR-005-PIPELINE

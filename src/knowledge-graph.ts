@@ -11,6 +11,7 @@
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,8 @@ export function loadArtifacts(nexusDir: string): Artifact[] {
 
   try {
     return JSON.parse(readFileSync(filepath, "utf-8")) as Artifact[];
-  } catch {
+  } catch (err) {
+    logger.debug("knowledge-graph", `Cannot load artifacts: ${err}`);
     return [];
   }
 }
@@ -133,7 +135,8 @@ export function loadRelations(nexusDir: string): Relation[] {
 
   try {
     return JSON.parse(readFileSync(filepath, "utf-8")) as Relation[];
-  } catch {
+  } catch (err) {
+    logger.debug("knowledge-graph", `Cannot load relations: ${err}`);
     return [];
   }
 }

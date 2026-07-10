@@ -1,7 +1,7 @@
 # CONTEXT_HIERARCHY — Hierarquia P0-P4
 
 > **Versão:** 1.0
-> **Data:** [DATE]
+> **Data:** 2026-07-09
 > **Propósito:** Definir a ordem de leitura obrigatória para optimizar tokens
 
 ---
@@ -133,4 +133,4 @@ O campo `loading_profile` em `opencode.json` força o perfil independentemente d
 
 | Versão | Data | Alteração |
 |---|---|---|
-| 1.0 | [DATE] | Criação da hierarquia de contexto |
+| 1.0 | 2026-07-09 | Criação da hierarquia de contexto |

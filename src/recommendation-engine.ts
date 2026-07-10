@@ -10,6 +10,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 import type { EngineeringState, AssetType } from "./engineering-state.js";
 import type { CapabilityEngineResult } from "./capability-engine.js";
 import type { KnowledgeDebtReport } from "./knowledge-debt.js";
@@ -441,7 +442,8 @@ export function loadRecommendationResult(
   try {
     const content = readFileSync(filePath, "utf-8");
     return JSON.parse(content) as RecommendationEngineResult;
-  } catch {
+  } catch (err) {
+    logger.debug("recommendation-engine", `Cannot load recommendation result: ${err}`);
     return null;
   }
 }

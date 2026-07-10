@@ -13,6 +13,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { execSync } from "node:child_process";
+import { logger } from "./logger.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -71,8 +72,8 @@ function getSourceFiles(dir: string, extensions = [".ts", ".tsx", ".js", ".jsx"]
         files.push(fullPath);
       }
     }
-  } catch {
-    // Ignore permission errors
+  } catch (err) {
+    logger.debug("risk-map", `Permission error reading ${dir}: ${err}`);
   }
   return files;
 }
@@ -94,7 +95,8 @@ function getFileLineCount(filePath: string): number {
   try {
     const content = readFileSync(filePath, "utf-8");
     return content.split("\n").length;
-  } catch {
+  } catch (err) {
+    logger.debug("risk-map", `Cannot read file for line count: ${err}`);
     return 0;
   }
 }
@@ -104,7 +106,8 @@ function getImportCount(filePath: string): number {
     const content = readFileSync(filePath, "utf-8");
     const importMatches = content.match(/^import\s+.*from\s+["'].*["']/gm) || [];
     return importMatches.length;
-  } catch {
+  } catch (err) {
+    logger.debug("risk-map", `Cannot read file for import count: ${err}`);
     return 0;
   }
 }
@@ -122,8 +125,8 @@ function getChurnData(projectRoot: string): Map<string, number> {
         churn.set(match[2], parseInt(match[1], 10));
       }
     }
-  } catch {
-    // Git not available or no history
+  } catch (err) {
+    logger.debug("risk-map", `Git not available or no history: ${err}`);
   }
   return churn;
 }
@@ -132,7 +135,8 @@ function detectSensitiveKeywords(filePath: string): boolean {
   try {
     const content = readFileSync(filePath, "utf-8").toLowerCase();
     return SENSITIVE_KEYWORDS.some((kw) => content.includes(kw));
-  } catch {
+  } catch (err) {
+    logger.debug("risk-map", `Cannot read file for sensitive keywords: ${err}`);
     return false;
   }
 }

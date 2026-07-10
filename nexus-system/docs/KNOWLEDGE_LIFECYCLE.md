@@ -1,7 +1,7 @@
 # KNOWLEDGE_LIFECYCLE — Ciclo de Vida do Conhecimento
 
 > **Versão:** 1.0
-> **Data:** YYYY-MM-DD
+> **Data:** 2026-07-09
 > **Autoridade:** Nexus System
 > **Propósito:** Formalizar como o conhecimento nasce, amadurece e passa a fazer parte do sistema
 

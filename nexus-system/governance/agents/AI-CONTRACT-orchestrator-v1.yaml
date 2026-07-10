@@ -35,4 +35,4 @@ handoff:
 
 failure_policy:
   retry: 2
-  escalation: Solicitar intervenção humana e documentar o impedimento no context_buffer.md
+  escalation: Solicitar intervenção humana e documentar o impedimento no governance/context/context_buffer.yaml
