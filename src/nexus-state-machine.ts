@@ -183,28 +183,14 @@ export function createStateMachine(nexusDir: string): NexusStateMachine {
 
 // ── Gate Enforcement ─────────────────────────────────────────────────────────
 
-/** Minimum state required for each command. */
-const COMMAND_GATES: Record<string, NexusLifecycleState> = {
-  init: "uninitialized",
-  status: "discovered",
-  detect: "discovered",
-  audit: "discovered",
-  upgrade: "assessed",
-  validate: "assessed",
-  assess: "discovered",
-  doctor: "discovered",
-  run: "assessed",
-  sync: "governed",
-  clean: "governed",
-  evolve: "governed",
-};
+import { COMMAND_GATES } from "./constants.js";
 
 /** Check if a command is allowed in the current state. */
 export function canRunCommand(
   command: string,
   currentState: NexusLifecycleState
 ): boolean {
-  const requiredState = COMMAND_GATES[command];
+  const requiredState = COMMAND_GATES[command] as NexusLifecycleState | undefined;
   if (!requiredState) return true; // Unknown commands are allowed
 
   const stateOrder: NexusLifecycleState[] = [

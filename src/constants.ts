@@ -4,12 +4,15 @@
  * Eliminates duplication of VIOLATION_KEYWORDS and COMMAND_GATES.
  */
 
-/** Keywords indicating violations in commits/logs. */
+/** Keywords indicating violations in commits/logs. Unified from src/constants.ts + src/audit/constants.ts. */
 export const VIOLATION_KEYWORDS = [
-  "bug", "fix", "hotfix", "error", "issue", "broken", "regressão",
-  "problema", "incidente", "falha", "crash", "exception",
-  "reverted", "rollback", "revert", "violated", "violacao",
-  "undeclared", "missing", "unexpected", "failed",
+  // Portuguese
+  "erro", "bug", "corrigi", "falhou", "rollback", "violação",
+  "regressão", "problema", "incidente", "falha", "crash",
+  // English
+  "fix", "error", "issue", "broken", "exception", "reverted",
+  "revert", "violated", "violacao", "undeclared", "missing",
+  "unexpected", "failed", "regression",
 ];
 
 /** Command → minimum lifecycle state mapping. */

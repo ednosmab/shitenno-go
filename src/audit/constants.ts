@@ -19,8 +19,8 @@ export const ANY_TYPE_SEVERITY_THRESHOLD = 10;
 export const SOURCE_SKIP_PATTERNS = [/\.test\.ts$/, /\.bench\.ts$/, /index\.ts$/];
 
 // ── Violation Keywords ───────────────────────────────────────────────────────
-
-export const VIOLATION_KEYWORDS = ["erro", "bug", "corrigi", "falhou", "rollback", "violação", "violated", "revert", "broken", "regression", "incidente", "problema"];
+// Re-export from single source of truth in src/constants.ts
+export { VIOLATION_KEYWORDS } from "../constants.js";
 
 // ── Blocked Licenses ─────────────────────────────────────────────────────────
 
