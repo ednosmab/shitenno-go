@@ -10,12 +10,10 @@
  */
 
 import { Command } from "commander";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import chalk from "chalk";
 import { logger } from "../logger.js";
 import ora from "ora";
-import { consolidateState, type NexusState } from "../state-manager.js";
+import { type EngineeringState, consolidateEngineeringState } from "../engineering-state.js";
 import { detectKnowledgeDebt, type KnowledgeDebtReport } from "../knowledge-debt.js";
 import { healthBar, outputJson, calculateHealthPenalty } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
@@ -44,7 +42,7 @@ interface DoctorReport {
 
 // ── Analysis Functions ──────────────────────────────────────────────────────
 
-export function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
+export function analyzeRisks(state: EngineeringState, debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
 
   // Knowledge debt risks
@@ -67,8 +65,8 @@ export function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport 
   }
 
   // Maturity risks
-  if (state.project.maturity) {
-    const dims = state.project.maturity.dimensions;
+  if (state.maturity) {
+    const dims = state.maturity.dimensions;
     const lowDims = Object.entries(dims).filter(([, v]) => v < 25);
     if (lowDims.length > 0) {
       findings.push({
@@ -86,24 +84,8 @@ export function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport 
     }
   }
 
-  // Session memory risks
-  if (state.memory.blockers.length > 0) {
-    findings.push({
-      category: "risk",
-      severity: "high",
-      title: "Active blockers",
-      description: `${state.memory.blockers.length} blocker(s) in current session`,
-      impact: "Blockers prevent progress and may indicate deeper issues",
-      nextSteps: [
-        "Review and resolve blockers",
-        "Consider splitting blocked task into smaller pieces",
-        "Escalate if blockers cannot be resolved locally",
-      ],
-    });
-  }
-
   // No tests risk
-  if (!state.project.projectInfo.hasTests && state.project.projectInfo.sourceFileCount > 20) {
+  if (!state.project.hasTests && state.project.sourceFileCount > 20) {
     findings.push({
       category: "risk",
       severity: "medium",
@@ -122,11 +104,11 @@ export function analyzeRisks(state: NexusState, debtReport: KnowledgeDebtReport 
   return findings;
 }
 
-export function analyzeImprovements(state: NexusState, nexusDir: string): DoctorFinding[] {
+export function analyzeImprovements(state: EngineeringState): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
 
   // No CI/CD
-  if (!state.project.projectInfo.hasCI) {
+  if (!state.project.hasCI) {
     findings.push({
       category: "improvement",
       severity: "medium",
@@ -142,12 +124,12 @@ export function analyzeImprovements(state: NexusState, nexusDir: string): Doctor
   }
 
   // Low capability count
-  if (state.project.installedCapabilities.length < 4) {
+  if (state.capabilities.length < 4) {
     findings.push({
       category: "improvement",
       severity: "low",
       title: "Few capabilities installed",
-      description: `Only ${state.project.installedCapabilities.length} capability(ies) installed`,
+      description: `Only ${state.capabilities.length} capability(ies) installed`,
       impact: "Missing capabilities may leave governance gaps",
       nextSteps: [
         "Run 'nexus upgrade --list' to see available capabilities",
@@ -157,8 +139,7 @@ export function analyzeImprovements(state: NexusState, nexusDir: string): Doctor
   }
 
   // No knowledge graph
-  const graphPath = join(nexusDir, "governance", "knowledge-graph");
-  if (!existsSync(graphPath)) {
+  if (!state.knowledgeGraph || state.knowledgeGraph.totalArtifacts === 0) {
     findings.push({
       category: "improvement",
       severity: "low",
@@ -175,12 +156,15 @@ export function analyzeImprovements(state: NexusState, nexusDir: string): Doctor
   return findings;
 }
 
-export function analyzeTeaching(state: NexusState): { findings: DoctorFinding[]; moments: string[] } {
+export function analyzeTeaching(state: EngineeringState): { findings: DoctorFinding[]; moments: string[] } {
   const findings: DoctorFinding[] = [];
   const moments: string[] = [];
 
+  const adrs = state.assets.filter((a) => a.type === "adr");
+  const skills = state.assets.filter((a) => a.type === "skill");
+
   // Teaching: ADR importance
-  if (state.knowledge.adrs.length === 0 && state.knowledge.skills.length > 0) {
+  if (adrs.length === 0 && skills.length > 0) {
     findings.push({
       category: "teaching",
       severity: "low",
@@ -197,16 +181,16 @@ export function analyzeTeaching(state: NexusState): { findings: DoctorFinding[];
   }
 
   // Teaching: Capability system
-  if (state.project.installedCapabilities.length > 0 && state.project.recommendedCapabilities.length > 0) {
+  if (state.capabilities.length > 0 && state.maturity?.recommendedCapabilities && state.maturity.recommendedCapabilities.length > 0) {
     moments.push(
-      `Your project has ${state.project.installedCapabilities.length} capabilities installed. ` +
-      `${state.project.recommendedCapabilities.length} more are recommended based on your maturity profile. ` +
+      `Your project has ${state.capabilities.length} capabilities installed. ` +
+      `${state.maturity.recommendedCapabilities.length} more are recommended based on your maturity profile. ` +
       "Capabilities are modular — install only what you need."
     );
   }
 
   // Teaching: Knowledge lifecycle
-  if (state.knowledge.adrs.length > 0 && state.knowledge.skills.length === 0) {
+  if (adrs.length > 0 && skills.length === 0) {
     moments.push(
       "You have ADRs but no Skills. Consider extracting reusable patterns from your ADRs into Skills. " +
       "This is the Knowledge Lifecycle in action: Observation → Hypothesis → Experiment → Decision → ADR → Skill."
@@ -222,7 +206,7 @@ export function runDoctorAnalysis(
   projectRoot: string,
   nexusDir: string
 ): DoctorReport {
-  const state = consolidateState(projectRoot, nexusDir);
+  const state = consolidateEngineeringState(projectRoot, nexusDir);
 
   // Knowledge debt
   let debtReport: KnowledgeDebtReport | null = null;
@@ -234,7 +218,7 @@ export function runDoctorAnalysis(
 
   // Run analyses
   const riskFindings = analyzeRisks(state, debtReport);
-  const improvementFindings = analyzeImprovements(state, nexusDir);
+  const improvementFindings = analyzeImprovements(state);
   const { findings: teachingFindings, moments: teachingMoments } = analyzeTeaching(state);
 
   const allFindings = [...riskFindings, ...improvementFindings, ...teachingFindings];

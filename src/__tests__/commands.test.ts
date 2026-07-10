@@ -29,7 +29,7 @@ import {
 } from "../commands/report.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
-import type { NexusState } from "../state-manager.js";
+import type { EngineeringState } from "../engineering-state.js";
 import type { KnowledgeDebtReport } from "../knowledge-debt.js";
 import type { DimensionReport, Insight, PerformanceReport } from "../performance-reporter.js";
 import type { PerformanceMetric } from "../feedback-loops.js";
@@ -44,46 +44,52 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-// Helper to create a minimal nexus-state matching the actual NexusState type
-function makeState(overrides: Partial<NexusState> = {}): NexusState {
+// Helper to create a minimal engineering state matching the actual EngineeringState type
+function makeState(overrides: Partial<EngineeringState> = {}): EngineeringState {
   return {
-    project: {
-      maturity: null,
-      installedCapabilities: ["core", "knowledge"],
-      recommendedCapabilities: ["governance"],
-      knowledgeDebt: null,
-      complexity: null,
-      projectInfo: {
-        name: "test-project",
-        stack: [],
-        hasGit: false,
-        hasCI: false,
-        hasTests: false,
-        hasTypeScript: false,
-        packageCount: 0,
-        sourceFileCount: 10,
-      },
-    },
-    knowledge: {
-      adrs: [],
-      skills: [],
-      contracts: [],
-      governanceDocs: [],
-      scripts: [],
-      runbooks: [],
-    },
-    memory: {
-      sessionId: null,
-      branch: null,
-      operationType: null,
-      currentTask: { id: null, type: null, description: null, status: null },
-      quickBoard: { emCurso: null, parado: [], proximo: [] },
-      reminders: [],
-      nextSteps: [],
-      blockers: [],
-      documentsLoaded: [],
-    },
     consolidatedAt: new Date().toISOString(),
+    lifecycle: "assessed",
+    project: {
+      name: "test-project",
+      root: "/tmp/test",
+      stack: [],
+      hasGit: false,
+      hasCI: false,
+      hasTests: false,
+      hasTypeScript: false,
+      packageCount: 0,
+      sourceFileCount: 10,
+      monorepo: false,
+    },
+    maturity: null,
+    capabilities: ["core", "knowledge"],
+    capabilityDrift: {
+      detectedNotRegistered: [],
+      registeredNotDetected: [],
+    },
+    knowledgeDebt: null,
+    knowledgeGraph: null,
+    assets: [],
+    assetsByType: {
+      adr: 0, skill: 0, policy: 0, rule: 0, prompt: 0, context: 0,
+      template: 0, checklist: 0, decision: 0, contract: 0, runbook: 0,
+      workflow: 0, script: 0, plan: 0, sdr: 0, feedback: 0, report: 0,
+      doc: 0,
+    },
+    activeRules: 0,
+    activePolicies: 0,
+    healthScores: {
+      knowledgeDebt: 100,
+      knowledgeGraph: 100,
+      overall: 100,
+    },
+    entropy: {
+      orphanedAssets: 0,
+      staleAssets: 0,
+      missingDependencies: 0,
+      score: 0,
+    },
+    summary: "Test state",
     ...overrides,
   };
 }
@@ -326,32 +332,25 @@ describe("doctor.ts — analyzeRisks", () => {
 
   it("detects low maturity dimensions", () => {
     const state = makeState({
-      project: {
-        ...makeState().project,
-        maturity: {
-          overallScore: 20,
-          dimensions: { architecture: 10, governance: 5, quality: 0, automation: 0, ai: 0, documentation: 0, observability: 0 },
-          computedAt: new Date().toISOString(),
-        },
+      maturity: {
+        overallScore: 20,
+        dimensions: { architecture: 10, governance: 5, quality: 0, automation: 0, ai: 0, documentation: 0, observability: 0 },
+        computedAt: new Date().toISOString(),
+        installedCapabilities: [],
+        recommendedCapabilities: [],
+        futureCapabilities: [],
       },
     });
     const result = analyzeRisks(state, null);
     expect(result.some((f) => f.title.includes("maturity"))).toBe(true);
   });
 
-  it("detects active blockers", () => {
-    const state = makeState({
-      memory: { ...makeState().memory, blockers: ["Build failing"] },
-    });
-    const result = analyzeRisks(state, null);
-    expect(result.some((f) => f.title.includes("blocker"))).toBe(true);
-  });
-
   it("detects no tests risk", () => {
     const state = makeState({
       project: {
         ...makeState().project,
-        projectInfo: { ...makeState().project.projectInfo, hasTests: false, sourceFileCount: 50 },
+        hasTests: false,
+        sourceFileCount: 50,
       },
     });
     const result = analyzeRisks(state, null);
@@ -364,32 +363,31 @@ describe("doctor.ts — analyzeImprovements", () => {
     const state = makeState({
       project: {
         ...makeState().project,
-        projectInfo: { ...makeState().project.projectInfo, hasCI: true },
-        installedCapabilities: ["core", "knowledge", "governance", "ai"],
+        hasCI: true,
       },
+      capabilities: ["core", "knowledge", "governance", "ai"],
+      knowledgeGraph: { totalArtifacts: 5, totalRelations: 10, healthScore: 80 },
     });
-    const nexusDir = join(tempDir, "nexus-system");
-    mkdirSync(join(nexusDir, "governance", "knowledge-graph"), { recursive: true });
 
-    const result = analyzeImprovements(state, nexusDir);
+    const result = analyzeImprovements(state);
     expect(result).toEqual([]);
   });
 
   it("detects no CI/CD", () => {
     const state = makeState();
-    const result = analyzeImprovements(state, join(tempDir, "nexus-system"));
+    const result = analyzeImprovements(state);
     expect(result.some((f) => f.title.includes("CI/CD"))).toBe(true);
   });
 
   it("detects few capabilities", () => {
     const state = makeState();
-    const result = analyzeImprovements(state, join(tempDir, "nexus-system"));
+    const result = analyzeImprovements(state);
     expect(result.some((f) => f.title.includes("Few capabilities"))).toBe(true);
   });
 
   it("detects missing knowledge graph", () => {
     const state = makeState();
-    const result = analyzeImprovements(state, join(tempDir, "nexus-system"));
+    const result = analyzeImprovements(state);
     expect(result.some((f) => f.title.includes("Knowledge graph"))).toBe(true);
   });
 });
@@ -397,10 +395,9 @@ describe("doctor.ts — analyzeImprovements", () => {
 describe("doctor.ts — analyzeTeaching", () => {
   it("teaches about ADRs when none exist but skills do", () => {
     const state = makeState({
-      knowledge: {
-        ...makeState().knowledge,
-        skills: [{ id: "tdd", name: "TDD", path: "docs/skills/tdd.md" }],
-      },
+      assets: [
+        { id: "skill-tdd", type: "skill", path: "docs/skills/tdd.md", name: "TDD", description: "TDD skill", status: "active", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), contributesTo: [], dependencies: [] },
+      ],
     });
     const { findings, moments } = analyzeTeaching(state);
     expect(findings.some((f) => f.title.includes("ADRs"))).toBe(true);
@@ -409,10 +406,14 @@ describe("doctor.ts — analyzeTeaching", () => {
 
   it("teaches about capability system when applicable", () => {
     const state = makeState({
-      project: {
-        ...makeState().project,
+      capabilities: ["core"],
+      maturity: {
+        overallScore: 50,
+        dimensions: { architecture: 50, governance: 50, quality: 50, automation: 50, ai: 50, documentation: 50, observability: 50 },
+        computedAt: new Date().toISOString(),
         installedCapabilities: ["core"],
         recommendedCapabilities: ["governance"],
+        futureCapabilities: [],
       },
     });
     const { moments } = analyzeTeaching(state);
@@ -421,10 +422,9 @@ describe("doctor.ts — analyzeTeaching", () => {
 
   it("teaches about knowledge lifecycle when ADRs exist without skills", () => {
     const state = makeState({
-      knowledge: {
-        ...makeState().knowledge,
-        adrs: [{ id: "ADR-001", title: "Test", status: "accepted", path: "docs/adrs/ADR-001.md" }],
-      },
+      assets: [
+        { id: "adr-001", type: "adr", path: "docs/adrs/ADR-001.md", name: "Test", description: "Test ADR", status: "active", tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), contributesTo: [], dependencies: [] },
+      ],
     });
     const { moments } = analyzeTeaching(state);
     expect(moments.some((m) => m.includes("Knowledge Lifecycle"))).toBe(true);
