@@ -11,6 +11,7 @@ import { getEngineeringState } from "../engineering-state-access.js";
 import { generateForecast } from "../trend-engine.js";
 import { logger } from "../logger.js";
 import { join } from "node:path";
+import { Command } from "commander";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -162,14 +163,18 @@ function loadChallenges(state: ReturnType<typeof getEngineeringState>): ContextO
 /**
  * Execute the context command.
  */
-export async function executeContextCommand(options: { json?: boolean }): Promise<void> {
+export async function executeContextCommand(options: { json?: boolean; forAgent?: string }): Promise<void> {
   const projectRoot = process.cwd();
   const nexusDir = join(projectRoot, "nexus-system");
-  const context = generateContext(nexusDir);
+  let context = generateContext(nexusDir);
 
   if (!context) {
     console.log("No engineering state found. Run 'nexus init' first.");
     return;
+  }
+
+  if (options.forAgent) {
+    context = filterContextForAgent(context, options.forAgent);
   }
 
   if (options.json) {
@@ -216,3 +221,25 @@ function printContext(context: ContextOutput): void {
     }
   }
 }
+
+// ── Agent Filtering ────────────────────────────────────────────────────────
+
+function filterContextForAgent(context: ContextOutput, agentName: string): ContextOutput {
+  return {
+    ...context,
+    project: {
+      ...context.project,
+      name: `${context.project.name} (agent: ${agentName})`,
+    },
+  };
+}
+
+// ── CLI Command ────────────────────────────────────────────────────────────
+
+export const contextCommand = new Command("context")
+  .description("Show project context for AI agents")
+  .option("--json", "Output as JSON")
+  .option("--for-agent <name>", "Filter context for a specific agent")
+  .action(async (options) => {
+    await executeContextCommand(options);
+  });

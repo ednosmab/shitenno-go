@@ -303,7 +303,7 @@ export class MarkdownPlanEngine {
   /**
    * Move plan to done/ directory.
    */
-  private moveToDone(id: string): void {
+  moveToDone(id: string): void {
     const sourcePath = join(this.plansDir, `${id}.md`);
     const destPath = join(this.doneDir, `${id}.md`);
 
@@ -312,6 +312,29 @@ export class MarkdownPlanEngine {
     }
 
     renameSync(sourcePath, destPath);
+  }
+
+  /**
+   * Check if a plan file has status "done" and archive it if so.
+   * Used by file-watcher for reactive archival.
+   * Returns true if the plan was archived.
+   */
+  archiveIfDone(id: string): boolean {
+    const plan = this.getById(id);
+    if (!plan) return false;
+    if (plan.status !== "done") return false;
+
+    this.moveToDone(id);
+
+    const bus = getEventBus();
+    bus.publish("plan.archived", {
+      planId: id,
+      title: plan.title,
+      path: `nexus-system/governance/plans/done/${id}.md`,
+      finalStatus: "done",
+    });
+
+    return true;
   }
 
   /**

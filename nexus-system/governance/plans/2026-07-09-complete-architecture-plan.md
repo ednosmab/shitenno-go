@@ -1,7 +1,7 @@
 # Plano Completo: Nexus System — Reactive + Proactive + Histórico + Agentes IA
 
 > **Data:** 2026-07-09
-> **Estado:** Planeado
+> **Estado:** done
 > **Fases:** 15 (1-5 "hoje" + A-D "amanhã" + E-F limpeza)
 > **Estimativa:** ~2.050 linhas, ~30 ficheiros
 

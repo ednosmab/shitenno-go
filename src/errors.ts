@@ -23,12 +23,12 @@ export class NotInitializedError extends NexusError {
 
 export class InvalidRuleError extends NexusError {
   constructor(detail: string) {
-    super(`Invalid rule: ${detail}`, "INVALID_RULE");
+    super(`Invalid rule ID: ${detail}`, "INVALID_RULE");
   }
 }
 
 export class ScriptNotAllowedError extends NexusError {
   constructor(script: string) {
-    super(`Script "${script}" is not in the allowlist.`, "SCRIPT_NOT_ALLOWED");
+    super(`Script not allowed: ${script}`, "SCRIPT_NOT_ALLOWED");
   }
 }

@@ -175,8 +175,10 @@ export const statusCommand = new Command("status")
     // Display capability engine summary
     try {
       const { evaluateCapabilities } = await import("../capability-engine.js");
-      const { consolidateEngineeringState } = await import("../engineering-state.js");
-      const state = consolidateEngineeringState(ctx.projectRoot, ctx.nexusDir);
+      const { subscribeToEngineeringState } = await import("../engineering-state-subscription.js");
+      const { getState, unsubscribe } = subscribeToEngineeringState(ctx.projectRoot, ctx.nexusDir);
+      const state = getState();
+      unsubscribe();
       const engineResult = evaluateCapabilities(state, ctx.nexusDir);
 
       console.log(chalk.bold("  ⚙ Capability Engine:"));

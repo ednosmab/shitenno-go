@@ -8,6 +8,8 @@
  */
 
 import { logger } from "./logger.js";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -167,6 +169,45 @@ export function initializeDefaultModels(): void {
   });
 
   logger.debug("model-config", `Initialized ${MODEL_REGISTRY.size} default models`);
+}
+
+// ── Answers Integration ────────────────────────────────────────────────────
+
+interface UserAnswers {
+  principalModel?: string;
+  executorModel?: string;
+  stack?: string[];
+}
+
+/**
+ * Load user answers from nexus init.
+ */
+export function loadAnswers(nexusDir: string): UserAnswers | null {
+  const answersPath = join(nexusDir, "answers.json");
+  if (!existsSync(answersPath)) return null;
+  try {
+    return JSON.parse(readFileSync(answersPath, "utf-8")) as UserAnswers;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Initialize model config from answers.json.
+ * Logs the active model chosen during `nexus init`.
+ */
+export function initializeFromAnswers(nexusDir: string): void {
+  const answers = loadAnswers(nexusDir);
+  if (!answers) return;
+
+  if (answers.principalModel) {
+    const config = getModelConfig(answers.principalModel);
+    if (config) {
+      logger.info("model-config", `Active model from answers: ${config.displayName}`);
+    } else {
+      logger.debug("model-config", `Model "${answers.principalModel}" not in registry — using defaults`);
+    }
+  }
 }
 
 // ── Auto-initialize ─────────────────────────────────────────────────────────

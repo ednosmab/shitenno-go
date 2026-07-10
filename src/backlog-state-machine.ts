@@ -14,6 +14,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { updateCurrentTask, addCompletedTask } from "./context-buffer-writer.js";
 import { logger } from "./logger.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -246,7 +247,15 @@ export function transitionTask(
     }
 
     // Update context_buffer.yaml if current_task matches
-    updateContextBuffer(nexusDir, taskId, toState);
+    const bufStatus = toState === "concluído" ? "completed" : "in_progress";
+    updateCurrentTask(nexusDir, { status: bufStatus });
+    if (toState === "concluído") {
+      addCompletedTask(nexusDir, {
+        id: taskId,
+        description: "Auto-completed via backlog state machine",
+        completed_at: new Date().toISOString(),
+      });
+    }
 
     logger.info("backlog-state-machine", `Transitioned ${taskId}: ${fromState} → ${toState}`);
 
@@ -261,55 +270,6 @@ export function transitionTask(
       success: false,
       message: `Failed to update BACKLOG.md: ${error instanceof Error ? error.message : String(error)}`,
     };
-  }
-}
-
-/**
- * Update context_buffer.yaml if the current_task matches the taskId.
- */
-function updateContextBuffer(
-  nexusDir: string,
-  taskId: string,
-  newState: BacklogState
-): void {
-  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
-  if (!existsSync(bufferPath)) return;
-
-  try {
-    let content = readFileSync(bufferPath, "utf-8");
-
-    // Check if this is the current task
-    const taskIdMatch = content.match(/id:\s*"([^"]+)"/);
-    if (!taskIdMatch) return;
-
-    const currentTaskId = taskIdMatch[1]!;
-    if (
-      !currentTaskId.toLowerCase().includes(taskId.toLowerCase()) &&
-      !taskId.toLowerCase().includes(currentTaskId.toLowerCase())
-    ) {
-      return;
-    }
-
-    // Update current_task.status
-    const statusRegex = /(current_task:[\s\S]*?status:\s*")([^"]+)(")/;
-    const newStatus = newState === "concluído" ? "completed" : "in_progress";
-    if (statusRegex.test(content)) {
-      content = content.replace(statusRegex, `$1${newStatus}$3`);
-    }
-
-    // If completed, add to completed_tasks
-    if (newState === "concluído") {
-      const completedRegex = /(completed_tasks:\s*\n)/;
-      if (completedRegex.test(content)) {
-        const now = new Date().toISOString();
-        const newEntry = `  - id: "${taskId}"\n    description: "Auto-completed via backlog state machine"\n    completed_at: "${now}"\n`;
-        content = content.replace(completedRegex, `$1${newEntry}`);
-      }
-    }
-
-    writeFileSync(bufferPath, content, "utf-8");
-  } catch {
-    // Silently fail — buffer update is best-effort
   }
 }
 

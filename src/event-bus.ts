@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "./logger.js";
 import type { CorrelationId, TraceId } from "./event-payloads.js";
+import { DeadLetterQueue, createVersionedEvent } from "./advanced-infrastructure.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export type NexusEventType =
   | "task.completed"
   | "pipeline.stage.start"
   | "pipeline.stage.complete"
+  | "pipeline.started"
   | "pipeline.complete"
   | "lifecycle.state_changed"
   | "knowledge.analyzed"
@@ -51,6 +53,7 @@ export type NexusEventType =
   | "docs.sync.triggered"
   | "doc.lifecycle.audited"
   | "plan.archived"
+  | "plan.status_changed"
   | "system.updated"
   | "challenge.generated"
   | "state.mutated";
@@ -86,6 +89,7 @@ export interface EventBus {
   listenerCount(eventType: NexusEventType): number;
   getHistory(): EventEnvelope[];
   enablePersistence(nexusDir: string): void;
+  enableDeadLetterQueue(nexusDir: string): void;
 }
 
 // ── Implementation ───────────────────────────────────────────────────────────
@@ -95,6 +99,7 @@ class NexusEventBus implements EventBus {
   private eventHistory: EventEnvelope[] = [];
   private static readonly MAX_HISTORY = 1000;
   private persistenceDir: string | null = null;
+  private deadLetterQueue: DeadLetterQueue | null = null;
 
   publish<T extends NexusEventType>(
     eventType: T,
@@ -130,10 +135,18 @@ class NexusEventBus implements EventBus {
           if (result && typeof (result as Promise<void>).catch === "function") {
             (result as Promise<void>).catch((error: unknown) => {
               logger.error("EventBus", `Async handler error for "${eventType}":`, error);
+              if (this.deadLetterQueue) {
+                const ve = createVersionedEvent(eventType, payload);
+                this.deadLetterQueue.enqueue(ve, error instanceof Error ? error.message : String(error), handler.name || "anonymous", 0);
+              }
             });
           }
         } catch (error) {
           logger.error("EventBus", `Handler error for "${eventType}":`, error);
+          if (this.deadLetterQueue) {
+            const ve = createVersionedEvent(eventType, payload);
+            this.deadLetterQueue.enqueue(ve, error instanceof Error ? error.message : String(error), handler.name || "anonymous", 0);
+          }
         }
       }
     }
@@ -146,6 +159,10 @@ class NexusEventBus implements EventBus {
       mkdirSync(telemetryDir, { recursive: true });
     }
     this.persistenceDir = telemetryDir;
+  }
+
+  enableDeadLetterQueue(nexusDir: string): void {
+    this.deadLetterQueue = new DeadLetterQueue(nexusDir);
   }
 
   private persistEvent(entry: EventEnvelope): void {

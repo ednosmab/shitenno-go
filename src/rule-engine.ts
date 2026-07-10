@@ -12,9 +12,11 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import { InvalidRuleError } from "./errors.js";
 import { logger } from "./logger.js";
 import { type Capability, loadMaturityProfile } from "./maturity-profile.js";
 import { transitionTask, type BacklogState } from "./backlog-state-machine.js";
+import { replaceSectionField, updateNextP0 } from "./context-buffer-writer.js";
 
 // ── Security: Allowed Scripts ────────────────────────────────────────────────
 
@@ -50,9 +52,7 @@ function isValidRuleId(id: string): boolean {
 
 // ── Security: Regex Helpers ─────────────────────────────────────────────────
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+import { escapeRegex } from "./validation.js";
 
 // ── Security: Prototype Pollution Protection ────────────────────────────────
 
@@ -134,6 +134,7 @@ export type TriggerType =
   | "pipeline_complete"
   | "task_completed"
   | "plan_archived"
+  | "plan_status_changed"
   | "manual";
 
 /** Operadores para condições. */
@@ -296,7 +297,7 @@ export function loadRules(nexusDir: string): Rule[] {
 /** Grava uma regra no directório. */
 export function saveRule(nexusDir: string, rule: Rule): void {
   if (!isValidRuleId(rule.id)) {
-    throw new Error(`Invalid rule ID: "${rule.id}". Only alphanumeric, hyphens and underscores allowed.`);
+    throw new InvalidRuleError(`Rule ID: "${rule.id}". Only alphanumeric, hyphens and underscores allowed.`);
   }
 
   const rulesPath = join(nexusDir, RULES_DIR);
@@ -393,32 +394,24 @@ async function executeAction(
 ): Promise<{ success: boolean; message: string }> {
   switch (action.type) {
     case "update_context_buffer": {
-      const bufferPath = join(context.nexusDir, "governance", "context", "context_buffer.yaml");
-      if (!existsSync(bufferPath)) {
-        return { success: false, message: "Skipped: governance capability not installed (context_buffer.yaml not found)" };
-      }
+      const field = String(action.params.field || "");
+      const value = String(action.params.value || "");
 
-      try {
-        let content = readFileSync(bufferPath, "utf-8");
-        const field = String(action.params.field || "");
-        const value = String(action.params.value || "");
-
-        if (field && value) {
-          const keys = field.split(".");
-          const lastKey = keys[keys.length - 1]!;
-          const escapedKey = lastKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const pattern = new RegExp(`(${escapedKey}:\\s*").*?(")`);
-          if (pattern.test(content)) {
-            content = content.replace(pattern, `$1${value}$2`);
-            writeFileSync(bufferPath, content, "utf-8");
-            return { success: true, message: `Updated ${field} = ${value}` };
-          }
-          return { success: false, message: `Field "${lastKey}" not found in buffer` };
-        }
+      if (!field || !value) {
         return { success: false, message: "No field or value specified" };
-      } catch {
-        return { success: false, message: "Failed to update context buffer" };
       }
+
+      const result = replaceSectionField(
+        readFileSync(join(context.nexusDir, "governance", "context", "context_buffer.yaml"), "utf-8"),
+        field,
+        value
+      );
+
+      if (result.updated) {
+        writeFileSync(join(context.nexusDir, "governance", "context", "context_buffer.yaml"), result.content, "utf-8");
+        return { success: true, message: `Updated ${field} = ${value}` };
+      }
+      return { success: false, message: `Field "${field}" not found in buffer` };
     }
 
     case "create_reminder": {
@@ -661,14 +654,12 @@ async function executeAction(
       try {
         const nexusDir = join(context.projectRoot, "nexus-system");
         const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
-        const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
 
-        if (!existsSync(backlogPath) || !existsSync(bufferPath)) {
-          return { success: false, message: "BACKLOG.md or context_buffer.yaml not found" };
+        if (!existsSync(backlogPath)) {
+          return { success: false, message: "BACKLOG.md not found" };
         }
 
         const backlogContent = readFileSync(backlogPath, "utf-8");
-        const bufferContent = readFileSync(bufferPath, "utf-8");
 
         // Find first unchecked P0 item
         const p0Match = backlogContent.match(/^- \[ \] \((P0|high)\)\s+(.+)/m);
@@ -677,15 +668,8 @@ async function executeAction(
         }
 
         const taskDesc = p0Match[2]!.trim();
-
-        // Update buffer next_p0 field
-        const updatedBuffer = bufferContent.replace(
-          /^(next_p0:).*/m,
-          `$1 ${taskDesc}`
-        );
-
-        writeFileSync(bufferPath, updatedBuffer, "utf-8");
-        return { success: true, message: `next_p0 set to: ${taskDesc}` };
+        const result = updateNextP0(nexusDir, taskDesc);
+        return { success: result.success, message: result.message };
       } catch (error) {
         return { success: false, message: `auto_populate_next_p0 failed: ${error instanceof Error ? error.message : String(error)}` };
       }
@@ -1176,6 +1160,7 @@ const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
 
   // Plan events
   "plan.archived": "plan_archived",
+  "plan.status_changed": "plan_status_changed",
 
   // Knowledge events
   "knowledge.analyzed": "file_change",
@@ -1194,6 +1179,27 @@ const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
 
   // Entropy events
   "entropy.calculated": "file_change",
+
+  // Command events
+  "command.completed": "task_completed",
+
+  // Doc lifecycle events
+  "doc.lifecycle.audited": "file_change",
+
+  // System events
+  "system.updated": "file_change",
+
+  // Pipeline start event
+  "pipeline.started": "file_change",
+
+  // Challenge events
+  "challenge.generated": "file_change",
+
+  // Doc sync events
+  "docs.sync.triggered": "file_change",
+
+  // State mutation events
+  "state.mutated": "file_change",
 };
 
 /** Subscribe to event bus events and execute matching rules. */

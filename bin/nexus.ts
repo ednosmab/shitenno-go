@@ -52,6 +52,8 @@ import { initializeTaskPipeline } from "../src/task-pipeline.js";
 import { initializeEngineeringState } from "../src/engineering-state.js";
 import { initializeFromAnswers } from "../src/model-config.js";
 import { registerDocSyncHook } from "../src/doc-sync-hook.js";
+import { DocEngine } from "../src/doc-engine.js";
+import { consolidateEngineeringState } from "../src/engineering-state.js";
 import { initializeProactiveEngine } from "../src/proactive-engine.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
@@ -69,6 +71,7 @@ let currentSessionStartedAt: string | null = null;
 
 if (isInitialized) {
   enableEventPersistence(nexusDir);
+  getEventBus().enableDeadLetterQueue(nexusDir);
   initializeRules(nexusDir);
   initializeRuleEngine(projectRoot, nexusDir);
   initializeKnowledgeGraph(nexusDir);
@@ -78,6 +81,13 @@ if (isInitialized) {
   initializeProactiveEngine(projectRoot, nexusDir);
   initializeFromAnswers(nexusDir);
   registerDocSyncHook({ projectRoot, enableAutoSync: true });
+
+  const docEngine = new DocEngine(nexusDir);
+  const bus = getEventBus();
+  bus.subscribe("engineering_state.consolidated", () => {
+    const state = consolidateEngineeringState(projectRoot, nexusDir);
+    docEngine.generateAll(state);
+  });
 
   const session = startSession(nexusDir);
   currentSessionId = session.id;

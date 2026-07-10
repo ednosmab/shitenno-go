@@ -12,9 +12,7 @@ import { logger } from "./logger.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+import { escapeRegex } from "./validation.js";
 
 function getBufferPath(nexusDir: string): string {
   return join(nexusDir, "governance", "context", "context_buffer.yaml");
@@ -40,7 +38,7 @@ function writeBuffer(nexusDir: string, content: string): void {
  * For field "current_task.status", matches `status: "..."` only after
  * the `current_task:` block anchor — never touches session.status.
  */
-function replaceSectionField(
+export function replaceSectionField(
   content: string,
   fieldPath: string,
   newValue: string

@@ -70,8 +70,6 @@ export default [
       "src/commands/status.ts",
       "src/commands/bench.ts",
       "src/commands/digest.ts",
-      "src/commands/mcp.ts",
-      "src/commands/doctor.ts",
     ],
     rules: {
       "no-restricted-imports": "off",

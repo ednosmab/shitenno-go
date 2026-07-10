@@ -1,5 +1,5 @@
 {
-  "evaluatedAt": "2026-07-08T04:59:14.817Z",
+  "evaluatedAt": "2026-07-10T05:10:57.408Z",
   "capabilities": [
     {
       "id": "core",
@@ -31,6 +31,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -42,7 +43,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.814Z",
+        "lastUpdated": "2026-07-10T05:10:57.401Z",
         "referenceCount": 0
       },
       "alwaysInstalled": true,
@@ -89,6 +90,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -96,11 +98,11 @@
       "templates": [],
       "recommendations": [],
       "metrics": {
-        "assetCount": 24,
+        "assetCount": 25,
         "ruleCount": 1,
         "policyCount": 1,
         "healthScore": 90,
-        "lastUpdated": "2026-07-08T04:59:14.814Z",
+        "lastUpdated": "2026-07-10T05:10:57.402Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -145,6 +147,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -152,11 +155,11 @@
       "templates": [],
       "recommendations": [],
       "metrics": {
-        "assetCount": 6,
+        "assetCount": 10,
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.814Z",
+        "lastUpdated": "2026-07-10T05:10:57.402Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -201,6 +204,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -212,7 +216,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.815Z",
+        "lastUpdated": "2026-07-10T05:10:57.403Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -257,6 +261,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -268,7 +273,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.815Z",
+        "lastUpdated": "2026-07-10T05:10:57.404Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -313,6 +318,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -324,7 +330,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.816Z",
+        "lastUpdated": "2026-07-10T05:10:57.404Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -368,6 +374,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -375,11 +382,11 @@
       "templates": [],
       "recommendations": [],
       "metrics": {
-        "assetCount": 19,
+        "assetCount": 23,
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.816Z",
+        "lastUpdated": "2026-07-10T05:10:57.406Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -423,6 +430,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -434,7 +442,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.816Z",
+        "lastUpdated": "2026-07-10T05:10:57.407Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,
@@ -479,6 +487,7 @@
         "senior-engineer",
         "solid_principles",
         "state_management_protocol",
+        "system-first",
         "tdd-agent",
         "tdd_workflow",
         "ui_ux_principles"
@@ -490,7 +499,7 @@
         "ruleCount": 0,
         "policyCount": 0,
         "healthScore": 70,
-        "lastUpdated": "2026-07-08T04:59:14.817Z",
+        "lastUpdated": "2026-07-10T05:10:57.408Z",
         "referenceCount": 0
       },
       "alwaysInstalled": false,

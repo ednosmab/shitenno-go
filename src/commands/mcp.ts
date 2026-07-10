@@ -13,11 +13,11 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import { startMcpServer } from "../mcp-server.js";
 import { installMcpServer, updateOpenCodeJsonTimeout } from "../mcp-install.js";
 import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
+import { consolidateEngineeringState } from "../engineering-state.js";
 
 export function mcpCommand(): Command {
   const cmd = new Command("mcp")
@@ -29,7 +29,9 @@ export function mcpCommand(): Command {
       const projectRoot = (options.dir as string) ?? process.cwd();
       const nexusDir = join(projectRoot, "nexus-system");
 
-      if (!existsSync(nexusDir)) {
+      try {
+        consolidateEngineeringState(projectRoot, nexusDir);
+      } catch {
         console.error(
           chalk.red(
             `  Error: Nexus not initialized in ${projectRoot}. Run 'nexus init' first.`

@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { getEventBus, type NexusEventType } from "./event-bus.js";
 import { validateCompletionGate } from "./task-completion.js";
 import { transitionBacklogStatus, type BacklogStatus } from "./backlog-transitions.js";
+import { updateCurrentTask, updateSession } from "./context-buffer-writer.js";
 import { logger } from "./logger.js";
 
 export interface TaskPipelineConfig {
@@ -53,7 +54,14 @@ export function initializeTaskPipeline(config: TaskPipelineConfig): () => void {
     logger.info("task-pipeline", `Processing task.completed for: ${taskId}`);
 
     // 1. Update context_buffer.yaml
-    updateContextBuffer(config.nexusDir, taskId);
+    updateCurrentTask(config.nexusDir, {
+      id: taskId,
+      description: "Task completed via pipeline",
+      status: "completed",
+      started_at: "unknown",
+      completed_at: new Date().toISOString(),
+    });
+    updateSession(config.nexusDir, { status: "completed" });
 
     // 2. Update backlog status to concluído
     updateBacklogStatus(config.nexusDir, taskId);
@@ -69,34 +77,6 @@ export function initializeTaskPipeline(config: TaskPipelineConfig): () => void {
     unsub1();
     unsub2();
   };
-}
-
-function updateContextBuffer(nexusDir: string, taskId: string): void {
-  const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
-  if (!existsSync(bufferPath)) {
-    logger.warn("task-pipeline", `context_buffer.yaml not found at ${bufferPath}`);
-    return;
-  }
-
-  try {
-    let content = readFileSync(bufferPath, "utf-8");
-    const now = new Date().toISOString();
-
-    content = content.replace(
-      /current_task:\s*\n\s*id:\s*.+\n\s*description:\s*.+\n\s*status:\s*.+\n\s*started_at:\s*.+\n\s*completed_at:\s*.+/,
-      `current_task:\n  id: ${taskId}\n  description: "Task completed via pipeline"\n  status: "completed"\n  started_at: "unknown"\n  completed_at: "${now}"`
-    );
-
-    content = content.replace(
-      /^session:\s*\n\s*id:\s*.+\n\s*started_at:\s*.+\n\s*status:\s*.+/m,
-      (match) => match.replace(/status:\s*".+?"/, `status: "completed"`)
-    );
-
-    writeFileSync(bufferPath, content, "utf-8");
-    logger.info("task-pipeline", "Updated context_buffer.yaml — task marked completed");
-  } catch (error) {
-    logger.error("task-pipeline", `Failed to update context_buffer.yaml: ${error}`);
-  }
 }
 
 function updateBacklogStatus(nexusDir: string, taskId: string): void {
