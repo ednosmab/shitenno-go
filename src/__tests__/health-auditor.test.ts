@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { auditHealth, writeHealthReport, collectSourceFiles, detectHardcodedSecrets, detectSQLInjection, detectXSS, detectUnsafeEval, detectConsoleSecrets, detectWeakCrypto, detectInsecureHTTP, detectPrototypePollution, detectPathTraversal, detectRegexDos, detectUnsafeDeserialization, detectDependencyConfusion } from "../health-auditor.js";
+import { auditHealth, writeHealthReport, collectSourceFiles, detectHardcodedSecrets, detectSQLInjection, detectXSS, detectUnsafeEval, detectConsoleSecrets, detectWeakCrypto, detectInsecureHTTP, detectPrototypePollution, detectPathTraversal, detectRegexDos, detectUnsafeDeserialization, detectDependencyConfusion, detectCircularDeps } from "../health-auditor.js";
 import { TaintAnalyzer } from "../audit/taint/index.js";
 
 let tempDir: string;
@@ -1050,10 +1050,9 @@ export const a = foo();`
 export const b = bar();`
     );
 
-    const report = auditHealth(tempDir, nexusDir, "code-review");
-    const circularDep = report.issues.find(
-      (i) => i.type === "circular_dep"
-    );
+    const files = collectSourceFiles(tempDir);
+    const issues = detectCircularDeps(tempDir, files);
+    const circularDep = issues.find((i) => i.type === "circular_dep");
     expect(circularDep).toBeDefined();
     expect(circularDep!.severity).toBe(3);
     expect(circularDep!.description).toContain("circular");
@@ -1074,10 +1073,9 @@ export const a = foo();`
       `export const b = 1;`
     );
 
-    const report = auditHealth(tempDir, nexusDir, "code-review");
-    const circularDep = report.issues.find(
-      (i) => i.type === "circular_dep"
-    );
+    const files = collectSourceFiles(tempDir);
+    const issues = detectCircularDeps(tempDir, files);
+    const circularDep = issues.find((i) => i.type === "circular_dep");
     expect(circularDep).toBeUndefined();
   });
 });

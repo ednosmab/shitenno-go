@@ -1,20 +1,36 @@
-# cognition/prompts/planner/ — Prompts do Planner
+# Planner Prompts
 
-## Papel
-O Planner é responsável pela **criação de planos atómicos e fragmentados**, optimizados para o modelo executor.
+> **Directório:** `cognition/prompts/planner/`
+> **Propósito:** Armazenar prompts e templates para o agente Planner
 
-## Responsabilidades
-- Produzir steps atómicos (1 acção + 1 verificação)
-- Usar texto exacto (oldString/newString literais)
-- Definir salvaguardas S1..S6
-- Marcar pontos de pausa G-01 antes de git commit
-- Arquivar planos ≥ 5 steps em `governance/plans/`
+---
 
-## Restrições
-- Nunca executar código — apenas planear
-- Cada step = 1 acção primária + 1 verificação explícita
-- Incluir hashes, paths e valores numéricos literais
+## Descrição
 
-## Referências
-- `docs/AGENTS.md` — Regra #15 (Plano Fragmentado em Modo Plan)
-- `governance/agents/AI-CONTRACT-planner-v1.yaml` — Contrato formal
+Este directório contém os prompts utilizados pelo agente **Planner** durante o planeamento de tarefas.
+
+## Papel do Planner
+
+O Planner é responsável por:
+- Analisar requisitos do utilizador
+- Planejar a arquitetura técnica
+- Gerar planos de execução detalhados
+- Sugerir novos ADRs quando necessário
+
+## Estrutura
+
+```
+planner/
+├── README.md           # Este ficheiro
+├── [system-prompt.md]  # Prompt de sistema (futuro)
+└── [examples/]         # Exemplos de planos (futuro)
+```
+
+## Notas
+
+- Directório criado automaticamente durante a inicialização
+- Conteúdo a ser populado conforme necessidade
+
+---
+
+*Última actualização: 2026-07-10*

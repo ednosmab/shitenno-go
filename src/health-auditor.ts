@@ -30,6 +30,7 @@ export {
   detectRegexDos,
   detectUnsafeDeserialization,
   detectDependencyConfusion,
+  detectCircularDeps,
 } from "./audit/engineering-detectors.js";
 
 // ── Internal imports from audit modules ──────────────────────────────────────

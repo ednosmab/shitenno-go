@@ -10,6 +10,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ export class LogEventExecutor implements ActionExecutor {
   async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const event = params.event as string ?? "unknown";
     const message = params.message as string ?? "";
-    console.log(`[Event] ${event}: ${message}`);
+    logger.info("action-engine", `[Event] ${event}: ${message}`);
     return { logged: true, event, message };
   }
 }
@@ -109,7 +110,7 @@ export class NotifyExecutor implements ActionExecutor {
   async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const message = params.message as string ?? "Notification";
     const level = params.level as string ?? "info";
-    console.log(`[${level.toUpperCase()}] ${message}`);
+    logger.info("action-engine", `[${level.toUpperCase()}] ${message}`);
     return { notified: true, message, level };
   }
 }
@@ -123,7 +124,7 @@ export class CreateReminderExecutor implements ActionExecutor {
   async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const message = params.message as string ?? "Reminder";
     const priority = params.priority as string ?? "medium";
-    console.log(`[Reminder] (${priority}) ${message}`);
+    logger.info("action-engine", `[Reminder] (${priority}) ${message}`);
     return { created: true, message, priority };
   }
 }

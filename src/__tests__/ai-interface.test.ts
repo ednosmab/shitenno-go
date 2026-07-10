@@ -108,7 +108,8 @@ describe("ai-interface", () => {
 
   describe("context command", () => {
     it("generates context from engineering state", () => {
-      const nexusDir = join(tmpDir, "nexus-system");
+      const projectDir = join(tmpDir, "test-project");
+      const nexusDir = join(projectDir, "nexus-system");
       mkdirSync(nexusDir, { recursive: true });
       createMockEngineeringState(nexusDir);
 
@@ -116,9 +117,8 @@ describe("ai-interface", () => {
       const originalLog = console.log;
       console.log = (msg: string) => { consoleSpy.output += msg + "\n"; };
 
-      // Mock process.cwd to return tmpDir
       const originalCwd = process.cwd;
-      process.cwd = () => tmpDir;
+      process.cwd = () => projectDir;
 
       try {
         executeContextCommand({ json: false });
@@ -133,7 +133,8 @@ describe("ai-interface", () => {
     });
 
     it("outputs JSON when requested", () => {
-      const nexusDir = join(tmpDir, "nexus-system");
+      const projectDir = join(tmpDir, "test-project");
+      const nexusDir = join(projectDir, "nexus-system");
       mkdirSync(nexusDir, { recursive: true });
       createMockEngineeringState(nexusDir);
 
@@ -141,9 +142,8 @@ describe("ai-interface", () => {
       const originalLog = console.log;
       console.log = (msg: string) => { consoleSpy.output += msg + "\n"; };
 
-      // Mock process.cwd to return tmpDir
       const originalCwd = process.cwd;
-      process.cwd = () => tmpDir;
+      process.cwd = () => projectDir;
 
       try {
         executeContextCommand({ json: true });

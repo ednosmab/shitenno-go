@@ -535,6 +535,25 @@ export function consolidateEngineeringState(
     // Return cached state if available, otherwise build minimal state
     const cached = loadEngineeringState(nexusDir);
     if (cached) return cached;
+
+    // Return minimal state to break recursion when no cache exists
+    return {
+      consolidatedAt: new Date().toISOString(),
+      lifecycle: detectLifecycleState(projectRoot, nexusDir),
+      project: { name: projectRoot.split("/").pop() || "", root: projectRoot, stack: [], hasGit: false, hasCI: false, hasTests: false, hasTypeScript: false, packageCount: 0, sourceFileCount: 0, monorepo: false },
+      maturity: null,
+      capabilities: ["core"],
+      capabilityDrift: { detectedNotRegistered: [], registeredNotDetected: [] },
+      knowledgeDebt: null,
+      knowledgeGraph: null,
+      assets: [],
+      assetsByType: {} as Record<string, number>,
+      activeRules: 0,
+      activePolicies: 0,
+      healthScores: { knowledgeDebt: 100, knowledgeGraph: 100, entropy: 0, overall: 100 },
+      entropy: { score: 0, orphanedAssets: 0, staleAssets: 0, missingDependencies: 0 },
+      summary: "Re-entrancy: returning minimal state",
+    } as EngineeringState;
   }
 
   isConsolidating = true;

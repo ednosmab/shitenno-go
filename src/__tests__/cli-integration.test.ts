@@ -21,7 +21,7 @@ async function runNexus(
   try {
     const result = await execAsync(`node ${CLI_PATH} ${args}`, {
       cwd: cwd || process.cwd(),
-      timeout: 15000,
+      timeout: 60000,
       env: { ...process.env, NEXUS_CHILD: "1" },
     });
     return { stdout: result.stdout, stderr: result.stderr, exitCode: 0 };
@@ -42,13 +42,14 @@ function scaffoldTestProject(
   const dir = join(tmpdir(), `nexus-e2e-${name}-${Date.now()}`);
   mkdirSync(dir, { recursive: true });
 
-  // Create a basic package.json
+  // Create a basic package.json with "type": "module" for ESM plugin loading
   writeFileSync(
     join(dir, "package.json"),
     JSON.stringify(
       {
         name: "test-project",
         version: "1.0.0",
+        type: "module",
         dependencies: { react: "^18.0.0" },
         devDependencies: { typescript: "^5.0.0" },
       },

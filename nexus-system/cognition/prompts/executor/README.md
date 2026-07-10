@@ -1,19 +1,36 @@
-# cognition/prompts/executor/ — Prompts do Executor
+# Executor Prompts
 
-## Papel
-O Executor é responsável pela **escrita atómica e literal** de código. Opera em modo `build` — executa o plano aprovado sem decisões autónomas.
+> **Directório:** `cognition/prompts/executor/`
+> **Propósito:** Armazenar prompts e templates para o agente Executor
 
-## Responsabilidades
-- Executar cada step do plano exactamente como documentado
-- Usar `oldString`/`newString` literais (nunca paráfrases)
-- Verificar após cada step (grep, wc, cat)
-- Parar se encontrar desvio não-planeado
+---
 
-## Restrições
-- Sem improviso — não refactorar, não adicionar JSDoc, não renomear
-- Sem decisões autónomas — em dúvida, PARAR e perguntar
-- Excepções: ajustes triviais para build passar (< 5 linhas)
+## Descrição
 
-## Referências
-- `docs/AGENTS.md` — Regra #16 (Execução Literal em Modo Build)
-- `governance/agents/AI-CONTRACT-executor-v1.yaml` — Contrato formal
+Este directório contém os prompts utilizados pelo agente **Executor** durante a execução de tarefas.
+
+## Papel do Executor
+
+O Executor é responsável por:
+- Implementar código baseado nos planos do Planner
+- Seguir as directrizes de código (DESDO.md)
+- Respeitar as regras vinculantes (FORBIDDEN_OPERATIONS.md)
+- Gerar testes unitários para cada funcionalidade
+
+## Estrutura
+
+```
+executor/
+├── README.md           # Este ficheiro
+├── [system-prompt.md]  # Prompt de sistema (futuro)
+└── [examples/]         # Exemplos de execução (futuro)
+```
+
+## Notas
+
+- Directório criado automaticamente durante a inicialização
+- Conteúdo a ser populado conforme necessidade
+
+---
+
+*Última actualização: 2026-07-10*

@@ -1,19 +1,36 @@
-# cognition/prompts/reviewer/ — Prompts do Reviewer
+# Reviewer Prompts
 
-## Papel
-O Reviewer é responsável pela **validação de conformidade** entre o plano aprovado e a implementação executada.
+> **Directório:** `cognition/prompts/reviewer/`
+> **Propósito:** Armazenar prompts e templates para o agente Reviewer
 
-## Responsabilidades
-- Gerar tabela de conformidade (step → estado → evidência)
-- Comparar métricas vs. plano (linhas, testes, ficheiros)
-- Sinalizar desvios explícitos
-- Verificar decisões tomadas sem autorização (especialmente G-01)
+---
 
-## Restrições
-- Output é vinculante — bloqueia avanço se não for entregue
-- Usar evidências verificáveis (diff, linha, contagem, output)
-- Não corrigir — apenas reportar
+## Descrição
 
-## Referências
-- `docs/AGENTS.md` — Regra #14 (Validação de Plano em Modo Review)
-- `governance/agents/AI-CONTRACT-reviewer-v1.yaml` — Contrato formal
+Este directório contém os prompts utilizados pelo agente **Reviewer** durante a auditoria e validação de código.
+
+## Papel do Reviewer
+
+O Reviewer é responsável por:
+- Auditar e validar a qualidade do código gerado
+- Garantir conformidade com padrões de Clean Code
+- Verificar a presença de testes unitários
+- Detectar vulnerabilidades de segurança (XSS, injection, etc.)
+
+## Estrutura
+
+```
+reviewer/
+├── README.md           # Este ficheiro
+├── [system-prompt.md]  # Prompt de sistema (futuro)
+└── [checklists/]       # Checklists de revisão (futuro)
+```
+
+## Notas
+
+- Directório criado automaticamente durante a inicialização
+- Conteúdo a ser populado conforme necessidade
+
+---
+
+*Última actualização: 2026-07-10*
