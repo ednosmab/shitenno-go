@@ -97,6 +97,224 @@ eval(secret);
     expect(codeInjection.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("detects taint flow through string concatenation (+ operator)", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    // String concatenation with tainted input should propagate taint
+    const fixtureCode = `
+const url = "https://" + req.query.domain;
+fetch(url);
+`;
+    writeFileSync(join(tempDir, "src", "concat-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const ssrfIssues = issues.filter((i) => i.type === "ssrf");
+    expect(ssrfIssues.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("detects taint flow through template literal", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    // Template literal with tainted input should propagate taint
+    const fixtureCode = ["const url = `https://${req.query.domain}/api`;", "fetch(url);"].join("\n");
+    writeFileSync(join(tempDir, "src", "template-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const ssrfIssues = issues.filter((i) => i.type === "ssrf");
+    expect(ssrfIssues.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("detects taint flow through subproperty access (req.query.cmd)", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    // Subproperty access like req.query.cmd should be recognized as a taint source
+    const fixtureCode = `
+const cmd = req.query.cmd;
+exec(cmd);
+`;
+    writeFileSync(join(tempDir, "src", "subprop-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const cmdInjection = issues.filter((i) => i.type === "command_injection");
+    expect(cmdInjection.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("detects SSRF via fetch with tainted URL", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    // Direct SSRF: req.body → fetch()
+    const fixtureCode = `
+const url = req.body.url;
+fetch(url);
+`;
+    writeFileSync(join(tempDir, "src", "ssrf-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const ssrfIssues = issues.filter((i) => i.type === "ssrf");
+    expect(ssrfIssues.length).toBeGreaterThanOrEqual(1);
+    expect(ssrfIssues[0]!.sinkType).toBe("fetch");
+  });
+
+  it("detects SSRF via http.get with tainted URL", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    const fixtureCode = `
+const target = req.body.target;
+http.get(target);
+`;
+    writeFileSync(join(tempDir, "src", "ssrf-http-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const ssrfIssues = issues.filter((i) => i.type === "ssrf");
+    expect(ssrfIssues.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("detects SSRF via undici with tainted URL", () => {
+    mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");
+    mkdirSync(join(tempDir, "src", "__tests__"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "__tests__", "dummy.test.ts"), "# dummy test");
+
+    writeFileSync(
+      join(tempDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          esModuleInterop: true,
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        include: ["src/**/*.ts"],
+        exclude: ["node_modules", "__tests__", "dist"],
+      })
+    );
+
+    const fixtureCode = `
+const target = req.body.url;
+undici.fetch(target);
+`;
+    writeFileSync(join(tempDir, "src", "ssrf-undici-fixture.ts"), fixtureCode);
+
+    const analyzer = new TaintAnalyzer({ projectRoot: tempDir });
+    const issues = analyzer.analyze();
+
+    const ssrfIssues = issues.filter((i) => i.type === "ssrf");
+    expect(ssrfIssues.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("reports zero issues for clean code", () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "dummy.ts"), "# dummy");

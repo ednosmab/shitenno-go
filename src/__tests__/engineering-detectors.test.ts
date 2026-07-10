@@ -28,6 +28,9 @@ import {
   detectMissingLockFile,
   detectDeprecatedPackages,
   detectConfigSecrets,
+  detectInsecureCORS,
+  detectInsecureCookies,
+  detectWeakRandomness,
 } from "../audit/engineering-detectors.js";
 
 let tempDir: string;
@@ -762,6 +765,168 @@ describe("detectConfigSecrets", () => {
   it("returns empty for .env without secrets", () => {
     writeFileSync(join(tempDir, ".env"), "PORT=3000\nNODE_ENV=development\n");
     const issues = detectConfigSecrets(tempDir);
+    expect(issues.length).toBe(0);
+  });
+});
+
+// ── detectInsecureCORS ───────────────────────────────────────────────────────
+
+describe("detectInsecureCORS", () => {
+  it("detects Access-Control-Allow-Origin: * wildcard header", () => {
+    const files = [makeFile("src/server.ts", 'res.setHeader("Access-Control-Allow-Origin", "*")')];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("insecure_cors");
+    expect(issues[0]!.severity).toBe(2);
+    expect(issues[0]!.description).toContain("CORS");
+  });
+
+  it("detects cors() without configuration (allows all origins)", () => {
+    const files = [makeFile("src/server.ts", "app.use(cors())")];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("insecure_cors");
+  });
+
+  it("does not flag cors() with specific origin", () => {
+    const files = [makeFile("src/server.ts", 'app.use(cors({ origin: "https://example.com" }))')];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("does not flag parseCors or other cors-prefixed functions", () => {
+    const files = [makeFile("src/utils.ts", "const config = parseCors(options)")];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("skips test files", () => {
+    const files = [makeFile("src/__tests__/server.test.ts", 'res.setHeader("Access-Control-Allow-Origin", "*")')];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("returns empty for safe code", () => {
+    const files = [makeFile("src/server.ts", 'res.setHeader("Access-Control-Allow-Origin", "https://example.com")')];
+    const issues = detectInsecureCORS(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+});
+
+// ── detectInsecureCookies ─────────────────────────────────────────────────────
+
+describe("detectInsecureCookies", () => {
+  it("detects res.cookie() missing httpOnly, secure, sameSite", () => {
+    const files = [makeFile("src/routes.ts", 'res.cookie("session", token)')];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("insecure_cookie");
+    expect(issues[0]!.severity).toBe(2);
+    expect(issues[0]!.description).toContain("httpOnly");
+    expect(issues[0]!.description).toContain("secure");
+    expect(issues[0]!.description).toContain("sameSite");
+  });
+
+  it("detects res.cookie() with only httpOnly (missing secure and sameSite)", () => {
+    const files = [makeFile("src/routes.ts", 'res.cookie("session", token, { httpOnly: true })')];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.description).toContain("secure");
+    expect(issues[0]!.description).toContain("sameSite");
+  });
+
+  it("does not flag res.cookie() with all security flags", () => {
+    const files = [
+      makeFile("src/routes.ts", `
+res.cookie("session", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "strict"
+})`),
+    ];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("detects Set-Cookie header missing flags", () => {
+    const files = [makeFile("src/routes.ts", 'Set-Cookie: session=abc')];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("insecure_cookie");
+  });
+
+  it("does not flag Set-Cookie with all flags", () => {
+    const files = [makeFile("src/routes.ts", 'Set-Cookie: session=abc; HttpOnly; Secure; SameSite=Strict')];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("skips test files", () => {
+    const files = [makeFile("src/__tests__/routes.test.ts", 'res.cookie("session", token)')];
+    const issues = detectInsecureCookies(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("does not cause lastIndex bug on repeated calls", () => {
+    const files = [
+      makeFile("src/a.ts", 'res.cookie("a", val1)'),
+      makeFile("src/b.ts", 'res.cookie("b", val2)'),
+      makeFile("src/c.ts", 'res.cookie("c", val3)'),
+    ];
+    // Run twice to check for regex lastIndex persistence
+    const issues1 = detectInsecureCookies(tempDir, files);
+    const issues2 = detectInsecureCookies(tempDir, files);
+    expect(issues1.length).toBe(3);
+    expect(issues2.length).toBe(3);
+  });
+});
+
+// ── detectWeakRandomness ──────────────────────────────────────────────────────
+
+describe("detectWeakRandomness", () => {
+  it("detects Math.random() used for token generation", () => {
+    const files = [makeFile("src/auth.ts", "const token = Math.random().toString(36)")];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("weak_randomness");
+    expect(issues[0]!.severity).toBe(2);
+    expect(issues[0]!.description).toContain("Math.random");
+  });
+
+  it("detects Math.random() used for password generation", () => {
+    const files = [makeFile("src/auth.ts", "const password = Math.random().toString(36).slice(2)")];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(1);
+    expect(issues[0]!.type).toBe("weak_randomness");
+  });
+
+  it("detects Math.random() for session key", () => {
+    const files = [makeFile("src/auth.ts", 'const sessionKey = "s_" + Math.random().toString(36)')];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(1);
+  });
+
+  it("does not flag crypto.randomBytes() for secrets", () => {
+    const files = [makeFile("src/auth.ts", "const token = crypto.randomBytes(32).toString('hex')")];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("does not flag Math.random() for non-security variable names", () => {
+    const files = [makeFile("src/utils.ts", "const randomIndex = Math.floor(Math.random() * arr.length)")];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("skips test files", () => {
+    const files = [makeFile("src/__tests__/auth.test.ts", "const token = Math.random().toString(36)")];
+    const issues = detectWeakRandomness(tempDir, files);
+    expect(issues.length).toBe(0);
+  });
+
+  it("skips comments", () => {
+    const files = [makeFile("src/auth.ts", "// const token = Math.random().toString(36)")];
+    const issues = detectWeakRandomness(tempDir, files);
     expect(issues.length).toBe(0);
   });
 });

@@ -30,8 +30,7 @@ export default [
       "no-var": "error",
       "no-restricted-globals": ["error", "__dirname", "__filename"],
       // Prevent hardcoding "nexus-system" — use NEXUS_DIR_NAME from src/constants.ts
-      // Using "warn" until all 29 files are migrated, then change to "error"
-      "no-restricted-syntax": ["warn", {
+      "no-restricted-syntax": ["error", {
         selector: "Literal[value='nexus-system']",
         message: "Use NEXUS_DIR_NAME from src/constants.ts instead of hardcoding 'nexus-system'.",
       }],
@@ -59,6 +58,13 @@ export default [
     ],
     rules: {
       "no-restricted-imports": "off",
+    },
+  },
+  // Exception: constants.ts is where NEXUS_DIR_NAME is defined — must contain the literal
+  {
+    files: ["src/constants.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
   // Exceptions: commands with legitimate write operations (init, clean, sync, upgrade, etc.)
