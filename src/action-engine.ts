@@ -11,6 +11,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "./logger.js";
+import { ScriptNotAllowedError } from "./errors.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -148,7 +149,7 @@ export class ScriptExecutor implements ActionExecutor {
   async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const script = params.script as string;
     if (!script || !(script in this.allowedScripts)) {
-      throw new Error(`Script not allowed: ${script}`);
+      throw new ScriptNotAllowedError(script ?? "undefined");
     }
     // In real implementation, would exec the script
     return { executed: true, script };

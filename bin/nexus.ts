@@ -37,6 +37,8 @@ import { updateCommand } from "../src/commands/update.js";
 import { mcpCommand } from "../src/commands/mcp.js";
 import { syncCommand } from "../src/commands/sync.js";
 import { remindersCommand } from "../src/commands/reminders.js";
+import { historyCommand } from "../src/commands/history.js";
+import { contextCommand } from "../src/commands/context.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine, initializeRules } from "../src/rule-engine.js";
@@ -48,6 +50,8 @@ import { installMiddleware } from "../src/cli-middleware.js";
 import { startWatching, stopWatching } from "../src/file-watcher.js";
 import { initializeTaskPipeline } from "../src/task-pipeline.js";
 import { initializeEngineeringState } from "../src/engineering-state.js";
+import { initializeFromAnswers } from "../src/model-config.js";
+import { registerDocSyncHook } from "../src/doc-sync-hook.js";
 import { initializeProactiveEngine } from "../src/proactive-engine.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 
@@ -72,6 +76,8 @@ if (isInitialized) {
   initializeTaskPipeline({ projectRoot, nexusDir });
   initializeEngineeringState(projectRoot, nexusDir);
   initializeProactiveEngine(projectRoot, nexusDir);
+  initializeFromAnswers(nexusDir);
+  registerDocSyncHook({ projectRoot, enableAutoSync: true });
 
   const session = startSession(nexusDir);
   currentSessionId = session.id;
@@ -282,6 +288,8 @@ program.addCommand(updateCommand);
 program.addCommand(mcpCommand());
 program.addCommand(syncCommand);
 program.addCommand(remindersCommand());
+program.addCommand(historyCommand);
+program.addCommand(contextCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────
 

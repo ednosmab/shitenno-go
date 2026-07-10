@@ -99,7 +99,8 @@ function detectOrphanDirs(nexusDir: string): HealthIssue[] {
     let files: string[];
     try {
       files = readdirSync(dirPath);
-    } catch {
+    } catch (err) {
+      logger.debug("governance-detectors", "Cannot read directory:", err);
       continue;
     }
     const hasOnlyReadmes = files.length <= 2 && files.every((f) => f === "README.md" || f === ".gitignore");
@@ -114,8 +115,8 @@ function detectOrphanDirs(nexusDir: string): HealthIssue[] {
         });
       }
     }
-  } catch {
-    logger.debug("health-auditor", "Failed to analyze directories");
+  } catch (err) {
+    logger.debug("governance-detectors", "Error in detectOrphanDirs:", err);
   }
 
   return issues;
@@ -149,8 +150,8 @@ function detectStaleBuffer(nexusDir: string): HealthIssue[] {
         recommendation: "Executar close-session ou actualizar o status",
       });
     }
-  } catch {
-    logger.debug("health-auditor", "Failed to read context buffer");
+  } catch (err) {
+    logger.debug("governance-detectors", "Error reading context buffer:", err);
   }
 
   return issues;
@@ -181,8 +182,8 @@ function detectDatePlaceholders(nexusDir: string): HealthIssue[] {
           recommendation: `Actualizar datas placeholder em "${doc}" para data real`,
         });
       }
-    } catch {
-      logger.debug("health-auditor", `Failed to read ${doc}`);
+    } catch (err) {
+      logger.debug("governance-detectors", `Error reading ${doc}:`, err);
     }
   }
 
@@ -198,7 +199,8 @@ function collectEmptyDirsSync(
   let entries;
   try {
     entries = readdirSync(dirPath, { withFileTypes: true });
-  } catch {
+  } catch (err) {
+    logger.debug("governance-detectors", "Cannot scan directory:", err);
     return;
   }
 
@@ -232,8 +234,8 @@ function detectEmptyDirs(nexusDir: string): HealthIssue[] {
         recommendation: `Adicionar conteúdo a "${relative}" ou remover se desnecessário`,
       });
     }
-  } catch {
-    logger.debug("health-auditor", "Failed to scan directories for emptiness");
+  } catch (err) {
+    logger.debug("governance-detectors", "Error in detectEmptyDirs:", err);
   }
 
   return issues;
@@ -280,8 +282,8 @@ function detectBrokenRefs(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch {
-      logger.debug("health-auditor", `Failed to scan refs in ${doc}`);
+    } catch (err) {
+      logger.debug("governance-detectors", `Error scanning refs in ${doc}:`, err);
     }
   }
 
@@ -329,8 +331,8 @@ function detectBrokenDirRefs(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch {
-      logger.debug("health-auditor", `Failed to scan dir refs in ${doc}`);
+    } catch (err) {
+      logger.debug("governance-detectors", `Error scanning dir refs in ${doc}:`, err);
     }
   }
 
@@ -388,8 +390,8 @@ function detectNonBacktickFileRefs(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch {
-      logger.debug("health-auditor", `Failed to scan non-backtick refs in ${doc}`);
+    } catch (err) {
+      logger.debug("governance-detectors", `Error scanning non-backtick refs in ${doc}:`, err);
     }
   }
 
@@ -434,8 +436,8 @@ function detectMissingPackageJson(nexusDir: string): HealthIssue[] {
               "Criar nexus-system/package.json com scripts para executar os TypeScript files",
           });
         }
-      } catch {
-        // skip
+      } catch (_err) {
+        logger.debug("governance-detectors", "Error reading package.json:", _err);
       }
     }
   }
@@ -459,7 +461,7 @@ function detectMaturityInconsistency(nexusDir: string): HealthIssue[] {
         scores.push({ source: "fingerprint.json", score: data.maturityScore });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error reading fingerprint.json:", err); }
 
   try {
     if (existsSync(maturityPath)) {
@@ -468,7 +470,7 @@ function detectMaturityInconsistency(nexusDir: string): HealthIssue[] {
         scores.push({ source: "maturity-profile.json", score: data.overallScore });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error reading maturity-profile.json:", err); }
 
   try {
     if (existsSync(briefingPath)) {
@@ -478,7 +480,7 @@ function detectMaturityInconsistency(nexusDir: string): HealthIssue[] {
         scores.push({ source: "BRIEFING.md", score: parseInt(scoreMatch[1], 10) });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error reading BRIEFING.md:", err); }
 
   if (scores.length >= 2) {
     const uniqueScores = new Set(scores.map((s) => s.score));
@@ -525,8 +527,8 @@ function detectAdrCoverage(nexusDir: string): HealthIssue[] {
         recommendation: "Criar ADRs para decisões arquiteturais significativas",
       });
     }
-  } catch {
-    logger.debug("health-auditor", "Failed to scan ADR directory");
+  } catch (err) {
+    logger.debug("governance-detectors", "Error in detectAdrCoverage:", err);
   }
 
   return issues;
@@ -549,7 +551,7 @@ function detectUnreferencedDirs(nexusDir: string): HealthIssue[] {
   for (const doc of governanceFiles) {
     const path = join(nexusDir, doc);
     if (existsSync(path)) {
-      try { governanceContent += readFileSync(path, "utf-8") + "\n"; } catch { /* skip */ }
+      try { governanceContent += readFileSync(path, "utf-8") + "\n"; } catch (readErr) { logger.debug("governance-detectors", "Error reading governance file:", readErr); }
     }
   }
 
@@ -569,7 +571,7 @@ function detectUnreferencedDirs(nexusDir: string): HealthIssue[] {
         });
       }
     }
-  } catch { /* skip */ }
+  } catch (scanErr) { logger.debug("governance-detectors", "Error in detectUnreferencedDirs:", scanErr); }
 
   return issues;
 }
@@ -596,7 +598,7 @@ function detectReportNaming(nexusDir: string): HealthIssue[] {
         });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectReportNaming:", err); }
 
   return issues;
 }
@@ -633,7 +635,7 @@ function detectBareWordRefs(nexusDir: string): HealthIssue[] {
         }
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectBareWordRefs:", err); }
   return issues;
 }
 
@@ -672,7 +674,7 @@ function detectTemplateDirRefs(nexusDir: string): HealthIssue[] {
           }
         }
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning template dir refs:", err); }
   }
   return issues;
 }
@@ -764,7 +766,7 @@ function detectExtensionMismatch(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning extension mismatch:", err); }
   }
   return issues;
 }
@@ -798,7 +800,7 @@ function detectSystemMapMismatch(nexusDir: string): HealthIssue[] {
         }
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectSystemMapMismatch:", err); }
   return issues;
 }
 
@@ -820,7 +822,7 @@ function detectBrokenCommands(nexusDir: string): HealthIssue[] {
       while ((match = commandRegex.exec(content)) !== null) {
         if (match[1]) brokenCommands.add(match[1]);
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning broken commands:", err); }
   }
 
   if (brokenCommands.size > 0) {
@@ -882,7 +884,7 @@ function detectP0Inconsistency(nexusDir: string): HealthIssue[] {
         });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectP0Inconsistency:", err); }
   return issues;
 }
 
@@ -898,20 +900,20 @@ function detectTripleMaturityScore(nexusDir: string): HealthIssue[] {
     try {
       const data = JSON.parse(readFileSync(fpPath, "utf-8"));
       scores.push({ source: "fingerprint.json", value: data.maturityScore ?? null });
-    } catch { /* skip */ }
+    } catch (fpErr) { logger.debug("governance-detectors", "Error reading fingerprint.json:", fpErr); }
   }
   if (existsSync(mpPath)) {
     try {
       const data = JSON.parse(readFileSync(mpPath, "utf-8"));
       scores.push({ source: "maturity-profile.json", value: data.overallScore ?? null });
-    } catch { /* skip */ }
+    } catch (mpErr) { logger.debug("governance-detectors", "Error reading maturity-profile.json:", mpErr); }
   }
   if (existsSync(briefingPath)) {
     try {
       const content = readFileSync(briefingPath, "utf-8");
       const match = content.match(/Maturity:\s*(\d+)/);
       scores.push({ source: "BRIEFING.md", value: match ? Number(match[1]) : null });
-    } catch { /* skip */ }
+    } catch (bErr) { logger.debug("governance-detectors", "Error reading BRIEFING.md:", bErr); }
   }
 
   const valid = scores.filter((s) => s.value !== null);
@@ -948,7 +950,7 @@ function detectEmptyStack(nexusDir: string): HealthIssue[] {
         recommendation: 'Actualizar stack para ["typescript"] ou re-executar fingerprint',
       });
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectEmptyStack:", err); }
   return issues;
 }
 
@@ -961,7 +963,7 @@ function detectScriptWiring(projectRoot: string, nexusDir: string): HealthIssue[
   try {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     rootScripts = Object.keys(pkg.scripts ?? {});
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error reading root package.json:", err); }
 
   const docsToScan = [
     "governance/WORKFLOW.md",
@@ -980,7 +982,7 @@ function detectScriptWiring(projectRoot: string, nexusDir: string): HealthIssue[
       while ((match = scriptRegex.exec(content)) !== null) {
         if (match[1]) referenced.add(match[1]);
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning doc scripts:", err); }
   }
 
   const missing = Array.from(referenced).filter((s) => !rootScripts.includes(s));
@@ -1050,7 +1052,7 @@ function detectAgentContractRefs(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning agent contracts:", err); }
   }
   return issues;
 }
@@ -1079,7 +1081,7 @@ function detectBufferSchemaMismatch(nexusDir: string): HealthIssue[] {
         });
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectBufferSchemaMismatch:", err); }
   return issues;
 }
 
@@ -1106,7 +1108,7 @@ function detectRuleTypo(nexusDir: string): HealthIssue[] {
           recommendation: `Corrigir "${typo.pattern.source}" para "${typo.fix}" em "${typo.file}"`,
         });
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error in detectRuleTypo:", err); }
   }
   return issues;
 }
@@ -1131,7 +1133,7 @@ function detectNumberingGap(nexusDir: string): HealthIssue[] {
           });
         }
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning FORBIDDEN_OPERATIONS:", err); }
   }
 
   const agentsPath = join(nexusDir, "docs/AGENTS.md");
@@ -1155,7 +1157,7 @@ function detectNumberingGap(nexusDir: string): HealthIssue[] {
           }
         }
       }
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error scanning AGENTS.md numbering:", err); }
   }
 
   return issues;
@@ -1211,7 +1213,7 @@ function detectPhantomRuleRefs(nexusDir: string): HealthIssue[] {
         recommendation: `Criar a regra "${ruleId}" em FORBIDDEN_OPERATIONS.md ou corrigir a referência em ${locations.join(", ")}`,
       });
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectPhantomRuleRefs:", err); }
 
   return issues;
 }
@@ -1259,7 +1261,7 @@ function detectDocCountMismatch(nexusDir: string): HealthIssue[] {
         }
       }
     }
-  } catch { /* skip */ }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectDocCountMismatch:", err); }
   return issues;
 }
 
@@ -1295,7 +1297,7 @@ function detectCrossDocP0Contradiction(nexusDir: string): HealthIssue[] {
         }
       }
       if (p0.size > 0) p0Map.set(file, p0);
-    } catch { /* skip */ }
+    } catch (err) { logger.debug("governance-detectors", "Error in detectCrossDocP0Contradiction:", err); }
   }
 
   const entries = Array.from(p0Map.entries());
@@ -1352,9 +1354,9 @@ function detectEmptyDataFiles(nexusDir: string): HealthIssue[] {
               recommendation: `Verificar se ${file} deveria ter conteúdo ou removê-lo`,
             });
           }
-        } catch { /* skip */ }
+        } catch (statErr) { logger.debug("governance-detectors", "Error checking file stat:", statErr); }
       }
-    } catch { /* skip */ }
+    } catch (scanErr) { logger.debug("governance-detectors", "Error in detectEmptyDataFiles:", scanErr); }
   }
   return issues;
 }
