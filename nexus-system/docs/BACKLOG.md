@@ -813,7 +813,7 @@
 
 ---
 
-## Resumo por Prioridade
+## Resumo por Prioridade (Itens Activos)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
@@ -821,7 +821,8 @@
 | **P1** | 19 | Arquitetura, docs, seguranca, monetizacao, AI integration |
 | **P2** | 37 | Features, DX, analytics, enterprise, auto-analise |
 | **P3** | 57 | Nice-to-have, ecosystem, observability, i18n |
-| **Total** | **114** | |
+| **Total Activo** | **114** | |
+| **Completed** | 60+ | Ver secção Completed Items abaixo |
 
 ---
 
