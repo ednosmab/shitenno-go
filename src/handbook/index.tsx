@@ -50,6 +50,13 @@ function HandbookInner() {
         return;
       }
 
+      // Space to expand level
+      if (input === " ") {
+        nav.selectCurrent();
+        setContentScrollOffset(0);
+        return;
+      }
+
       // Number keys for level jump
       if (input === "1") {
         nav.jumpToLevel(1);
@@ -83,6 +90,13 @@ function HandbookInner() {
         setContentScrollOffset(0);
         return;
       }
+
+      // Backspace also goes back
+      if (key.backspace) {
+        nav.goBack();
+        setContentScrollOffset(0);
+        return;
+      }
     }
   });
 
@@ -112,7 +126,7 @@ function HandbookInner() {
 
 export function HandbookApp() {
   return (
-    <MouseProvider>
+    <MouseProvider autoEnable={true} cacheInvalidationMs={0}>
       <HandbookInner />
     </MouseProvider>
   );

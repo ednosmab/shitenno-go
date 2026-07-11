@@ -16,9 +16,7 @@ import chalk from "chalk";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { render } from "ink";
 import React from "react";
-import { HandbookApp } from "../handbook/index.js";
 import { banner } from "../formatting.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -147,7 +145,7 @@ export const handbookCommand = new Command("handbook")
   .option("--print", "Modo não-interativo: imprime conteúdo e sai")
   .option("--level <number>", "Mostrar apenas um nível (1, 2 ou 3) — funciona com --print")
   .option("--list", "Listar todos os tópicos disponíveis")
-  .action((options) => {
+  .action(async (options) => {
     // List mode
     if (options.list) {
       listTopics();
@@ -171,6 +169,16 @@ export const handbookCommand = new Command("handbook")
     }
 
     // Interactive mode (default)
-    const { waitUntilExit } = render(React.createElement(HandbookApp));
-    waitUntilExit();
+    try {
+      const { render } = await import("ink");
+      const { HandbookApp } = await import("../handbook/index.js");
+      const { waitUntilExit } = render(React.createElement(HandbookApp));
+      await waitUntilExit();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log(chalk.red(`  ✘ Failed to launch handbook: ${msg}`));
+      console.log(chalk.gray("  Falling back to static output..."));
+      console.log("");
+      printAllLevels();
+    }
   });

@@ -7,7 +7,7 @@
 
 import { useRef } from "react";
 import { Box, Text } from "ink";
-import { useOnClick } from "@ink-tools/ink-mouse";
+import { useOnPress } from "@ink-tools/ink-mouse";
 import type { NavItem } from "../hooks/use-handbook-nav.js";
 
 interface SidebarProps {
@@ -27,7 +27,7 @@ export function Sidebar({ items, selectedIndex, onSelect }: SidebarProps) {
 
       {items.map((item, index) => (
         <SidebarItem
-          key={item.type === "level" ? `level-${item.levelNumber}` : `topic-${item.topic?.id}`}
+          key={`${item.type}-${item.levelNumber}-${item.topic?.id}-${item.isExpanded}`}
           item={item}
           isSelected={index === selectedIndex}
           onSelect={() => onSelect(index)}
@@ -46,7 +46,7 @@ interface SidebarItemProps {
 function SidebarItem({ item, isSelected, onSelect }: SidebarItemProps) {
   const ref = useRef(null);
 
-  useOnClick(ref, () => {
+  useOnPress(ref, () => {
     onSelect();
   });
 
