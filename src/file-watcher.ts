@@ -119,6 +119,26 @@ export function startWatching(
       });
     }
 
+    // Detect new plan files in governance/plans/
+    const relativePath = filePath.replace(nexusDir, "").replace(/^\//, "");
+    const plansDir = join("governance", "plans");
+    if (
+      relativePath.startsWith(plansDir) &&
+      relativePath.endsWith(".md") &&
+      !relativePath.includes("/done/") &&
+      !relativePath.includes("/reference/") &&
+      !relativePath.includes("/pipeline/") &&
+      !filePath.includes("TEMPLATE") &&
+      !filePath.includes("README")
+    ) {
+      const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
+      bus.publish("plan.created", {
+        planId,
+        path: relativePath,
+        title: planId.replace(/-/g, " "),
+      });
+    }
+
     bus.publish("asset.created", {
       assetId: filePath,
       assetType: artifactType,

@@ -17,6 +17,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { guardNotInitialized } from "../shared.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
 import {
@@ -26,7 +27,7 @@ import {
 } from "../plan-engine.js";
 import { MarkdownPlanEngine, type MarkdownPlanStatus } from "../markdown-plan-engine.js";
 import { ActionEngine, FileExecutionRepository } from "../action-engine.js";
-import { outputJson } from "../formatting.js";
+import { outputJson, banner } from "../formatting.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -538,6 +539,149 @@ export function planCommand(): Command {
         console.log(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
         console.log(`    ${plan.title}`);
         console.log(`    Path: ${plan.relativePath}`);
+        console.log("");
+      }
+    });
+
+  // ── md prepare ──────────────────────────────────────────────────────────
+  mdCmd
+    .command("prepare")
+    .description("Prepare a plan: format header, extract checklist, sync backlog, notify")
+    .argument("<id>", "Plan ID (filename without .md)")
+    .option("--json", "Output as JSON")
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const isJson = opts.json === true;
+      const ctx = guardNotInitialized(opts, isJson);
+      if (!ctx) return;
+
+      const nexusDir = join(ctx.projectRoot, NEXUS_DIR_NAME);
+      const engine = new MarkdownPlanEngine(nexusDir);
+      const plan = engine.getById(id);
+
+      if (!plan) {
+        if (isJson) {
+          outputJson({ error: "not_found", message: `Plan not found: ${id}` });
+        } else {
+          console.log(chalk.red(`  ✘ Plan not found: ${id}`));
+        }
+        return;
+      }
+
+      if (!isJson) {
+        console.log("");
+        banner("nexus plan prepare", "Plan Preparation");
+        console.log("");
+        console.log(chalk.gray(`  Plan: ${plan.title}`));
+        console.log(chalk.gray(`  Path: ${plan.relativePath}`));
+        console.log("");
+      }
+
+      const results: { step: string; status: string; detail: string }[] = [];
+
+      // Step 1: Format header to nexus standard
+      try {
+        let content = readFileSync(plan.filePath, "utf-8");
+        let updated = false;
+
+        // Ensure **Status:** field exists
+        if (!content.match(/\*\*Status:\*\*/)) {
+          const titleLine = content.split("\n").findIndex((l) => l.startsWith("# "));
+          if (titleLine !== -1) {
+            const lines = content.split("\n");
+            lines.splice(titleLine + 2, 0, "", "**Status:** Pending");
+            content = lines.join("\n");
+            updated = true;
+          }
+        }
+
+        // Ensure **Date:** field exists
+        if (!content.match(/\*\*Date:\*\*/)) {
+          const statusLine = content.split("\n").findIndex((l) => l.match(/\*\*Status:\*\*/));
+          if (statusLine !== -1) {
+            const lines = content.split("\n");
+            lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`);
+            content = lines.join("\n");
+            updated = true;
+          }
+        }
+
+        // Ensure **Updated_at:** field exists
+        if (!content.match(/\*\*Updated_at:\*\*/)) {
+          const lastField = content.split("\n").findIndex((l) => l.match(/^\*\*[A-Z]/));
+          if (lastField !== -1) {
+            const lines = content.split("\n");
+            lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`);
+            content = lines.join("\n");
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          writeFileSync(plan.filePath, content, "utf-8");
+          results.push({ step: "format_header", status: "done", detail: "Header formatted to nexus standard" });
+        } else {
+          results.push({ step: "format_header", status: "skip", detail: "Header already conformant" });
+        }
+      } catch (error) {
+        results.push({ step: "format_header", status: "error", detail: String(error) });
+      }
+
+      // Step 2: Check for existing checklist in plan
+      try {
+        const content = readFileSync(plan.filePath, "utf-8");
+        const hasChecklist = content.includes("## 3.1 Checklists") || content.includes("| # |") || content.match(/\[[ x]\]/);
+        if (hasChecklist) {
+          results.push({ step: "checklist", status: "skip", detail: "Checklist already exists in plan" });
+        } else {
+          results.push({ step: "checklist", status: "skip", detail: "No checklist section found — add manually or via pipeline template" });
+        }
+      } catch (error) {
+        results.push({ step: "checklist", status: "error", detail: String(error) });
+      }
+
+      // Step 3: Sync to BACKLOG.md
+      try {
+        const backlogPath = join(ctx.projectRoot, "docs", "BACKLOG.md");
+        if (existsSync(backlogPath)) {
+          const backlog = readFileSync(backlogPath, "utf-8");
+          const planIdUpper = id.toUpperCase().replace(/-/g, "_");
+
+          if (backlog.includes(planIdUpper)) {
+            results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md` });
+          } else {
+            results.push({ step: "backlog_sync", status: "pending", detail: `Item ${planIdUpper} needs to be added to BACKLOG.md manually` });
+          }
+        } else {
+          results.push({ step: "backlog_sync", status: "skip", detail: "BACKLOG.md not found" });
+        }
+      } catch (error) {
+        results.push({ step: "backlog_sync", status: "error", detail: String(error) });
+      }
+
+      // Step 4: Send desktop notification
+      try {
+        const { execSync } = await import("node:child_process");
+        execSync(`notify-send "Nexus Plan" "Plan prepared: ${plan.title}" --urgency=normal`, {
+          stdio: "pipe",
+          timeout: 2000,
+        });
+        results.push({ step: "notify", status: "done", detail: "Desktop notification sent" });
+      } catch {
+        results.push({ step: "notify", status: "skip", detail: "notify-send not available or failed" });
+      }
+
+      // Output results
+      if (isJson) {
+        outputJson({ planId: id, title: plan.title, results });
+      } else {
+        console.log(chalk.bold("  Results:"));
+        console.log("");
+        for (const r of results) {
+          const icon = r.status === "done" ? "✅" : r.status === "skip" ? "⏭" : r.status === "error" ? "❌" : "⏳";
+          console.log(`    ${icon} ${r.step}: ${r.detail}`);
+        }
+        console.log("");
+        console.log(chalk.green(`  ✓ Plan "${plan.title}" prepared`));
         console.log("");
       }
     });

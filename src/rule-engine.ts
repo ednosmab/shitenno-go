@@ -135,6 +135,7 @@ export type TriggerType =
   | "pipeline_complete"
   | "task_completed"
   | "plan_archived"
+  | "plan_created"
   | "plan_file_changed"
   | "plan_status_changed"
   | "manual";
@@ -1127,6 +1128,21 @@ export function getDefaultRules(): Rule[] {
       tags: ["buffer", "automation", "plan", "backlog", "next_p0"],
       requiredCapability: undefined,
     },
+    {
+      id: "RULE-020",
+      description: "Auto-prepare new plans: log creation and notify user",
+      trigger: "plan_created",
+      conditions: [],
+      actions: [
+        { type: "log_event", params: { event: "plan_created", message: "New plan detected — run 'nexus plan prepare <planId>' to format header, extract checklist, and sync backlog" } },
+        { type: "create_reminder", params: { message: "New plan detected — run 'nexus plan prepare' to prepare it", priority: "medium", category: "plan" } },
+      ],
+      priority: 1,
+      dependencies: [],
+      enabled: true,
+      tags: ["plan", "automation", "pipeline", "preparation"],
+      requiredCapability: undefined,
+    },
   ];
 }
 
@@ -1199,6 +1215,7 @@ const EVENT_TO_TRIGGER: Partial<Record<NexusEventType, TriggerType>> = {
 
   // Plan events
   "plan.archived": "plan_archived",
+  "plan.created": "plan_created",
   "plan.file_changed": "plan_file_changed",
   "plan.status_changed": "plan_status_changed",
 

@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-06 — reestruturacao do backlog (itens concluidos movidos para BACKLOG-ARCHIVE.md)
+> **Ultima atualizacao:** 2026-07-11 — adição de 7 items Nexus Living (LIVING-001 a LIVING-006 + BUG-001)
 
 ---
 
@@ -27,6 +27,34 @@
 | **Modulos** | src/maturity-profile.ts, governance/policies/ |
 | **Descricao** | Dimensao Governance do score de maturidade esta em 0%. Nenhuma pratica de governanca formalizada no codigo. |
 | **Correcao** | Auto-detect de artefactos + policies + answers.json. Score subiu de 15 para 100. |
+
+### LIVING-001 Fase 1 — Cache cross-process
+
+| Campo | Valor |
+|---|---|
+| **Status** | In Progress — 2026-07-11 (steps 1.1-1.6, 1.8 concluídos; 1.7, 1.9, 1.10 pendentes) |
+| **Severidade** | Alto |
+| **Prioridade** | P0 |
+| **Owner** | executor |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 3, Fase 1) |
+| **Modulos** | src/engineering-state-access.ts, src/__tests__/engineering-state-access.test.ts, src/__tests__/benchmarks.bench.ts |
+| **Descricao** | Modificar `getEngineeringState()` para ler `engineering-state.json` do disco com verificação de frescor antes de recalcular. Manter `forceRefresh` como kill-switch. Adicionar benchmark novo (consolidação fria vs cache cross-process) nos 3 tamanhos de fixture. |
+| **Correcao** | Implementado: `isDiskCacheFresh()` + `hasFileChangedSince()` verificam mtime de `governance/`. 7 testes OK. Pendente: benchmark novo e dogfooding. |
+
+### BUG-001 Corrigir `nexus detect --auto`
+
+| Campo | Valor |
+|---|---|
+| **Status** | Done — 2026-07-11 |
+| **Severidade** | Medio |
+| **Prioridade** | P0 |
+| **Owner** | executor |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 0, achado novo) |
+| **Modulos** | src/commands/detect.ts, .husky/post-commit |
+| **Descricao** | `.husky/post-commit` executa `nexus detect --auto 2>/dev/null &` mas `detect.ts` não define opção `--auto`. Commander.js rejeita opção desconhecida. Hook falha silenciosamente a cada commit (stderr redirigido para /dev/null). |
+| **Correcao** | Opção `--auto` adicionada a `detect.ts` — modo non-interactive que suprime banner e spinner. Testes OK. |
 
 ---
 
@@ -129,6 +157,80 @@
 | **Modulos** | src/ (global) |
 | **Descricao** | God modules (feedback-loops.ts 396 linhas, state-manager.ts 438 linhas). Sem dependency injection. Interface Segregation violada (NexusState com 60+ campos). |
 | **Correcao** | Dividir modules grandes. Adicionar DI. Criar interfaces menores. |
+
+### LIVING-002 Fase 2 — Git hooks reactivos
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 3, Fase 2) |
+| **Depende** | LIVING-001 (validação algunos dias), BUG-001 (corrigir --auto) |
+| **Modulos** | src/plan-lifecycle.ts (NOVO), src/commands/hooks.ts (NOVO), src/commands/detect.ts, .husky/post-merge (NOVO) |
+| **Descricao** | Criar `checkAndArchiveDonePlans()` que percorre `governance/plans/*.md`, identifica planos com `Status: Done` ainda não arquivados, chama `archiveIfDone()`. Ligar ao modo `--auto` do `detect`. Criar instalador Husky (append a post-commit, cria post-merge). |
+| **Correcao** | Reaproveitar `archiveIfDone()` existente. Instalador deve fazer append, nunca overwrite. Testes: idempotência, nunca sobrescrever hook existente, cenário e2e completo. |
+
+### LIVING-003 Fase 3 — Daemon opt-in
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 3, Fase 3) |
+| **Depende** | LIVING-001 + LIVING-002 (validação alguns dias) |
+| **Modulos** | src/daemon.ts (NOVO), src/daemon-client.ts (NOVO), src/daemon-circuit-breaker.ts (NOVO), src/commands/daemon.ts (NOVO), src/daemon-resources.ts (NOVO), src/cli-middleware.ts, src/commands/init.ts, bin/nexus.ts |
+| **Descricao** | Daemon opt-in com socket IPC (chmod 0600), handshake de versão, circuit breaker de crash loop, `NEXUS_NO_DAEMON=1` + `CI=true`, auto-start só após validação manual. Reaproveita `checkAndArchiveDonePlans()` da Fase 2 em modo contínuo via chokidar. |
+| **Correcao** | 5 ajustes de segurança obrigatórios. Estrutura: daemon.pid, daemon.sock, daemon.log, daemon.rules.json em `nexus-system/daemon/`. |
+
+### LIVING-004 Problemas de memória — Bounded collections
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Alto |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 5) |
+| **Depende** | LIVING-003 (durante/implementação do daemon) |
+| **Modulos** | src/engineering-state-evolved.ts, src/advanced-infrastructure.ts, src/capability-engine.ts, src/event-replay.ts, src/incremental-consolidator.ts, src/doc-sync-significance.ts, console/data-collector |
+| **Descricao** | Limitar collections em memória: sliding window 10K eventos (`EventSourcedState`), cap 500 (`DeadLetterQueue`), últimas 50 transições (`CapabilityLifecycleTracker`), cap 10K + LRU (`EventReplayer`), auto-drain (`IncrementalConsolidator`), TTL 1h (`ChangeHistoryTracker`), LRU + TTL (`data-collector`). |
+| **Correcao** | Implementar caps, sliding windows e TTLs antes/durante Fase 3. Previne fuga de memória em sessões longas do daemon. |
+
+### LIVING-005 Pipeline de validação por fases
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-11 |
+| **Fonte** | Plano Nexus Living v2 (secção 4) |
+| **Depende** | Acompanha cada fase |
+| **Modulos** | src/__tests__/benchmarks.bench.ts, tests/e2e/validate.sh |
+| **Descricao** | Gate comum (testes+lint limpos, e2e sem regressão) + critérios específicos por fase. Benchmark novo Fase 1, cenário e2e Fase 2, script de carga Fase 3. Dogfooding no próprio repo. |
+| **Correcao** | Reaproveitar infra existente (pnpm test, pnpm bench, e2e/validate.sh). Sem ganho mensurável no benchmark → Fase 1 não avança. |
+
+### LIVING-007 Sistema de Pipelines de Validação
+
+| Campo | Valor |
+|---|---|
+| **Status** | In Progress — 2026-07-11 (template + pipelines criados, plan prepare implementado, plan.created event + RULE-020 adicionados) |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-11 |
+| **Fonte** | Nexus Living — necessidade de validação padronizada por fase |
+| **Modulos** | event-bus.ts, file-watcher.ts, commands/plan.ts, rule-engine.ts, governance/plans/pipeline/ |
+| **Descricao** | Comandos independentes (plan prepare, pipeline exec/notify/status) encadeáveis via shell. Evento plan.created + RULE-020 para trigger automático. Templates de pipeline por fase com contadores humano/agente. Notificação desktop por fase. |
+| **Correcao** | Implementado: plan.created event, RULE-020, plan md prepare, 4 pipelines, template. Futuro: nexus pipeline run/exec/notify/list/status, backbone sync. |
 
 ### NEW-001 Runtime validation nexus-system/profile/
 
@@ -282,6 +384,20 @@
 ---
 
 ## P2 — Medio prazo (≤ 90 dias)
+
+### LIVING-006 Mecanismo sync plano→backlog
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Prioridade** | P2 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-11 |
+| **Fonte** | Observação durante planeamento do Nexus Living |
+| **Modulos** | src/commands/ (novo comando ou extensão de `plan`) |
+| **Descricao** | O Nexus system não tem mecanismo para transformar automaticamente items de implementação de um plano (`governance/plans/*.md`) em checklists no backlog que se actualizam de acordo com a implementação por item. Actualmente, a sincronização é manual. |
+| **Correcao** | Criar comando `nexus plan sync` que: (1) lê checkboxes do plano, (2) cria/actualiza items correspondentes no BACKLOG.md, (3) sincroniza estados (`[x]` → `Done`, `[ ]` → `Backlog`). Considerar webhook ou watcher para actualização em tempo real. |
 
 ### 2.1 Aprovacao de regras candidatas
 
@@ -817,11 +933,11 @@
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **P0** | 1 | Governanca 0% |
-| **P1** | 18 | Arquitetura, docs, seguranca, monetizacao, AI integration |
-| **P2** | 31 | Features, DX, analytics, enterprise, auto-analise |
+| **P0** | 3 | Governanca 0%, Cache cross-process, Bug detect --auto |
+| **P1** | 23 | Arquitetura, docs, seguranca, monetizacao, AI integration, Nexus Living (fases 2-3, memoria, pipeline, pipelines de validação) |
+| **P2** | 32 | Features, DX, analytics, enterprise, auto-analise, sync plano→backlog |
 | **P3** | 57 | Nice-to-have, ecosystem, observability, i18n |
-| **Total Activo** | **107** | |
+| **Total Activo** | **115** | |
 | **Completed** | 67+ | Ver secção Completed Items abaixo |
 
 ---

@@ -91,6 +91,7 @@ const EVENT_VERSIONS: Record<NexusEventType, EventVersion> = {
   "pipeline.started": 1,
   "pipeline.complete": 1,
   "plan.archived": 1,
+  "plan.created": 1,
   "plan.file_changed": 1,
   "plan.status_changed": 1,
   "lifecycle.state_changed": 1,
