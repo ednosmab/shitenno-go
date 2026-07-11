@@ -14,10 +14,9 @@ interface SidebarProps {
   items: NavItem[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  onExpand: (levelNumber: number) => void;
 }
 
-export function Sidebar({ items, selectedIndex, onSelect, onExpand }: SidebarProps) {
+export function Sidebar({ items, selectedIndex, onSelect }: SidebarProps) {
   return (
     <Box flexDirection="column" width="40%">
       <Box marginBottom={1}>
@@ -32,11 +31,6 @@ export function Sidebar({ items, selectedIndex, onSelect, onExpand }: SidebarPro
           item={item}
           isSelected={index === selectedIndex}
           onSelect={() => onSelect(index)}
-          onExpand={() => {
-            if (item.type === "level") {
-              onExpand(item.levelNumber);
-            }
-          }}
         />
       ))}
     </Box>
@@ -47,17 +41,13 @@ interface SidebarItemProps {
   item: NavItem;
   isSelected: boolean;
   onSelect: () => void;
-  onExpand: () => void;
 }
 
-function SidebarItem({ item, isSelected, onSelect, onExpand }: SidebarItemProps) {
+function SidebarItem({ item, isSelected, onSelect }: SidebarItemProps) {
   const ref = useRef(null);
 
   useOnClick(ref, () => {
     onSelect();
-    if (item.type === "level") {
-      onExpand();
-    }
   });
 
   if (item.type === "level") {

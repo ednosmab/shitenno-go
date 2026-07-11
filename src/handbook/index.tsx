@@ -95,16 +95,9 @@ function HandbookInner() {
           items={nav.navItems}
           selectedIndex={nav.selectedIndex}
           onSelect={(index) => {
-            // Update selectedIndex and potentially expand level
-            if (nav.navItems[index]?.type === "level") {
-              nav.expandLevel(nav.navItems[index].levelNumber);
-            } else {
-              // For topics, select them
-              nav.selectCurrent();
-              setContentScrollOffset(0);
-            }
+            nav.selectAt(index);
+            setContentScrollOffset(0);
           }}
-          onExpand={nav.expandLevel}
         />
         <Content
           topic={nav.selectedTopic}

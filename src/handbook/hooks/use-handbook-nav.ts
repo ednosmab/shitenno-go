@@ -217,6 +217,43 @@ export function useHandbookNav() {
     });
   }, []);
 
+  const selectAt = useCallback((index: number) => {
+    setState((prev) => {
+      const currentItem = prev.navItems[index];
+      if (!currentItem) return prev;
+
+      if (currentItem.type === "level") {
+        const newExpanded = prev.expandedLevel === currentItem.levelNumber
+          ? null
+          : currentItem.levelNumber;
+        const newNavItems = buildNavItems(prev.levels, newExpanded, index);
+        return {
+          ...prev,
+          selectedIndex: index,
+          expandedLevel: newExpanded,
+          navItems: newNavItems,
+          totalItems: newNavItems.length,
+          viewMode: "tree",
+          selectedTopic: null,
+          content: null,
+        };
+      }
+
+      if (currentItem.type === "topic" && currentItem.topic) {
+        const content = readTopicContent(currentItem.topic);
+        return {
+          ...prev,
+          selectedIndex: index,
+          viewMode: "content",
+          selectedTopic: currentItem.topic,
+          content,
+        };
+      }
+
+      return prev;
+    });
+  }, []);
+
   const goBack = useCallback(() => {
     setState((prev) => {
       if (prev.viewMode === "content") {
@@ -276,6 +313,7 @@ export function useHandbookNav() {
     moveUp,
     moveDown,
     selectCurrent,
+    selectAt,
     goBack,
     jumpToLevel,
     selectTopicById,
