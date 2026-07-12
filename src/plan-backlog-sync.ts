@@ -1,0 +1,292 @@
+/**
+ * plan-backlog-sync.ts — Plan Checklist ↔ Backlog Sync
+ *
+ * Provides bidirectional sync between plan checklists and BACKLOG.md.
+ * Subscribes to plan.file_changed and plan.archived events.
+ *
+ * PRINCIPLE: Plan state changes should propagate to BACKLOG.md automatically.
+ */
+
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { getEventBus } from "./event-bus.js";
+import { logger } from "./logger.js";
+import { addImpediment, clearImpediments } from "./context-buffer-writer.js";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface ChecklistItem {
+  text: string;
+  checked: boolean;
+}
+
+// ── Checklist Extraction ─────────────────────────────────────────────────────
+
+/**
+ * Extract checklist items from plan content.
+ * Looks for `- [ ]` and `- [x]` items within `## Checklist` section.
+ */
+export function extractChecklist(content: string): ChecklistItem[] {
+  const items: ChecklistItem[] = [];
+  const lines = content.split("\n");
+  let inChecklistSection = false;
+
+  for (const line of lines) {
+    if (line.trim() === "## Checklist") {
+      inChecklistSection = true;
+      continue;
+    }
+
+    if (inChecklistSection && line.startsWith("## ")) {
+      break;
+    }
+
+    if (inChecklistSection) {
+      const uncheckedMatch = line.match(/^- \[ \]\s*(.+)$/);
+      const checkedMatch = line.match(/^- \[x\]\s*(.+)$/);
+
+      if (uncheckedMatch?.[1]) {
+        items.push({ text: uncheckedMatch[1], checked: false });
+      } else if (checkedMatch?.[1]) {
+        items.push({ text: checkedMatch[1], checked: true });
+      }
+    }
+  }
+
+  return items;
+}
+
+// ── Plan → Backlog Sync ──────────────────────────────────────────────────────
+
+/**
+ * Sync plan checklist completion to BACKLOG.md.
+ * Updates the Status field of the corresponding backlog item.
+ */
+export function syncPlanToBacklog(
+  nexusDir: string,
+  planId: string,
+  planContent: string
+): void {
+  const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+  if (!existsSync(backlogPath)) return;
+
+  const backlog = readFileSync(backlogPath, "utf-8");
+  const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
+  const checklist = extractChecklist(planContent);
+
+  const total = checklist.length;
+  const completed = checklist.filter((i) => i.checked).length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  if (backlog.includes(planIdUpper)) {
+    // Update existing backlog item's Status field
+    const statusRegex = new RegExp(
+      `(### ${planIdUpper}[\\s\\S]*?\\| \\*\\*Status\\*\\* \\| )([^|]+)( \\|)`,
+      "m"
+    );
+    const status = percentage === 100 ? "concluído" : percentage > 0 ? "em implementação" : "planeado";
+    const statusWithPct = `${status} (${percentage}% — ${completed}/${total})`;
+
+    const updatedBacklog = backlog.replace(statusRegex, `$1${statusWithPct}$3`);
+    if (updatedBacklog !== backlog) {
+      writeFileSync(backlogPath, updatedBacklog, "utf-8");
+      logger.info("plan-backlog-sync", `Updated ${planIdUpper}: ${percentage}% complete`);
+      getEventBus().publish("backlog.updated", {
+        planId,
+        percentage,
+        completed,
+        total,
+        source: "checklist_sync",
+      });
+    }
+  }
+}
+
+// ── Backlog → Plan Sync ──────────────────────────────────────────────────────
+
+/**
+ * Sync BACKLOG.md status change to plan file.
+ * Updates the Status and Updated_at fields in the plan.
+ */
+export function syncBacklogToPlan(
+  nexusDir: string,
+  planId: string,
+  backlogStatus: string
+): void {
+  const planPath = join(nexusDir, "governance", "plans", `${planId}.md`);
+  if (!existsSync(planPath)) return;
+
+  let content = readFileSync(planPath, "utf-8");
+
+  const statusMap: Record<string, string> = {
+    concluído: "Done",
+    "em implementação": "In Progress",
+    pausado: "Paused",
+    planeado: "Pending",
+  };
+
+  const planStatus = statusMap[backlogStatus] || "In Progress";
+
+  content = content.replace(/\*\*Status:\*\*\s*.+/, `**Status:** ${planStatus}`);
+  content = content.replace(/\*\*Updated_at:\*\*\s*.+/, `**Updated_at:** ${new Date().toISOString()}`);
+
+  writeFileSync(planPath, content, "utf-8");
+  logger.info("plan-backlog-sync", `Updated plan ${planId} status to ${planStatus}`);
+}
+
+// ── Initialization ───────────────────────────────────────────────────────────
+
+let syncInitialized = false;
+
+/**
+ * Initialize reactive sync subscribers on the event bus.
+ * Call this once at CLI startup (bin/nexus.ts).
+ * Safe to call multiple times — subscribers are registered only once.
+ */
+export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void {
+  if (syncInitialized) return;
+  syncInitialized = true;
+
+  const bus = getEventBus();
+
+  // When a new plan is created, auto-prepare it (header + checklist + backlog)
+  bus.subscribe("plan.created", (payload: Record<string, unknown>) => {
+    const planId = payload.planId as string;
+    if (planId) {
+      logger.info("plan-backlog-sync", `Plan created: ${planId} — running auto-prepare`);
+      import("./commands/plan.js").then(({ runPrepare }) => {
+        runPrepare(projectRoot, nexusDir, planId).then((results) => {
+          const done = results.filter((r) => r.status === "done").length;
+          const errors = results.filter((r) => r.status === "error").length;
+          logger.info("plan-backlog-sync", `Auto-prepare ${planId}: ${done} done, ${errors} errors`);
+          bus.publish("backlog.updated", {
+            planId,
+            stepsCount: done,
+            errorCount: errors,
+            source: "auto_prepare",
+          });
+          if (errors === 0) {
+            clearImpediments(nexusDir, planId);
+          } else {
+            addImpediment(nexusDir, {
+              description: `Sync failed for ${planId}: ${errors} errors during auto-prepare`,
+              priority: "high",
+              createdAt: new Date().toISOString(),
+              category: "plan_sync",
+            });
+          }
+        });
+      }).catch((err) => {
+        logger.error("plan-backlog-sync", `Auto-prepare failed for ${planId}: ${err}`);
+        addImpediment(nexusDir, {
+          description: `Auto-prepare crashed for ${planId}: ${String(err)}`,
+          priority: "high",
+          createdAt: new Date().toISOString(),
+          category: "plan_sync",
+        });
+      });
+    }
+  });
+
+  // When a plan file changes, sync checklist progress to BACKLOG.md
+  // and auto-archive if status changed to done
+  bus.subscribe("plan.file_changed", (payload: Record<string, unknown>) => {
+    const planId = payload.planId as string;
+    const content = payload.content as string;
+    if (planId && content) {
+      logger.info("plan-backlog-sync", `Plan changed: ${planId}`);
+      syncPlanToBacklog(nexusDir, planId, content);
+
+      // Check if status changed to done → auto-archive
+      import("./markdown-plan-engine.js").then(({ MarkdownPlanEngine }) => {
+        const engine = new MarkdownPlanEngine(nexusDir);
+        const archived = engine.archiveIfDone(planId);
+        if (archived) {
+          logger.info("plan-backlog-sync", `Auto-archived plan ${planId} → done/`);
+        }
+      }).catch((err) => {
+        logger.debug("plan-backlog-sync", `archiveIfDone skipped for ${planId}: ${err}`);
+      });
+    }
+  });
+
+  // When a plan is archived, mark it as done in BACKLOG.md
+  bus.subscribe("plan.archived", (payload: Record<string, unknown>) => {
+    const planId = payload.planId as string;
+    if (planId) {
+      logger.info("plan-backlog-sync", `Plan archived: ${planId}`);
+      const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
+      const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+      if (existsSync(backlogPath)) {
+        let backlog = readFileSync(backlogPath, "utf-8");
+        const statusRegex = new RegExp(
+          `(### ${planIdUpper}[\\s\\S]*?\\| \\*\\*Status\\*\\* \\| )([^|]+)( \\|)`,
+          "m"
+        );
+        backlog = backlog.replace(statusRegex, `$1concluído$3`);
+        writeFileSync(backlogPath, backlog, "utf-8");
+      }
+    }
+  });
+
+  logger.info("plan-backlog-sync", "Plan-Backlog sync subscribers initialized");
+
+  // Retroactive scan: process plans that exist but have no BACKLOG entry
+  const plansDir = join(nexusDir, "governance", "plans");
+  if (existsSync(plansDir)) {
+    const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+    const backlog = existsSync(backlogPath) ? readFileSync(backlogPath, "utf-8") : "";
+
+    const planFiles = readdirSync(plansDir).filter(
+      (f) =>
+        f.endsWith(".md") &&
+        !f.startsWith("TEMPLATE") &&
+        !f.startsWith("README") &&
+        !f.includes("/done/") &&
+        !f.includes("/reference/")
+    );
+
+    for (const file of planFiles) {
+      const planId = file.replace(".md", "");
+      const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
+
+      const hasBacklogEntry = backlog.includes(planIdUpper);
+      const hasStepsSection = backlog.includes("#### Passos do Plano");
+
+      // Process if: no BACKLOG entry OR exists but no steps section
+      if (!hasBacklogEntry || (hasBacklogEntry && !hasStepsSection)) {
+        const reason = !hasBacklogEntry ? "no BACKLOG entry" : "no steps section";
+        logger.info("plan-backlog-sync", `Retroactive scan: processing ${planId} (${reason})`);
+        import("./commands/plan.js").then(({ runPrepare }) => {
+          runPrepare(projectRoot, nexusDir, planId).then((results) => {
+            const done = results.filter((r) => r.status === "done").length;
+            const errors = results.filter((r) => r.status === "error").length;
+            logger.info("plan-backlog-sync", `Retroactive prepare ${planId}: ${done} done, ${errors} errors`);
+            bus.publish("backlog.updated", {
+              planId,
+              stepsCount: done,
+              errorCount: errors,
+              source: "retroactive_scan",
+            });
+            if (errors > 0) {
+              addImpediment(nexusDir, {
+                description: `Retroactive sync failed for ${planId}: ${errors} errors`,
+                priority: "high",
+                createdAt: new Date().toISOString(),
+                category: "plan_sync",
+              });
+            }
+          });
+        }).catch((err) => {
+          logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
+          addImpediment(nexusDir, {
+            description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
+            priority: "high",
+            createdAt: new Date().toISOString(),
+            category: "plan_sync",
+          });
+        });
+      }
+    }
+  }
+}

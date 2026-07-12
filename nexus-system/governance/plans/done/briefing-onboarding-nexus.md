@@ -52,7 +52,7 @@ Termos como "Knowledge Debt", "Meta Model", "Engineering State" **não são proi
 **O que reescrever:**
 
 - **Abertura**: trocar a definição por negação ("Nexus não é uma ferramenta, não é um framework...") por uma frase direta de uma linha: o que é, pra quem, o que resolve. Ex.: "Nexus é um CLI que dá contexto persistente sobre o seu projeto para você e para agentes de IA, para que ninguém — humano ou IA — comece cada sessão do zero."
-- **Mover para baixo** (ou para `docs/philosophy/`): "Como o Nexus Pensa", "Meta Model", "Arquitetura Overview" com o diagrama ASCII. Isso é conteúdo de aprofundamento, não de primeira leitura.
+- **Mover para baixo** (ou para `docs/handbook/philosophy/`): "Como o Nexus Pensa", "Meta Model", "Arquitetura Overview" com o diagrama ASCII. Isso é conteúdo de aprofundamento, não de primeira leitura.
 - **Subir para cima, logo após a abertura**: Quick Start + uma seção nova "Para quem é isso" com os 4 perfis já definidos em `docs/domain/problem-statement.md` (solo, 2-5, 5-15, times com IA) — isso já existe escrito, só não está no README.
 - **Tabela de Token Economy**: adicionar uma nota clara de que são números projetados/estimados, não benchmark medido — isso evita que pareça uma promessa vazia e constrói confiança em vez de ceticismo.
 - **Adicionar um exemplo real de output** de `nexus status` ou `nexus init` (capturado de um projeto de teste) logo abaixo do Quick Start. Texto sem output é abstrato; com output, é concreto.
@@ -93,7 +93,7 @@ Essa página resolve diretamente a lacuna que identificamos: o Nexus promete res
 
 ## 6. O que não fazer
 
-- Não remover o conteúdo conceitual (`docs/philosophy`, `concepts/` no dashboard) — ele tem valor para quem já decidiu usar e quer entender a fundo. Só não deve ser a porta de entrada.
+- Não remover o conteúdo conceitual (`docs/handbook/philosophy`, `concepts/` no dashboard) — ele tem valor para quem já decidiu usar e quer entender a fundo. Só não deve ser a porta de entrada.
 - Não inventar métricas novas de economia de tokens sem medição real — só rotular claramente o que já existe como estimativa.
 - Não transformar isso em um tutorial interativo complexo (quiz, sandbox, progress bar) — o pedido aqui é clareza e velocidade, não gamificação. Isso pode ser fase 2, não é o problema atual.
 

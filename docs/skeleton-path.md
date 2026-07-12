@@ -8,10 +8,16 @@ docs/
 ├── BACKLOG.md                  # Active work tracker
 ├── skeleton-path.md            # This file
 │
-├── philosophy/                 # Engineering principles
-│   ├── engineering-manifesto.md
-│   ├── principles.md
-│   └── vision.md
+├── handbook/                    # User handbook + philosophy
+│   ├── README.md
+│   ├── handbook.template.md
+│   ├── philosophy/              # Engineering principles
+│   │   ├── engineering-manifesto.md
+│   │   ├── principles.md
+│   │   └── vision.md
+│   ├── 01-fundamentals/         # Getting started
+│   ├── 02-commands/             # CLI reference
+│   └── 03-architecture/         # Internal design
 │
 ├── domain/                     # Business knowledge
 │   ├── ubiquitous-language.md

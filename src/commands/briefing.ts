@@ -5,9 +5,11 @@
  * Collect → Cache → Generate → Output → Feedback
  *
  * Usage:
- *   nexus briefing                  # Cached briefing (markdown)
+ *   nexus briefing                  # Cached briefing (standard depth)
+ *   nexus briefing basic            # Quick briefing (~200 tokens)
+ *   nexus briefing full             # Full briefing (~1000 tokens)
  *   nexus briefing --json           # JSON output
- *   nexus briefing --write          # Write .nexus/BRIEFING.md
+ *   nexus briefing --write          # Write nexus-system/BRIEFING.md
  *   nexus briefing --diff           # Show diff since last briefing
  *   nexus briefing --invalidate     # Force cache invalidation
  *   nexus briefing --summary        # One-line summary
@@ -86,6 +88,20 @@ function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: Br
     console.log("");
   }
 
+  // ── Recent Activity (standard+ only) ──
+  if (depth !== "minimal" && briefing.recentActivity && briefing.recentActivity.events.length > 0) {
+    console.log(chalk.bold("  🕹️ Actividade Recente (24h)"));
+    for (const event of briefing.recentActivity.events.slice(0, 5)) {
+      const time = event.timestamp.slice(11, 16);
+      const color = event.type.includes("error") || event.type.includes("warning") ? chalk.red : chalk.gray;
+      console.log(color(`     ${time} ${event.type}: ${event.summary}`));
+    }
+    const syncCount = briefing.recentActivity.syncCount;
+    const errorCount = briefing.recentActivity.errorCount;
+    console.log(chalk.gray(`     ${syncCount} sincronizações, ${errorCount} erros`));
+    console.log("");
+  }
+
   // ── Context rules (standard: text, minimal: skip) ──
   if (depth === "standard" && briefing.contextRules.length > 0) {
     console.log(chalk.bold("  📏 Context Rules"));
@@ -156,6 +172,176 @@ function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: Br
   console.log("");
 }
 
+// ── Shared Briefing Logic ──────────────────────────────────────────────────
+
+interface BriefingOptions {
+  dir?: string;
+  json?: boolean;
+  write?: boolean;
+  diff?: boolean;
+  invalidate?: boolean;
+  summary?: boolean;
+  profile?: string;
+}
+
+async function runBriefing(
+  options: BriefingOptions,
+  forcedDepth?: BriefingDepth
+): Promise<void> {
+  const isJson = options.json === true;
+
+  if (!isJson) {
+    console.log("");
+    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+    console.log(chalk.bold.cyan("  ║    nexus briefing — Context Pipeline  ║"));
+    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+    console.log("");
+  }
+
+  const ctx = guardNotInitialized(options, isJson);
+  if (!ctx) return;
+
+  if (!checkLifecycleGate("briefing", ctx.projectRoot, ctx.nexusDir, isJson)) {
+    return;
+  }
+
+  const spinner = ora({ spinner: "dots" }).start(isJson ? "Generating" : "Collecting context...");
+
+  try {
+    // ── Stage 1: Collect ──────────────────────────────────────────
+    const snapshot = collectContext(ctx.projectRoot, ctx.nexusDir);
+
+    // ── Stage 2: Cache ───────────────────────────────────────────
+    const newInputHash = computeInputHash({
+      fingerprintHash: snapshot.fingerprint.hash,
+      riskMapHash: snapshot.riskMap.generatedAt,
+      contextRuleCount: snapshot.contextRules.length,
+      dynamicRuleCount: snapshot.dynamicRules.length,
+      maturityScore: snapshot.maturityProfile?.overallScore ?? null,
+    });
+
+    const oldCache = readCache(ctx.nexusDir);
+    const previousBriefing = oldCache?.entry?.briefing ?? null;
+
+    if (options.invalidate) {
+      invalidateBriefingCache(ctx.nexusDir);
+      spinner.text = "Cache invalidated, using fresh briefing...";
+    }
+
+    let briefing = snapshot.briefing;
+    let cacheHit = false;
+
+    if (!options.invalidate && oldCache?.entry && oldCache.entry.inputHash === newInputHash) {
+      briefing = oldCache.entry.briefing;
+      cacheHit = true;
+    }
+
+    if (!cacheHit) {
+      setCachedBriefing(ctx.nexusDir, briefing, newInputHash);
+    }
+
+    // ── Stage 3: Output ──────────────────────────────────────────
+    spinner.stop();
+
+    // Diff mode
+    if (options.diff) {
+      if (previousBriefing && previousBriefing.generatedAt !== briefing.generatedAt) {
+        const diff = generateDiff(previousBriefing, briefing);
+        if (isJson) {
+          outputJson({
+            type: "diff",
+            oldTimestamp: previousBriefing.generatedAt,
+            newTimestamp: briefing.generatedAt,
+            diff,
+          });
+        } else {
+          console.log(diff);
+        }
+      } else {
+        const msg = "No previous briefing to diff against.";
+        if (isJson) {
+          outputJson({ type: "diff", message: msg });
+        } else {
+          console.log(chalk.gray(`  ${msg}`));
+        }
+      }
+      return;
+    }
+
+    // Summary mode
+    if (options.summary) {
+      const summary = compressedSummary(briefing);
+      if (isJson) {
+        outputJson({ type: "summary", summary, cacheHit });
+      } else {
+        console.log(summary);
+      }
+      return;
+    }
+
+    // Determine briefing depth: forcedDepth > --profile > auto-detect
+    let depth: BriefingDepth;
+    if (forcedDepth) {
+      depth = forcedDepth;
+    } else {
+      const profile = options.profile as string | undefined;
+      if (profile === "minimal" || profile === "standard" || profile === "full") {
+        depth = profile;
+      } else {
+        depth = suggestDepth(
+          briefing.risks.overall,
+          briefing.risks.criticalAreas.length > 0,
+          briefing.risks.criticalAreas.length + briefing.risks.highAreas.length
+        );
+      }
+    }
+    const hints = generateOptimizationHints(briefing);
+
+    // JSON mode
+    if (isJson) {
+      outputJson({
+        ...briefingToJson(briefing),
+        cacheHit,
+        inputHash: newInputHash,
+        optimization: {
+          depth,
+          suggestedDepth: hints.suggestedDepth,
+          tokenEstimates: hints.tokenEstimates,
+          skipSections: hints.skipSections,
+          compressSections: hints.compressSections,
+        },
+      });
+      return;
+    }
+
+    // Write mode
+    if (options.write) {
+      const filePath = writeBriefingMarkdown(ctx.projectRoot, briefing);
+      console.log(chalk.green(`  ✓ Briefing written to ${filePath}`));
+      console.log("");
+    }
+
+    // Default: display (depth-aware)
+    displayBriefingByDepth(briefing, cacheHit, depth);
+
+    // ── Event ────────────────────────────────────────────────────
+    getEventBus().publish("analysis.complete", {
+      type: "briefing",
+      cacheHit,
+      risk: briefing.risks.overall,
+      domain: briefing.project.domain,
+    });
+
+  } catch (error) {
+    spinner.fail("Failed to generate briefing");
+    if (isJson) {
+      outputJson({ error: "briefing_failed", message: String(error) });
+    } else {
+      console.error(chalk.red(`  Error: ${error}`));
+    }
+  }
+}
+
 // ── Command ────────────────────────────────────────────────────────────────
 
 export function briefingCommand(): Command {
@@ -163,165 +349,37 @@ export function briefingCommand(): Command {
     .description("Pre-session briefing for AI agents (Context Pipeline)")
     .option("-d, --dir <path>", "Project directory")
     .option("--json", "Output as JSON")
-    .option("--write", "Write .nexus/BRIEFING.md")
+    .option("--write", "Write nexus-system/BRIEFING.md")
     .option("--diff", "Show diff since last briefing")
     .option("--invalidate", "Force cache invalidation")
     .option("--summary", "One-line summary")
     .option("--profile <depth>", "Briefing depth: minimal, standard, full (default: auto)")
-    .action(async function (this: Command, options: Record<string, unknown>) {
-      const isJson = options.json === true;
+    .action((options: Record<string, unknown>) => {
+      return runBriefing(options as BriefingOptions);
+    });
 
-      if (!isJson) {
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║    nexus briefing — Context Pipeline  ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
-      }
+  // ── basic subcommand ───────────────────────────────────────────────────
+  cmd
+    .command("basic")
+    .description("Quick briefing (~200 tokens): project, risk, 1 recommendation")
+    .option("-d, --dir <path>", "Project directory")
+    .option("--json", "Output as JSON")
+    .option("--write", "Write nexus-system/BRIEFING.md")
+    .action((options: Record<string, unknown>) => {
+      return runBriefing(options as BriefingOptions, "minimal");
+    });
 
-      const ctx = guardNotInitialized(options, isJson);
-      if (!ctx) return;
-
-      if (!checkLifecycleGate("briefing", ctx.projectRoot, ctx.nexusDir, isJson)) {
-        return;
-      }
-
-      const spinner = ora({ spinner: "dots" }).start(isJson ? "Generating" : "Collecting context...");
-
-      try {
-        // ── Stage 1: Collect ──────────────────────────────────────────
-        const snapshot = collectContext(ctx.projectRoot, ctx.nexusDir);
-
-        // ── Stage 2: Cache ───────────────────────────────────────────
-        // Compute new hash from fresh data
-        const newInputHash = computeInputHash({
-          fingerprintHash: snapshot.fingerprint.hash,
-          riskMapHash: snapshot.riskMap.generatedAt,
-          contextRuleCount: snapshot.contextRules.length,
-          dynamicRuleCount: snapshot.dynamicRules.length,
-          maturityScore: snapshot.maturityProfile?.overallScore ?? null,
-        });
-
-        // Read old cache BEFORE checking against new hash (for diff)
-        const oldCache = readCache(ctx.nexusDir);
-        const previousBriefing = oldCache?.entry?.briefing ?? null;
-
-        if (options.invalidate) {
-          invalidateBriefingCache(ctx.nexusDir);
-          spinner.text = "Cache invalidated, using fresh briefing...";
-        }
-
-        let briefing = snapshot.briefing;
-        let cacheHit = false;
-
-        // Check cache validity against new hash
-        if (!options.invalidate && oldCache?.entry && oldCache.entry.inputHash === newInputHash) {
-          briefing = oldCache.entry.briefing;
-          cacheHit = true;
-        }
-
-        // Cache the briefing if not a cache hit
-        if (!cacheHit) {
-          setCachedBriefing(ctx.nexusDir, briefing, newInputHash);
-        }
-
-        // ── Stage 3: Output ──────────────────────────────────────────
-        spinner.stop();
-
-        // Diff mode
-        if (options.diff) {
-          if (previousBriefing && previousBriefing.generatedAt !== briefing.generatedAt) {
-            const diff = generateDiff(previousBriefing, briefing);
-            if (isJson) {
-              outputJson({
-                type: "diff",
-                oldTimestamp: previousBriefing.generatedAt,
-                newTimestamp: briefing.generatedAt,
-                diff,
-              });
-            } else {
-              console.log(diff);
-            }
-          } else {
-            const msg = "No previous briefing to diff against.";
-            if (isJson) {
-              outputJson({ type: "diff", message: msg });
-            } else {
-              console.log(chalk.gray(`  ${msg}`));
-            }
-          }
-          return;
-        }
-
-        // Summary mode — use compressedSummary from token-optimizer (~200 tokens)
-        if (options.summary) {
-          const summary = compressedSummary(briefing);
-          if (isJson) {
-            outputJson({ type: "summary", summary, cacheHit });
-          } else {
-            console.log(summary);
-          }
-          return;
-        }
-
-        // Determine briefing depth (adaptive or explicit)
-        const profile = options.profile as string | undefined;
-        let depth: BriefingDepth;
-        if (profile === "minimal" || profile === "standard" || profile === "full") {
-          depth = profile;
-        } else {
-          // Auto-detect based on risk level
-          depth = suggestDepth(
-            briefing.risks.overall,
-            briefing.risks.criticalAreas.length > 0,
-            briefing.risks.criticalAreas.length + briefing.risks.highAreas.length
-          );
-        }
-        const hints = generateOptimizationHints(briefing);
-
-        // JSON mode
-        if (isJson) {
-          outputJson({
-            ...briefingToJson(briefing),
-            cacheHit,
-            inputHash: newInputHash,
-            optimization: {
-              depth,
-              suggestedDepth: hints.suggestedDepth,
-              tokenEstimates: hints.tokenEstimates,
-              skipSections: hints.skipSections,
-              compressSections: hints.compressSections,
-            },
-          });
-          return;
-        }
-
-        // Write mode
-        if (options.write) {
-          const filePath = writeBriefingMarkdown(ctx.projectRoot, briefing);
-          console.log(chalk.green(`  ✓ Briefing written to ${filePath}`));
-          console.log("");
-        }
-
-        // Default: display (depth-aware)
-        displayBriefingByDepth(briefing, cacheHit, depth);
-
-        // ── Event ────────────────────────────────────────────────────
-        getEventBus().publish("analysis.complete", {
-          type: "briefing",
-          cacheHit,
-          risk: briefing.risks.overall,
-          domain: briefing.project.domain,
-        });
-
-      } catch (error) {
-        spinner.fail("Failed to generate briefing");
-        if (isJson) {
-          outputJson({ error: "briefing_failed", message: String(error) });
-        } else {
-          console.error(chalk.red(`  Error: ${error}`));
-        }
-      }
+  // ── full subcommand ────────────────────────────────────────────────────
+  cmd
+    .command("full")
+    .description("Full briefing (~1000 tokens): everything including recent activity")
+    .option("-d, --dir <path>", "Project directory")
+    .option("--json", "Output as JSON")
+    .option("--write", "Write nexus-system/BRIEFING.md")
+    .option("--diff", "Show diff since last briefing")
+    .option("--invalidate", "Force cache invalidation")
+    .action((options: Record<string, unknown>) => {
+      return runBriefing(options as BriefingOptions, "full");
     });
 
   return cmd;

@@ -53,8 +53,11 @@ export type NexusEventType =
   | "docs.sync.triggered"
   | "doc.lifecycle.audited"
   | "plan.archived"
+  | "plan.created"
   | "plan.file_changed"
   | "plan.status_changed"
+  | "plan.format_warning"
+  | "backlog.updated"
   | "system.updated"
   | "challenge.generated"
   | "state.mutated";

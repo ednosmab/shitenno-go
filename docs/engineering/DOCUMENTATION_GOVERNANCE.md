@@ -41,7 +41,7 @@
 | Subject | Canonical Document |
 |---------|-------------------|
 | Domain glossary | docs/domain/ubiquitous-language.md |
-| Engineering principles | docs/philosophy/principles.md |
+| Engineering principles | docs/handbook/philosophy/principles.md |
 | Module validation | docs/architecture/validation-matrix.md |
 | Active work | nexus-system/docs/BACKLOG.md |
 

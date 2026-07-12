@@ -6,7 +6,7 @@
 
 | I want to... | Read |
 |--------------|------|
-| Understand why Nexus exists | [Philosophy](./philosophy/) |
+| Understand why Nexus exists | [Philosophy](./handbook/philosophy/) |
 | Learn the domain model | [Domain](./domain/) |
 | See how it's built | [Architecture](./architecture/) |
 | Understand implementation | [Implementation](./implementation/) |
@@ -18,7 +18,11 @@
 
 ```
 docs/
-├── philosophy/      Why Nexus exists
+├── handbook/
+│   ├── philosophy/    Why Nexus exists
+│   ├── 01-fundamentals/  Getting started
+│   ├── 02-commands/      CLI reference
+│   └── 03-architecture/  Internal design
 ├── domain/          Business knowledge
 ├── architecture/    System design
 ├── implementation/  Technical plans

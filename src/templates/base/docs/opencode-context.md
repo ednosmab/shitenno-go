@@ -48,7 +48,7 @@ Cada agent configurado em `opencode.json → agent.*` tem um **role** interno qu
 
 ## 4. Quick Board — Regra Obrigatória de Início de Sessão
 
-> **Regra #13 em AGENTS.md:** Ao iniciar QUALQUER sessão de chat (primeira mensagem do utilizador), o agente DEVE apresentar o **Quick Board** do `BRIEFING.md` antes da primeira resposta operacional.
+> **Regra #13 em AGENTS.md:** Ao iniciar QUALQUER sessão de chat (primeira mensagem do utilizador), o agente DEVE apresentar o **Quick Board** de `governance/context/context_buffer.yaml` antes da primeira resposta operacional.
 
 ### Formato do Quick Board
 

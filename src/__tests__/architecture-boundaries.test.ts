@@ -16,6 +16,8 @@ const commandsWithFsAccess = new Set([
   "digest.ts",
   "mcp.ts",
   "doctor.ts",
+  "handbook.ts",
+  "plan.ts",
 ]);
 
 describe("boundary: commands do not read filesystem directly", () => {

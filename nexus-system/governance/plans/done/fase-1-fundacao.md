@@ -10,10 +10,10 @@ Documentar o "porquê" do Nexus e corrigir bases legadas.
 - **Arquivos:** `docs/architecture/INDEX.md`
 
 ### 1.2 Escrever 00-VISION.md
-- **Status:** Concluído (conteúdo existe em `docs/philosophy/vision.md`)
+- **Status:** Concluído (conteúdo existe em `docs/handbook/philosophy/vision.md`)
 - **Descrição:** Manifesto fundador do Nexus. O documento mais importante do repositório.
 - **Critério:** Qualquer pessoa lê e explica o Nexus em 5 minutos.
-- **Nota:** O conteúdo foi implementado com nome diferente em `docs/philosophy/vision.md`
+- **Nota:** O conteúdo foi implementado com nome diferente em `docs/handbook/philosophy/vision.md`
 
 ### 1.3 Escrever 01-PROBLEM-STATEMENT.md
 - **Status:** Concluído (conteúdo existe em `docs/domain/problem-statement.md`)

@@ -250,3 +250,90 @@ export function updateSessionLifecycle(
   }
   return { success: false, message: "No fields updated" };
 }
+
+// ── Impediments ──────────────────────────────────────────────────────────────
+
+export interface Impediment {
+  description: string;
+  priority: "high" | "medium" | "low";
+  createdAt: string;
+  category?: string;
+}
+
+/**
+ * Add an impediment to context_buffer.yaml.
+ * Appends to the `impediments` array.
+ */
+export function addImpediment(
+  nexusDir: string,
+  impediment: Impediment
+): { success: boolean; message: string } {
+  const content = readBuffer(nexusDir);
+  if (content === null) {
+    return { success: false, message: "context_buffer.yaml not found" };
+  }
+
+  const entry = `  - description: "${impediment.description}"
+    priority: "${impediment.priority}"
+    createdAt: "${impediment.createdAt}"
+${impediment.category ? `    category: "${impediment.category}"\n` : ""}`;
+
+  const impedimentsRegex = /^impediments:\s*\n/m;
+  const match = impedimentsRegex.exec(content);
+
+  if (match) {
+    const insertPos = match.index + match[0].length;
+    const updated = content.slice(0, insertPos) + entry + content.slice(insertPos);
+    writeBuffer(nexusDir, updated);
+    return { success: true, message: `Impediment added: ${impediment.description}` };
+  }
+
+  // impediments section doesn't exist — add it at the end
+  const updated = content.trimEnd() + "\n\nimpediments:\n" + entry;
+  writeBuffer(nexusDir, updated);
+  return { success: true, message: `Impediment added (new section): ${impediment.description}` };
+}
+
+/**
+ * Clear impediments matching a pattern from context_buffer.yaml.
+ * If pattern is omitted, clears ALL impediments.
+ */
+export function clearImpediments(
+  nexusDir: string,
+  pattern?: string
+): { success: boolean; message: string; removed: number } {
+  const content = readBuffer(nexusDir);
+  if (content === null) {
+    return { success: false, message: "context_buffer.yaml not found", removed: 0 };
+  }
+
+  const impedimentsRegex = /^impediments:\s*\n((?:\s+- .*\n)*)/m;
+  const match = impedimentsRegex.exec(content);
+
+  if (!match?.[1]) {
+    return { success: true, message: "No impediments found", removed: 0 };
+  }
+
+  const block = match[1];
+  const entries = block.split(/(?=^\s+- )/m).filter((e) => e.trim().length > 0);
+
+  if (!pattern) {
+    // Clear all impediments
+    const updated = content.replace(impedimentsRegex, "impediments: []\n");
+    writeBuffer(nexusDir, updated);
+    return { success: true, message: `Cleared all ${entries.length} impediments`, removed: entries.length };
+  }
+
+  // Clear only matching impediments
+  const kept = entries.filter((e) => !e.includes(pattern));
+  const removed = entries.length - kept.length;
+
+  if (removed === 0) {
+    return { success: true, message: `No impediments matching "${pattern}"`, removed: 0 };
+  }
+
+  const newBlock = kept.length > 0 ? kept.join("") : "[]\n";
+  const updated = content.replace(impedimentsRegex, `impediments:\n${newBlock}`);
+  writeBuffer(nexusDir, updated);
+  return { success: true, message: `Cleared ${removed} impediments matching "${pattern}"`, removed };
+}

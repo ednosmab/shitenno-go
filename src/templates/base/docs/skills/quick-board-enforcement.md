@@ -20,7 +20,6 @@ Ao receber QUALQUER mensagem do utilizador (incluindo "oi", "ola", "bom dia", et
 ### PASSO 1: Carregar Dados
 ```
 1. Ler governance/context/context_buffer.yaml
-2. Ler BRIEFING.md (ou gerar via nexus briefing se nao existir)
 ```
 
 ### PASSO 2: Exibir Quick Board
@@ -52,7 +51,7 @@ SO APOS validacao do Passo 3, processar a mensagem do utilizador.
 | Utilizador diz "oi" | EXIBIR Quick Board PRIMEIRO, depois processar "oi" |
 | Utilizador pede tarefa | EXIBIR Quick Board PRIMEIRO, depois processar tarefa |
 | Sessao ja tem contexto | EXIBIR Quick Board PRIMEIRO, depois continuar |
-| Quick Board nao disponivel | Gerar via `nexus briefing` ou usar dados do context_buffer |
+| Quick Board nao disponivel | Ler `governance/context/context_buffer.yaml` directamente |
 
 ## Violacao = Sessao Invalida
 
@@ -65,4 +64,4 @@ Se o agente enviar QUALQUER resposta sem antes exibir o Quick Board:
 - `docs/AGENTS.md` — Regra #13 (BLOQUEADOR DE SESSAO)
 - `docs/opencode-context.md` — Formato do Quick Board
 - `governance/context/context_buffer.yaml` — Fonte de dados
-- `BRIEFING.md` — Quick Board gerado
+- `governance/context/context_buffer.yaml` — fonte primária de contexto (Quick Board)

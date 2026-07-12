@@ -215,6 +215,18 @@ export function remindersCommand(): Command {
       }
 
       const reminders = loadReminders(ctx.projectRoot);
+
+      // Deduplication: skip if reminder with same message already exists
+      const exists = reminders.some((r) => r.message === message);
+      if (exists) {
+        if (isJson) {
+          outputJson({ skipped: true, message: `Reminder already exists: ${message}` });
+        } else {
+          console.log(chalk.yellow(`  ⚠ Reminder already exists: ${message} — skipped`));
+        }
+        return;
+      }
+
       const newReminder: Reminder = {
         message,
         priority,

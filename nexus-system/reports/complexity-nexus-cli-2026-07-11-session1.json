@@ -1,0 +1,132 @@
+{
+  "projectName": "nexus-cli",
+  "computedAt": "2026-07-11T22:46:30.794Z",
+  "score": 13,
+  "level": "senior",
+  "staticScore": 3,
+  "behaviorScore": 10,
+  "staticMetrics": [
+    {
+      "metric": "packages",
+      "value": 0,
+      "score": 0,
+      "evidence": "0 packages — simple structure"
+    },
+    {
+      "metric": "apps",
+      "value": 1,
+      "score": 0,
+      "evidence": "1 apps — single app or no apps"
+    },
+    {
+      "metric": "files",
+      "value": 393,
+      "score": 2,
+      "evidence": "393 source files — large codebase"
+    },
+    {
+      "metric": "dependencies",
+      "value": 25,
+      "score": 0,
+      "evidence": "25 dependencies — simple dependency tree"
+    },
+    {
+      "metric": "monorepo",
+      "value": 1,
+      "score": 1,
+      "evidence": "Monorepo detected — cross-package coordination needed"
+    }
+  ],
+  "behavioralMetrics": [
+    {
+      "signal": "adr-count",
+      "value": 5,
+      "score": 3,
+      "evidence": "5 ADRs created — active architectural decisions",
+      "suggestion": "Consider adding governance/agents/ for role separation"
+    },
+    {
+      "signal": "commits-per-week",
+      "value": 111,
+      "score": 2,
+      "evidence": "111 commits/week — high velocity"
+    },
+    {
+      "signal": "bug-fixes",
+      "value": 71,
+      "score": 2,
+      "evidence": "71 bug fixes — code instability",
+      "suggestion": "Add tests and governance for affected modules"
+    },
+    {
+      "signal": "agent-count",
+      "value": 4,
+      "score": 2,
+      "evidence": "4 agents configured — needs orchestrator",
+      "suggestion": "Add governance/agents/ with AI contracts"
+    },
+    {
+      "signal": "skill-count",
+      "value": 24,
+      "score": 1,
+      "evidence": "24 skills installed — multi-domain project"
+    }
+  ],
+  "areaScores": [
+    {
+      "area": "src/__tests__",
+      "score": 9,
+      "level": "senior",
+      "fileCount": 118,
+      "churn": 118,
+      "sensitiveSurface": 48,
+      "violations": 0,
+      "dependencyDepth": 11,
+      "incidentFreeAge": 19,
+      "contextPressure": 0,
+      "evidence": "118 files, 118 commits/90d, 48 sensitive keywords, 11 cross-area imports, 19 sessions since last incident"
+    },
+    {
+      "area": "src/commands",
+      "score": 7,
+      "level": "senior",
+      "fileCount": 34,
+      "churn": 36,
+      "sensitiveSurface": 14,
+      "violations": 0,
+      "dependencyDepth": 0,
+      "incidentFreeAge": 19,
+      "contextPressure": 0,
+      "evidence": "34 files, 36 commits/90d, 14 sensitive keywords, 19 sessions since last incident"
+    },
+    {
+      "area": "src/templates",
+      "score": 7,
+      "level": "senior",
+      "fileCount": 34,
+      "churn": 160,
+      "sensitiveSurface": 9,
+      "violations": 0,
+      "dependencyDepth": 0,
+      "incidentFreeAge": 19,
+      "contextPressure": 0,
+      "evidence": "34 files, 160 commits/90d, 9 sensitive keywords, 19 sessions since last incident"
+    }
+  ],
+  "reasons": [
+    "393 source files — large codebase",
+    "Monorepo detected — cross-package coordination needed",
+    "5 ADRs created — active architectural decisions",
+    "111 commits/week — high velocity",
+    "71 bug fixes — code instability",
+    "4 agents configured — needs orchestrator",
+    "24 skills installed — multi-domain project"
+  ],
+  "suggestions": [
+    "Consider adding governance/agents/ for role separation",
+    "Add tests and governance for affected modules",
+    "Add governance/agents/ with AI contracts",
+    "Your project complexity suggests high complexity. Run: nexus upgrade --list",
+    "High-complexity areas: src/__tests__ (9), src/commands (7), src/templates (7) — consider governance focus here"
+  ]
+}

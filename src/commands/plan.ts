@@ -17,6 +17,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { guardNotInitialized } from "../shared.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
 import {
@@ -26,7 +27,9 @@ import {
 } from "../plan-engine.js";
 import { MarkdownPlanEngine, type MarkdownPlanStatus } from "../markdown-plan-engine.js";
 import { ActionEngine, FileExecutionRepository } from "../action-engine.js";
-import { outputJson } from "../formatting.js";
+import { outputJson, banner } from "../formatting.js";
+import { validatePlanFormat, extractChecklistItems, extractStepHeadings } from "../plan-format-validator.js";
+import { getEventBus } from "../event-bus.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -51,6 +54,320 @@ function formatPlan(p: { id: string; name: string; status: PlanStatus; steps: Ar
   const duration = p.duration ? `${p.duration}ms` : "-";
   const completed = p.steps.filter((s) => s.status === "completed").length;
   return `  ${chalk.bold(p.id)}  ${status}  ${steps.padEnd(10)}  ${completed}/${p.steps.length} done  ${duration}`;
+}
+
+// ── Prepare Logic (reusable) ────────────────────────────────────────────────
+
+export interface PrepareResult {
+  step: string;
+  status: string;
+  detail: string;
+}
+
+/**
+ * Run the full prepare sequence on a plan:
+ * 1. Format header (Status, Date, Updated_at)
+ * 2. Create centralized checklist from phase items
+ * 3. Sync to BACKLOG.md
+ * 4. Send desktop notification
+ *
+ * Callable from CLI command AND event subscribers (auto-prepare).
+ */
+export async function runPrepare(
+  _projectRoot: string,
+  nexusDir: string,
+  planId: string
+): Promise<PrepareResult[]> {
+  const results: PrepareResult[] = [];
+  const engine = new MarkdownPlanEngine(nexusDir);
+  const plan = engine.getById(planId);
+
+  if (!plan) {
+    return [{ step: "prepare", status: "error", detail: `Plan not found: ${planId}` }];
+  }
+
+  // Step 1: Format header to nexus standard
+  try {
+    let content = readFileSync(plan.filePath, "utf-8");
+    let updated = false;
+
+    if (!content.match(/\*\*Status:\*\*/)) {
+      const titleLine = content.split("\n").findIndex((l) => l.startsWith("# "));
+      if (titleLine !== -1) {
+        const lines = content.split("\n");
+        lines.splice(titleLine + 2, 0, "", "**Status:** Pending");
+        content = lines.join("\n");
+        updated = true;
+      }
+    }
+
+    if (!content.match(/\*\*Date:\*\*/)) {
+      const statusLine = content.split("\n").findIndex((l) => l.match(/\*\*Status:\*\*/));
+      if (statusLine !== -1) {
+        const lines = content.split("\n");
+        lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`);
+        content = lines.join("\n");
+        updated = true;
+      }
+    }
+
+    if (!content.match(/\*\*Updated_at:\*\*/)) {
+      const lastField = content.split("\n").findIndex((l) => l.match(/^\*\*[A-Z]/));
+      if (lastField !== -1) {
+        const lines = content.split("\n");
+        lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`);
+        content = lines.join("\n");
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      writeFileSync(plan.filePath, content, "utf-8");
+      results.push({ step: "format_header", status: "done", detail: "Header formatted to nexus standard" });
+    } else {
+      results.push({ step: "format_header", status: "skip", detail: "Header already conformant" });
+    }
+  } catch (error) {
+    results.push({ step: "format_header", status: "error", detail: String(error) });
+  }
+
+  // Step 1.5: Validate plan format
+  try {
+    const content = readFileSync(plan.filePath, "utf-8");
+    const validation = validatePlanFormat(plan.filePath, content);
+
+    for (const err of validation.errors) {
+      results.push({ step: "format_validation", status: "error", detail: err.message });
+    }
+    for (const warn of validation.warnings) {
+      results.push({ step: "format_validation", status: "warn", detail: warn.message });
+    }
+
+    // Publish format_warning event if there are issues
+    if (validation.errors.length > 0 || validation.warnings.length > 0) {
+      const bus = getEventBus();
+      bus.publish("plan.format_warning", {
+        planId,
+        path: plan.filePath,
+        errors: validation.errors,
+        warnings: validation.warnings,
+      });
+
+      // Send desktop notification for errors
+      if (validation.errors.length > 0) {
+        try {
+          const { execSync } = await import("node:child_process");
+          const errorMsg = validation.errors.map((e) => e.message).join("; ");
+          execSync(
+            `notify-send "Nexus Plan" "Formato inválido: ${errorMsg}" --urgency=normal`,
+            { stdio: "pipe", timeout: 2000 }
+          );
+        } catch {
+          // notify-send not available — skip
+        }
+      }
+    }
+  } catch (error) {
+    results.push({ step: "format_validation", status: "error", detail: String(error) });
+  }
+
+  // Step 2: Create centralized checklist from phase items (headings + checkboxes)
+  try {
+    const content = readFileSync(plan.filePath, "utf-8");
+    const lines = content.split("\n");
+
+    // Extract step headings as checklist items
+    const stepHeadings = extractStepHeadings(content);
+    const stepItems = stepHeadings
+      .filter((s) => s.valid)
+      .map((s) => ({
+        text: `Passo ${s.number} — ${s.title}`,
+        checked: false,
+        phase: "Passos",
+      }));
+
+    // Extract checkbox items
+    const checkboxItems = extractChecklistItems(content);
+
+    // Combine: step headings first, then existing checkboxes
+    const checklistItems = [...stepItems, ...checkboxItems];
+
+    const hasCentralChecklist = content.includes("## Checklist");
+
+    if (!hasCentralChecklist && checklistItems.length > 0) {
+      const insertIndex = lines.findIndex((l, i) => i > 0 && l.startsWith("## "));
+      const checklistSection = [
+        "",
+        "## Checklist",
+        "",
+        ...checklistItems.map((item) => {
+          const checkbox = item.checked ? "- [x]" : "- [ ]";
+          return `${checkbox} ${item.text}`;
+        }),
+        "",
+      ];
+
+      lines.splice(insertIndex, 0, ...checklistSection);
+      const updatedContent = lines.join("\n");
+      writeFileSync(plan.filePath, updatedContent, "utf-8");
+      results.push({
+        step: "checklist",
+        status: "done",
+        detail: `Created centralized checklist with ${checklistItems.length} items (${stepItems.length} steps + ${checkboxItems.length} checkboxes)`,
+      });
+    } else if (hasCentralChecklist) {
+      results.push({ step: "checklist", status: "skip", detail: "Centralized checklist already exists" });
+    } else {
+      results.push({ step: "checklist", status: "skip", detail: "No checklist items found in plan" });
+    }
+  } catch (error) {
+    results.push({ step: "checklist", status: "error", detail: String(error) });
+  }
+
+  // Step 3: Sync to BACKLOG.md
+  try {
+    const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+    if (existsSync(backlogPath)) {
+      let backlog = readFileSync(backlogPath, "utf-8");
+      const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
+
+      if (backlog.includes(planIdUpper)) {
+        // Entry exists — check if it has steps section, add if missing
+        const entryStart = backlog.indexOf(`### ${planIdUpper}`);
+        if (entryStart !== -1) {
+          const nextEntry = backlog.indexOf("\n### BACKLOG-", entryStart + 1);
+          const entryBlock = backlog.substring(entryStart, nextEntry !== -1 ? nextEntry : backlog.length);
+          if (!entryBlock.includes("#### Passos do Plano")) {
+            const planContent = readFileSync(plan.filePath, "utf-8");
+            const stepHeadings = extractStepHeadings(planContent);
+            const checkboxItems = extractChecklistItems(planContent);
+            // Deduplicate by step number to avoid repeats from overlapping formats
+            // (### Passo X: vs ### Passo X —) or double-run
+            const seenNumbers = new Set<string>();
+            const allItems = [...stepHeadings.map((s) => ({ checked: false, text: `Passo ${s.number} — ${s.title}` })), ...checkboxItems].filter((item) => {
+              const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
+              if (numMatch?.[1]) {
+                const num = numMatch[1];
+                if (seenNumbers.has(num)) return false;
+                seenNumbers.add(num);
+              }
+              return true;
+            });
+
+            if (allItems.length > 0) {
+              const insertPos = entryBlock.lastIndexOf("\n\n");
+              const stepsSection = ["", "#### Passos do Plano", ...allItems.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`)];
+              const beforeEntry = backlog.substring(0, entryStart);
+              const afterEntry = backlog.substring(nextEntry !== -1 ? nextEntry : backlog.length);
+              const updatedEntry = entryBlock.substring(0, insertPos !== -1 ? insertPos : entryBlock.length) + "\n" + stepsSection.join("\n") + "\n";
+              backlog = beforeEntry + updatedEntry + afterEntry;
+              writeFileSync(backlogPath, backlog, "utf-8");
+              results.push({ step: "backlog_sync", status: "done", detail: `Added ${allItems.length} steps to existing ${planIdUpper}` });
+            } else {
+              results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with no extractable steps` });
+            }
+          } else {
+            results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with steps` });
+          }
+        } else {
+          results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md` });
+        }
+      } else {
+        const planContent = readFileSync(plan.filePath, "utf-8");
+        const statusMatch = planContent.match(/\*\*Status:\*\*\s*(.+)/);
+        const planStatus = statusMatch?.[1]?.trim() ?? "In Progress";
+
+        const statusMap: Record<string, string> = {
+          "In Progress": "em implementação",
+          "Done": "concluído",
+          "Paused": "pausado",
+          "Pending": "planeado",
+        };
+        const backlogStatus = statusMap[planStatus] || "planeado";
+
+        // Extract checklist items for the BACKLOG entry
+        const checklistItems = extractChecklistItems(planContent);
+
+        const p2Index = backlog.indexOf("## P2 —");
+        const p1Index = backlog.indexOf("## P1 —");
+        const insertBefore = p2Index !== -1 ? p2Index : p1Index !== -1 ? p1Index : backlog.length;
+
+        if (insertBefore !== -1) {
+          const backlogItem = [
+            "",
+            `### ${planIdUpper} — ${plan.title}`,
+            "",
+            "| Campo | Valor |",
+            "|---|---|",
+            `| **Status** | ${backlogStatus} |`,
+            `| **Severidade** | Medio |`,
+            `| **Prioridade** | P1 |`,
+            `| **Owner** | executor |`,
+            `| **Data** | ${new Date().toISOString().slice(0, 10)} |`,
+            `| **Fonte** | nexus plan md prepare |`,
+            `| **Modulos** | governance/plans/ |`,
+            `| **Descricao** | ${plan.title} |`,
+            `| **Correcao** | Verificar checklist no plano \`governance/plans/${planId}.md\` |`,
+          ];
+
+          // Add steps section if checklist items were extracted
+          if (checklistItems.length > 0) {
+            backlogItem.push("", "#### Passos do Plano");
+            // Deduplicate by step number to avoid repeats from double-run
+            const seenNumbers = new Set<string>();
+            for (const item of checklistItems) {
+              const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
+              if (numMatch?.[1]) {
+                if (seenNumbers.has(numMatch[1])) continue;
+                seenNumbers.add(numMatch[1]);
+              }
+              const checkbox = item.checked ? "- [x]" : "- [ ]";
+              backlogItem.push(`${checkbox} ${item.text}`);
+            }
+          }
+
+          backlogItem.push("");
+
+          const lines = backlog.split("\n");
+          lines.splice(insertBefore, 0, ...backlogItem);
+          backlog = lines.join("\n");
+
+          backlog = backlog.replace(
+            /> \*\*Última actualização:\*\*.*/,
+            `> **Última actualização:** ${new Date().toISOString().slice(0, 10)}`
+          );
+
+          writeFileSync(backlogPath, backlog, "utf-8");
+
+          const stepCount = checklistItems.length;
+          const detail = stepCount > 0
+            ? `Added ${planIdUpper} to BACKLOG.md with ${stepCount} steps`
+            : `Added ${planIdUpper} to BACKLOG.md (no steps extracted — plan may need format update)`;
+          results.push({ step: "backlog_sync", status: "done", detail });
+        } else {
+          results.push({ step: "backlog_sync", status: "error", detail: "Could not find priority section in BACKLOG.md" });
+        }
+      }
+    } else {
+      results.push({ step: "backlog_sync", status: "skip", detail: "BACKLOG.md not found" });
+    }
+  } catch (error) {
+    results.push({ step: "backlog_sync", status: "error", detail: String(error) });
+  }
+
+  // Step 4: Send desktop notification
+  try {
+    const { execSync } = await import("node:child_process");
+    execSync(`notify-send "Nexus Plan" "Plan prepared: ${plan.title}" --urgency=normal`, {
+      stdio: "pipe",
+      timeout: 2000,
+    });
+    results.push({ step: "notify", status: "done", detail: "Desktop notification sent" });
+  } catch {
+    results.push({ step: "notify", status: "skip", detail: "notify-send not available or failed" });
+  }
+
+  return results;
 }
 
 // ── Command ────────────────────────────────────────────────────────────────
@@ -538,6 +855,56 @@ export function planCommand(): Command {
         console.log(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
         console.log(`    ${plan.title}`);
         console.log(`    Path: ${plan.relativePath}`);
+        console.log("");
+      }
+    });
+
+  // ── md prepare ──────────────────────────────────────────────────────────
+  mdCmd
+    .command("prepare")
+    .description("Prepare a plan: format header, extract checklist, sync backlog, notify")
+    .argument("<id>", "Plan ID (filename without .md)")
+    .option("--json", "Output as JSON")
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const isJson = opts.json === true;
+      const ctx = guardNotInitialized(opts, isJson);
+      if (!ctx) return;
+
+      const nexusDir = join(ctx.projectRoot, NEXUS_DIR_NAME);
+      const engine = new MarkdownPlanEngine(nexusDir);
+      const plan = engine.getById(id);
+
+      if (!plan) {
+        if (isJson) {
+          outputJson({ error: "not_found", message: `Plan not found: ${id}` });
+        } else {
+          console.log(chalk.red(`  ✘ Plan not found: ${id}`));
+        }
+        return;
+      }
+
+      if (!isJson) {
+        console.log("");
+        banner("nexus plan prepare", "Plan Preparation");
+        console.log("");
+        console.log(chalk.gray(`  Plan: ${plan.title}`));
+        console.log(chalk.gray(`  Path: ${plan.relativePath}`));
+        console.log("");
+      }
+
+      const results = await runPrepare(ctx.projectRoot, nexusDir, id);
+
+      if (isJson) {
+        outputJson({ planId: id, title: plan.title, results });
+      } else {
+        console.log(chalk.bold("  Results:"));
+        console.log("");
+        for (const r of results) {
+          const icon = r.status === "done" ? "✅" : r.status === "skip" ? "⏭" : r.status === "error" ? "❌" : "⏳";
+          console.log(`    ${icon} ${r.step}: ${r.detail}`);
+        }
+        console.log("");
+        console.log(chalk.green(`  ✓ Plan "${plan.title}" prepared`));
         console.log("");
       }
     });

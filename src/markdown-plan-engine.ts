@@ -323,6 +323,10 @@ export class MarkdownPlanEngine {
     const plan = this.getById(id);
     if (!plan) return false;
     if (plan.status !== "done") return false;
+    // Guard: if plan is already in done/ or source file doesn't exist, skip
+    if (!plan.isActive) return false;
+    const sourcePath = join(this.plansDir, `${id}.md`);
+    if (!existsSync(sourcePath)) return false;
 
     this.moveToDone(id);
 

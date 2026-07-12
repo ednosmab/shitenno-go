@@ -52,7 +52,7 @@ Escreva códigos extremamente declarativos, simples e fáceis de ler. Evite otim
 
 12. **INVARIANTE DE FIM DE SESSÃO:** Nenhuma sessão pode ser declarada "concluída" sem antes executar o ritual de fim de sessão: `pnpm run close:session`, buffer podado (≤ 50 linhas activas), backlog actualizado, testes verdes. Ver template detalhado em `docs/session-template.md`.
 13. **QUICK BOARD DE AVISO (BLOQUEADOR DE SESSÃO):** ⛔ **NENHUMA RESPOSTA PODE SER ENVIADA AO UTILIZADOR SEM ANTES EXIBIR O QUICK BOARD.** Ao receber QUALQUER mensagem (incluindo "oi", "olá", ou qualquer saudação), o agente DEVE:
-    a. **PRIMEIRO:** Ler `governance/context/context_buffer.yaml` e `nexus-system/BRIEFING.md`
+    a. **PRIMEIRO:** Ler `governance/context/context_buffer.yaml`
     b. **SEGUNDO:** Exibir o Quick Board no formato definido em `docs/opencode-context.md`
     c. **TERCEIRO:** Só então processar a mensagem do utilizador
     **VIOLAÇÃO = SESSÃO INVÁLIDA.**
@@ -98,7 +98,7 @@ As regras abaixo foram movidas para ficheiros separados para optimização de to
 ## 🧠 CONTEXTO DO PROJECTO (CONTEXT PIPELINE)
 
 **ANTES de iniciar qualquer tarefa:**
-1. Execute `nexus briefing` (ou leia `nexus-system/BRIEFING.md` se disponível)
+1. Leia `governance/context/context_buffer.yaml` (Quick Board — fonte primária de contexto)
 2. Verifique as áreas de risco, cobertura de testes e regras contextuais
 3. Adapte o comportamento baseado nos alertas e recomendações do briefing
 

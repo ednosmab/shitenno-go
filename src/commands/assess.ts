@@ -11,6 +11,8 @@ import ora from "ora";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyseProject } from "../analyser.js";
+import { detectComplexity } from "../complexity-detector.js";
+import { getActiveRules } from "../rule-loader.js";
 import { askQuestions } from "../prompts.js";
 import {
   calculateMaturityProfile,
@@ -69,13 +71,80 @@ function displayEvolution(history: Array<{ timestamp: string; overallScore: numb
   console.log("");
 }
 
+function displayComplexity(projectRoot: string, nexusDir: string, isJson: boolean): void {
+  const result = detectComplexity(projectRoot);
+  const active = getActiveRules(projectRoot, nexusDir);
+
+  if (isJson) {
+    outputJson({
+      complexity: result.level,
+      score: result.score,
+      factors: result.factors,
+      capabilities: result.recommendedCapabilities,
+      rules: {
+        loaded: active.loadedCount,
+        total: active.totalCount,
+      },
+    });
+    return;
+  }
+
+  console.log("");
+  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
+  console.log(chalk.bold.cyan("  ║  nexus assess complexity                 ║"));
+  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
+  console.log("");
+
+  const levelColor = result.level === "simple" ? chalk.green : result.level === "medium" ? chalk.yellow : chalk.red;
+  console.log(chalk.bold("  Project Complexity Analysis"));
+  console.log("  " + "─".repeat(40));
+  console.log(`  Level:     ${levelColor.bold(result.level)}`);
+  console.log(`  Score:     ${result.score}`);
+  console.log("");
+
+  console.log(chalk.bold("  Factors:"));
+  for (const f of result.factors) {
+    const icon = f.score >= 3 ? "🔴" : f.score >= 2 ? "🟡" : "🟢";
+    console.log(`    ${icon} ${f.description}`);
+  }
+  console.log("");
+
+  console.log(chalk.bold("  Recommended Capabilities:"));
+  for (const cap of result.recommendedCapabilities) {
+    console.log(chalk.green(`    ✅ ${cap}`));
+  }
+  console.log("");
+
+  console.log(chalk.bold("  Rules loaded:"));
+  console.log(`    Complexity: ${result.level}`);
+  console.log(`    Active: ${active.loadedCount}/${active.totalCount} rules`);
+  if (result.level === "simple") {
+    console.log(chalk.gray("    ℹ️  Simple project — only core rules active"));
+  } else if (result.level === "medium") {
+    console.log(chalk.gray("    ℹ️  Medium project — core + knowledge + governance + quality rules active"));
+  } else {
+    console.log(chalk.gray("    ℹ️  Complex project — all rules active"));
+  }
+  console.log("");
+}
+
 export const assessCommand = new Command("assess")
   .description("Re-evaluate project maturity and recommend new capabilities")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--json", "Output results as JSON")
   .option("--answers-file <path>", "JSON file with pre-defined answers (skips interactive prompts)")
+  .option("--complexity", "Show project complexity analysis and active rules")
   .action(async (options) => {
     const isJson = options.json === true;
+
+    const ctx = guardNotInitialized(options, isJson);
+    if (!ctx) return;
+
+    // Complexity mode: show project complexity and active rules
+    if (options.complexity) {
+      displayComplexity(ctx.projectRoot, ctx.nexusDir, isJson);
+      return;
+    }
 
     if (!isJson) {
       console.log("");
@@ -84,9 +153,6 @@ export const assessCommand = new Command("assess")
       console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
       console.log("");
     }
-
-    const ctx = guardNotInitialized(options, isJson);
-    if (!ctx) return;
 
     if (!checkLifecycleGate("assess", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 

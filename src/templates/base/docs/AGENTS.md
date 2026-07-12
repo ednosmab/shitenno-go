@@ -1,5 +1,14 @@
 # 🛠️ AGENTS.md - REGRAS DO TIME DE ENGENHARIA DE IA
 
+<!-- METADATA
+version: 2.0
+complexity_adaptive: true
+loading_profiles:
+  simple: [core]
+  medium: [core, knowledge, governance, quality]
+  complex: [core, knowledge, governance, architecture, ai, quality, metrics, operations, compliance]
+-->
+
 <!-- CAPABILITY: knowledge -->
 ## 🎨 GOVERNANÇA DO DESIGN SYSTEM (PERSONALIZÁVEL)
 
@@ -57,7 +66,7 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 ## 🧠 CONTEXTO DO PROJECTO (CONTEXT PIPELINE)
 
 **ANTES de iniciar qualquer tarefa:**
-1. Execute `nexus briefing` (ou leia `.nexus/BRIEFING.md` se disponível)
+1. Leia `governance/context/context_buffer.yaml` (Quick Board — fonte primária de contexto)
 2. Verifique as áreas de risco, cobertura de testes e regras contextuais
 3. Adapte o comportamento baseado nos alertas e recomendações do briefing
 
@@ -71,7 +80,7 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 - `nexus feedback --summary` — mostra taxa de sucesso, hotspots de falha, e estatísticas
 
 **Comandos disponíveis:**
-- `nexus briefing` — output markdown para IA (opções: `--json`, `--write`, `--diff`, `--summary`, `--invalidate`, `--profile <minimal|standard|full>`)
+- `nexus briefing` — output markdown detalhado (opcional, uso manual: `--json`, `--write`, `--diff`, `--summary`)
 - `nexus feedback` — registar resultado da sessão (opções: `--outcome success|failure|partial`, `--areas <lista>`, `--notes <texto>`, `--user-rating <1-5>`, `--user-comment <texto>`, `--user-tags <lista>`, `--summary`, `--personalized`)
 - `nexus status` — estado actual do projecto e capabilities instaladas
 - `nexus detect` — detectar padrões no histórico e propor regras candidatas
@@ -380,7 +389,7 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 ## 🧠 CONTEXTO DO PROJECTO (CONTEXT PIPELINE)
 
 **ANTES de iniciar qualquer tarefa:**
-1. Execute `nexus briefing` (ou leia `.nexus/BRIEFING.md` se disponível)
+1. Leia `governance/context/context_buffer.yaml` (Quick Board — fonte primária de contexto)
 2. Verifique as áreas de risco, cobertura de testes e regras contextuais
 3. Adapte o comportamento baseado nos alertas e recomendações do briefing
 
@@ -394,7 +403,7 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 - `nexus feedback --summary` — mostra taxa de sucesso, hotspots de falha, e estatísticas
 
 **Comandos disponíveis:**
-- `nexus briefing` — output markdown para IA (opções: `--json`, `--write`, `--diff`, `--summary`, `--invalidate`, `--profile <minimal|standard|full>`)
+- `nexus briefing` — output markdown detalhado (opcional, uso manual: `--json`, `--write`, `--diff`, `--summary`)
 - `nexus feedback` — registar resultado da sessão (opções: `--outcome success|failure|partial`, `--areas <lista>`, `--notes <texto>`, `--user-rating <1-5>`, `--user-comment <texto>`, `--user-tags <lista>`, `--summary`, `--personalized`)
 - `nexus status` — estado actual do projecto e capabilities instaladas
 - `nexus detect` — detectar padrões no histórico e propor regras candidatas

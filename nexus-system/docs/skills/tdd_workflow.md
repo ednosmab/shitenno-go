@@ -1,29 +1,52 @@
 ---
-name: tdd-workflow
+name: tdd_workflow
 description: >
-  Garantir a correção do código desde o primeiro minuto usando o ciclo Red-Green-Refactor.
+  Workflow TDD completo — ciclo Red-Green-Refactor aplicado a qualquer tarefa de implementação.
+  Use quando o agente precisa de um guia passo a passo para aplicar TDD de forma consistente.
 ---
 
-# 🧪 SKILL: TEST-DRIVEN DEVELOPMENT (TDD) WORKFLOW
+# TDD Workflow
 
-## 🎯 Objetivo
-Garantir a correção do código desde o primeiro minuto, reduzir o tempo de debug e criar uma rede de segurança contra regressões.
+Guia operacional para aplicar Test-Driven Development em qualquer tarefa.
 
-## 🔄 O Ciclo Red-Green-Refactor
-1. **🔴 RED:** Escreva um teste pequeno que falha para uma funcionalidade que ainda não existe. O teste deve ser a especificação do comportamento esperado.
-2. **🟢 GREEN:** Escreva a quantidade mínima de código necessária para fazer o teste passar o mais rápido possível (mesmo que o código não seja ideal).
-3. **🔵 REFACTOR:** Limpe o código, remova duplicidades e melhore a arquitetura, garantindo que todos os testes continuem passando.
+---
 
-## 📜 Regras de Ouro dos Testes
-1. **Independência:** Cada teste deve ser isolado. O resultado de um teste não deve depender da execução de outro.
-2. **Nomenclatura Clara:** Use o padrão `should [expected behavior] when [condition]` (ex: `should throw error when email is invalid`).
-3. **Foco no Comportamento, não na Implementação:** Teste o que o código faz, não como ele faz internamente. Isso facilita refatorações futuras.
-4. **Fast Feedback:** Testes unitários devem ser extremamente rápidos. Use mocks/stubs para dependências externas (bancos de dados, APIs).
+## Ciclo Red-Green-Refactor
 
-## 🛠️ Pirâmide de Testes no Projeto
-- **Unitários (Vitest):** Lógica de negócio, calculadores e VOs.
-- **Integração:** Validação de fluxos entre múltiplos serviços ou Use Cases.
-- **E2E:** Fluxos críticos do utilizador (ex: login, fluxo principal).
+### 1. RED — Escrever teste que falha
 
-## 📂 Onde Aplicar
-- Em todo o processo de desenvolvimento de novas features e correções de bugs.
+- Escreva **um único teste** que descreve o comportamento desejado
+- Execute o teste e confirme que falha
+- A falha deve ser clara e descritiva
+
+### 2. GREEN — Implementação mínima
+
+- Escreva **a menor quantidade de código** possível para fazer o teste passar
+- Não adicione funcionalidades extras
+- Execute o teste e confirme que passa
+
+### 3. REFACTOR — Melhorar o código
+
+- Elimine duplicação
+- Extraia funções se necessário
+- Mantenha os testes verdes durante todo o refactor
+
+---
+
+## Regras
+
+1. **Nunca pule o teste** — toda funcionalidade começa com um teste
+2. **Um teste por vez** — não escreva múltiplos testes antes de implementar
+3. **Teste deve falhar primeiro** — confirme o RED antes de escrever código
+4. **Implementação mínima** — não adicione features não testadas
+5. **Refactor é obrigatório** — não é opcional depois do GREEN
+
+---
+
+## Checklist por Tarefa
+
+- [ ] Teste escrito e falhando (RED)
+- [ ] Implementação mínima feita (GREEN)
+- [ ] Código refatorado (REFACTOR)
+- [ ] Todos os testes passando
+- [ ] Sem novas advertências de lint

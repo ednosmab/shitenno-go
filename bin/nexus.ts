@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -40,6 +40,8 @@ import { remindersCommand } from "../src/commands/reminders.js";
 import { historyCommand } from "../src/commands/history.js";
 import { eventsCommand } from "../src/commands/events.js";
 import { contextCommand } from "../src/commands/context.js";
+import { handbookCommand } from "../src/commands/handbook.js";
+import { watchCommand } from "../src/commands/watch.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine, initializeRules } from "../src/rule-engine.js";
@@ -48,7 +50,8 @@ import { initializeCapabilityEngine } from "../src/capability-engine.js";
 import { startSession, endSession } from "../src/session-tracker.js";
 import { setSessionContext, clearSessionContext } from "../src/session-context.js";
 import { installMiddleware } from "../src/cli-middleware.js";
-import { startWatching, stopWatching } from "../src/file-watcher.js";
+import { stopWatching } from "../src/file-watcher.js";
+import { initPlanBacklogSync } from "../src/plan-backlog-sync.js";
 import { initializeTaskPipeline } from "../src/task-pipeline.js";
 import { initializeEngineeringState } from "../src/engineering-state.js";
 import { initializeFromAnswers } from "../src/model-config.js";
@@ -115,64 +118,92 @@ if (isInitialized) {
       agentName: branch,
     });
 
-    startWatching(nexusDir);
-
-    // Ensure watcher cleanup on process exit
-    process.on("exit", () => stopWatching());
-    process.on("SIGINT", () => { stopWatching(); process.exit(0); });
-    process.on("SIGTERM", () => { stopWatching(); process.exit(0); });
+    // Register sync subscribers (watcher started by watch command or other long-running commands)
+    initPlanBacklogSync(projectRoot, nexusDir);
 
     showBriefingSummary(projectRoot, nexusDir);
   }
 }
 
 /**
- * Show a brief session summary in the terminal.
+ * Show Quick Board in the terminal from context_buffer.yaml.
+ * Regenerates BRIEFING.md if stale (> 1 day old) for other consumers.
  */
-function showBriefingSummary(_projectRoot: string, nexusDir: string): void {
+function showBriefingSummary(projectRoot: string, nexusDir: string): void {
   try {
+    // Auto-regenerate BRIEFING.md if stale (> 1 day old) — feeds audit detectors, opencode.json
     const briefingPath = join(nexusDir, "BRIEFING.md");
-    if (!existsSync(briefingPath)) return;
+    if (existsSync(briefingPath)) {
+      const stat = require("node:fs").statSync(briefingPath);
+      const ageMs = Date.now() - stat.mtimeMs;
+      if (ageMs > 86400000) {
+        try {
+          const { collectContext } = require("../src/context-collector.js");
+          const { briefingToMarkdown } = require("../src/briefing.js");
+          const snapshot = collectContext(projectRoot, nexusDir);
+          const md = briefingToMarkdown(snapshot.briefing);
+          require("node:fs").writeFileSync(briefingPath, md, "utf-8");
+        } catch {
+          // Regeneration failed — continue with stale file
+        }
+      }
+    }
 
-    const content = readFileSync(briefingPath, "utf-8");
+    // Read Quick Board from context_buffer.yaml
+    const bufferPath = join(nexusDir, "governance", "context", "context_buffer.yaml");
+    if (!existsSync(bufferPath)) return;
 
-    // Extract key metrics from BRIEFING.md format
-    const riskMatch = content.match(/\*\*Overall:\*\*\s*(\w+)/i);
-    const areasMatch = content.match(/\*\*Critical:\*\*\s*(.+)/i);
-    const testsMatch = content.match(/\*\*Areas Without Tests:\*\*\s*(\d+)/i);
+    const { parse: parseYaml } = require("yaml");
+    const data = parseYaml(readFileSync(bufferPath, "utf-8")) || {};
 
-    const risk = riskMatch?.[1] || "unknown";
-    const areas = areasMatch?.[1]?.trim() || "none";
-    const testsWithout = testsMatch?.[1] || "0";
+    const currentTask = data?.current_task?.description
+      ? `${data.current_task.description} (${data.current_task.status})`
+      : "Nenhuma";
 
-    // Get plans and ADRs count from latest report if available
-    let plans = "0";
-    let adrs = "0";
+    const sessionStatus = data?.session?.status === "completed"
+      ? "Concluída"
+      : data?.session?.status === "in_progress" || data?.session?.status === "active"
+        ? "Em curso"
+        : "Desconhecido";
+
+    let p1Debts = "Nenhuma";
     try {
-      const reportsDir = join(nexusDir, "reports");
-      if (existsSync(reportsDir)) {
-        const files = readdirSync(reportsDir)
-          .filter((f) => f.startsWith("doc-lifecycle-") && f.endsWith(".json"))
-          .sort()
-          .reverse();
-        if (files.length > 0) {
-          const reportPath = join(reportsDir, files[0]!);
-          const report = JSON.parse(readFileSync(reportPath, "utf-8"));
-          plans = String(report.totalPlans || 0);
-          adrs = String(report.totalAdrs || 0);
+      if (data?.technical_debt?.length > 0) {
+        p1Debts = data.technical_debt
+          .filter((d: { priority?: string; severity?: string }) => d.priority === "P1" || d.severity === "high")
+          .map((d: { description: string }) => d.description)
+          .join(", ") || "Nenhuma";
+      }
+    } catch {
+      // Ignore parse errors
+    }
+
+    let nextP0 = data?.next_p0 || "Definir";
+    try {
+      const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+      if (existsSync(backlogPath)) {
+        const backlog = readFileSync(backlogPath, "utf-8");
+        const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
+        const p0Items = p0Section.split(/^### /m).slice(1);
+        for (const item of p0Items) {
+          const title = item.split("\n")[0]?.trim();
+          if (title && item.includes("| **Status** | In Progress")) {
+            nextP0 = title;
+            break;
+          }
         }
       }
     } catch {
-      // Report not available — skip
+      // Ignore read errors
     }
 
     console.log("");
-    console.log(chalk.gray("  📋 Briefing:"));
-    console.log(chalk.gray(`     Risco: ${risk} | Áreas críticas: ${areas} | Testes sem cobertura: ${testsWithout}`));
-    console.log(chalk.gray(`     Plans: ${plans} | ADRs: ${adrs}`));
+    console.log(chalk.gray("  📋 Quick Board:"));
+    console.log(chalk.gray(`     Tarefa: ${currentTask} | P0: ${nextP0}`));
+    console.log(chalk.gray(`     Dívidas P1: ${p1Debts} | Estado: ${sessionStatus}`));
     console.log("");
   } catch {
-    // Briefing not available — skip silently
+    // Quick Board not available — skip silently
   }
 }
 
@@ -303,6 +334,8 @@ program.addCommand(remindersCommand());
 program.addCommand(historyCommand);
 program.addCommand(eventsCommand);
 program.addCommand(contextCommand);
+program.addCommand(handbookCommand);
+program.addCommand(watchCommand());
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────
 
@@ -312,7 +345,7 @@ installMiddleware(program, {
   sessionId: currentSessionId,
 });
 
-program.parse();
+await program.parseAsync();
 
 // ── Post-Execution: Session End ─────────────────────────────────────────────
 

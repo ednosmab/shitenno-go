@@ -356,6 +356,24 @@ export const COMMAND_CATEGORIES: CommandCategory[] = [
           "Add to .bashrc/.zshrc: eval $(nexus shell-init)",
         ],
       },
+      {
+        name: "handbook",
+        description: "Exibe o handbook de referência do Nexus",
+        usage: "nexus handbook [options]",
+        examples: [
+          "nexus handbook              # Show full handbook index",
+          "nexus handbook --level 1    # Apenas fundamentos",
+          "nexus handbook --level 2    # Apenas comandos",
+          "nexus handbook --level 3    # Apenas arquitetura",
+          "nexus handbook --topic init # Buscar por tópico",
+          "nexus handbook --list       # Listar todos os tópicos",
+        ],
+        tips: [
+          "Nível 1: Para qualquer pessoa (o que é, instalação, primeiros passos)",
+          "Nível 2: Para developers (referência de comandos)",
+          "Nível 3: Para architects (arquitetura interna)",
+        ],
+      },
     ],
   },
   {

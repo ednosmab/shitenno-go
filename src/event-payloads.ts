@@ -291,6 +291,18 @@ export interface PlanFileChangedPayload extends EventMeta {
   content: string;
 }
 
+export interface PlanFormatWarningPayload extends EventMeta {
+  planId: string;
+  path: string;
+  errors: Array<{ rule: string; message: string; line?: number; fix?: string }>;
+  warnings: Array<{ rule: string; message: string; line?: number; fix?: string }>;
+}
+
+export interface BacklogUpdatedPayload extends EventMeta {
+  path: string;
+  timestamp: string;
+}
+
 // ── Challenge Events ──────────────────────────────────────────────────────
 
 export interface ChallengeGeneratedPayload extends EventMeta {
@@ -383,6 +395,8 @@ export interface EventPayloadMap {
   "plan.archived": PlanArchivedPayload;
   "plan.file_changed": PlanFileChangedPayload;
   "plan.status_changed": PlanStatusChangedPayload;
+  "plan.format_warning": PlanFormatWarningPayload;
+  "backlog.updated": BacklogUpdatedPayload;
   "challenge.generated": ChallengeGeneratedPayload;
   "state.mutated": StateMutatedPayload;
   "entropy.calculated": EntropyCalculatedPayload;

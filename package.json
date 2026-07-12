@@ -29,6 +29,8 @@
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "prepare": "husky",
     "sync:docs": "tsx nexus-system/scripts/sync-docs.ts",
+    "sync:docs:fix": "tsx nexus-system/scripts/sync-docs.ts --fix",
+    "sync:docs:dry": "tsx nexus-system/scripts/sync-docs.ts --dry-run",
     "validate:docs": "tsx nexus-system/scripts/sync-docs.ts",
     "backlog": "tsx nexus-system/scripts/backlog.ts"
   },
@@ -78,6 +80,7 @@
     "eslint": "^10.6.0",
     "husky": "^9.1.7",
     "ink-testing-library": "^4.0.0",
+    "node-pty": "^1.1.0",
     "tsup": "^8.3.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",
@@ -87,4 +90,3 @@
     "esbuild": ">=0.28.1"
   }
 }
-

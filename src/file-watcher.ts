@@ -66,11 +66,11 @@ export function startWatching(
     activeWatcher.close();
   }
 
+  // Watch specific subdirectories (chokidar v5 is slow scanning entire tree)
   const watchPaths = [
-    join(nexusDir, "**/*.md"),
-    join(nexusDir, "**/*.yaml"),
-    join(nexusDir, "**/*.json"),
-    join(nexusDir, "**/*.ts"),
+    join(nexusDir, "governance"),
+    join(nexusDir, "docs"),
+    join(nexusDir, "reports"),
     ...(options.extraPaths || []),
   ];
 
@@ -79,7 +79,7 @@ export function startWatching(
 
   activeWatcher = watch(watchPaths, {
     ignoreInitial: true,
-    depth: 4,
+    depth: 3,
     ignored: [
       /(^|[\/\\])\../, // dot files
       /node_modules/,
@@ -87,7 +87,14 @@ export function startWatching(
     ],
   });
 
+  activeWatcher.on("ready", () => {
+    logger.info("file-watcher", "Watcher ready");
+  });
+
   activeWatcher.on("change", (filePath: string) => {
+    // Skip files without governance-relevant extensions
+    if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
     // Debounce rapid changes to the same file
     const existing = pendingEvents.get(filePath);
     if (existing) clearTimeout(existing);
@@ -102,6 +109,9 @@ export function startWatching(
   });
 
   activeWatcher.on("add", (filePath: string) => {
+    // Skip files without governance-relevant extensions
+    if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
     const artifactType = detectArtifactType(filePath, nexusDir);
 
     if (artifactType === "adr") {
@@ -116,6 +126,39 @@ export function startWatching(
       bus.publish("skill.created", {
         skillId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
         skillName: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
+      });
+    }
+
+    // Detect new plan files in governance/plans/
+    const relativePath = filePath.replace(nexusDir, "").replace(/^\//, "");
+    const plansDir = join("governance", "plans");
+    if (
+      relativePath.startsWith(plansDir) &&
+      relativePath.endsWith(".md") &&
+      !relativePath.includes("/done/") &&
+      !relativePath.includes("/reference/") &&
+      !relativePath.includes("/pipeline/") &&
+      !filePath.includes("TEMPLATE") &&
+      !filePath.includes("README")
+    ) {
+      const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
+      bus.publish("plan.created", {
+        planId,
+        path: relativePath,
+        title: planId.replace(/-/g, " "),
+      });
+
+      // Also publish plan.file_changed on ADD so sync subscribers run immediately
+      let fileContent = "";
+      try {
+        fileContent = readFileSync(filePath, "utf-8");
+      } catch {
+        // File might have been deleted between add and read
+      }
+      bus.publish("plan.file_changed", {
+        planId,
+        path: relativePath,
+        content: fileContent,
       });
     }
 
@@ -242,6 +285,41 @@ function handleFileChange(
         content: newContent,
       });
     }
+  }
+
+  // BACKLOG.md change — sync status back to plan files
+  if (basename(filePath) === "BACKLOG.md") {
+    import("./plan-backlog-sync.js").then(({ syncBacklogToPlan }) => {
+      // Parse ### BACKLOG-XXX — Title headers and extract Status from table
+      const sectionRegex = /### (BACKLOG-[A-Z_0-9]+)(?:\s*—\s*(.+))?/g;
+      let match;
+
+      while ((match = sectionRegex.exec(newContent)) !== null) {
+        const backlogId = match[1] ?? "";
+        const planId = backlogId.replace("BACKLOG-", "").toLowerCase().replace(/_/g, "-");
+
+        // Extract Status field from the table following this header
+        const sectionStart = match.index;
+        const nextSection = newContent.indexOf("\n### ", sectionStart + 1);
+        const section = newContent.slice(sectionStart, nextSection !== -1 ? nextSection : undefined);
+
+        const statusMatch = section.match(/\*\*Status\*\*\s*\|\s*([^|]+)/);
+        const backlogStatus = statusMatch?.[1]?.trim().toLowerCase() ?? "planeado";
+
+        syncBacklogToPlan(
+          nexusDir,
+          planId,
+          backlogStatus
+        );
+      }
+
+      bus.publish("backlog.updated", {
+        path: filePath,
+        timestamp: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Import failed — skip silently
+    });
   }
 }
 

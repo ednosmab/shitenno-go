@@ -103,6 +103,16 @@ export interface Briefing {
   };
   /** Active reminders from context_buffer.yaml */
   reminders: Reminder[];
+  /** Recent activity from event bus (last 24h) */
+  recentActivity?: {
+    events: Array<{
+      type: string;
+      summary: string;
+      timestamp: string;
+    }>;
+    syncCount: number;
+    errorCount: number;
+  };
 }
 
 // ── Briefing Generation ────────────────────────────────────────────────────
@@ -380,6 +390,25 @@ export function briefingToMarkdown(briefing: Briefing): string {
     lines.push(`| **Estado última sessão** | ${briefing.quickBoard.lastSessionStatus} |`);
     lines.push("");
     lines.push("---");
+    lines.push("");
+  }
+
+  // Recent Activity — last 24h events
+  if (briefing.recentActivity && briefing.recentActivity.events.length > 0) {
+    lines.push("## Actividade Recente (24h)");
+    lines.push("");
+    lines.push("| Evento | Detalhe | Hora |");
+    lines.push("|--------|---------|------|");
+
+    for (const event of briefing.recentActivity.events) {
+      const time = event.timestamp.slice(11, 16);
+      lines.push(`| ${event.type} | ${event.summary} | ${time} |`);
+    }
+
+    lines.push("");
+    lines.push(
+      `**Resumo:** ${briefing.recentActivity.syncCount} sincronizações, ${briefing.recentActivity.errorCount} erros`
+    );
     lines.push("");
   }
 

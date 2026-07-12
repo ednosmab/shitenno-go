@@ -551,7 +551,7 @@ describe("reactive-pipeline", () => {
         "knowledge_debt_detected", "validation_fail", "validation_pass",
         "pattern_detected", "capability_install", "manual", "file_change",
         "adr_created", "skill_created", "task_completed", "pipeline_complete",
-        "plan_archived",
+        "plan_archived", "plan_created",
       ];
 
       const defaults = getDefaultRules();

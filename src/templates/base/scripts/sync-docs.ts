@@ -1,12 +1,15 @@
 #!/usr/bin/env npx tsx
 /**
- * sync-docs.ts — Documentation Sync Script
+ * sync-docs.ts — Documentation Sync Script (Template)
  *
  * Regenerates SYSTEM_MAP.md from the current directory structure
  * under nexus-system/. Called automatically by doc-sync-hook or
  * manually via `nexus sync-docs`.
  *
  * PRINCIPLE: Documentation stays in sync with actual structure.
+ *
+ * This is the template version installed via `nexus init`.
+ * The full-featured version lives in the nexus-cli repo.
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -65,7 +68,6 @@ function regenerateSystemMap(): boolean {
 
   let content = readFileSync(SYSTEM_MAP_PATH, "utf-8");
 
-  // Replace content between markers if they exist, otherwise append
   const startMarker = "<!-- SYNC:START -->";
   const endMarker = "<!-- SYNC:END -->";
 

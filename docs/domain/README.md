@@ -37,7 +37,7 @@ This directory defines the conceptual framework of Nexus. Documents here describ
 
 ## Related Documentation
 
-- [Philosophy](../philosophy/) — Why these concepts exist
+- [Philosophy](../handbook/philosophy/) — Why these concepts exist
 - [Architecture](../architecture/) — How these concepts are implemented
 - [Evolution](../evolution/) — How these concepts will evolve
 

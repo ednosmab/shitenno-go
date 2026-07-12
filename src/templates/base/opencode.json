@@ -46,7 +46,7 @@
     "./nexus-system/docs/opencode-context.md",
     "./nexus-system/docs/skills/**/*.md",
     "./nexus-system/governance/**/*.yaml",
-    "./nexus-system/BRIEFING.md"
+    "./nexus-system/governance/context/context_buffer.yaml"
   ],
   "skills": {
     "paths": ["nexus-system/docs/skills"]

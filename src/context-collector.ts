@@ -27,6 +27,7 @@ import { getFeedbackRecords, computeFeedbackSummary } from "./session-feedback.j
 import { logger } from "./logger.js";
 import { computeInputHash } from "./briefing-cache.js";
 import { computeKeyChecksums, getCached, setCache } from "./cache.js";
+import { readPersistedEvents, type EventEnvelope } from "./event-bus.js";
 
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -165,6 +166,9 @@ export function collectContext(
   // 7. Enrich briefing with detected patterns (Gap 4+5: feedback hotspots + pattern-detector)
   const enrichedBriefing = enrichBriefingWithPatterns(briefing, projectRoot, nexusDir, deps);
 
+  // 7b. Enrich briefing with recent activity from persisted events (last 24h)
+  const finalBriefing = enrichBriefingWithRecentActivity(enrichedBriefing, nexusDir);
+
   // 8. Compute input hash for cache invalidation
   const inputHash = computeInputHash({
     fingerprintHash: fingerprint.hash,
@@ -182,7 +186,7 @@ export function collectContext(
     contextRules,
     dynamicRules,
     maturityProfile,
-    briefing: enrichedBriefing,
+    briefing: finalBriefing,
   };
 
   // 9. Store snapshot in cache (reuse complexity slot in nexus-cache.json)
@@ -256,6 +260,85 @@ function enrichBriefingWithPatterns(
   };
 }
 
+// ── Recent Activity Enrichment ──────────────────────────────────────────────
+
+/** Event types to include in recent activity summary. */
+const ACTIVITY_EVENT_TYPES = new Set([
+  "plan.created",
+  "plan.file_changed",
+  "plan.format_warning",
+  "plan.archived",
+  "backlog.updated",
+]);
+
+/** Summarize an event payload into a human-readable string. */
+function summarizeEvent(event: EventEnvelope): string {
+  const p = event.payload as Record<string, unknown>;
+  switch (event.type) {
+    case "plan.created":
+      return `Plano criado: ${p.planId ?? "unknown"}`;
+    case "plan.file_changed":
+      return `Plano alterado: ${p.planId ?? "unknown"}`;
+    case "plan.format_warning":
+      return `Formato inválido: ${p.planId ?? "unknown"}`;
+    case "plan.archived":
+      return `Plano arquivado: ${p.planId ?? "unknown"}`;
+    case "backlog.updated":
+      return `${p.source ?? "sync"}: ${p.stepsCount ?? 0} passos`;
+    default:
+      return String(p.planId ?? p.source ?? event.type);
+  }
+}
+
+/**
+ * Enrich a briefing with recent activity from persisted events (last 24h).
+ * Reads from telemetry/events-YYYY-MM-DD.jsonl files.
+ */
+function enrichBriefingWithRecentActivity(
+  briefing: Briefing,
+  nexusDir: string
+): Briefing {
+  try {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+
+    const todayEvents = readPersistedEvents(nexusDir, today);
+    const yesterdayEvents = readPersistedEvents(nexusDir, yesterday);
+    const allEvents = [...yesterdayEvents, ...todayEvents];
+
+    // Filter to relevant event types and last 24h
+    const cutoff = now.getTime() - 86400000;
+    const recent = allEvents
+      .filter((e) => ACTIVITY_EVENT_TYPES.has(e.type))
+      .filter((e) => {
+        const ts = new Date(e.timestamp).getTime();
+        return ts >= cutoff;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
+
+    const syncCount = recent.filter((e) => e.type === "backlog.updated").length;
+    const errorCount = recent.filter((e) => e.type === "plan.format_warning").length;
+
+    return {
+      ...briefing,
+      recentActivity: recent.length > 0 ? {
+        events: recent.map((e) => ({
+          type: e.type,
+          summary: summarizeEvent(e),
+          timestamp: e.timestamp,
+        })),
+        syncCount,
+        errorCount,
+      } : undefined,
+    };
+  } catch (err) {
+    logger.debug("enrichBriefing", "Recent activity unavailable:", err instanceof Error ? err.message : err);
+    return briefing;
+  }
+}
+
 // ── Quick Board Loading ─────────────────────────────────────────────────────
 
 /**
@@ -296,7 +379,7 @@ function loadQuickBoard(nexusDir: string): {
     // Extract last session status
     const lastSessionStatus = data?.session?.status === "completed"
       ? "Concluída"
-      : data?.session?.status === "in_progress"
+      : data?.session?.status === "in_progress" || data?.session?.status === "active"
         ? "Em curso"
         : "Desconhecido";
 
@@ -305,13 +388,49 @@ function loadQuickBoard(nexusDir: string): {
       ? data.impediments.map((i: { description: string }) => i.description).join(", ")
       : "Nenhum";
 
-    // Extract technical debt (P1 debts)
+    // Extract technical debt (P1/high debts) — support both 'priority' and 'severity' fields
     const p1Debts = data?.technical_debt?.length > 0
       ? data.technical_debt
-          .filter((d: { priority: string }) => d.priority === "P1")
+          .filter((d: { priority?: string; severity?: string }) => d.priority === "P1" || d.severity === "high")
           .map((d: { description: string }) => d.description)
           .join(", ") || "Nenhuma"
       : "Nenhuma";
+
+    // Auto-update next_p0 and current_task from BACKLOG.md if stale
+    const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+    let nextP0 = data?.next_p0 ?? "Verificar BACKLOG.md para próximo P0";
+    let currentTaskVal = currentTask;
+
+    if (existsSync(backlogPath)) {
+      try {
+        const backlog = readFileSync(backlogPath, "utf-8");
+        const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
+
+        // Find first P0 item with "In Progress" status (skip Done items)
+        const p0Items = p0Section.split(/^### /m).slice(1);
+        for (const item of p0Items) {
+          const title = item.split("\n")[0]?.trim();
+          if (title && item.includes("| **Status** | In Progress")) {
+            nextP0 = `${title} (In Progress)`;
+            break;
+          }
+        }
+
+        // If current_task is completed or missing, find first In Progress item across all sections
+        if (data?.current_task?.status === "completed" || !data?.current_task?.description) {
+          const allItems = backlog.split(/^### /m).slice(1);
+          for (const item of allItems) {
+            const title = item.split("\n")[0]?.trim();
+            if (title && item.includes("| **Status** | In Progress")) {
+              currentTaskVal = `${title} (In Progress)`;
+              break;
+            }
+          }
+        }
+      } catch {
+        // Ignore read errors — use context_buffer values
+      }
+    }
 
     // Extract reminders - support both old string[] and new Reminder[] formats
     let reminders: Reminder[] = [];
@@ -337,8 +456,8 @@ function loadQuickBoard(nexusDir: string): {
     }
 
     return {
-      currentTask,
-      nextP0: data?.next_p0 ?? "Verificar BACKLOG.md para próximo P0",
+      currentTask: currentTaskVal,
+      nextP0,
       p1Debts,
       impediments,
       lastSessionStatus,

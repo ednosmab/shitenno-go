@@ -1,28 +1,29 @@
 reminders:
+  - message: "Revisar handbook — AI preencheu dados semânticos. Editar partes filosóficas."
+    priority: "medium"
+    category: "docs"
+    createdAt: "2026-07-12T02:19:30.366Z"
   - message: "Health status is CRITICAL — immediate action required"
     priority: "high"
     category: "health"
     createdAt: "2026-07-09T04:07:05.619Z"
 
 session:
-  id: session-2026-07-10-001
+  id: session-2026-07-12-001
   status: active
 
 current_task:
-  id: plano-arquitectura-completo
-  description: "Execute complete architecture plan — all 15 phases"
+  id: handbook-sync-resolve
+  description: "Resolve session conflicts — handbook pipeline"
   status: "completed"
-  started_at: "2026-07-09T00:00:00Z"
-  completed_at: "2026-07-10T03:00:00Z"
+  started_at: "2026-07-12T00:00:00Z"
 
-next_p0: "Nenhum P0 activo — plano arquitectura concluído"
+next_p0: "Nenhum P0 activo — handbook sync em curso"
 
 documents_loaded:
   - docs/BACKLOG.md
-  - docs/KNOWN_LIMITATIONS.md
   - governance/WORKFLOW.md
   - governance/context/context_buffer.yaml
-  - nexus-system/governance/plans/PLANO-CORRECAO-NEXUS.md
 
 impediments: []
 
@@ -40,4 +41,5 @@ completed_tasks:
   - BACKLOG-0.7, SA3
   - EVENT-DRIVEN-REACTIVE, ADR-005-PIPELINE
   - PLANO-CORRECAO-NEXUS (Bug 1-5: feedback-utils, banner, JSON rules, plugins, answers.json)
-  - PLANO-ARQUITECTURA-COMPLETO (15 fases: reactive, proactive, history, trends, AI context, mutations, orphan modules, event topology)
+  - PLANO-ARQUITECTURA-COMPLETO (15 fases)
+  - HANDBOOK-LEVEL-2-3 (conteúdo 02-commands/ e 03-architecture/)

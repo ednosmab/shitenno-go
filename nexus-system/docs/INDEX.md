@@ -32,9 +32,9 @@ Documents in this layer contain no implementation details, no code, no technolog
 
 | Document | Purpose |
 |----------|---------|
-| [Engineering Manifesto](./philosophy/engineering-manifesto.md) | Why Nexus exists — the problem, the role of AI, the role of the engineer |
-| [Principles](./philosophy/principles.md) | Six immutable principles that govern all decisions |
-| [Vision](./philosophy/vision.md) | Long-term direction — three phases of evolution |
+| [Engineering Manifesto](../../docs/handbook/philosophy/engineering-manifesto.md) | Why Nexus exists — the problem, the role of AI, the role of the engineer |
+| [Principles](../../docs/handbook/philosophy/principles.md) | Six immutable principles that govern all decisions |
+| [Vision](../../docs/handbook/philosophy/vision.md) | Long-term direction — three phases of evolution |
 
 **Read this first** if you want to understand what Nexus is and why it exists.
 

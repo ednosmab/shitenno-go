@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-07-11T23:53:04.171Z",
+  "mode": "validate",
+  "total_discrepancies": 12,
+  "errors": 1,
+  "warnings": 11,
+  "fixable": 1,
+  "fix_actions_applied": 0,
+  "discrepancies": [
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Directory exists but not documented in GUIDE: history/",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Directory exists but not documented in GUIDE: plugins/",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Directory exists but not documented in GUIDE: profile/",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Command implemented but not documented: nexus events",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Command implemented but not documented: nexus handbook",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Command implemented but not documented: nexus watch",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Broken reference in /media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli/nexus-system/docs/AGENTS.md: nexus-system/BRIEFING.md",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "error",
+      "message": "SYSTEM_MAP.md directory tree is outdated",
+      "file": "nexus-system/governance/SYSTEM_MAP.md",
+      "fixable": true
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Version mismatch: CHANGELOG says 0.2.0, package.json says 0.1.0",
+      "file": "CHANGELOG.md",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Script referenced in WORKFLOW.md but not in package.json: validate:session`",
+      "file": "governance/WORKFLOW.md",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Script referenced in WORKFLOW.md but not in package.json: close:session`",
+      "file": "governance/WORKFLOW.md",
+      "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "warning",
+      "message": "Script referenced in WORKFLOW.md but not in package.json: premortem:check`",
+      "file": "governance/WORKFLOW.md",
+      "fixable": false
+    }
+  ]
+}

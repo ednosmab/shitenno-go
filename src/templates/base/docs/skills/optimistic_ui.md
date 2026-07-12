@@ -1,32 +1,72 @@
 ---
-name: optimistic-ui
+name: optimistic_ui
 description: >
-  Proporcionar percepção de velocidade instantânea ao utilizador, tratando a sincronização com o servidor como processo de background.
+  Padrões de Optimistic UI — actualizações imediatas da interface antes da confirmação do servidor.
+  Use quando o agente for implementar interações que devem parecer instantâneas ao utilizador,
+  como likes, toggle de estados, adição/remoção de itens, ou qualquer acção que aceite um
+  curto atraso de rede em favor de uma experiência fluida.
 ---
 
-# ⚡ SKILL: OPTIMISTIC UI & SYNC INDICATORS
+# Optimistic UI
 
-## 🎯 Objetivo
-Proporcionar uma percepção de velocidade instantânea ao utilizador, tratando a sincronização com o servidor como um processo de background transparente.
+Actualizações imediatas da interface que assume sucesso antes da confirmação do servidor.
 
-## 🚦 Estados de Sincronização
-A interface deve refletir o estado de persistência de cada ação (ex: salvar progresso, postar comentário):
+---
 
-| Status | Significado | Feedback Visual |
-| :--- | :--- | :--- |
-| `synced` | Salvo no servidor | Sem ícone (limpo). |
-| `pending` | Salvo apenas localmente (Offline) | Ícone de nuvem ou círculo discreto. |
-| `error` | Falha após retentativas | Ícone de aviso (permite re-tentativa manual). |
+## Quando usar
 
-## 🔄 Regras de Implementação
-1. **Resposta Instantânea:** Atualize o estado local/cache IMEDIATAMENTE após o clique do usuário.
-2. **Confirmação Silenciosa:** Quando o dado for confirmado no servidor, o indicador de "pending" deve sumir suavemente sem reposicionar elementos na tela.
-3. **Persistência de Erro:** Se a sincronização falhar definitivamente, o dado não deve sumir. O usuário deve ser notificado e ter a opção de tentar novamente.
+- **Likes/reacções** — toggle instantâneo
+- **Toggle de estado** — favorito, activo/inactivo
+- **Adição/remoção** — adicionar item a uma lista
+- **Reordenação** — drag-and-drop
+- **Qualquer acção** com latência perceptível
 
-## ⚠️ Regras de Ouro
-- **Nunca bloqueie a UI:** Evite spinners que impeçam a navegação, exceto em fluxos críticos de Auth ou Pagamento.
-- **Offline First:** O app deve ser funcional mesmo sem sincronização ativa.
+---
 
-## 📂 Onde Aplicar
-- `[app-aluno]/` (Progresso de aulas).
-- `[app-admin]/` (Edição do CMS).
+## Padrão Básico
+
+```typescript
+function useOptimisticToggle(initial: boolean) {
+  const [optimistic, setOptimistic] = useState(initial);
+  const [server, setServer] = useState(initial);
+
+  const toggle = async () => {
+    setOptimistic(!optimistic); // Actualiza imediatamente
+    try {
+      const result = await api.toggle();
+      setServer(result); // Confirma com servidor
+    } catch {
+      setOptimistic(server); // Reverte em caso de erro
+    }
+  };
+
+  return { value: optimistic, toggle };
+}
+```
+
+---
+
+## Regras
+
+1. **Revert em erro** — sempre que o servidor falhar, reverter ao estado anterior
+2. **Skeleton/placeholder** — mostrar estado de loading discreto
+3. **Não bloquear** — o utilizador pode continuar a interagir
+4. **Persistir confirmação** — usar o valor do servidor como source of truth
+
+---
+
+## Anti-padrões
+
+- ❌ Esperar resposta do servidor antes de actualizar UI
+- ❌ Mostrar spinner em toda a pantalla por acções simples
+- ❌ Não reverter estado em caso de erro
+- ❌ Assumir sucesso sem validar resposta do servidor
+
+---
+
+## Checklist
+
+- [ ] UI actualiza imediatamente no click
+- [ ] Revert implementado para caso de erro
+- [ ] Estado do servidor usado como source of truth
+- [ ] Feedback visual discreto durante sincronização

@@ -18,11 +18,13 @@ export const detectCommand = new Command("detect")
   .option("--format <type>", "Output format: text, json, or markdown (default: text)")
   .option("--approve <ruleId>", "Approve a candidate rule by ID")
   .option("--reject <ruleId>", "Reject a candidate rule by ID")
+  .option("--auto", "Non-interactive mode for git hooks (suppresses banner and spinner)")
   .action(async (options) => {
     const isJson = options.json === true;
+    const isAuto = options.auto === true;
     const format = isJson ? "json" : (String(options.format || "text"));
 
-    if (!isJson) {
+    if (!isJson && !isAuto) {
       console.log("");
       banner("nexus detect", "Pattern Detection");
       console.log("");
@@ -88,7 +90,7 @@ export const detectCommand = new Command("detect")
       return;
     }
 
-    const spinner = ora("Analyzing history and reports...").start();
+    const spinner = isAuto ? null : ora("Analyzing history and reports...").start();
 
     try {
       // Check cache first
@@ -112,8 +114,8 @@ export const detectCommand = new Command("detect")
       // Write report
       const reportFile = writePatternReport(ctx.nexusDir, report);
 
-      if (!isJson) {
-        spinner.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
+      if (!isJson && !isAuto) {
+        spinner?.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
       }
 
       // JSON output
@@ -289,8 +291,8 @@ export const detectCommand = new Command("detect")
     } catch (error) {
       if (isJson) {
         outputJson({ error: "detection_failed", message: String(error) });
-      } else {
-        spinner.fail("Pattern detection failed");
+      } else if (!isAuto) {
+        spinner?.fail("Pattern detection failed");
         console.log(chalk.red(`  Error: ${error}`));
         console.log("");
       }

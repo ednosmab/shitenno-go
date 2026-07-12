@@ -1,5 +1,9 @@
 # Nexus Dashboard — Plano de Refactoracao por Camadas de Conhecimento
 
+**Status:** In Progress
+**Updated_at:** 2026-07-12T14:30:21.127Z
+**Date:** 2026-07-12
+
 > **Data:** 2026-07-02
 > **Estado:** AGUARDA APROVACAO
 > **Escopo:** Refactoracao completa do Dashboard para 6 camadas progressivas de conhecimento
