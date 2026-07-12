@@ -41,6 +41,12 @@ nexus-system/session-feedback/
 nexus-system/user-profile.json
 nexus-system/BRIEFING.md
 
+# Nexus System — auto-generated state files (mudam a cada execução)
+nexus-system/docs/history/
+nexus-system/reports/
+nexus-system/feedback/summary.json
+nexus-system/feedback/records/
+
 # Images
 logo.png
 image*.png

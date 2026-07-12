@@ -1,6 +1,0 @@
-# session_close
-
-Date: 2026-07-07T15:25:59.100Z
-Rule: unknown
-
-Session ended — run close-session to validate hygiene
