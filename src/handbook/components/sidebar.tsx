@@ -74,7 +74,7 @@ function SidebarItem({ item, isSelected, onSelect }: SidebarItemProps) {
 
   if (item.type === "topic" && item.topic) {
     return (
-      <Box ref={ref} paddingLeft={2}>
+      <Box ref={ref} flexDirection="column" paddingLeft={2}>
         <Text
           color={isSelected ? "blue" : undefined}
           inverse={isSelected}
