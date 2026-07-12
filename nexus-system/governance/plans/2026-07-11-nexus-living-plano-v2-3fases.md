@@ -1,5 +1,9 @@
 # Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas)
 
+**Status:** In Progress
+**Updated_at:** 2026-07-12T14:30:21.132Z
+**Date:** 2026-07-12
+
 > **Data:** 2026-07-11 (revisão do plano de 2026-07-10)
 > **Objectivo:** Tornar o Nexus num sistema reactivo e vivo — sempre a ouvir eventos, sem intervenção manual
 > **Status:** 🟡 `plan_mode` — Aguarda implementação

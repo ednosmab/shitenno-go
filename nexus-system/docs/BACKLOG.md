@@ -1019,3 +1019,33 @@
 ---
 *Ultima atualizacao: 2026-07-10 — Fase 0-3, 5-6 do gap analysis plan concluidas*
 
+
+
+### BACKLOG-2026_07_02_NEXUS_DASHBOARD_RESTRUCTURE — Nexus Dashboard — Plano de Refactoracao por Camadas de Conhecimento
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Nexus Dashboard — Plano de Refactoracao por Camadas de Conhecimento |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-02-nexus-dashboard-restructure.md` |
+
+
+### BACKLOG-2026_07_11_NEXUS_LIVING_PLANO_V2_3FASES — Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas)
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md` |
