@@ -137,6 +137,7 @@
 │   governance/plans/
 │   governance/plans/2026-07-12-backlog-batch-resolver.md
 │   governance/plans/2026-07-12-plano-correcao-watch-loop-e-fase2.md
+│   governance/plans/2026-07-13-plano-bug002-entropia.md
 │   governance/plans/README.md
 │   governance/plans/TEMPLATE.md
 │   governance/plans/done/
