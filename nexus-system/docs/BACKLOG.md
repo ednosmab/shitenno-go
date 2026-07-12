@@ -1123,3 +1123,18 @@
 - [ ] `scheduledCheck()` implementado e testado (simular drift alto, confirmar evento publicado; simular
 - [ ] `pnpm run lint && npx tsc --noEmit && pnpm run build && npx vitest run` — tudo verde.
 - [ ] Atualizar `nexus-system/docs/BACKLOG.md` — mudar `LIVING-002` de `Status: Backlog` para
+
+
+### BACKLOG-2026_07_13_PLANO_BUG002_ENTROPIA — Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-13-plano-bug002-entropia.md` |

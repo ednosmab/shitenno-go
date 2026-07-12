@@ -1,5 +1,9 @@
 # Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro
 
+**Status:** In Progress
+**Updated_at:** 2026-07-12T23:00:36.189Z
+**Date:** 2026-07-12
+
 > **Data:** 2026-07-13
 > **Repositório validado:** `nexus-system-feat-nexus-living` (zip mais recente)
 > **Método:** todos os trechos de código abaixo foram confirmados linha a linha contra
