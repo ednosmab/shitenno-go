@@ -115,14 +115,17 @@
 │   docs/skills/codebase_hygiene_git.md
 │   docs/skills/design_patterns.md
 │   docs/skills/domain_driven_design_(ddd).md
+│   docs/skills/error_handling_observability.md
 │   docs/skills/handbook-fill.md
 │   docs/skills/operacao_no_nexus.md
+│   docs/skills/optimistic_ui.md
 │   docs/skills/pnpm_management.md
 │   docs/skills/quick-board-enforcement.md
 │   docs/skills/senior-engineer.md
 │   docs/skills/solid_principles.md
 │   docs/skills/system-first.md
 │   docs/skills/tdd-agent.md
+│   docs/skills/tdd_workflow.md
 │   engineering-state.json
 │   feedback/
 │   feedback/records/
