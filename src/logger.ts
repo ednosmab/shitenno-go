@@ -36,6 +36,10 @@ export function muteLogs(): void {
 }
 
 function shouldLog(level: LogLevel): boolean {
+  // Respect --quiet flag via env var
+  if (process.env.NEXUS_QUIET === "1" && LEVEL_PRIORITY[level] < LEVEL_PRIORITY["error"]) {
+    return false;
+  }
   return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[currentLevel];
 }
 

@@ -216,7 +216,18 @@ const program = new Command();
 program
   .name("nexus")
   .description("AI governance ecosystem that grows with your project")
-  .version(version);
+  .version(version)
+  .option("--quiet", "Suppress informational output (errors only)")
+  .option("--no-color", "Disable colored output")
+  .hook("preAction", () => {
+    const globalOpts = program.opts();
+    if (globalOpts.quiet) {
+      process.env.NEXUS_QUIET = "1";
+    }
+    if (globalOpts.color === false) {
+      chalk.level = 0;
+    }
+  });
 
 // ── Custom Help Formatting ──────────────────────────────────────────────────
 
