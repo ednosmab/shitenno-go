@@ -43,7 +43,7 @@ function TreeShortcuts() {
       </Text>
       <Text>
         <Text bold color="cyan">1-3</Text>
-        <Text dimColor> nível</Text>
+        <Text dimColor> nivel</Text>
       </Text>
       <Text>
         <Text bold color="cyan">q</Text>
@@ -58,15 +58,19 @@ function ContentShortcuts() {
     <Box gap={2}>
       <Text>
         <Text bold color="cyan">↑↓</Text>
+        <Text dimColor> sidebar</Text>
+      </Text>
+      <Text>
+        <Text bold color="cyan">Enter</Text>
+        <Text dimColor> abrir</Text>
+      </Text>
+      <Text>
+        <Text bold color="cyan">j/k</Text>
         <Text dimColor> rolar</Text>
       </Text>
       <Text>
         <Text bold color="cyan">Esc</Text>
         <Text dimColor> voltar</Text>
-      </Text>
-      <Text>
-        <Text bold color="cyan">q</Text>
-        <Text dimColor> sair</Text>
       </Text>
     </Box>
   );

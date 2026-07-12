@@ -1,0 +1,11 @@
+{
+  "recommendationId": "rule-RULE-001",
+  "action": "deferred",
+  "context": {
+    "maturityScore": 0,
+    "installedCapabilities": [],
+    "knowledgeDebt": 0
+  },
+  "id": "FB-1783881763781-nerzd8",
+  "timestamp": "2026-07-12T18:42:43.781Z"
+}

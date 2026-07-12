@@ -151,10 +151,10 @@ function listTopics(): void {
 // ── Command Export ─────────────────────────────────────────────────────────
 
 export const handbookCommand = new Command("handbook")
-  .description("Exibe o handbook de referência do Nexus (TUI interativo por padrão)")
-  .option("--print", "Modo não-interativo: imprime conteúdo e sai")
-  .option("--level <number>", "Mostrar apenas um nível (1, 2 ou 3) — funciona com --print")
-  .option("--list", "Listar todos os tópicos disponíveis")
+  .description("Exibe o handbook de referência do Nexus (TUI interativo por padrão). Acessibilidade: use --print para saida em texto plano compativel com screen readers.")
+  .option("--print", "Modo nao-interativo: imprime conteudo em texto plano e sai (recomendado para screen readers)")
+  .option("--level <number>", "Mostrar apenas um nivel (1, 2 ou 3) — funciona com --print")
+  .option("--list", "Listar todos os topicos disponiveis")
   .action(async (options) => {
     // List mode
     if (options.list) {
