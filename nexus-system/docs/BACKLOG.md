@@ -32,7 +32,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | In Progress — 2026-07-11 (steps 1.1-1.6, 1.8 concluídos; 1.7, 1.9, 1.10 pendentes) |
+| **Status** | In Progress — 2026-07-12 (steps 1.1-1.8 concluídos; 1.9, 1.10 pendentes) |
 | **Severidade** | Alto |
 | **Prioridade** | P0 |
 | **Owner** | executor |
@@ -380,20 +380,6 @@
 | **Owner** | executor |
 | **Descricao** | `npm audit` automatico no CI. Bloquear builds com vulnerabilidades criticas. |
 | **Correcao** | Adicionar step `pnpm audit --audit-level=high` ao CI. |
-
-### NEW-003 Sistema de logging estruturado
-
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Medio |
-| **Prioridade** | P2 |
-| **Owner** | executor |
-| **Data** | 2026-07-11 |
-| **Fonte** | nexus watch — sem persistencia de logs |
-| **Modulos** | src/logger.ts, src/commands/watch.ts |
-| **Descricao** | Actualmente os logs sao apenas impressos no stdout e perdidos. Necessario sistema de logging estruturado com persistencia a disco, rotação, e historico consultavel. |
-| **Correcao** | Criar modulo `src/log-store.ts` com escrita a disco (JSONL por data), rotação automatica (manter 30 dias), e comando `nexus logs` para consulta. Integrar com `nexus watch` para dupla saída (stdout + ficheiro). |
 
 ---
 
@@ -1039,11 +1025,11 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | planeado (0% — 0/0) |
+| **Status** | em implementação |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
-| **Data** | 2026-07-11 |
+| **Data** | 2026-07-12 |
 | **Fonte** | nexus plan md prepare |
 | **Modulos** | governance/plans/ |
 | **Descricao** | Nexus Dashboard — Plano de Refactoracao por Camadas de Conhecimento |
@@ -1054,36 +1040,6 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | planeado (0% — 0/0) |
-| **Severidade** | Medio |
-| **Prioridade** | P1 |
-| **Owner** | executor |
-| **Data** | 2026-07-11 |
-| **Fonte** | nexus plan md prepare |
-| **Modulos** | governance/plans/ |
-| **Descricao** | Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas) |
-| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md` |
-
-
-### BACKLOG-PLAN_DYNAMIC_RULE_ADAPTATION — Plan: Dynamic Rule Adaptation by Project Complexity
-
-| Campo | Valor |
-|---|---|
-| **Status** | Done — 2026-07-12 |
-| **Nota** | Implementado: 6/7 fases (Registry, Complexity Detector, Adaptive Loader, AGENTS.md markers, opencode.json, CLI --complexity). Fase 7 (Briefing) descontinuada — informacao disponivel via nexus assess --complexity. |
-
-### BACKLOG-PLAN_HANDBOOK_SYNC — PLAN-HANDBOOK-SYNC — Sincronização Semântica do Handbook
-
-| Campo | Valor |
-|---|---|
-| **Status** | concluído |
-| **Nota** | Cancelado pelo utilizador. Passos 1, 2, 4 concluídos; 3, 5, 6 descontinuados. |
-
-
-### BACKLOG-PLAN_NOTIFICATION_TEST — PLAN-NOTIFICATION-TEST — Teste de Notificação
-
-| Campo | Valor |
-|---|---|
 | **Status** | em implementação |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
@@ -1091,11 +1047,5 @@
 | **Data** | 2026-07-12 |
 | **Fonte** | nexus plan md prepare |
 | **Modulos** | governance/plans/ |
-| **Descricao** | PLAN-NOTIFICATION-TEST — Teste de Notificação |
-| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-NOTIFICATION-TEST.md` |
-
-#### Passos do Plano
-- [ ] Passo 1 — Criar plano
-- [ ] Passo 2 — Executar prepare
-- [ ] Passo 3 — Verificar briefing
-- [ ] Passo 4 — Verificar event bus
+| **Descricao** | Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md` |

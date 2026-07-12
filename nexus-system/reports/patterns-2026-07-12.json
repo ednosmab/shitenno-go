@@ -1,6 +1,6 @@
 {
-  "detectedAt": "2026-07-12T14:10:56.119Z",
-  "historyEntriesAnalyzed": 22,
+  "detectedAt": "2026-07-12T14:30:21.200Z",
+  "historyEntriesAnalyzed": 19,
   "reportsAnalyzed": 10,
   "patterns": [
     {
@@ -9,15 +9,15 @@
       "occurrences": 10,
       "evidence": [
         "Relatório 1: score 9.5",
-        "Relatório 2: score 9",
+        "Relatório 2: score 9.5",
         "Relatório 3: score 9",
         "Relatório 4: score 9",
         "Relatório 5: score 9",
-        "Relatório 6: score 8.5",
+        "Relatório 6: score 9",
         "Relatório 7: score 8.5",
         "Relatório 8: score 8.5",
-        "Relatório 9: score 8",
-        "Relatório 10: score 9"
+        "Relatório 9: score 8.5",
+        "Relatório 10: score 8"
       ],
       "affectedArea": "src/__tests__",
       "severity": 4
@@ -27,16 +27,16 @@
       "description": "Área \"src/commands\" com score elevado consistente (média 6.8 em 10 relatórios)",
       "occurrences": 10,
       "evidence": [
-        "Relatório 1: score 7.5",
-        "Relatório 2: score 7",
+        "Relatório 1: score 6.5",
+        "Relatório 2: score 7.5",
         "Relatório 3: score 7",
         "Relatório 4: score 7",
         "Relatório 5: score 7",
-        "Relatório 6: score 6.5",
+        "Relatório 6: score 7",
         "Relatório 7: score 6.5",
         "Relatório 8: score 6.5",
-        "Relatório 9: score 6",
-        "Relatório 10: score 7"
+        "Relatório 9: score 6.5",
+        "Relatório 10: score 6"
       ],
       "affectedArea": "src/commands",
       "severity": 3
@@ -47,15 +47,15 @@
       "occurrences": 10,
       "evidence": [
         "Relatório 1: score 7.5",
-        "Relatório 2: score 7",
+        "Relatório 2: score 7.5",
         "Relatório 3: score 7",
         "Relatório 4: score 7",
         "Relatório 5: score 7",
-        "Relatório 6: score 6.5",
+        "Relatório 6: score 7",
         "Relatório 7: score 6.5",
         "Relatório 8: score 6.5",
-        "Relatório 9: score 6",
-        "Relatório 10: score 7"
+        "Relatório 9: score 6.5",
+        "Relatório 10: score 6"
       ],
       "affectedArea": "src/templates",
       "severity": 3
@@ -74,15 +74,15 @@
           "occurrences": 10,
           "evidence": [
             "Relatório 1: score 9.5",
-            "Relatório 2: score 9",
+            "Relatório 2: score 9.5",
             "Relatório 3: score 9",
             "Relatório 4: score 9",
             "Relatório 5: score 9",
-            "Relatório 6: score 8.5",
+            "Relatório 6: score 9",
             "Relatório 7: score 8.5",
             "Relatório 8: score 8.5",
-            "Relatório 9: score 8",
-            "Relatório 10: score 9"
+            "Relatório 9: score 8.5",
+            "Relatório 10: score 8"
           ],
           "affectedArea": "src/__tests__",
           "severity": 4
@@ -92,5 +92,5 @@
       "status": "proposed"
     }
   ],
-  "summary": "3 padrão(ões) detectado(s) em 22 entradas de histórico e 10 relatórios. 1 de severidade alta — atenção urgente recomendada. 1 regra(s) candidata(s) proposta(s) para aprovação do Tech Lead."
+  "summary": "3 padrão(ões) detectado(s) em 19 entradas de histórico e 10 relatórios. 1 de severidade alta — atenção urgente recomendada. 1 regra(s) candidata(s) proposta(s) para aprovação do Tech Lead."
 }

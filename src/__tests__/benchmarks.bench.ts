@@ -16,6 +16,7 @@ import { calculateComplexityScore } from "../scorer.js";
 import { detectPatterns } from "../pattern-detector.js";
 import { auditHealth } from "../health-auditor.js";
 import { analyseProject } from "../analyser.js";
+import { getEngineeringState, clearEngineeringStateCache } from "../engineering-state-access.js";
 import type { UserAnswers } from "../prompts.js";
 import type { Capability } from "../maturity-profile.js";
 
@@ -373,4 +374,77 @@ describe("Scaling: history entries (fixed 100 files, 3 areas)", () => {
       auditHealth(fixture.dir, fixture.nexusDir);
     });
   }
+});
+
+// ── Benchmarks: Cross-process cache (Fase 1) ────────────────────────────────
+
+describe("Cross-process cache (cold consolidation vs disk cache fresh)", () => {
+  let cacheSmall: Fixture;
+  let cacheMedium: Fixture;
+  let cacheLarge: Fixture;
+
+  beforeAll(() => {
+    cacheSmall = createFixture("cache-small", {
+      sourceFileCount: 20,
+      historyEntries: 5,
+      reportCount: 3,
+      areas: 3,
+    });
+    cacheMedium = createFixture("cache-medium", {
+      sourceFileCount: 100,
+      historyEntries: 30,
+      reportCount: 10,
+      areas: 8,
+    });
+    cacheLarge = createFixture("cache-large", {
+      sourceFileCount: 500,
+      historyEntries: 100,
+      reportCount: 50,
+      areas: 20,
+    });
+
+    // Pre-populate disk cache for each fixture
+    for (const f of [cacheSmall, cacheMedium, cacheLarge]) {
+      clearEngineeringStateCache();
+      getEngineeringState(f.dir, f.nexusDir, true);
+    }
+  });
+
+  afterAll(() => {
+    for (const f of [cacheSmall, cacheMedium, cacheLarge]) {
+      try {
+        rmSync(f.dir, { recursive: true, force: true });
+      } catch {}
+    }
+  });
+
+  bench("small — cold consolidation (forceRefresh=true)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheSmall.dir, cacheSmall.nexusDir, true);
+  });
+
+  bench("small — disk cache hit (governance/ unchanged)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheSmall.dir, cacheSmall.nexusDir, false);
+  });
+
+  bench("medium — cold consolidation (forceRefresh=true)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheMedium.dir, cacheMedium.nexusDir, true);
+  });
+
+  bench("medium — disk cache hit (governance/ unchanged)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheMedium.dir, cacheMedium.nexusDir, false);
+  });
+
+  bench("large — cold consolidation (forceRefresh=true)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheLarge.dir, cacheLarge.nexusDir, true);
+  });
+
+  bench("large — disk cache hit (governance/ unchanged)", () => {
+    clearEngineeringStateCache();
+    getEngineeringState(cacheLarge.dir, cacheLarge.nexusDir, false);
+  });
 });
