@@ -31,6 +31,12 @@ import {
 } from "./briefing.js";
 import { loadRules } from "./rule-engine.js";
 import { generateDynamicRules } from "./dynamic-rules.js";
+import { getEngineeringState } from "./engineering-state-access.js";
+import { parseBacklog } from "./backlog-parser.js";
+import { readCache } from "./briefing-cache.js";
+import { recordOutcome, createFileStorage } from "./session-feedback.js";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 // ── Tool Definitions
 
@@ -108,6 +114,59 @@ const TOOLS = [
             "'markdown' returns human-readable markdown.",
         },
       },
+    },
+  },
+  {
+    name: "getEngineeringState",
+    description: "Get the current engineering state of the project, including asset lists, system entropy score, missing dependencies, and maturity profile. Provides fundamental context of the system architecture.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "getBacklog",
+    description: "Get the current active tasks and backlog items of the project.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        state: {
+          type: "string" as const,
+          description: "Optional filter by state. Examples: 'planeado', 'em implementação', 'concluído', 'pausado', 'adiado', 'encerrado'.",
+        },
+      },
+    },
+  },
+  {
+    name: "getPlans",
+    description: "List active architectural plans or read a specific plan's content.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        planName: {
+          type: "string" as const,
+          description: "Optional. The exact filename of the plan to read (e.g. '2026-07-10-nexus-living.md'). If omitted, returns a list of all plans.",
+        },
+      },
+    },
+  },
+  {
+    name: "submitFeedback",
+    description: "Submit feedback on an executed task. Use this to record success or failure so the Nexus capability engine can learn from your actions.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        outcome: {
+          type: "string" as const,
+          enum: ["success", "failure", "partial"],
+          description: "The outcome of the session or task.",
+        },
+        notes: {
+          type: "string" as const,
+          description: "Detailed notes on what worked, what failed, and why.",
+        },
+      },
+      required: ["outcome", "notes"],
     },
   },
 ];
@@ -355,6 +414,86 @@ export function handleGetRules(
   };
 }
 
+export function handleGetEngineeringState(
+  projectRoot: string,
+  nexusDir: string,
+  _args: Record<string, unknown>
+): { content: Array<{ type: string; text: string }> } {
+  try {
+    const state = getEngineeringState(projectRoot, nexusDir);
+    return { content: [{ type: "text", text: JSON.stringify(state, null, 2) }] };
+  } catch (error) {
+    throw new Error(`Failed to get engineering state: ${error}`);
+  }
+}
+
+export function handleGetBacklog(
+  _projectRoot: string,
+  nexusDir: string,
+  args: Record<string, unknown>
+): { content: Array<{ type: string; text: string }> } {
+  const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
+  let items = parseBacklog(backlogPath);
+  
+  if (args.state && typeof args.state === "string") {
+    const stateFilter = args.state.toLowerCase();
+    items = items.filter(item => item.state.toLowerCase() === stateFilter);
+  }
+
+  return { content: [{ type: "text", text: JSON.stringify(items, null, 2) }] };
+}
+
+export function handleGetPlans(
+  _projectRoot: string,
+  nexusDir: string,
+  args: Record<string, unknown>
+): { content: Array<{ type: string; text: string }> } {
+  const plansDir = join(nexusDir, "governance", "plans");
+  if (!existsSync(plansDir)) {
+    return { content: [{ type: "text", text: "[]" }] };
+  }
+
+  if (args.planName && typeof args.planName === "string") {
+    const planPath = join(plansDir, args.planName);
+    if (!existsSync(planPath)) {
+      throw new Error(`Plan not found: ${args.planName}`);
+    }
+    const content = readFileSync(planPath, "utf-8");
+    return { content: [{ type: "text", text: content }] };
+  }
+
+  const files = readdirSync(plansDir).filter(f => f.endsWith(".md"));
+  return { content: [{ type: "text", text: JSON.stringify(files, null, 2) }] };
+}
+
+export function handleSubmitFeedback(
+  _projectRoot: string,
+  nexusDir: string,
+  args: Record<string, unknown>
+): { content: Array<{ type: string; text: string }> } {
+  const outcome = args.outcome as "success" | "failure" | "partial";
+  const notes = args.notes as string;
+  
+  if (!outcome || !notes) {
+    throw new Error("Missing required arguments: outcome, notes");
+  }
+
+  const cache = readCache(nexusDir);
+  if (!cache || !cache.entry) {
+    throw new Error("No briefing cache found. A briefing must be generated first.");
+  }
+
+  const storage = createFileStorage(nexusDir);
+  recordOutcome(storage, {
+    briefingHash: cache.entry.inputHash,
+    briefingTimestamp: cache.entry.computedAt,
+    outcome,
+    notes,
+  });
+
+  return { content: [{ type: "text", text: "Feedback submitted successfully." }] };
+}
+
 // ── Server Creation ────────────────────────────────────────────────────────
 
 /**
@@ -398,6 +537,18 @@ export function createMcpServer(
 
         case "getRules":
           return handleGetRules(projectRoot, resolvedNexusDir, toolArgs);
+
+        case "getEngineeringState":
+          return handleGetEngineeringState(projectRoot, resolvedNexusDir, toolArgs);
+
+        case "getBacklog":
+          return handleGetBacklog(projectRoot, resolvedNexusDir, toolArgs);
+
+        case "getPlans":
+          return handleGetPlans(projectRoot, resolvedNexusDir, toolArgs);
+
+        case "submitFeedback":
+          return handleSubmitFeedback(projectRoot, resolvedNexusDir, toolArgs);
 
         default:
           return {

@@ -1,5 +1,5 @@
 {
-  "consolidatedAt": "2026-07-12T21:22:12.882Z",
+  "consolidatedAt": "2026-07-12T23:22:05.404Z",
   "lifecycle": "governed",
   "project": {
     "name": "nexus-cli",
@@ -14,7 +14,7 @@
     "hasTests": true,
     "hasTypeScript": true,
     "packageCount": 0,
-    "sourceFileCount": 403,
+    "sourceFileCount": 406,
     "monorepo": true
   },
   "maturity": {
@@ -61,7 +61,7 @@
   "knowledgeDebt": {
     "totalGaps": 0,
     "healthScore": 100,
-    "detectedAt": "2026-07-12T21:22:12.878Z"
+    "detectedAt": "2026-07-12T23:22:05.402Z"
   },
   "knowledgeGraph": {
     "totalArtifacts": 60,
@@ -81,8 +81,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -101,8 +101,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -121,8 +121,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -141,8 +141,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -161,8 +161,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -180,8 +180,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -199,8 +199,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -218,8 +218,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -237,8 +237,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -256,8 +256,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -275,8 +275,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -294,8 +294,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -313,8 +313,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -332,8 +332,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -351,8 +351,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -370,8 +370,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -389,8 +389,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -408,8 +408,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -427,8 +427,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -446,8 +446,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -465,8 +465,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -484,8 +484,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -504,8 +504,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -524,8 +524,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -544,8 +544,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -564,8 +564,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -584,8 +584,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -603,8 +603,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -622,8 +622,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -641,8 +641,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -660,8 +660,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -679,8 +679,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -698,8 +698,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -717,8 +717,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -736,8 +736,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -755,8 +755,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -774,8 +774,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -793,8 +793,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -812,8 +812,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -831,8 +831,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -849,8 +849,8 @@
         "operations"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "operations",
         "quality"
@@ -858,36 +858,54 @@
       "dependencies": []
     },
     {
-      "id": "plan-2026-07-02-nexus-dashboard-restructure",
+      "id": "plan-2026-07-12-backlog-batch-resolver",
       "type": "plan",
-      "name": "2026 07 02 nexus dashboard restructure",
-      "path": "governance/plans/2026-07-02-nexus-dashboard-restructure.md",
-      "description": "Execution plan: 2026-07-02-nexus-dashboard-restructure.md",
+      "name": "2026 07 12 backlog batch resolver",
+      "path": "governance/plans/2026-07-12-backlog-batch-resolver.md",
+      "description": "Execution plan: 2026-07-12-backlog-batch-resolver.md",
       "tags": [
         "plan",
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture"
       ],
       "dependencies": []
     },
     {
-      "id": "plan-2026-07-11-nexus-living-plano-v2-3fases",
+      "id": "plan-2026-07-12-plano-correcao-watch-loop-e-fase2",
       "type": "plan",
-      "name": "2026 07 11 nexus living plano v2 3fases",
-      "path": "governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md",
-      "description": "Execution plan: 2026-07-11-nexus-living-plano-v2-3fases.md",
+      "name": "2026 07 12 plano correcao watch loop e fase2",
+      "path": "governance/plans/2026-07-12-plano-correcao-watch-loop-e-fase2.md",
+      "description": "Execution plan: 2026-07-12-plano-correcao-watch-loop-e-fase2.md",
       "tags": [
         "plan",
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
+      "contributesTo": [
+        "architecture"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "plan-2026-07-13-plano-bug002-entropia",
+      "type": "plan",
+      "name": "2026 07 13 plano bug002 entropia",
+      "path": "governance/plans/2026-07-13-plano-bug002-entropia.md",
+      "description": "Execution plan: 2026-07-13-plano-bug002-entropia.md",
+      "tags": [
+        "plan",
+        "execution"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture"
       ],
@@ -904,8 +922,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "architecture"
       ],
@@ -922,8 +940,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -940,8 +958,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -958,8 +976,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -976,8 +994,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -994,8 +1012,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -1012,8 +1030,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "automation"
       ],
@@ -1031,8 +1049,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1051,8 +1069,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1071,8 +1089,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1091,8 +1109,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1110,8 +1128,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1128,8 +1146,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1147,8 +1165,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1166,8 +1184,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1185,8 +1203,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1204,8 +1222,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1222,8 +1240,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1240,8 +1258,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1258,8 +1276,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1276,8 +1294,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1294,8 +1312,8 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "observability"
       ],
@@ -1312,8 +1330,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-patterns-2026-07-12",
+      "type": "report",
+      "name": "patterns 2026 07 12",
+      "path": "reports/patterns-2026-07-12.json",
+      "description": "Report: patterns-2026-07-12.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "observability"
       ],
@@ -1331,8 +1367,8 @@
         "state"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "governance"
       ],
@@ -1350,8 +1386,8 @@
         "executor"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai"
       ],
@@ -1369,8 +1405,8 @@
         "planner"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai"
       ],
@@ -1388,8 +1424,8 @@
         "reviewer"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T21:22:12.876Z",
-      "updatedAt": "2026-07-12T21:22:12.876Z",
+      "createdAt": "2026-07-12T23:22:05.400Z",
+      "updatedAt": "2026-07-12T23:22:05.400Z",
       "contributesTo": [
         "ai"
       ],
@@ -1403,10 +1439,10 @@
     "policy": 13,
     "workflow": 1,
     "runbook": 1,
-    "plan": 3,
+    "plan": 4,
     "script": 6,
     "doc": 14,
-    "report": 2,
+    "report": 3,
     "context": 1,
     "prompt": 3
   },
@@ -1418,10 +1454,10 @@
     "overall": 70
   },
   "entropy": {
-    "orphanedAssets": 22,
+    "orphanedAssets": 23,
     "staleAssets": 0,
     "missingDependencies": 0,
     "score": 100
   },
-  "summary": "70 assets. 9 capabilities. Health: 70/100. 22 orphaned. Lifecycle: governed."
+  "summary": "72 assets. 9 capabilities. Health: 70/100. 23 orphaned. Lifecycle: governed."
 }

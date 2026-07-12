@@ -1,7 +1,7 @@
 # Asset Index
 
-> Generated: 2026-07-12T21:22:12.940Z
-> Total Assets: 70
+> Generated: 2026-07-12T23:22:05.461Z
+> Total Assets: 72
 
 | Type | Name | Path | Status |
 |------|------|------|--------|
@@ -46,8 +46,9 @@
 | policy | Session Hygiene — validate session close checklist | governance/rules/RULE-TEMPLATE.json | active |
 | workflow | Main Workflow | governance/WORKFLOW.md | active |
 | runbook | merge | docs/runbooks/merge.md | active |
-| plan | 2026 07 02 nexus dashboard restructure | governance/plans/2026-07-02-nexus-dashboard-restructure.md | active |
-| plan | 2026 07 11 nexus living plano v2 3fases | governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md | active |
+| plan | 2026 07 12 backlog batch resolver | governance/plans/2026-07-12-backlog-batch-resolver.md | active |
+| plan | 2026 07 12 plano correcao watch loop e fase2 | governance/plans/2026-07-12-plano-correcao-watch-loop-e-fase2.md | active |
+| plan | 2026 07 13 plano bug002 entropia | governance/plans/2026-07-13-plano-bug002-entropia.md | active |
 | plan | README | governance/plans/README.md | active |
 | script | backlog | scripts/backlog.ts | active |
 | script | close session | scripts/close-session.ts | active |
@@ -71,6 +72,7 @@
 | doc | session-template | docs/session-template.md | active |
 | report | doc lifecycle 2026 07 12 | reports/doc-lifecycle-2026-07-12.json | active |
 | report | doc sync 2026 07 12 | reports/doc-sync-2026-07-12.json | active |
+| report | patterns 2026 07 12 | reports/patterns-2026-07-12.json | active |
 | context | Session Context Buffer | governance/context/context_buffer.yaml | active |
 | prompt | executor prompt: README | cognition/prompts/executor/README.md | active |
 | prompt | planner prompt: README | cognition/prompts/planner/README.md | active |

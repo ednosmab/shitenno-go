@@ -1,6 +1,6 @@
 # Plano — Resolver Backlog em Lote (Itens sem Dependência Humana)
 
-**Status:** In Progress
+**Status:** Done
 **Updated_at:** 2026-07-12T21:57:12.417Z
 **Date:** 2026-07-12
 
@@ -13,10 +13,10 @@
 
 ## Checklist
 
-- [ ] `pnpm lint` passa sem erros
-- [ ] `pnpm test` passa (1898+ testes)
-- [ ] BACKLOG.md actualizado com novos Done items
-- [ ] Commit + push para origin
+- [x] `pnpm lint` passa sem erros
+- [x] `pnpm test` passa (1912+ testes)
+- [x] BACKLOG.md actualizado com novos Done items
+- [x] Commit + push para origin (2b4a20d)
 
 ## Itens seleccionados (ordenados por complexidade crescente)
 
@@ -91,7 +91,7 @@
 
 ## Critério de saída
 
-- [ ] `pnpm lint` passa sem erros
-- [ ] `pnpm test` passa (1898+ testes)
-- [ ] BACKLOG.md actualizado com novos Done items
-- [ ] Commit + push para origin
+- [x] `pnpm lint` passa sem erros
+- [x] `pnpm test` passa (1912+ testes)
+- [x] BACKLOG.md actualizado com novos Done items
+- [x] Commit + push para origin (2b4a20d)

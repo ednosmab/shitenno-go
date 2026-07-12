@@ -47,7 +47,7 @@ export function mcpCommand(): Command {
       );
       console.error(
         chalk.gray(
-          "  Tools: getBriefing, getRiskMap, getRules"
+          "  Tools: getBriefing, getRiskMap, getRules, getEngineeringState, getBacklog, getPlans, submitFeedback"
         )
       );
       console.error("");

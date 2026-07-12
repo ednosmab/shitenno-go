@@ -588,7 +588,7 @@
 | ~~3.6~~ | ~~nexus dashboard --live~~ | ~~Baixo~~ | ~~Done: --live <seconds> opção existe em dashboard.tsx~~ |
 | 3.7 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
 | 3.8 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
-| 3.10 | nexus --quiet / --no-color | Baixo | Modo scriptavel para CI/CD |
+| ~~3.10~~ | ~~nexus --quiet / --no-color~~ | ~~Baixo~~ | ~~Done: --quiet (NEXUS_QUIET) + --no-color (chalk.level=0) em bin/nexus.ts + logger.ts — 2026-07-12~~ |
 | 3.11 | nexus init --dry-run | Baixo | Preview do que seria criado sem criar |
 | 3.12 | nexus upgrade --dry-run | Baixo | Preview do que seria instalado sem instalar |
 | 3.13 | nexus audit --fix | Medio | Auto-fix para problemas de governance detectados |
@@ -597,13 +597,13 @@
 | 3.16 | Metrics export (Prometheus/OpenTelemetry) | Baixo | Exportar metricas de uso para observabilidade |
 | 3.17 | Structured logging | Baixo | JSON logs em vez de console.log para parsing |
 | 3.18 | Plugin versioning e dependency resolution | Baixo | Versao minima de plugins, dependencias entre plugins |
-| 3.19 | nexus detect --approve/--reject | Medio | Aprovar ou rejeitar regras candidatas do pattern-detector |
+| ~~3.19~~ | ~~nexus detect --approve/--reject~~ | ~~Medio~~ | ~~Done: --approve e --reject implementados em src/commands/detect.ts~~ |
 | ~~3.20~~ | ~~nexus feedback --outcome failure auto-link~~ | ~~Baixo~~ | ~~Done: sugere failure hotspots quando --areas nao fornecido~~ |
 | ~~3.21~~ | ~~Briefing --profile no briefingToMarkdown~~ | ~~Baixo~~ | ~~Done: --profile com minimal/standard/full em briefing.ts~~ |
 | ~~3.22~~ | ~~HealthBar compartilhado~~ | ~~Baixo~~ | ~~Done: dashboard.tsx importa healthBar de formatting.ts~~ |
 | 3.23 | Colorblind-friendly mode | Baixo | Usar icons/texto em vez de apenas cores |
 | ~~3.24~~ | ~~Event history query API~~ | ~~Baixo~~ | ~~Done: getHistory() publico em event-bus.ts~~ |
-| 3.25 | nexus bench --save / --load | Baixo | Salvar/carregar benchmarks para comparacao offline |
+| ~~3.25~~ | ~~nexus bench --save / --load~~ | ~~Baixo~~ | ~~Done: loadBenchHistory, saveBenchResult + --compare em bench.ts~~ |
 | 3.26 | nexus status --fix | Baixo | Auto-fix para problemas de governance (como doctor) |
 | 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
 | 3.28 | Briefing --watch | Baixo | Regenerar briefing automaticamente a cada N segundos |
@@ -611,7 +611,7 @@
 | 3.30 | Validacao de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
 | ~~3.31~~ | ~~nexus detect --format markdown~~ | ~~Baixo~~ | ~~Done: --format text/json/markdown em detect.ts~~ |
 | 3.32 | Briefing cache com compressao | Baixo | Comprimir cache JSON para reduzir tamanho em disco |
-| 3.33 | Feedback com campo `briefingProfile` | Baixo | Registrar qual profile (minimal/standard/full) foi usado |
+| ~~3.33~~ | ~~Feedback com campo `briefingProfile`~~ | ~~Baixo~~ | ~~Done: campo no schema + --profile option em feedback.ts~~ |
 | 3.34 | nexus dashboard --export csv | Baixo | Exportar dados do dashboard em CSV |
 | 3.35 | Plugin sandboxing | Baixo | Isolar plugins em workers para seguranca |
 | 3.36 | Decidir nome do produto | Baixo | Nexus Gaude, Prism, Codex, ou outro — decisao estrategica pendente |
@@ -1131,9 +1131,9 @@ Race Fix:      Lock inter-processo (wx flag) + cooldown persistido (15s)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 85 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS, race condition fix |
+| **Done** | 89 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS, race condition fix, --quiet/--no-color, --compact diff, JSDoc, plans consolidados, detect --approve, bench --save/load, briefingProfile |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
 | **P1** (≤ 30d) | 7 | Arquitetura (Clean/SOLID), AI agents (OpenCode, Cursor, Git hooks, skills) |
 | **P2** (≤ 90d) | 15 | Features (detect approve, bench compare), docs, performance, developer experience, security |
-| **P3** (sem SLA) | 20 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
+| **P3** (sem SLA) | 16 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
 | **Total** | **126** | |

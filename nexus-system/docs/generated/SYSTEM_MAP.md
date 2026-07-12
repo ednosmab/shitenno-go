@@ -1,6 +1,6 @@
 # System Map
 
-> Generated: 2026-07-12T21:22:12.940Z
+> Generated: 2026-07-12T23:22:05.461Z
 > Session Score: 70/100
 
 ## Overview
@@ -63,10 +63,11 @@
 
 - merge — docs/runbooks/merge.md
 
-### Plans (3)
+### Plans (4)
 
-- 2026 07 02 nexus dashboard restructure — governance/plans/2026-07-02-nexus-dashboard-restructure.md
-- 2026 07 11 nexus living plano v2 3fases — governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md
+- 2026 07 12 backlog batch resolver — governance/plans/2026-07-12-backlog-batch-resolver.md
+- 2026 07 12 plano correcao watch loop e fase2 — governance/plans/2026-07-12-plano-correcao-watch-loop-e-fase2.md
+- 2026 07 13 plano bug002 entropia — governance/plans/2026-07-13-plano-bug002-entropia.md
 - README — governance/plans/README.md
 
 ### Scripts (6)
@@ -92,10 +93,11 @@
 - Nexus-System GUIDE — docs/Nexus-System_GUIDE.md
 - ... and 4 more
 
-### Reports (2)
+### Reports (3)
 
 - doc lifecycle 2026 07 12 — reports/doc-lifecycle-2026-07-12.json
 - doc sync 2026 07 12 — reports/doc-sync-2026-07-12.json
+- patterns 2026 07 12 — reports/patterns-2026-07-12.json
 
 ### Contexts (1)
 

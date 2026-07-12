@@ -337,16 +337,7 @@
 | **Descricao** | Rastrear comandos executos para billing. Metricas: comandos/mes, briefings gerados, feedback records. |
 | **Correcao** | Extender `session-tracker.ts` para gravar `usage.jsonl` com timestamps e tipo de comando. |
 
-### A1 MCP server
 
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Prioridade** | P1 |
-| **Owner** | unassigned |
-| **Descricao** | Servidor MCP (Model Context Protocol) para agentes IA consumirem contexto do Nexus. Ferramentas: getBriefing, getRiskMap, getRules. |
-| **Correcao** | Criar `src/mcp-server.ts` com ferramentas MCP. Publicar como `@nexus/mcp`. |
 
 ### A2 OpenCode plugin
 
@@ -1002,6 +993,7 @@
 | 2.13 | Medio | Consolidar planos |
 | 2.17 | Baixo | Benchmark suite automatizada CI |
 | S2 | Alto | Dependency auditing no CI |
+| A1 MCP server | Alto | Adicionadas 4 ferramentas (getEngineeringState, getBacklog, getPlans, submitFeedback) e integrado com o lifecycle |
 
 ### Plano de Correção Auditoria Completa — Done (2026-07-10)
 
