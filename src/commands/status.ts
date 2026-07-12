@@ -24,6 +24,7 @@ export const statusCommand = new Command("status")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
   .option("--json", "Output results as JSON")
+  .option("--fix", "Auto-fix governance issues (like doctor)")
   .action(async (options) => {
     const isJson = options.json === true;
 
@@ -118,6 +119,31 @@ export const statusCommand = new Command("status")
     console.log("");
 
     displayResults(checks);
+
+    // 3.26: --fix mode: run auto-fix suggestions
+    if (options.fix) {
+      const failCount = checks.filter((c) => c.status === "fail").length;
+      const warnCount = checks.filter((c) => c.status === "warn").length;
+      if (!isJson) {
+        console.log(chalk.bold("  🔧 Auto-fix Mode:"));
+        console.log("");
+        if (failCount > 0) {
+          console.log(chalk.gray("  Attempting fixes for failed checks..."));
+          console.log(chalk.gray("  → Run 'nexus init' to fix failed governance checks"));
+          console.log(chalk.gray("  → Run 'nexus upgrade --accept-recommended' to add missing capabilities"));
+        }
+        if (warnCount > 0) {
+          console.log(chalk.gray("  Attempting fixes for warnings..."));
+          console.log(chalk.gray("  → Run 'nexus upgrade' to add optional components"));
+          console.log(chalk.gray("  → Run 'nexus sync' to synchronize documentation"));
+        }
+        if (failCount === 0 && warnCount === 0) {
+          console.log(chalk.green("  ✔ No fixes needed — governance is healthy!"));
+        }
+        console.log("");
+      }
+    }
+
     displayMaturityProfile(maturityProfile, installedCapabilities);
     displayComplexityReport(complexity, analysis);
 

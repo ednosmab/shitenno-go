@@ -44,14 +44,16 @@ export const upgradeCommand = new Command("upgrade")
   .option("--list", "List all capabilities and their status")
   .option("--accept-recommended", "Install all recommended capabilities from maturity profile")
   .option("--json", "Output results as JSON")
+  .option("--dry-run", "Show what would be installed without writing files")
   .action(async (options) => {
     const isJson = options.json === true;
+    const isDryRun = options.dryRun === true;
     const targetDir = resolve(options.dir || ".");
 
     if (!isJson) {
       console.log("");
       console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║  nexus upgrade — Add Capabilities        ║"));
+      console.log(chalk.bold.cyan(isDryRun ? "  ║  nexus upgrade — Dry Run                  ║" : "  ║  nexus upgrade — Add Capabilities        ║"));
       console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
       console.log("");
     }
@@ -62,6 +64,41 @@ export const upgradeCommand = new Command("upgrade")
     if (!checkLifecycleGate("upgrade", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     const installed = detectCapabilitySignalsFromFilesystem(ctx.nexusDir);
+
+    // 3.12: --dry-run: show what would be installed without writing
+    if (isDryRun) {
+      const profile = loadMaturityProfile(ctx.nexusDir);
+      const toInstall = (profile?.recommendedCapabilities ?? []).filter(
+        (cap) => !installed.includes(cap)
+      );
+      const allCaps = CAPABILITIES.map((cap) => ({
+        id: cap.id,
+        name: cap.name,
+        status: installed.includes(cap.id) ? "installed" : toInstall.includes(cap.id) ? "would install" : "available",
+      }));
+      if (isJson) {
+        outputJson({ dryRun: true, installed, wouldInstall: toInstall, capabilities: allCaps });
+      } else {
+        console.log(chalk.bold("  Dry Run — No files will be modified."));
+        console.log("");
+        console.log(chalk.bold("  Currently installed:"));
+        for (const cap of installed) {
+          const info = CAPABILITIES.find((c) => c.id === cap);
+          console.log(chalk.green(`    ✔ ${info?.name || cap}`));
+        }
+        if (toInstall.length > 0) {
+          console.log("");
+          console.log(chalk.bold("  Would install:"));
+          for (const cap of toInstall) {
+            const info = CAPABILITIES.find((c) => c.id === cap);
+            console.log(chalk.cyan(`    → ${info?.name || cap}`));
+          }
+        }
+        console.log("");
+        console.log(chalk.gray("  Run without --dry-run to apply changes."));
+      }
+      return;
+    }
 
     // List capabilities
     if (options.list) {

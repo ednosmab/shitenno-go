@@ -127,9 +127,11 @@ export const initCommand = new Command("init")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("--answers-file <path>", "JSON file with pre-defined answers (skips interactive prompts)")
   .option("--force", "Force creation inside nexus-cli (not recommended)")
+  .option("--dry-run", "Show what would be created without writing files")
   .action(async (options) => {
+    const isDryRun = options.dryRun === true;
     console.log("");
-    banner("nexus init", "Maturity-Based Discovery");
+    banner("nexus init", isDryRun ? "Dry Run — No files will be written" : "Maturity-Based Discovery");
     console.log("");
 
     // Determine project root
@@ -238,6 +240,29 @@ export const initCommand = new Command("init")
     displayMaturityDimensions(profile);
     console.log("");
     displayCapabilities(profile);
+
+    // Dry-run: show what would be installed and return
+    if (isDryRun) {
+      const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
+      console.log(chalk.bold.green("  ═══ Dry Run — Would install ═══"));
+      console.log("");
+      console.log(chalk.bold("  Capabilities:"));
+      for (const cap of capsToInstall) {
+        const info = CAPABILITIES.find((c) => c.id === cap);
+        console.log(chalk.green(`    ✓ ${info?.name || cap}`));
+      }
+      console.log("");
+      console.log(chalk.bold("  Files that would be created:"));
+      console.log(chalk.gray("    opencode.json"));
+      console.log(chalk.gray("    nexus-system/ (governance ecosystem)"));
+      for (const dir of ["governance", "docs", "skills", "scripts", "telemetry"] as string[]) {
+        console.log(chalk.gray(`      ${dir}/`));
+      }
+      console.log("");
+      console.log(chalk.gray("  Run without --dry-run to apply changes."));
+      console.log("");
+      return;
+    }
 
     // Step 5: Scaffold by capabilities
     const scaffoldSpinner = ora("Installing governance ecosystem...").start();

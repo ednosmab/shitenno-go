@@ -85,6 +85,7 @@ export function startWatching(
       /(^|[\/\\])\../, // dot files
       /node_modules/,
       /telemetry\/events-/, // event log files
+      /docs\/generated\//, // auto-generated documentation
     ],
   });
 

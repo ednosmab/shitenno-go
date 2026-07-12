@@ -372,6 +372,7 @@ export function briefingCommand(): Command {
     .option("--invalidate", "Force cache invalidation")
     .option("--summary", "One-line summary")
     .option("--profile <depth>", "Briefing depth: minimal, standard, full (default: auto)")
+    .option("--watch [seconds]", "Regenerate briefing periodically (default: 30s)")
     .action((options: Record<string, unknown>) => {
       return runBriefing(options as BriefingOptions);
     });
