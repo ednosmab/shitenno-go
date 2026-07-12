@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { getEventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
 import { addImpediment, clearImpediments } from "./context-buffer-writer.js";
+import { acquireScanLock, releaseScanLock } from "./plan-backlog-sync-lock.js";
+import { shouldSkipScan, markScanRun } from "./plan-backlog-sync-cooldown.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -233,7 +235,11 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
 
   // Retroactive scan: process plans that exist but have no BACKLOG entry
   const plansDir = join(nexusDir, "governance", "plans");
-  if (existsSync(plansDir)) {
+
+  if (existsSync(plansDir) && !shouldSkipScan(nexusDir) && acquireScanLock(nexusDir)) {
+    markScanRun(nexusDir);
+    const scanPromises: Promise<void>[] = [];
+
     const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
     const backlog = existsSync(backlogPath) ? readFileSync(backlogPath, "utf-8") : "";
 
@@ -249,25 +255,20 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
     for (const file of planFiles) {
       const planId = file.replace(".md", "");
       const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
-
       const hasBacklogEntry = backlog.includes(planIdUpper);
       const hasStepsSection = backlog.includes("#### Passos do Plano");
 
-      // Process if: no BACKLOG entry OR exists but no steps section
       if (!hasBacklogEntry || (hasBacklogEntry && !hasStepsSection)) {
         const reason = !hasBacklogEntry ? "no BACKLOG entry" : "no steps section";
         logger.info("plan-backlog-sync", `Retroactive scan: processing ${planId} (${reason})`);
-        import("./commands/plan.js").then(({ runPrepare }) => {
-          runPrepare(projectRoot, nexusDir, planId).then((results) => {
+
+        const p = import("./commands/plan.js")
+          .then(({ runPrepare }) => runPrepare(projectRoot, nexusDir, planId))
+          .then((results) => {
             const done = results.filter((r) => r.status === "done").length;
             const errors = results.filter((r) => r.status === "error").length;
             logger.info("plan-backlog-sync", `Retroactive prepare ${planId}: ${done} done, ${errors} errors`);
-            bus.publish("backlog.updated", {
-              planId,
-              stepsCount: done,
-              errorCount: errors,
-              source: "retroactive_scan",
-            });
+            bus.publish("backlog.updated", { planId, stepsCount: done, errorCount: errors, source: "retroactive_scan" });
             if (errors > 0) {
               addImpediment(nexusDir, {
                 description: `Retroactive sync failed for ${planId}: ${errors} errors`,
@@ -276,17 +277,23 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
                 category: "plan_sync",
               });
             }
+          })
+          .catch((err) => {
+            logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
+            addImpediment(nexusDir, {
+              description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
+              priority: "high",
+              createdAt: new Date().toISOString(),
+              category: "plan_sync",
+            });
           });
-        }).catch((err) => {
-          logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
-          addImpediment(nexusDir, {
-            description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
-            priority: "high",
-            createdAt: new Date().toISOString(),
-            category: "plan_sync",
-          });
-        });
+
+        scanPromises.push(p);
       }
     }
+
+    Promise.allSettled(scanPromises).finally(() => releaseScanLock(nexusDir));
+  } else if (existsSync(plansDir)) {
+    logger.debug("plan-backlog-sync", "Retroactive scan skipped (cooldown activo ou lock detido por outro processo)");
   }
 }

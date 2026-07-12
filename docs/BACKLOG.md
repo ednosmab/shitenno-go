@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-09 — gap analysis completo, 2.14 marcado Done, validacao de orphan modules e health issues
+> **Ultima atualizacao:** 2026-07-12 — race condition fix no retroactive scan (lock + cooldown), 1898 testes passing
 
 ---
 
@@ -88,6 +88,7 @@
 | 3.21 | Baixo | Briefing --profile com minimal/standard/full — 2026-07-08 |
 | 3.24 | Baixo | Event history query API (getHistory()) — 2026-07-08 |
 | 2.14 | Baixo | KNOWN_LIMITATIONS.md ja existe com 12 limitacoes documentadas — 2026-07-09 |
+| RACE-FIX | Alto | Lock inter-processo + cooldown persistido no retroactive scan — 2026-07-12 |
 
 ---
 
@@ -1107,22 +1108,23 @@
 
 ---
 
-## Metricas de Qualidade (snapshot 2026-06-30)
+## Metricas de Qualidade (snapshot 2026-07-12)
 
 ```
 Projeto:       nexus-cli v0.1.0
 TypeScript:    strict: true, 0 erros
-Testes:        606/606 passando (43 arquivos)
+Testes:        1898/1898 passando (119 arquivos)
 Coverage:      ~51% (linhas) | ~82% (funcoes) | ~76% (branches)
 ESLint:        0 erros, 0 warnings
 Dependencias:  6 deps + 10 devDeps (lean)
 CI/CD:         ci.yml (Node 18/20/22 + coverage gate)
-Commands:      18 (init, status, audit, assess, detect, run, evolve,
+Commands:      36 (init, status, audit, assess, detect, run, evolve,
                report, doctor, upgrade, validate, sync, clean, digest,
-               briefing, feedback, bench, dashboard)
+               briefing, feedback, bench, dashboard, hooks, handbook, etc.)
 Context Pipeline: collectContext → cache → briefing → feedback → dashboard
 Auto-backlog:  nexus audit --auto-backlog (detect gaps → BACKLOG.md)
 Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
+Race Fix:      Lock inter-processo (wx flag) + cooldown persistido (15s)
 ```
 
 ---
@@ -1131,7 +1133,7 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 84 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS |
+| **Done** | 85 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS, race condition fix |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
 | **P1** (≤ 30d) | 7 | Arquitetura (Clean/SOLID), AI agents (OpenCode, Cursor, Git hooks, skills) |
 | **P2** (≤ 90d) | 15 | Features (detect approve, bench compare), docs, performance, developer experience, security |

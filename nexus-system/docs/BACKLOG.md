@@ -1025,7 +1025,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/0) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1040,7 +1040,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/0) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1049,3 +1049,18 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas) |
 | **Correcao** | Verificar checklist no plano `governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md` |
+
+
+### BACKLOG-2026_07_12_PLANO_FIX_RETROACTIVE_SCAN_RACE — Plano — Corrigir Race Condition no Retroactive Scan (`plan-backlog-sync.ts`)
+
+| Campo | Valor |
+|---|---|
+| **Status** | concluído |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano — Corrigir Race Condition no Retroactive Scan (`plan-backlog-sync.ts`) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-12-plano-fix-retroactive-scan-race.md` |
