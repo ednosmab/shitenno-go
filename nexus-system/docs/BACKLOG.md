@@ -32,7 +32,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | In Progress — 2026-07-11 (steps 1.1-1.6, 1.8 concluídos; 1.7, 1.9, 1.10 pendentes) |
+| **Status** | In Progress — 2026-07-12 (steps 1.1-1.8 concluídos; 1.9, 1.10 pendentes) |
 | **Severidade** | Alto |
 | **Prioridade** | P0 |
 | **Owner** | executor |

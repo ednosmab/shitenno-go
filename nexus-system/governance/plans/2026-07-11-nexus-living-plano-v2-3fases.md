@@ -207,7 +207,7 @@ nexus-system/daemon/
 | 1.4 | Manter `forceRefresh` como kill-switch (já existente) | [x] | `forceRefresh=true` ignora cache in-memory e disco |
 | 1.5 | Escrever teste: processo A grava estado, processo B lê → confirma que `analyseProject` NÃO foi chamado | [x] | Teste "loads from disk cache when governance/ has not changed" |
 | 1.6 | Escrever teste: estado obsoleto (muda ficheiro em `governance/`) → processo B recalcula | [x] | Teste "recalculates when governance/ file is modified after consolidation" |
-| 1.7 | Adicionar benchmark novo a `benchmarks.bench.ts`: consolidação fria vs cache fresco cross-process (3 fixtures) | ⬜ | Pendente — medir antes de avançar |
+| 1.7 | Adicionar benchmark novo a `benchmarks.bench.ts`: consolidação fria vs cache fresco cross-process (3 fixtures) | [x] | 39x/31x/32x speedup (small/medium/large). Cache compensa em todos os tamanhos. Script: `src/__tests__/cross-process-bench.ts` |
 | 1.8 | Correr `pnpm test` + `pnpm run lint` — limpos | [x] | 7/7 testes passam, tsc limpo em engineering-state-access.ts |
 | 1.9 | Dogfooding: usar `nexus status`/`doctor`/`audit` por alguns dias sem relato de dados desactualizados | ⬜ | Pendente — aguarda validação manual |
 | 1.10 | **Critério de saída:** benchmark mostra ganho real + gate comum ok + dogfooding estável | ⬜ | Pendente |
