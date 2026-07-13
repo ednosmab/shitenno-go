@@ -11,7 +11,7 @@ import type { Capability } from "../maturity-profile.js";
 const execAsync = promisify(exec);
 
 // Path to the built CLI
-const CLI_PATH = resolve(import.meta.dirname, "../../dist/nexus.js");
+const CLI_PATH = resolve(import.meta.dirname, "../../dist/bin/nexus.js");
 
 // Helper to run CLI command
 async function runNexus(

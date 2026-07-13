@@ -66,7 +66,22 @@ import { NEXUS_DIR_NAME } from "../src/constants.js";
 import { daemonCommand } from "../src/commands/daemon.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+
+/**
+ * Walk up from startDir to find the directory containing package.json.
+ * Works in both dev (tsx) and bundled (dist/bin/) modes.
+ */
+function findPackageRoot(startDir: string): string {
+  let dir = startDir;
+  while (dir !== dirname(dir)) {
+    if (existsSync(join(dir, "package.json"))) return dir;
+    dir = dirname(dir);
+  }
+  return process.cwd();
+}
+
+const packageRoot = findPackageRoot(__dirname);
+const { version } = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf-8"));
 
 // ── Event-Driven Bootstrap ──────────────────────────────────────────────────
 

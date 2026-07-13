@@ -42,6 +42,12 @@
 │   core/
 │   core/complexity/
 │   core/complexity/types.ts
+│   daemon/
+│   daemon/circuit-breaker.json
+│   daemon/daemon.approved
+│   daemon/daemon.log
+│   daemon/daemon.pid
+│   daemon/daemon.sock
 │   docs/
 │   docs/AGENTS.md
 │   docs/BACKLOG.md

@@ -21,11 +21,27 @@ import { logger } from "./logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// ── Package Root Resolution ─────────────────────────────────────────────────
+
+/**
+ * Walk up from startDir to find the directory containing package.json.
+ * Works in both dev (tsx) and bundled (dist/bin/) modes.
+ */
+function findPackageRoot(startDir: string): string {
+  let dir = startDir;
+  while (dir !== dirname(dir)) {
+    if (existsSync(join(dir, "package.json"))) return dir;
+    dir = dirname(dir);
+  }
+  return process.cwd();
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const SOCKET_WAIT_MS = 3_000;      // Max wait for daemon socket to appear
 const SOCKET_POLL_MS = 100;        // Polling interval
-const DAEMON_SCRIPT = join(__dirname, "daemon.js"); // compiled output
+const packageRoot = findPackageRoot(__dirname);
+const DAEMON_SCRIPT = join(packageRoot, "dist", "src", "daemon.js");
 
 // ── Env Checks ────────────────────────────────────────────────────────────────
 

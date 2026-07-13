@@ -4,7 +4,7 @@
   "description": "AI governance framework that grows with your project — scoring, pattern detection, health auditing",
   "type": "module",
   "bin": {
-    "nexus": "./dist/nexus.js"
+    "nexus": "./dist/bin/nexus.js"
   },
   "main": "./dist/nexus.js",
   "files": [
@@ -14,7 +14,7 @@
     ".": "./dist/nexus.js"
   },
   "scripts": {
-    "build": "tsup && rm -rf dist/templates && cp -r src/templates dist/templates",
+    "build": "tsup && rm -rf dist/templates && cp -r src/templates dist/templates && cp package.json dist/package.json",
     "dev": "tsx bin/nexus.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",

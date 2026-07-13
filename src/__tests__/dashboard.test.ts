@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { scaffoldNexusSystem } from "../scaffolder.js";
 
 const execAsync = promisify(exec);
-const CLI_PATH = resolve(import.meta.dirname, "../../dist/nexus.js");
+const CLI_PATH = resolve(import.meta.dirname, "../../dist/bin/nexus.js");
 
 describe("console command", () => {
   const TMP_DIR = join(tmpdir(), `nexus-console-test-${Date.now()}`);

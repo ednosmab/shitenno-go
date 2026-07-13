@@ -169,7 +169,7 @@
 | **Data** | 2026-07-11 |
 | **Fonte** | Plano Nexus Living v2 (secção 3, Fase 2) |
 | **Depende** | LIVING-001 (validação algunos dias), BUG-001 (corrigir --auto) |
-| **Modulos** | src/plan-lifecycle.ts (NOVO), src/commands/hooks.ts (NOVO), src/commands/detect.ts, .husky/post-merge (NOVO) |
+| **Modulos** | src/git-hooks-installer.ts (NOVO), src/plan-lifecycle.ts, src/commands/detect.ts, src/commands/scheduled-check.ts, .husky/post-commit, .husky/post-merge (NOVO) |
 | **Descricao** | Criar `checkAndArchiveDonePlans()` que percorre `governance/plans/*.md`, identifica planos com `Status: Done` ainda não arquivados, chama `archiveIfDone()`. Ligar ao modo `--auto` do `detect`. Criar instalador Husky (append a post-commit, cria post-merge). |
 | **Correcao** | Reaproveitar `archiveIfDone()` existente. Instalador deve fazer append, nunca overwrite. Testes: idempotência, nunca sobrescrever hook existente, cenário e2e completo. |
 

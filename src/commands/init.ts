@@ -39,7 +39,7 @@ import { getEventBus } from "../event-bus.js";
 import type { ProjectAnalysis } from "../analyser.js";
 import { logger } from "../logger.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
-import { ensureHooksDir, appendToHook } from "./hooks.js";
+import { installReactiveHooks } from "../git-hooks-installer.js";
 
 function displayMaturityDimensions(profile: MaturityProfile): void {
   const dims = profile.dimensions;
@@ -382,14 +382,13 @@ export const initCommand = new Command("init")
         result.filesCreated.push(".mcp.json");
       }
 
-      // Install git hooks automatically
+      // Install reactive git hooks (append-safe, husky-aware)
       try {
-        const hooksPath = ensureHooksDir(targetDir);
-        const NEXUS_HOOK_LINE = "nexus detect --auto 2>/dev/null &";
-        const pc = appendToHook(hooksPath, "post-commit", NEXUS_HOOK_LINE);
-        const pm = appendToHook(hooksPath, "post-merge", NEXUS_HOOK_LINE);
-        if (pc.added || pm.added) {
-          console.log(chalk.gray("  ✓ Nexus git hooks installed"));
+        const hooksResult = installReactiveHooks(targetDir, "nexus");
+        if (hooksResult.installed.length > 0) {
+          console.log(chalk.gray(`  ✓ Nexus git hooks installed: ${hooksResult.installed.join(", ")}`));
+        } else if (hooksResult.skipped.length > 0 && hooksResult.skipped[0] !== "not-a-git-repo") {
+          console.log(chalk.gray(`  • Git hooks already configured`));
         }
       } catch (error) {
         logger.debug("init", "Failed to install git hooks", { error });
