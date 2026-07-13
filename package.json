@@ -1,6 +1,6 @@
 {
   "name": "nexus-system",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "AI governance framework that grows with your project — scoring, pattern detection, health auditing",
   "type": "module",
   "bin": {
@@ -32,7 +32,8 @@
     "sync:docs:fix": "tsx nexus-system/scripts/sync-docs.ts --fix",
     "sync:docs:dry": "tsx nexus-system/scripts/sync-docs.ts --dry-run",
     "validate:docs": "tsx nexus-system/scripts/sync-docs.ts",
-    "backlog": "tsx nexus-system/scripts/backlog.ts"
+    "backlog": "tsx nexus-system/scripts/backlog.ts",
+    "nexus": "node ./dist/bin/nexus.js"
   },
   "keywords": [
     "ai",

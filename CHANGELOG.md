@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] — 2026-07-13
+
+### Added
+
+- **Event-driven architecture:** Central event bus with 40+ event types and reactive subscribers
+- **Daemon system:** Background process with IPC socket, circuit breaker, and auto-recovery
+- **File watcher:** Chokidar-based governance artifact monitoring with significance detection
+- **Plan lifecycle:** Auto-archive done plans, backlog sync, format validation, animated progress
+- **Handbook TUI:** Interactive terminal UI with keyboard/mouse navigation, 3-level content hierarchy
+- **Feedback engine:** Session feedback with user ratings, comments, tags, and summary computation
+- **Knowledge graph + capability engine:** Dynamic capability unlocking and dependency tracking
+- **Task pipeline:** Automated task completion with validation gates and state machine
+- **Engineering state:** Reactive state management with snapshots, history, and mutations
+- **MCP server:** Model Context Protocol tools (getBriefing, getRiskMap, getRules)
+- **20+ new CLI commands:** `watch`, `daemon`, `hooks`, `events`, `context`, `reminders`, `history`, `handbook`, `mcp`, `plan`, `act`, `decide`, `policy`, `console`, `digest`, `bench`, `briefing`, `feedback`, `profile`, `dashboard`, `docs-audit`
+- **180+ audit detectors:** Enterprise-level security, supply chain, and configuration analysis
+- **Global flags:** `--quiet`, `--no-color`, `--compact` for terminal output control
+- **2000+ tests** across 80+ files with full coverage
+- **Daemon path resolution fix:** Correctly resolves daemon script in both dev and bundled modes
+- **CI/CD fix:** Updated to Node.js 22, fixed corepack enable ordering for pnpm
+
+### Changed
+
+- Expanded test suite from 1045 to 2000+ tests
+- Updated all CLI commands to use centralized output helpers
+- Migrated from console.log to structured logging across codebase
+- Moved governance plans to `governance/plans/` directory
+
+### Fixed
+
+- `nexus watch` command not found — corrected bin path in package.json
+- `nexus daemon start` — daemon script path resolution via relative path
+- Version read path in bundled output — uses package root discovery
+- CI failures — Node.js 20 deprecated, pnpm not found in PATH
+- Watch infinite loop — excluded reports/ from watcher, added plan-backlog cooldown
+- Race condition in retroactive scan — added lock + cooldown mechanism
+- Hand scroll bleed in handbook TUI
+
 ## [0.2.0] — 2026-07-04
 
 ### Added
