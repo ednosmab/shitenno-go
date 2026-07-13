@@ -123,6 +123,8 @@
 │   feedback/records/2026-07-12-FB-1783884164044-j06rij.json
 │   feedback/records/2026-07-12-FB-1783884810911-gcjfsm.json
 │   feedback/records/2026-07-12-FB-1783888037474-l1zi9m.json
+│   feedback/records/2026-07-13-FB-1783907221581-a9mw9z.json
+│   feedback/summary.json
 │   fingerprint.json
 │   governance/
 │   governance/SYSTEM_MAP.md
@@ -233,11 +235,13 @@
 │   profile/nexus-cli.config.ts
 │   reports/
 │   reports/complexity-nexus-cli-2026-07-12-session1.json
+│   reports/complexity-nexus-cli-2026-07-13-session1.json
 │   reports/doc-lifecycle-2026-07-12.json
 │   reports/doc-lifecycle-2026-07-13.json
 │   reports/doc-sync-2026-07-12.json
 │   reports/doc-sync-2026-07-13.json
 │   reports/patterns-2026-07-12.json
+│   reports/patterns-2026-07-13.json
 │   scripts/
 │   scripts/backlog.ts
 │   scripts/close-session.ts
