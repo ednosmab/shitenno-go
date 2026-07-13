@@ -68,10 +68,10 @@ export function startWatching(
   }
 
   // Watch specific subdirectories (chokidar v5 is slow scanning entire tree)
+  // NOTE: reports/ excluded — generated output (doc-sync reports) should not trigger re-sync loops
   const watchPaths = [
     join(nexusDir, "governance"),
     join(nexusDir, "docs"),
-    join(nexusDir, "reports"),
     ...(options.extraPaths || []),
   ];
 

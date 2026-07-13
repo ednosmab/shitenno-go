@@ -1,7 +1,7 @@
 # Asset Index
 
-> Generated: 2026-07-12T23:54:43.287Z
-> Total Assets: 73
+> Generated: 2026-07-13T00:29:06.442Z
+> Total Assets: 75
 
 | Type | Name | Path | Status |
 |------|------|------|--------|
@@ -72,7 +72,9 @@
 | doc | session-template | docs/session-template.md | active |
 | report | complexity nexus cli 2026 07 12 session1 | reports/complexity-nexus-cli-2026-07-12-session1.json | active |
 | report | doc lifecycle 2026 07 12 | reports/doc-lifecycle-2026-07-12.json | active |
+| report | doc lifecycle 2026 07 13 | reports/doc-lifecycle-2026-07-13.json | active |
 | report | doc sync 2026 07 12 | reports/doc-sync-2026-07-12.json | active |
+| report | doc sync 2026 07 13 | reports/doc-sync-2026-07-13.json | active |
 | report | patterns 2026 07 12 | reports/patterns-2026-07-12.json | active |
 | context | Session Context Buffer | governance/context/context_buffer.yaml | active |
 | prompt | executor prompt: README | cognition/prompts/executor/README.md | active |

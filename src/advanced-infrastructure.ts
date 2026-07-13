@@ -14,6 +14,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, append
 import { join } from "node:path";
 import { getEventBus, type NexusEventType, type EventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
+import { BoundedQueue, LRUCache } from "./daemon-resources.js";
+
+// ── Memory Limits ────────────────────────────────────────────────────────────
+const MAX_DLQ_SIZE = 500;
+const MAX_REPLAYER_PROCESSED = 10_000;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -131,10 +136,11 @@ function migratePayload(
 // ── Dead-Letter Queue ──────────────────────────────────────────────────────
 
 export class DeadLetterQueue {
-  private queue: DeadLetterEvent[] = [];
+  private queue: BoundedQueue<DeadLetterEvent>;
   private dir: string;
 
   constructor(nexusDir: string) {
+    this.queue = new BoundedQueue<DeadLetterEvent>(MAX_DLQ_SIZE);
     this.dir = join(nexusDir, "telemetry", "dead-letter");
     if (!existsSync(this.dir)) {
       mkdirSync(this.dir, { recursive: true });
@@ -157,7 +163,7 @@ export class DeadLetterQueue {
       handlerName,
     };
 
-    this.queue.push(deadLetter);
+    this.queue.push(deadLetter); // BoundedQueue: auto-evicts oldest if over 500
     this.persist(deadLetter);
 
     return deadLetter;
@@ -165,7 +171,7 @@ export class DeadLetterQueue {
 
   /** Get all dead-letter events. */
   getAll(): DeadLetterEvent[] {
-    return [...this.queue];
+    return this.queue.toArray();
   }
 
   /** Get dead-letter events for a specific event type. */
@@ -175,10 +181,11 @@ export class DeadLetterQueue {
 
   /** Retry a dead-letter event (re-publish to bus). */
   retry(deadLetterId: string, bus?: EventBus): boolean {
-    const index = this.queue.findIndex((dl) => dl.event.id === deadLetterId);
+    const index = this.queue.toArray().findIndex((dl) => dl.event.id === deadLetterId);
     if (index === -1) return false;
 
-    const dl = this.queue[index]!;
+    const all = this.queue.toArray();
+    const dl = all[index]!;
     const eventBus = bus ?? getEventBus();
 
     try {
@@ -187,7 +194,9 @@ export class DeadLetterQueue {
         traceId: dl.event.traceId,
       });
 
-      this.queue.splice(index, 1);
+      // Rebuild queue without the retried event
+      this.queue.clear();
+      all.filter((_, i) => i !== index).forEach((item) => this.queue.push(item));
       this.saveAll();
       return true;
     } catch {
@@ -197,13 +206,13 @@ export class DeadLetterQueue {
 
   /** Clear all dead-letter events. */
   clear(): void {
-    this.queue = [];
+    this.queue.clear();
     this.saveAll();
   }
 
   /** Get queue size. */
   size(): number {
-    return this.queue.length;
+    return this.queue.size();
   }
 
   private persist(dl: DeadLetterEvent): void {
@@ -220,24 +229,27 @@ export class DeadLetterQueue {
     if (!existsSync(this.dir)) return;
 
     const files = readdirSync(this.dir).filter((f) => f.endsWith(".jsonl"));
+    const allItems: DeadLetterEvent[] = [];
     for (const file of files) {
       try {
         const content = readFileSync(join(this.dir, file), "utf-8").trim();
         if (!content) continue;
         const lines = content.split("\n");
         for (const line of lines) {
-          this.queue.push(JSON.parse(line) as DeadLetterEvent);
+          allItems.push(JSON.parse(line) as DeadLetterEvent);
         }
       } catch (error) {
         logger.debug("advanced-infrastructure", "Suppressed error", { error });
       }
     }
+    // Load with cap: keep most recent MAX_DLQ_SIZE items
+    this.queue.load(allItems);
   }
 
   private saveAll(): void {
     try {
       const filePath = join(this.dir, "dead-letter-current.json");
-      writeFileSync(filePath, JSON.stringify(this.queue, null, 2), "utf-8");
+      writeFileSync(filePath, JSON.stringify(this.queue.toArray(), null, 2), "utf-8");
     } catch (error) {
       logger.debug("advanced-infrastructure", "Suppressed error", { error });
     }
@@ -247,7 +259,8 @@ export class DeadLetterQueue {
 // ── Event Replayer ─────────────────────────────────────────────────────────
 
 export class EventReplayer {
-  private processed = new Set<string>();
+  /** LRU cache prevents Set from growing unboundedly during long daemon sessions. */
+  private processed = new LRUCache<string, true>(MAX_REPLAYER_PROCESSED);
 
   constructor(
     private bus: EventBus,
@@ -275,7 +288,7 @@ export class EventReplayer {
 
       try {
         await handler(event);
-        this.processed.add(event.id);
+        this.processed.set(event.id, true); // LRUCache: auto-evicts oldest if over 10k
         success++;
       } catch (error) {
         failed++;
@@ -312,9 +325,9 @@ export class EventReplayer {
     return this.replay(events, handler);
   }
 
-  /** Get processed event IDs. */
+  /** Get processed event IDs (snapshot). */
   getProcessed(): Set<string> {
-    return new Set(this.processed);
+    return new Set(this.processed.keys());
   }
 
   /** Clear processed set. */

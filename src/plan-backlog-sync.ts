@@ -133,8 +133,25 @@ export function syncBacklogToPlan(
   content = content.replace(/\*\*Status:\*\*\s*.+/, `**Status:** ${planStatus}`);
   content = content.replace(/\*\*Updated_at:\*\*\s*.+/, `**Updated_at:** ${new Date().toISOString()}`);
 
-  withSyncWriteGuard(() => writeFileSync(planPath, content, "utf-8"));
+  withSyncWriteGuard(() => {
+    markPlanWritten(planId);
+    writeFileSync(planPath, content, "utf-8");
+  });
   logger.info("plan-backlog-sync", `Updated plan ${planId} status to ${planStatus}`);
+}
+
+// ── Cooldown per Plan ─────────────────────────────────────────────────────────
+
+const PLAN_WRITE_COOLDOWN_MS = 1000;
+const lastPlanWriteTimestamps = new Map<string, number>();
+
+function isWithinPlanCooldown(planId: string): boolean {
+  const lastWrite = lastPlanWriteTimestamps.get(planId) ?? 0;
+  return Date.now() - lastWrite < PLAN_WRITE_COOLDOWN_MS;
+}
+
+function markPlanWritten(planId: string): void {
+  lastPlanWriteTimestamps.set(planId, Date.now());
 }
 
 // ── Initialization ───────────────────────────────────────────────────────────
@@ -200,6 +217,12 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
     const planId = payload.planId as string;
     const content = payload.content as string;
     if (planId && content) {
+      // Cooldown: ignore events for plans we just wrote to (prevents bidirectional loop)
+      if (isWithinPlanCooldown(planId)) {
+        logger.debug("plan-backlog-sync", `Skipping plan ${planId} — within cooldown`);
+        return;
+      }
+
       logger.info("plan-backlog-sync", `Plan changed: ${planId}`);
       syncPlanToBacklog(nexusDir, planId, content);
 

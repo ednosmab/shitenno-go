@@ -1,6 +1,6 @@
 # Health Report
 
-> Generated: 2026-07-12T23:54:43.287Z
+> Generated: 2026-07-13T00:29:06.442Z
 
 ## Scores
 
@@ -17,4 +17,4 @@
 
 ## Summary
 
-73 assets. 9 capabilities. Health: 98/100. 10 orphaned. Lifecycle: governed.
+75 assets. 9 capabilities. Health: 98/100. 10 orphaned. Lifecycle: governed.

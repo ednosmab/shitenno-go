@@ -177,7 +177,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-12 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
@@ -192,7 +192,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-12 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
@@ -1088,7 +1088,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/8) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1121,7 +1121,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/0) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1136,7 +1136,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | em implementação (33% — 2/6) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |

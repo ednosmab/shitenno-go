@@ -1,6 +1,6 @@
 # System Map
 
-> Generated: 2026-07-12T23:54:43.286Z
+> Generated: 2026-07-13T00:29:06.442Z
 > Session Score: 98/100
 
 ## Overview
@@ -93,11 +93,13 @@
 - Nexus-System GUIDE — docs/Nexus-System_GUIDE.md
 - ... and 4 more
 
-### Reports (4)
+### Reports (6)
 
 - complexity nexus cli 2026 07 12 session1 — reports/complexity-nexus-cli-2026-07-12-session1.json
 - doc lifecycle 2026 07 12 — reports/doc-lifecycle-2026-07-12.json
+- doc lifecycle 2026 07 13 — reports/doc-lifecycle-2026-07-13.json
 - doc sync 2026 07 12 — reports/doc-sync-2026-07-12.json
+- doc sync 2026 07 13 — reports/doc-sync-2026-07-13.json
 - patterns 2026 07 12 — reports/patterns-2026-07-12.json
 
 ### Contexts (1)

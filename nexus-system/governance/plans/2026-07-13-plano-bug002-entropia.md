@@ -1,7 +1,7 @@
 # Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro
 
 **Status:** In Progress
-**Updated_at:** 2026-07-12T23:23:13.471Z
+**Updated_at:** 2026-07-13T00:24:12.940Z
 **Date:** 2026-07-12
 
 > **Data:** 2026-07-13
@@ -450,3 +450,5 @@ registo da ideia para não se perder.
   inequívoco (pesos já somam 100, multiplicar por mais 100 satura quase sempre).
   Confiança alta na análise; o fix em si é uma remoção de uma linha, baixo risco.
 - **Item C:** sem implementação — é só um registo de escopo futuro.
+
+

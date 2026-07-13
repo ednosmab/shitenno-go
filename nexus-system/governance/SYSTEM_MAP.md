@@ -78,6 +78,8 @@
 │   docs/history/2026-07-12-rule-plan_archived.md
 │   docs/history/2026-07-12-rule-session_close.md
 │   docs/history/2026-07-12-rule-session_end_plans.md
+│   docs/history/2026-07-13-rule-session_close.md
+│   docs/history/2026-07-13-rule-session_end_plans.md
 │   docs/opencode-context.md
 │   docs/rules/
 │   docs/rules/agent-modes.md
@@ -226,7 +228,9 @@
 │   reports/
 │   reports/complexity-nexus-cli-2026-07-12-session1.json
 │   reports/doc-lifecycle-2026-07-12.json
+│   reports/doc-lifecycle-2026-07-13.json
 │   reports/doc-sync-2026-07-12.json
+│   reports/doc-sync-2026-07-13.json
 │   reports/patterns-2026-07-12.json
 │   scripts/
 │   scripts/backlog.ts
@@ -252,6 +256,7 @@
 │   telemetry/events-2026-07-10.jsonl
 │   telemetry/events-2026-07-11.jsonl
 │   telemetry/events-2026-07-12.jsonl
+│   telemetry/events-2026-07-13.jsonl
 │   telemetry/maturity-2026-06-30.json
 │   telemetry/maturity-2026-07-01.json
 │   telemetry/maturity-2026-07-06.json

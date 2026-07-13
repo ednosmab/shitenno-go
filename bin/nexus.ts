@@ -63,6 +63,7 @@ import { consolidateEngineeringState } from "../src/engineering-state.js";
 import { initializeProactiveEngine } from "../src/proactive-engine.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 import { NEXUS_DIR_NAME } from "../src/constants.js";
+import { daemonCommand } from "../src/commands/daemon.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
@@ -350,6 +351,7 @@ program.addCommand(contextCommand);
 program.addCommand(handbookCommand);
 program.addCommand(watchCommand());
 program.addCommand(hooksCommand);
+program.addCommand(daemonCommand());
 program.addCommand(internalScheduledCheckCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────

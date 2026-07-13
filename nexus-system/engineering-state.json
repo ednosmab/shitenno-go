@@ -1,5 +1,5 @@
 {
-  "consolidatedAt": "2026-07-12T23:54:43.235Z",
+  "consolidatedAt": "2026-07-13T00:29:06.394Z",
   "lifecycle": "governed",
   "project": {
     "name": "nexus-cli",
@@ -14,7 +14,7 @@
     "hasTests": true,
     "hasTypeScript": true,
     "packageCount": 0,
-    "sourceFileCount": 408,
+    "sourceFileCount": 416,
     "monorepo": true
   },
   "maturity": {
@@ -61,7 +61,7 @@
   "knowledgeDebt": {
     "totalGaps": 0,
     "healthScore": 100,
-    "detectedAt": "2026-07-12T23:54:43.231Z"
+    "detectedAt": "2026-07-13T00:29:06.393Z"
   },
   "knowledgeGraph": {
     "totalArtifacts": 60,
@@ -81,8 +81,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -101,8 +101,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -121,8 +121,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -141,8 +141,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -161,8 +161,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -180,8 +180,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -199,8 +199,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -218,8 +218,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -237,8 +237,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -256,8 +256,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -275,8 +275,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -294,8 +294,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -313,8 +313,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -332,8 +332,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -351,8 +351,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -370,8 +370,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -389,8 +389,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -408,8 +408,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -427,8 +427,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -446,8 +446,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -465,8 +465,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -484,8 +484,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -504,8 +504,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -524,8 +524,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -544,8 +544,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -564,8 +564,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -584,8 +584,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -603,8 +603,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -622,8 +622,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -641,8 +641,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -660,8 +660,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -679,8 +679,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -698,8 +698,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -717,8 +717,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -736,8 +736,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -755,8 +755,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -774,8 +774,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -793,8 +793,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -812,8 +812,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -831,8 +831,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -849,8 +849,8 @@
         "operations"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "operations",
         "quality"
@@ -868,8 +868,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture"
       ],
@@ -886,8 +886,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture"
       ],
@@ -904,8 +904,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture"
       ],
@@ -922,8 +922,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "architecture"
       ],
@@ -940,8 +940,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -958,8 +958,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -976,8 +976,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -994,8 +994,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -1012,8 +1012,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -1030,8 +1030,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "automation"
       ],
@@ -1049,8 +1049,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1069,8 +1069,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1089,8 +1089,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1109,8 +1109,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1128,8 +1128,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1146,8 +1146,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1165,8 +1165,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1184,8 +1184,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1203,8 +1203,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1222,8 +1222,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1240,8 +1240,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1258,8 +1258,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1276,8 +1276,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1294,8 +1294,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1312,8 +1312,8 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "observability"
       ],
@@ -1330,8 +1330,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-lifecycle-2026-07-13",
+      "type": "report",
+      "name": "doc lifecycle 2026 07 13",
+      "path": "reports/doc-lifecycle-2026-07-13.json",
+      "description": "Report: doc-lifecycle-2026-07-13.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "observability"
       ],
@@ -1348,8 +1366,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-doc-sync-2026-07-13",
+      "type": "report",
+      "name": "doc sync 2026 07 13",
+      "path": "reports/doc-sync-2026-07-13.json",
+      "description": "Report: doc-sync-2026-07-13.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "observability"
       ],
@@ -1366,8 +1402,8 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "observability"
       ],
@@ -1385,8 +1421,8 @@
         "state"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "governance"
       ],
@@ -1404,8 +1440,8 @@
         "executor"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai"
       ],
@@ -1423,8 +1459,8 @@
         "planner"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai"
       ],
@@ -1442,8 +1478,8 @@
         "reviewer"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T23:54:43.229Z",
-      "updatedAt": "2026-07-12T23:54:43.229Z",
+      "createdAt": "2026-07-13T00:29:06.391Z",
+      "updatedAt": "2026-07-13T00:29:06.391Z",
       "contributesTo": [
         "ai"
       ],
@@ -1460,7 +1496,7 @@
     "plan": 4,
     "script": 6,
     "doc": 14,
-    "report": 4,
+    "report": 6,
     "context": 1,
     "prompt": 3
   },
@@ -1477,5 +1513,5 @@
     "missingDependencies": 0,
     "score": 6
   },
-  "summary": "73 assets. 9 capabilities. Health: 98/100. 10 orphaned. Lifecycle: governed."
+  "summary": "75 assets. 9 capabilities. Health: 98/100. 10 orphaned. Lifecycle: governed."
 }

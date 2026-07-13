@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["bin/nexus.ts"],
+  entry: ["bin/nexus.ts", "src/daemon.ts"],
   format: ["esm"],
   dts: true,
   outDir: "dist",

@@ -15,6 +15,12 @@ import { join } from "node:path";
 import { getEventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
 import type { EngineeringState, EngineeringAsset, AssetType } from "./engineering-state.js";
+import { BoundedQueue } from "./daemon-resources.js";
+
+// ── Memory Limits ─────────────────────────────────────────────────────────────
+const MAX_STATE_EVENTS = 10_000;
+const MAX_CAPABILITY_HISTORY = 50;
+const MAX_PENDING_DELTAS = 100;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -93,7 +99,7 @@ export interface IncrementalState {
 
 export class CapabilityLifecycleTracker {
   private states = new Map<string, CapabilityLifecycleState>();
-  private history = new Map<string, Array<{ state: CapabilityLifecycleState; timestamp: string }>>();
+  private history = new Map<string, BoundedQueue<{ state: CapabilityLifecycleState; timestamp: string }>>();
 
   /** Record a capability state transition. */
   transition(
@@ -106,7 +112,7 @@ export class CapabilityLifecycleTracker {
 
     this.states.set(capabilityId, newState);
 
-    const history = this.history.get(capabilityId) ?? [];
+    const history = this.history.get(capabilityId) ?? new BoundedQueue<{ state: CapabilityLifecycleState; timestamp: string }>(MAX_CAPABILITY_HISTORY);
     history.push({ state: newState, timestamp: new Date().toISOString() });
     this.history.set(capabilityId, history);
 
@@ -143,7 +149,7 @@ export class CapabilityLifecycleTracker {
 
   /** Get transition history of a capability. */
   getHistory(capabilityId: string): Array<{ state: CapabilityLifecycleState; timestamp: string }> {
-    return this.history.get(capabilityId) ?? [];
+    return this.history.get(capabilityId)?.toArray() ?? [];
   }
 
   /** Get all capabilities and their states. */
@@ -170,7 +176,7 @@ export class CapabilityLifecycleTracker {
 // ── Event Sourced State ────────────────────────────────────────────────────
 
 export class EventSourcedState {
-  private events: StateEvent[] = [];
+  private events: BoundedQueue<StateEvent> = new BoundedQueue<StateEvent>(MAX_STATE_EVENTS);
   private eventsDir: string;
 
   constructor(nexusDir: string) {
@@ -189,7 +195,7 @@ export class EventSourcedState {
       timestamp: new Date().toISOString(),
     };
 
-    this.events.push(fullEvent);
+    this.events.push(fullEvent); // BoundedQueue: auto-evicts oldest if over 10k
     this.persistEvent(fullEvent);
 
     // Publish to event bus
@@ -206,7 +212,7 @@ export class EventSourcedState {
 
   /** Get all events. */
   getEvents(): StateEvent[] {
-    return [...this.events];
+    return this.events.toArray();
   }
 
   /** Get events for a specific entity. */
@@ -214,10 +220,12 @@ export class EventSourcedState {
     return this.events.filter((e) => e.entityPath === entityPath);
   }
 
+
   /** Get events since a timestamp. */
   getEventsSince(timestamp: string): StateEvent[] {
     return this.events.filter((e) => e.timestamp >= timestamp);
   }
+
 
   /** Replay events to rebuild state. */
   replay(): Map<string, unknown> {
@@ -228,22 +236,26 @@ export class EventSourcedState {
     return state;
   }
 
+
   private loadEvents(): void {
     if (!existsSync(this.eventsDir)) return;
 
-    const files = readdirSync(this.eventsDir).filter((f) => f.endsWith(".jsonl"));
+    const files = readdirSync(this.eventsDir).filter((f) => f.endsWith(".jsonl")).sort();
+    const allLoaded: StateEvent[] = [];
     for (const file of files) {
       try {
         const content = readFileSync(join(this.eventsDir, file), "utf-8").trim();
         if (!content) continue;
         const lines = content.split("\n");
         for (const line of lines) {
-          this.events.push(JSON.parse(line) as StateEvent);
+          allLoaded.push(JSON.parse(line) as StateEvent);
         }
       } catch (error) {
         logger.debug("engineering-state-evolved", "Suppressed error", { error });
       }
     }
+    // Load with cap: if history > 10k, keep only the most recent 10k events
+    this.events.load(allLoaded);
   }
 
   private persistEvent(event: StateEvent): void {
@@ -326,6 +338,10 @@ export class IncrementalConsolidator {
     this.version++;
     this._lastConsolidated = delta.timestamp;
     this.pendingDeltas.push(delta);
+    // Auto-drain: prevent unbounded growth in long-running sessions
+    if (this.pendingDeltas.length > MAX_PENDING_DELTAS) {
+      this.pendingDeltas = this.pendingDeltas.slice(-MAX_PENDING_DELTAS);
+    }
 
     // Apply asset additions
     const newAssets = [...current.assets, ...delta.assetsAdded];
