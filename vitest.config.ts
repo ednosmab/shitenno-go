@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: ["src/__tests__/**/*.test.ts"],
     exclude: ["src/__tests__/benchmarks.bench.ts"],
+    setupFiles: ["src/__tests__/setup.ts"],
     testTimeout: 20_000,
     hookTimeout: 10_000,
     reporters: ["verbose"],

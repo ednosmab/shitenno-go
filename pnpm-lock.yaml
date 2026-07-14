@@ -87,6 +87,9 @@ importers:
       vitest:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+      vitest-fail-on-console:
+        specifier: ^0.10.1
+        version: 0.10.1(@vitest/utils@4.1.9)(vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))(vitest@4.1.9)
 
   apps/nexus-dashboard:
     dependencies:
@@ -2824,6 +2827,13 @@ packages:
       yaml:
         optional: true
 
+  vitest-fail-on-console@0.10.1:
+    resolution: {integrity: sha512-Xjy2SpgND547qSy0s0zYVnh1G/WyGtdjAbi4PFV8mkYRmTq+6NzRUJYdc08BHrw7HJLpO2kMxHFB8PWn7FOVsg==}
+    peerDependencies:
+      '@vitest/utils': '>=0.26.2'
+      vite: '>=4.5.2'
+      vitest: '>=0.26.2'
+
   vitest@4.1.9:
     resolution: {integrity: sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -5364,6 +5374,13 @@ snapshots:
       lightningcss: 1.32.0
       tsx: 4.22.4
       yaml: 2.9.0
+
+  vitest-fail-on-console@0.10.1(@vitest/utils@4.1.9)(vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))(vitest@4.1.9):
+    dependencies:
+      '@vitest/utils': 4.1.9
+      chalk: 5.6.2
+      vite: 7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
+      vitest: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
 
   vitest@4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)):
     dependencies:

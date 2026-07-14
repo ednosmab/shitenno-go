@@ -52,12 +52,12 @@ function formatMessage(level: LogLevel, module: string, message: string): string
 export const logger = {
   debug(module: string, message: string, ...args: unknown[]): void {
     if (shouldLog("debug")) {
-      console.error(formatMessage("debug", module, message), ...args);
+      console.debug(formatMessage("debug", module, message), ...args);
     }
   },
   info(module: string, message: string, ...args: unknown[]): void {
     if (shouldLog("info")) {
-      console.error(formatMessage("info", module, message), ...args);
+      console.log(formatMessage("info", module, message), ...args);
     }
   },
   warn(module: string, message: string, ...args: unknown[]): void {

@@ -4,7 +4,7 @@
  * Validates mutation validation, logging, and provenance tracking.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -83,6 +83,7 @@ describe("proposeStateMutation", () => {
   });
 
   it("rejects mutation without consolidatedAt", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const mutation = makeValidMutation(nexusDir);
     mutation.newState.consolidatedAt = "";
     const result = proposeStateMutation(mutation, makeSource());
@@ -91,6 +92,7 @@ describe("proposeStateMutation", () => {
   });
 
   it("rejects mutation with health score out of range", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const mutation = makeValidMutation(nexusDir);
     mutation.newState.healthScores.overall = 150;
     const result = proposeStateMutation(mutation, makeSource());
@@ -99,6 +101,7 @@ describe("proposeStateMutation", () => {
   });
 
   it("rejects mutation with entropy score out of range", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const mutation = makeValidMutation(nexusDir);
     mutation.newState.entropy.score = -10;
     const result = proposeStateMutation(mutation, makeSource());
@@ -114,6 +117,7 @@ describe("proposeStateMutation", () => {
   });
 
   it("logs rejected mutation in mutation log", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const mutation = makeValidMutation(nexusDir);
     mutation.newState.healthScores.overall = 200;
     proposeStateMutation(mutation, makeSource());

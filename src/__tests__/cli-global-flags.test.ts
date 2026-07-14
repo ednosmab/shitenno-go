@@ -7,7 +7,7 @@
  * 3. Logger works normally without NEXUS_QUIET
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { logger, setLogLevel, muteLogs } from "../logger.js";
 
 // ── Logger NEXUS_QUIET tests ────────────────────────────────────────────────
@@ -26,76 +26,75 @@ describe("logger — NEXUS_QUIET env var", () => {
     } else {
       process.env.NEXUS_QUIET = originalEnv;
     }
+    vi.restoreAllMocks();
   });
 
   it("outputs debug/info/warn when NEXUS_QUIET is not set", () => {
     delete process.env.NEXUS_QUIET;
+    setLogLevel("debug"); // Enable all levels
 
-    // These should not throw - they use console.error/warn internally
-    expect(() => logger.debug("test", "debug message")).not.toThrow();
-    expect(() => logger.info("test", "info message")).not.toThrow();
-    expect(() => logger.warn("test", "warn message")).not.toThrow();
-    expect(() => logger.error("test", "error message")).not.toThrow();
+    const spies = {
+      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+      log: vi.spyOn(console, "log").mockImplementation(() => {}),
+      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
+      error: vi.spyOn(console, "error").mockImplementation(() => {}),
+    };
+
+    logger.debug("test", "debug message");
+    logger.info("test", "info message");
+    logger.warn("test", "warn message");
+    logger.error("test", "error message");
+
+    expect(spies.debug).toHaveBeenCalledOnce();
+    expect(spies.log).toHaveBeenCalledOnce();
+    expect(spies.warn).toHaveBeenCalledOnce();
+    expect(spies.error).toHaveBeenCalledOnce();
   });
 
   it("suppresses debug/info/warn when NEXUS_QUIET=1", () => {
     process.env.NEXUS_QUIET = "1";
 
-    // Mock console.error and console.warn to capture output
-    const originalError = console.error;
-    const originalWarn = console.warn;
-    const captured: string[] = [];
-    console.error = (...args: unknown[]) => captured.push(args.join(" "));
-    console.warn = (...args: unknown[]) => captured.push(args.join(" "));
+    const spies = {
+      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+      log: vi.spyOn(console, "log").mockImplementation(() => {}),
+      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
+      error: vi.spyOn(console, "error").mockImplementation(() => {}),
+    };
 
-    try {
-      logger.debug("test", "should be suppressed");
-      logger.info("test", "should be suppressed");
-      logger.warn("test", "should be suppressed");
-      logger.error("test", "should pass through");
+    logger.debug("test", "should be suppressed");
+    logger.info("test", "should be suppressed");
+    logger.warn("test", "should be suppressed");
+    logger.error("test", "should pass through");
 
-      // debug, info, warn should be suppressed
-      expect(captured.some((c) => c.includes("should be suppressed"))).toBe(false);
-      // error should still pass through
-      expect(captured.some((c) => c.includes("should pass through"))).toBe(true);
-    } finally {
-      console.error = originalError;
-      console.warn = originalWarn;
-    }
+    expect(spies.debug).not.toHaveBeenCalled();
+    expect(spies.log).not.toHaveBeenCalled();
+    expect(spies.warn).not.toHaveBeenCalled();
+    expect(spies.error).toHaveBeenCalledOnce();
   });
 
   it("still outputs error level when NEXUS_QUIET=1", () => {
     process.env.NEXUS_QUIET = "1";
 
-    const originalError = console.error;
-    const captured: string[] = [];
-    console.error = (...args: unknown[]) => captured.push(args.join(" "));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    try {
-      logger.error("test", "critical error");
-      expect(captured.some((c) => c.includes("critical error"))).toBe(true);
-    } finally {
-      console.error = originalError;
-    }
+    logger.error("test", "critical error");
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 
   it("respects both NEXUS_QUIET and log level together", () => {
     process.env.NEXUS_QUIET = "1";
     setLogLevel("debug"); // Would normally show debug
 
-    const originalError = console.error;
-    const captured: string[] = [];
-    console.error = (...args: unknown[]) => captured.push(args.join(" "));
+    const spies = {
+      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+      error: vi.spyOn(console, "error").mockImplementation(() => {}),
+    };
 
-    try {
-      logger.debug("test", "should be suppressed by quiet");
-      logger.error("test", "should pass through");
+    logger.debug("test", "should be suppressed by quiet");
+    logger.error("test", "should pass through");
 
-      expect(captured.some((c) => c.includes("should be suppressed"))).toBe(false);
-      expect(captured.some((c) => c.includes("should pass through"))).toBe(true);
-    } finally {
-      console.error = originalError;
-    }
+    expect(spies.debug).not.toHaveBeenCalled();
+    expect(spies.error).toHaveBeenCalledOnce();
   });
 });
 
@@ -108,27 +107,28 @@ describe("logger — muteLogs utility", () => {
 
   afterEach(() => {
     setLogLevel("info");
+    vi.restoreAllMocks();
   });
 
   it("suppresses all output except error", () => {
     muteLogs();
 
-    const originalError = console.error;
-    const captured: string[] = [];
-    console.error = (...args: unknown[]) => captured.push(args.join(" "));
+    const spies = {
+      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+      log: vi.spyOn(console, "log").mockImplementation(() => {}),
+      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
+      error: vi.spyOn(console, "error").mockImplementation(() => {}),
+    };
 
-    try {
-      logger.debug("test", "debug msg");
-      logger.info("test", "info msg");
-      logger.warn("test", "warn msg");
-      logger.error("test", "error msg");
+    logger.debug("test", "debug msg");
+    logger.info("test", "info msg");
+    logger.warn("test", "warn msg");
+    logger.error("test", "error msg");
 
-      expect(captured.some((c) => c.includes("debug msg"))).toBe(false);
-      expect(captured.some((c) => c.includes("info msg"))).toBe(false);
-      expect(captured.some((c) => c.includes("warn msg"))).toBe(false);
-      expect(captured.some((c) => c.includes("error msg"))).toBe(true);
-    } finally {
-      console.error = originalError;
-    }
+    expect(spies.debug).not.toHaveBeenCalled();
+    expect(spies.log).not.toHaveBeenCalled();
+    expect(spies.warn).not.toHaveBeenCalled();
+    expect(spies.error).toHaveBeenCalledOnce();
+    expect(spies.error.mock.calls[0]![0]!).toContain("error msg");
   });
 });

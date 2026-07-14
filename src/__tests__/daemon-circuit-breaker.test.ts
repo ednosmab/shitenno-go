@@ -36,6 +36,7 @@ describe("DaemonCircuitBreaker", () => {
   });
 
   it("trips after max retries", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const breaker = new DaemonCircuitBreaker(TEST_DIR, 3, 60000);
     breaker.record();
     breaker.record();
@@ -68,6 +69,7 @@ describe("DaemonCircuitBreaker", () => {
   });
 
   it("can be manually reset", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const breaker = new DaemonCircuitBreaker(TEST_DIR, 3, 60000);
     breaker.record();
     breaker.record();
