@@ -1,6 +1,7 @@
 # Daemon Startup Scan — Funções Proativas
 
-**Status:** andamento
+**Status:** Pending
+**Updated_at:** 2026-07-15T07:22:20.155Z
 **Date:** 2026-07-15
 **Priority:** P0
 **Backlog refs:** daemon-reactive-fix, proactive-scan

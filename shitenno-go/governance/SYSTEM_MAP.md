@@ -44,6 +44,7 @@
 │   core/complexity/types.ts
 │   daemon/
 │   daemon/circuit-breaker.json
+│   daemon/daemon-state.json
 │   daemon/daemon.approved
 │   daemon/daemon.log
 │   daemon/daemon.pid
@@ -66,6 +67,7 @@
 │   docs/adrs/ADR-003-knowledge-graph-persistence.md
 │   docs/adrs/ADR-005-automated-task-completion-pipeline.md
 │   docs/adrs/ADR-006-filesystem-access-restriction.md
+│   docs/adrs/ADR-007-file-size-limits.md
 │   docs/adrs/ADR-TEMPLATE.md
 │   docs/audits/
 │   docs/audits/README.md
@@ -145,6 +147,9 @@
 │   feedback/records/2026-07-14-FB-1784034458768-vnxdy6.json
 │   feedback/records/2026-07-14-FB-1784035667764-4zazr5.json
 │   feedback/records/2026-07-14-FB-1784039449264-8fh3wo.json
+│   feedback/records/2026-07-15-FB-1784097281425-a7qm8z.json
+│   feedback/records/2026-07-15-FB-1784097543358-hjhmpm.json
+│   feedback/records/2026-07-15-FB-1784097621587-s8f5i6.json
 │   feedback/summary.json
 │   fingerprint.json
 │   governance/
@@ -166,7 +171,8 @@
 │   governance/knowledge-graph/artifacts.json
 │   governance/knowledge-graph/relations.json
 │   governance/plans/
-│   governance/plans/2026-07-13-refactor-estrutural-sa4-sa10-sa11.md
+│   governance/plans/2026-07-15-daemon-startup-scan.md
+│   governance/plans/2026-07-15-monolith-refactor-prevention.md
 │   governance/plans/PLAN-monettization-implementation.md
 │   governance/plans/README.md
 │   governance/plans/TEMPLATE.md
@@ -210,6 +216,7 @@
 │   governance/plans/done/fase-1-fundacao.md
 │   governance/plans/done/fase-integracao.md
 │   governance/plans/done/fase-system-live.md
+│   governance/plans/done/fix-plan-json-stdout-pollution-shitenno-go.md
 │   governance/plans/done/plano-correcao-shiten-audit.md
 │   governance/plans/done/production-readiness.md
 │   governance/plans/done/shiten-single-source-of-truth-plan.md
@@ -219,6 +226,7 @@
 │   governance/plans/pipeline/living-fase1-cache.md
 │   governance/plans/pipeline/living-fase2-hooks.md
 │   governance/plans/pipeline/living-fase3-daemon.md
+│   governance/plans/plano-melhoria-mecanismo-contexto.md
 │   governance/plans/reference/
 │   governance/plans/reference/Plano-Estrategico-Proximo-Estagio-do-Shitenno-go.md
 │   governance/plans/reference/SHITEN_EVOLUTION_PLAN.md
@@ -269,6 +277,7 @@
 │   reports/complexity-shitenno-cli-2026-07-13-session1.json
 │   reports/complexity-shitenno-cli-2026-07-14-session1.json
 │   reports/complexity-shitenno-cli-2026-07-15-session1.json
+│   reports/complexity-shitenno-cli-2026-07-15-session2.json
 │   reports/doc-lifecycle-2026-07-12.json
 │   reports/doc-lifecycle-2026-07-13.json
 │   reports/doc-sync-2026-07-12.json
@@ -278,6 +287,7 @@
 │   reports/patterns-2026-07-12.json
 │   reports/patterns-2026-07-13.json
 │   reports/patterns-2026-07-14.json
+│   reports/patterns-2026-07-15.json
 │   scripts/
 │   scripts/backlog.ts
 │   scripts/close-session.ts
@@ -285,6 +295,17 @@
 │   scripts/premortem-check.ts
 │   scripts/sync-docs.ts
 │   scripts/validate-session.ts
+│   scripts/validators/
+│   scripts/validators/check-broken-refs.ts
+│   scripts/validators/check-cli-commands.ts
+│   scripts/validators/check-documented-dirs.ts
+│   scripts/validators/check-readme-stats.ts
+│   scripts/validators/check-script-refs.ts
+│   scripts/validators/check-skills-count.ts
+│   scripts/validators/check-system-map.ts
+│   scripts/validators/check-undocumented-dirs.ts
+│   scripts/validators/check-version-consistency.ts
+│   scripts/validators/shared.ts
 │   session-feedback/
 │   session-feedback/records.jsonl
 │   telemetry/

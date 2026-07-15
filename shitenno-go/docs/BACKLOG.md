@@ -1313,3 +1313,30 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | Plano: Melhorar o Mecanismo de Medição de Contexto (P0-P4) |
 | **Correcao** | Verificar checklist no plano `governance/plans/plano-melhoria-mecanismo-contexto.md` |
+
+
+### BACKLOG-2026_07_15_DAEMON_STARTUP_SCAN — Daemon Startup Scan — Funções Proativas
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-15 |
+| **Fonte** | shiten plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Daemon Startup Scan — Funções Proativas |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-15-daemon-startup-scan.md` |
+
+#### Passos do Plano
+- [ ] FASE 1: Adicionar startup scan no daemon.ts
+- [ ] FASE 2.1: Criar `checkInconsistencies()`
+- [ ] FASE 2.2: Criar `validateReminders()`
+- [ ] FASE 2.3: Criar `moveCompletedBacklogToDone()`
+- [ ] FASE 3: Adicionar novos subscribers reactivos
+- [ ] FASE 4: Implementar auditoria periódica adaptativa
+- [ ] Testar: daemon arranca e executa scan inicial
+- [ ] Testar: reminders stale são removidos
+- [ ] Testar: backlog items concluídos são movidos
+- [ ] Testar: auditoria periódica adjusta intervalo

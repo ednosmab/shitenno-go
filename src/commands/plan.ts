@@ -1,63 +1,37 @@
 /**
- * plan.ts — Plan Engine CLI Command
+ * plan.ts — Plan Engine CLI Command (thin router)
  *
  * The `shiten plan` command. Manage coordinated action sequences.
  *
- * Usage:
- *   shiten plan create "Deploy changes" --step "Run audit" --step-type log_event --step-param event=audit
- *   shiten plan execute PLAN-abc123
- *   shiten plan rollback PLAN-abc123
- *   shiten plan cancel PLAN-abc123
- *   shiten plan list
- *   shiten plan show PLAN-abc123
- *   shiten plan stats
- *   shiten plan delete PLAN-abc123
+ * Sub-commands are extracted to src/commands/plan/*.ts for maintainability.
  */
 
 import { Command } from "commander";
-import chalk from "chalk";
-import { join } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { guardNotInitialized } from "../shared.js";
-import { SHITEN_DIR_NAME } from "../constants.js";
-import {
-  PlanEngine,
-  FilePlanRepository,
-  type PlanStatus,
-} from "../plan-engine.js";
-import { MarkdownPlanEngine, type MarkdownPlanStatus } from "../markdown-plan-engine.js";
-import { ActionEngine, FileExecutionRepository } from "../action-engine.js";
-import { outputJson, banner } from "../formatting.js";
+import { join } from "node:path";
+import { MarkdownPlanEngine } from "../markdown-plan-engine.js";
 import { validatePlanFormat, extractChecklistItems, extractStepHeadings } from "../plan-format-validator.js";
 import { getEventBus } from "../event-bus.js";
-import { output, outputBlank } from "../output.js";
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Sub-command imports ────────────────────────────────────────────────────
 
-function getEngine(dir: string): PlanEngine {
-  const shitenDir = join(dir, SHITEN_DIR_NAME);
-  const actionEngine = new ActionEngine(new FileExecutionRepository(shitenDir));
-  return new PlanEngine(new FilePlanRepository(shitenDir), actionEngine);
-}
+import { registerCreate } from "./plan/create.js";
+import { registerExecute } from "./plan/execute.js";
+import { registerRollback } from "./plan/rollback.js";
+import { registerCancel } from "./plan/cancel.js";
+import { registerList } from "./plan/list.js";
+import { registerShow } from "./plan/show.js";
+import { registerStats } from "./plan/stats.js";
+import { registerDelete } from "./plan/delete.js";
+import { registerMdList } from "./plan/md-list.js";
+import { registerMdShow } from "./plan/md-show.js";
+import { registerMdStatus } from "./plan/md-status.js";
+import { registerMdDone } from "./plan/md-done.js";
+import { registerMdCreate } from "./plan/md-create.js";
+import { registerMdPrepare } from "./plan/md-prepare.js";
+import { registerMdLifecycle } from "./plan/md-lifecycle.js";
 
-const STATUS_COLORS: Record<PlanStatus, (s: string) => string> = {
-  draft: (s) => chalk.gray(s),
-  running: (s) => chalk.cyan(s),
-  completed: (s) => chalk.green(s),
-  failed: (s) => chalk.red(s),
-  rolled_back: (s) => chalk.yellow(s),
-  cancelled: (s) => chalk.dim(s),
-};
-
-function formatPlan(p: { id: string; name: string; status: PlanStatus; steps: Array<{ status: string }>; duration?: number }): string {
-  const status = STATUS_COLORS[p.status](p.status.padEnd(12));
-  const steps = `${p.steps.length} steps`;
-  const duration = p.duration ? `${p.duration}ms` : "-";
-  const completed = p.steps.filter((s) => s.status === "completed").length;
-  return `  ${chalk.bold(p.id)}  ${status}  ${steps.padEnd(10)}  ${completed}/${p.steps.length} done  ${duration}`;
-}
-
-// ── Prepare Logic (reusable) ────────────────────────────────────────────────
+// ── Prepare Logic (reusable — used by CLI + event subscribers) ─────────────
 
 export interface PrepareResult {
   step: string;
@@ -71,8 +45,6 @@ export interface PrepareResult {
  * 2. Create centralized checklist from phase items
  * 3. Sync to BACKLOG.md
  * 4. Send desktop notification
- *
- * Callable from CLI command AND event subscribers (auto-prepare).
  */
 export async function runPrepare(
   _projectRoot: string,
@@ -82,148 +54,65 @@ export async function runPrepare(
   const results: PrepareResult[] = [];
   const engine = new MarkdownPlanEngine(shitenDir);
   const plan = engine.getById(planId);
+  if (!plan) return [{ step: "prepare", status: "error", detail: `Plan not found: ${planId}` }];
 
-  if (!plan) {
-    return [{ step: "prepare", status: "error", detail: `Plan not found: ${planId}` }];
-  }
-
-  // Step 1: Format header to shiten standard
+  // Step 1: Format header
   try {
     let content = readFileSync(plan.filePath, "utf-8");
     let updated = false;
-
     if (!content.match(/\*\*Status:\*\*/)) {
       const titleLine = content.split("\n").findIndex((l) => l.startsWith("# "));
-      if (titleLine !== -1) {
-        const lines = content.split("\n");
-        lines.splice(titleLine + 2, 0, "", "**Status:** Pending");
-        content = lines.join("\n");
-        updated = true;
-      }
+      if (titleLine !== -1) { const lines = content.split("\n"); lines.splice(titleLine + 2, 0, "", "**Status:** Pending"); content = lines.join("\n"); updated = true; }
     }
-
     if (!content.match(/\*\*Date:\*\*/)) {
       const statusLine = content.split("\n").findIndex((l) => l.match(/\*\*Status:\*\*/));
-      if (statusLine !== -1) {
-        const lines = content.split("\n");
-        lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`);
-        content = lines.join("\n");
-        updated = true;
-      }
+      if (statusLine !== -1) { const lines = content.split("\n"); lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`); content = lines.join("\n"); updated = true; }
     }
-
     if (!content.match(/\*\*Updated_at:\*\*/)) {
       const lastField = content.split("\n").findIndex((l) => l.match(/^\*\*[A-Z]/));
-      if (lastField !== -1) {
-        const lines = content.split("\n");
-        lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`);
-        content = lines.join("\n");
-        updated = true;
-      }
+      if (lastField !== -1) { const lines = content.split("\n"); lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`); content = lines.join("\n"); updated = true; }
     }
-
-    if (updated) {
-      writeFileSync(plan.filePath, content, "utf-8");
-      results.push({ step: "format_header", status: "done", detail: "Header formatted to shiten standard" });
-    } else {
-      results.push({ step: "format_header", status: "skip", detail: "Header already conformant" });
-    }
-  } catch (error) {
-    results.push({ step: "format_header", status: "error", detail: String(error) });
-  }
+    if (updated) { writeFileSync(plan.filePath, content, "utf-8"); results.push({ step: "format_header", status: "done", detail: "Header formatted to shiten standard" }); }
+    else { results.push({ step: "format_header", status: "skip", detail: "Header already conformant" }); }
+  } catch (error) { results.push({ step: "format_header", status: "error", detail: String(error) }); }
 
   // Step 1.5: Validate plan format
   try {
     const content = readFileSync(plan.filePath, "utf-8");
     const validation = validatePlanFormat(plan.filePath, content);
-
-    for (const err of validation.errors) {
-      results.push({ step: "format_validation", status: "error", detail: err.message });
-    }
-    for (const warn of validation.warnings) {
-      results.push({ step: "format_validation", status: "warn", detail: warn.message });
-    }
-
-    // Publish format_warning event if there are issues
+    for (const err of validation.errors) results.push({ step: "format_validation", status: "error", detail: err.message });
+    for (const warn of validation.warnings) results.push({ step: "format_validation", status: "warn", detail: warn.message });
     if (validation.errors.length > 0 || validation.warnings.length > 0) {
       const bus = getEventBus();
-      bus.publish("plan.format_warning", {
-        planId,
-        path: plan.filePath,
-        errors: validation.errors,
-        warnings: validation.warnings,
-      });
-
-      // Send desktop notification for errors
+      bus.publish("plan.format_warning", { planId, path: plan.filePath, errors: validation.errors, warnings: validation.warnings });
       if (validation.errors.length > 0) {
-        try {
-          const { execSync } = await import("node:child_process");
-          const errorMsg = validation.errors.map((e) => e.message).join("; ");
-          execSync(
-            `notify-send "Shiten Plan" "Formato inválido: ${errorMsg}" --urgency=normal`,
-            { stdio: "pipe", timeout: 2000 }
-          );
-        } catch {
-          // notify-send not available — skip
-        }
+        try { const { execSync } = await import("node:child_process"); execSync(`notify-send "Shiten Plan" "Formato inválido: ${validation.errors.map((e) => e.message).join("; ")}" --urgency=normal`, { stdio: "pipe", timeout: 2000 }); } catch { /* notify-send not available */ }
       }
     }
-  } catch (error) {
-    results.push({ step: "format_validation", status: "error", detail: String(error) });
-  }
+  } catch (error) { results.push({ step: "format_validation", status: "error", detail: String(error) }); }
 
-  // Step 2: Create centralized checklist from phase items (headings + checkboxes)
+  // Step 2: Create centralized checklist
   try {
     const content = readFileSync(plan.filePath, "utf-8");
     const lines = content.split("\n");
-
-    // Extract step headings as checklist items
     const stepHeadings = extractStepHeadings(content);
-    const stepItems = stepHeadings
-      .filter((s) => s.valid)
-      .map((s) => ({
-        text: `Passo ${s.number} — ${s.title}`,
-        checked: false,
-        phase: "Passos",
-      }));
-
-    // Extract checkbox items
+    const stepItems = stepHeadings.filter((s) => s.valid).map((s) => ({ text: `Passo ${s.number} — ${s.title}`, checked: false, phase: "Passos" }));
     const checkboxItems = extractChecklistItems(content);
-
-    // Combine: step headings first, then existing checkboxes
     const checklistItems = [...stepItems, ...checkboxItems];
-
     const hasCentralChecklist = content.includes("## Checklist");
 
     if (!hasCentralChecklist && checklistItems.length > 0) {
       const insertIndex = lines.findIndex((l, i) => i > 0 && l.startsWith("## "));
-      const checklistSection = [
-        "",
-        "## Checklist",
-        "",
-        ...checklistItems.map((item) => {
-          const checkbox = item.checked ? "- [x]" : "- [ ]";
-          return `${checkbox} ${item.text}`;
-        }),
-        "",
-      ];
-
+      const checklistSection = ["", "## Checklist", "", ...checklistItems.map((item) => `${item.checked ? "- [x]" : "- [ ]"} ${item.text}`), ""];
       lines.splice(insertIndex, 0, ...checklistSection);
-      const updatedContent = lines.join("\n");
-      writeFileSync(plan.filePath, updatedContent, "utf-8");
-      results.push({
-        step: "checklist",
-        status: "done",
-        detail: `Created centralized checklist with ${checklistItems.length} items (${stepItems.length} steps + ${checkboxItems.length} checkboxes)`,
-      });
+      writeFileSync(plan.filePath, lines.join("\n"), "utf-8");
+      results.push({ step: "checklist", status: "done", detail: `Created centralized checklist with ${checklistItems.length} items` });
     } else if (hasCentralChecklist) {
       results.push({ step: "checklist", status: "skip", detail: "Centralized checklist already exists" });
     } else {
       results.push({ step: "checklist", status: "skip", detail: "No checklist items found in plan" });
     }
-  } catch (error) {
-    results.push({ step: "checklist", status: "error", detail: String(error) });
-  }
+  } catch (error) { results.push({ step: "checklist", status: "error", detail: String(error) }); }
 
   // Step 3: Sync to BACKLOG.md
   try {
@@ -233,7 +122,6 @@ export async function runPrepare(
       const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
 
       if (backlog.includes(planIdUpper)) {
-        // Entry exists — check if it has steps section, add if missing
         const entryStart = backlog.indexOf(`### ${planIdUpper}`);
         if (entryStart !== -1) {
           const nextEntry = backlog.indexOf("\n### BACKLOG-", entryStart + 1);
@@ -242,19 +130,12 @@ export async function runPrepare(
             const planContent = readFileSync(plan.filePath, "utf-8");
             const stepHeadings = extractStepHeadings(planContent);
             const checkboxItems = extractChecklistItems(planContent);
-            // Deduplicate by step number to avoid repeats from overlapping formats
-            // (### Passo X: vs ### Passo X —) or double-run
             const seenNumbers = new Set<string>();
             const allItems = [...stepHeadings.map((s) => ({ checked: false, text: `Passo ${s.number} — ${s.title}` })), ...checkboxItems].filter((item) => {
               const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
-              if (numMatch?.[1]) {
-                const num = numMatch[1];
-                if (seenNumbers.has(num)) return false;
-                seenNumbers.add(num);
-              }
+              if (numMatch?.[1]) { if (seenNumbers.has(numMatch[1])) return false; seenNumbers.add(numMatch[1]); }
               return true;
             });
-
             if (allItems.length > 0) {
               const insertPos = entryBlock.lastIndexOf("\n\n");
               const stepsSection = ["", "#### Passos do Plano", ...allItems.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`)];
@@ -264,109 +145,49 @@ export async function runPrepare(
               backlog = beforeEntry + updatedEntry + afterEntry;
               writeFileSync(backlogPath, backlog, "utf-8");
               results.push({ step: "backlog_sync", status: "done", detail: `Added ${allItems.length} steps to existing ${planIdUpper}` });
-            } else {
-              results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with no extractable steps` });
-            }
-          } else {
-            results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with steps` });
-          }
-        } else {
-          results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md` });
-        }
+            } else { results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with no extractable steps` }); }
+          } else { results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md with steps` }); }
+        } else { results.push({ step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md` }); }
       } else {
         const planContent = readFileSync(plan.filePath, "utf-8");
         const statusMatch = planContent.match(/\*\*Status:\*\*\s*(.+)/);
         const planStatus = statusMatch?.[1]?.trim() ?? "In Progress";
-
-        const statusMap: Record<string, string> = {
-          "In Progress": "em implementação",
-          "Done": "concluído",
-          "Paused": "pausado",
-          "Pending": "planeado",
-        };
+        const statusMap: Record<string, string> = { "In Progress": "em implementação", "Done": "concluído", "Paused": "pausado", "Pending": "planeado" };
         const backlogStatus = statusMap[planStatus] || "planeado";
-
-        // Extract checklist items for the BACKLOG entry
         const checklistItems = extractChecklistItems(planContent);
-
         const p2Index = backlog.indexOf("## P2 —");
         const p1Index = backlog.indexOf("## P1 —");
         const insertBefore = p2Index !== -1 ? p2Index : p1Index !== -1 ? p1Index : backlog.length;
 
         if (insertBefore !== -1) {
-          const backlogItem = [
-            "",
-            `### ${planIdUpper} — ${plan.title}`,
-            "",
-            "| Campo | Valor |",
-            "|---|---|",
-            `| **Status** | ${backlogStatus} |`,
-            `| **Severidade** | Medio |`,
-            `| **Prioridade** | P1 |`,
-            `| **Owner** | executor |`,
-            `| **Data** | ${new Date().toISOString().slice(0, 10)} |`,
-            `| **Fonte** | shiten plan md prepare |`,
-            `| **Modulos** | governance/plans/ |`,
-            `| **Descricao** | ${plan.title} |`,
-            `| **Correcao** | Verificar checklist no plano \`governance/plans/${planId}.md\` |`,
-          ];
-
-          // Add steps section if checklist items were extracted
+          const backlogItem = ["", `### ${planIdUpper} — ${plan.title}`, "", "| Campo | Valor |", "|---|---|", `| **Status** | ${backlogStatus} |`, `| **Severidade** | Medio |`, `| **Prioridade** | P1 |`, `| **Owner** | executor |`, `| **Data** | ${new Date().toISOString().slice(0, 10)} |`, `| **Fonte** | shiten plan md prepare |`, `| **Modulos** | governance/plans/ |`, `| **Descricao** | ${plan.title} |`, `| **Correcao** | Verificar checklist no plano \`governance/plans/${planId}.md\` |`];
           if (checklistItems.length > 0) {
             backlogItem.push("", "#### Passos do Plano");
-            // Deduplicate by step number to avoid repeats from double-run
             const seenNumbers = new Set<string>();
             for (const item of checklistItems) {
               const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
-              if (numMatch?.[1]) {
-                if (seenNumbers.has(numMatch[1])) continue;
-                seenNumbers.add(numMatch[1]);
-              }
-              const checkbox = item.checked ? "- [x]" : "- [ ]";
-              backlogItem.push(`${checkbox} ${item.text}`);
+              if (numMatch?.[1]) { if (seenNumbers.has(numMatch[1])) continue; seenNumbers.add(numMatch[1]); }
+              backlogItem.push(`- [${item.checked ? "x" : " "}] ${item.text}`);
             }
           }
-
           backlogItem.push("");
-
           const lines = backlog.split("\n");
           lines.splice(insertBefore, 0, ...backlogItem);
-          backlog = lines.join("\n");
-
-          backlog = backlog.replace(
-            /> \*\*Última actualização:\*\*.*/,
-            `> **Última actualização:** ${new Date().toISOString().slice(0, 10)}`
-          );
-
+          backlog = lines.join("\n").replace(/> \*\*Última actualização:\*\*.*/, `> **Última actualização:** ${new Date().toISOString().slice(0, 10)}`);
           writeFileSync(backlogPath, backlog, "utf-8");
-
           const stepCount = checklistItems.length;
-          const detail = stepCount > 0
-            ? `Added ${planIdUpper} to BACKLOG.md with ${stepCount} steps`
-            : `Added ${planIdUpper} to BACKLOG.md (no steps extracted — plan may need format update)`;
-          results.push({ step: "backlog_sync", status: "done", detail });
-        } else {
-          results.push({ step: "backlog_sync", status: "error", detail: "Could not find priority section in BACKLOG.md" });
-        }
+          results.push({ step: "backlog_sync", status: "done", detail: stepCount > 0 ? `Added ${planIdUpper} to BACKLOG.md with ${stepCount} steps` : `Added ${planIdUpper} to BACKLOG.md (no steps extracted)` });
+        } else { results.push({ step: "backlog_sync", status: "error", detail: "Could not find priority section in BACKLOG.md" }); }
       }
-    } else {
-      results.push({ step: "backlog_sync", status: "skip", detail: "BACKLOG.md not found" });
-    }
-  } catch (error) {
-    results.push({ step: "backlog_sync", status: "error", detail: String(error) });
-  }
+    } else { results.push({ step: "backlog_sync", status: "skip", detail: "BACKLOG.md not found" }); }
+  } catch (error) { results.push({ step: "backlog_sync", status: "error", detail: String(error) }); }
 
   // Step 4: Send desktop notification
   try {
     const { execSync } = await import("node:child_process");
-    execSync(`notify-send "Shiten Plan" "Plan prepared: ${plan.title}" --urgency=normal`, {
-      stdio: "pipe",
-      timeout: 2000,
-    });
+    execSync(`notify-send "Shiten Plan" "Plan prepared: ${plan.title}" --urgency=normal`, { stdio: "pipe", timeout: 2000 });
     results.push({ step: "notify", status: "done", detail: "Desktop notification sent" });
-  } catch {
-    results.push({ step: "notify", status: "skip", detail: "notify-send not available or failed" });
-  }
+  } catch { results.push({ step: "notify", status: "skip", detail: "notify-send not available or failed" }); }
 
   return results;
 }
@@ -378,568 +199,23 @@ export function planCommand(): Command {
     .description("Manage coordinated action sequences (plans)")
     .option("-d, --dir <path>", "Project directory");
 
-  // ── create ──────────────────────────────────────────────────────────────
-  cmd
-    .command("create")
-    .description("Create a new plan")
-    .argument("<name>", "Plan name")
-    .option("--description <text>", "Plan description")
-    .option("--step <names>", "Comma-separated step names")
-    .option("--step-type <type>", "Action type for all steps", "log_event")
-    .option("--json", "Output as JSON")
-    .action((name: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
+  registerCreate(cmd);
+  registerExecute(cmd);
+  registerRollback(cmd);
+  registerCancel(cmd);
+  registerList(cmd);
+  registerShow(cmd);
+  registerStats(cmd);
+  registerDelete(cmd);
 
-      const engine = getEngine(ctx.projectRoot);
-      const stepNames = opts.step ? (opts.step as string).split(",").map((s) => s.trim()) : ["default-step"];
-
-      const plan = engine.create({
-        name,
-        description: opts.description as string,
-        steps: stepNames.map((stepName) => ({
-          name: stepName,
-          action: {
-            id: `act-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-            type: opts["step-type"] as string ?? "log_event",
-            params: { event: "plan_step", message: stepName },
-          },
-        })),
-      });
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-      } else {
-        output(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
-        output(`    ${plan.name} (${plan.steps.length} steps)`);
-        outputBlank();
-        for (const step of plan.steps) {
-          output(`    ${chalk.dim(`${step.order + 1}.`)} ${step.name}`);
-        }
-        outputBlank();
-      }
-    });
-
-  // ── execute ─────────────────────────────────────────────────────────────
-  cmd
-    .command("execute")
-    .description("Execute a plan")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action(async (id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-
-      try {
-        const plan = await engine.execute(id);
-
-        if (isJson) {
-          outputJson(plan as unknown as Record<string, unknown>);
-        } else {
-          outputBlank();
-          const icon = plan.status === "completed" ? chalk.green("✓") : chalk.red("✗");
-          output(`${icon} Plan ${plan.id}: ${plan.status}`);
-          output(`  Duration: ${plan.duration}ms`);
-          outputBlank();
-          for (const step of plan.steps) {
-            const stepIcon = step.status === "completed" ? chalk.green("✓") :
-              step.status === "failed" ? chalk.red("✗") :
-              step.status === "skipped" ? chalk.yellow("○") : chalk.dim("○");
-            output(`    ${stepIcon} ${step.name} — ${step.status}`);
-            if (step.error) output(chalk.red(`      ${step.error}`));
-          }
-          outputBlank();
-        }
-      } catch (error) {
-        if (isJson) {
-          outputJson({ error: error instanceof Error ? error.message : String(error) });
-        } else {
-          output(chalk.red(`  ✗ ${error instanceof Error ? error.message : String(error)}`));
-        }
-      }
-    });
-
-  // ── rollback ────────────────────────────────────────────────────────────
-  cmd
-    .command("rollback")
-    .description("Rollback a plan")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action(async (id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const plan = await engine.rollback(id);
-
-      if (!plan) {
-        if (isJson) {
-          outputJson({ error: "Plan not found or cannot be rolled back" });
-        } else {
-          output(chalk.red(`  Cannot rollback plan: ${id}`));
-        }
-        return;
-      }
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-      } else {
-        output(chalk.yellow(`  ⚠ Plan rolled back: ${plan.id}`));
-      }
-    });
-
-  // ── cancel ──────────────────────────────────────────────────────────────
-  cmd
-    .command("cancel")
-    .description("Cancel a plan")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const plan = engine.cancel(id);
-
-      if (!plan) {
-        if (isJson) {
-          outputJson({ error: "Plan not found or cannot be cancelled" });
-        } else {
-          output(chalk.red(`  Cannot cancel plan: ${id}`));
-        }
-        return;
-      }
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-      } else {
-        output(chalk.yellow(`  ⚠ Plan cancelled: ${plan.id}`));
-      }
-    });
-
-  // ── list ────────────────────────────────────────────────────────────────
-  cmd
-    .command("list")
-    .description("List plans")
-    .option("--status <status>", "Filter by status")
-    .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const plans = engine.list({ status: opts.status as PlanStatus });
-
-      if (isJson) {
-        outputJson(plans as unknown as Record<string, unknown>);
-        return;
-      }
-
-      outputBlank();
-      if (plans.length === 0) {
-        output(chalk.dim("  No plans found."));
-      } else {
-        output(chalk.bold(`  Plans (${plans.length})`));
-        output(chalk.dim("  " + "─".repeat(70)));
-        for (const p of plans) {
-          output(formatPlan(p));
-        }
-      }
-      outputBlank();
-    });
-
-  // ── show ────────────────────────────────────────────────────────────────
-  cmd
-    .command("show")
-    .description("Show plan details")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const plan = engine.get(id);
-
-      if (!plan) {
-        if (isJson) {
-          outputJson({ error: "Plan not found" });
-        } else {
-          output(chalk.red(`  Plan not found: ${id}`));
-        }
-        return;
-      }
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-        return;
-      }
-
-      outputBlank();
-      output(chalk.bold(`  ${plan.id}`));
-      output(`  ${plan.name}`);
-      if (plan.description) output(`  ${chalk.dim(plan.description)}`);
-      outputBlank();
-      output(`  Status:     ${STATUS_COLORS[plan.status](plan.status)}`);
-      output(`  Correlation: ${plan.correlationId}`);
-      output(`  Created:    ${plan.createdAt}`);
-      if (plan.completedAt) output(`  Completed:  ${plan.completedAt}`);
-      if (plan.duration) output(`  Duration:   ${plan.duration}ms`);
-      outputBlank();
-      output(chalk.bold("  Steps:"));
-      for (const step of plan.steps) {
-        const stepIcon = step.status === "completed" ? chalk.green("✓") :
-          step.status === "failed" ? chalk.red("✗") :
-          step.status === "skipped" ? chalk.yellow("○") :
-          step.status === "running" ? chalk.cyan("⟳") : chalk.dim("○");
-        const deps = step.dependencies.length > 0 ? chalk.dim(` [deps: ${step.dependencies.join(", ")}]`) : "";
-        const optional = step.optional ? chalk.dim(" (optional)") : "";
-        output(`    ${stepIcon} ${step.name}${deps}${optional}`);
-        if (step.error) output(chalk.red(`      ${step.error}`));
-      }
-      outputBlank();
-    });
-
-  // ── stats ───────────────────────────────────────────────────────────────
-  cmd
-    .command("stats")
-    .description("Show plan statistics")
-    .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const stats = engine.stats();
-
-      if (isJson) {
-        outputJson(stats as unknown as Record<string, unknown>);
-        return;
-      }
-
-      outputBlank();
-      output(chalk.bold("  Plan Statistics"));
-      output(chalk.dim("  " + "─".repeat(40)));
-      output(`  Total:       ${stats.total}`);
-      output(`  Avg Steps:   ${stats.avgSteps}`);
-      output(`  Avg Duration: ${stats.avgDuration}ms`);
-      outputBlank();
-      for (const [status, count] of Object.entries(stats.byStatus)) {
-        if (count > 0) output(`  ${STATUS_COLORS[status as PlanStatus](status)}: ${count}`);
-      }
-      outputBlank();
-    });
-
-  // ── delete ──────────────────────────────────────────────────────────────
-  cmd
-    .command("delete")
-    .description("Delete a plan")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = getEngine(ctx.projectRoot);
-      const deleted = engine.delete(id);
-
-      if (!deleted) {
-        if (isJson) {
-          outputJson({ error: "Plan not found" });
-        } else {
-          output(chalk.red(`  Plan not found: ${id}`));
-        }
-        return;
-      }
-
-      if (isJson) {
-        outputJson({ deleted: true, id });
-      } else {
-        output(chalk.green(`  ✓ Plan deleted: ${id}`));
-      }
-    });
-
-  // ── md subcommand (markdown plans) ───────────────────────────────────────
-  const mdCmd = cmd
-    .command("md")
-    .description("Manage markdown execution plans");
-
-  // ── md list ──────────────────────────────────────────────────────────────
-  mdCmd
-    .command("list")
-    .description("List active markdown plans")
-    .option("--done", "Include done plans")
-    .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITEN_DIR_NAME));
-      let plans = engine.list();
-
-      if (opts.done) {
-        plans = [...plans, ...engine.listDone()];
-      }
-
-      if (isJson) {
-        outputJson(plans as unknown as Record<string, unknown>);
-        return;
-      }
-
-      if (plans.length === 0) {
-        output(chalk.dim("  No markdown plans found."));
-        return;
-      }
-
-      outputBlank();
-      output(chalk.bold(`  Markdown Plans (${plans.length})`));
-      output(chalk.dim("  " + "─".repeat(50)));
-      for (const plan of plans) {
-        const status = plan.status === "done" ? chalk.green("done") :
-                       plan.status === "parado" ? chalk.yellow("parado") :
-                       chalk.cyan("andamento");
-        output(`  ${chalk.bold(plan.id)}  ${status.padEnd(12)}  ${plan.title}`);
-      }
-      outputBlank();
-    });
-
-  // ── md show ──────────────────────────────────────────────────────────────
-  mdCmd
-    .command("show")
-    .description("Show markdown plan details")
-    .argument("<id>", "Plan ID (filename without .md)")
-    .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITEN_DIR_NAME));
-      const plan = engine.getById(id);
-
-      if (!plan) {
-        if (isJson) {
-          outputJson({ error: "Plan not found" });
-        } else {
-          output(chalk.red(`  Plan not found: ${id}`));
-        }
-        return;
-      }
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-        return;
-      }
-
-      outputBlank();
-      output(chalk.bold(`  Plan: ${plan.title}`));
-      output(chalk.dim("  " + "─".repeat(50)));
-      output(`  ID:       ${plan.id}`);
-      output(`  Status:   ${plan.status}`);
-      output(`  Created:  ${plan.createdAt || "N/A"}`);
-      output(`  Updated:  ${plan.updatedAt || "N/A"}`);
-      output(`  Path:     ${plan.relativePath}`);
-      outputBlank();
-    });
-
-  // ── md status ────────────────────────────────────────────────────────────
-  mdCmd
-    .command("status")
-    .description("Update markdown plan status")
-    .argument("<id>", "Plan ID")
-    .argument("<status>", "New status: andamento, parado, done")
-    .option("--json", "Output as JSON")
-    .action((id: string, status: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const validStatuses: MarkdownPlanStatus[] = ["andamento", "parado", "done"];
-      if (!validStatuses.includes(status as MarkdownPlanStatus)) {
-        if (isJson) {
-          outputJson({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
-        } else {
-          output(chalk.red(`  Invalid status: ${status}. Must be: ${validStatuses.join(", ")}`));
-        }
-        return;
-      }
-
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITEN_DIR_NAME));
-      try {
-        const updated = engine.updateStatus(id, status as MarkdownPlanStatus);
-
-        if (isJson) {
-          outputJson(updated as unknown as Record<string, unknown>);
-        } else {
-          output(chalk.green(`  ✓ Plan status updated: ${id} → ${status}`));
-          if (status === "done") {
-            output(chalk.dim(`    Moved to done/ directory`));
-          }
-        }
-      } catch (error) {
-        if (isJson) {
-          outputJson({ error: error instanceof Error ? error.message : String(error) });
-        } else {
-          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
-        }
-      }
-    });
-
-  // ── md done ──────────────────────────────────────────────────────────────
-  mdCmd
-    .command("done")
-    .description("Mark markdown plan as done and move to done/")
-    .argument("<id>", "Plan ID")
-    .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITEN_DIR_NAME));
-      try {
-        const updated = engine.updateStatus(id, "done");
-
-        if (isJson) {
-          outputJson(updated as unknown as Record<string, unknown>);
-        } else {
-          output(chalk.green(`  ✓ Plan marked as done: ${id}`));
-          output(chalk.dim(`    Moved to done/ directory`));
-        }
-      } catch (error) {
-        if (isJson) {
-          outputJson({ error: error instanceof Error ? error.message : String(error) });
-        } else {
-          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
-        }
-      }
-    });
-
-  // ── md create ────────────────────────────────────────────────────────────
-  mdCmd
-    .command("create")
-    .description("Create a new markdown plan")
-    .argument("<title>", "Plan title")
-    .option("--description <text>", "Plan description")
-    .option("--priority <level>", "Priority (P0, P1, P2)", "P1")
-    .option("--time <estimate>", "Estimated time")
-    .option("--owner <name>", "Plan owner", "AI Agent")
-    .option("--json", "Output as JSON")
-    .action((title: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITEN_DIR_NAME));
-      const plan = engine.create({
-        title,
-        description: opts.description as string,
-        priority: opts.priority as string,
-        estimatedTime: opts.time as string,
-        owner: opts.owner as string,
-      });
-
-      if (isJson) {
-        outputJson(plan as unknown as Record<string, unknown>);
-      } else {
-        output(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
-        output(`    ${plan.title}`);
-        output(`    Path: ${plan.relativePath}`);
-        outputBlank();
-      }
-    });
-
-  // ── md prepare ──────────────────────────────────────────────────────────
-  mdCmd
-    .command("prepare")
-    .description("Prepare a plan: format header, extract checklist, sync backlog, notify")
-    .argument("<id>", "Plan ID (filename without .md)")
-    .option("--json", "Output as JSON")
-    .action(async (id: string, opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const shitenDir = join(ctx.projectRoot, SHITEN_DIR_NAME);
-      const engine = new MarkdownPlanEngine(shitenDir);
-      const plan = engine.getById(id);
-
-      if (!plan) {
-        if (isJson) {
-          outputJson({ error: "not_found", message: `Plan not found: ${id}` });
-        } else {
-          output(chalk.red(`  ✘ Plan not found: ${id}`));
-        }
-        return;
-      }
-
-      if (!isJson) {
-        outputBlank();
-        banner("shiten plan prepare", "Plan Preparation");
-        outputBlank();
-        output(chalk.gray(`  Plan: ${plan.title}`));
-        output(chalk.gray(`  Path: ${plan.relativePath}`));
-        outputBlank();
-      }
-
-      const results = await runPrepare(ctx.projectRoot, shitenDir, id);
-
-      if (isJson) {
-        outputJson({ planId: id, title: plan.title, results });
-      } else {
-        output(chalk.bold("  Results:"));
-        outputBlank();
-        for (const r of results) {
-          const icon = r.status === "done" ? "✅" : r.status === "skip" ? "⏭" : r.status === "error" ? "❌" : "⏳";
-          output(`    ${icon} ${r.step}: ${r.detail}`);
-        }
-        outputBlank();
-        output(chalk.green(`  ✓ Plan "${plan.title}" prepared`));
-        outputBlank();
-      }
-    });
-
-  // ── md lifecycle ─────────────────────────────────────────────────────────
-  mdCmd
-    .command("lifecycle")
-    .description("Detect, review and archive completed plans")
-    .option("--auto", "Archive without prompts (CI/CD)")
-    .option("--dry", "Dry run — show what would happen")
-    .option("--json", "Output as JSON")
-    .action(async (opts: Record<string, unknown>) => {
-      const isJson = opts.json === true;
-      const ctx = guardNotInitialized(opts, isJson);
-      if (!ctx) return;
-
-      const { runLifecycleReview } = await import("../plan-lifecycle.js");
-      try {
-        const result = await runLifecycleReview(ctx.projectRoot, {
-          auto: opts.auto === true,
-          dry: opts.dry === true,
-        });
-
-        if (isJson) {
-          outputJson(result as unknown as Record<string, unknown>);
-        }
-      } catch (error) {
-        if (isJson) {
-          outputJson({ error: error instanceof Error ? error.message : String(error) });
-        } else {
-          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
-        }
-      }
-    });
+  const mdCmd = cmd.command("md").description("Manage markdown execution plans");
+  registerMdList(mdCmd);
+  registerMdShow(mdCmd);
+  registerMdStatus(mdCmd);
+  registerMdDone(mdCmd);
+  registerMdCreate(mdCmd);
+  registerMdPrepare(mdCmd);
+  registerMdLifecycle(mdCmd);
 
   return cmd;
 }

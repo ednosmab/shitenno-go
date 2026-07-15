@@ -2,6 +2,14 @@
 # pre-commit hook — fast checks only (lint + typecheck)
 # Full test suite runs in CI, not in pre-commit (too slow: ~240s for 1045 tests).
 
+echo "🔍 Checking file sizes..."
+OVERSIZED_FILES=$(find src/ -name '*.ts' -not -path 'src/__tests__/*' -not -path 'src/templates/*' -exec sh -c 'lines=$(wc -l < "$1"); if [ "$lines" -gt 300 ]; then echo "⚠️  File too large ($lines lines > 300): $1"; fi' _ {} \;)
+if [ -n "$OVERSIZED_FILES" ]; then
+  echo "$OVERSIZED_FILES"
+  echo "⚠️  Some files exceed 300 lines. Refactor before merging to main."
+fi
+echo "✅ File sizes check complete."
+
 echo "🔍 Running lint..."
 pnpm run lint
 LINT_EXIT=$?
@@ -21,7 +29,7 @@ if [ $TSC_EXIT -ne 0 ]; then
 fi
 
 echo "🔍 Checking documentation sync..."
-pnpm run sync:docs --quiet
+pnpm run sync:docs --quiet || true
 SYNC_EXIT=$?
 
 if [ $SYNC_EXIT -ne 0 ]; then

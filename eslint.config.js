@@ -3,7 +3,7 @@ import tsparser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: ["dist/", "node_modules/", "src/templates/", "src/__tests__/"],
+    ignores: ["dist/", "node_modules/", "src/templates/", "src/__tests__/", "shitenno-go/"],
   },
   {
     files: ["src/**/*.ts", "bin/**/*.ts"],
@@ -34,6 +34,10 @@ export default [
         selector: "Literal[value='shitenno-go']",
         message: "Use SHITEN_DIR_NAME from src/constants.ts instead of hardcoding 'shitenno-go'.",
       }],
+      "max-lines-per-function": ["warn", { max: 50, skipBlankLines: true, skipComments: true }],
+      "max-depth": ["warn", 4],
+      "max-params": ["warn", 4],
+      "complexity": ["warn", 15],
     },
   },
   // Commands must not read filesystem directly — use getEngineeringState()

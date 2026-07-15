@@ -26,5 +26,17 @@ Manter o código legível, testável e fácil de manter por qualquer membro do t
 - **Linting:** Nunca ignore avisos do ESLint ou erros do TypeScript (`@ts-ignore` é terminantemente proibido).
 - **Refatoração:** "Deixe o código sempre um pouco mais limpo do que o encontrou".
 
+## 📏 Limites de Tamanho
+
+| Limite | Valor | Regra ESLint | Excepções |
+|--------|-------|--------------|-----------|
+| Ficheiro | 300 linhas | max-lines-per-file | `__tests__/`, `src/templates/` |
+| Função | 50 linhas | max-lines-per-function | — |
+| Profundidade | 4 níveis | max-depth | — |
+| Parâmetros | 4 por função | max-params | — |
+| Complexidade | 15 | complexity | — |
+
+> **Referência:** ADR-007 (docs/adrs/ADR-007-file-size-limits.md)
+
 ## 📂 Onde Aplicar
 - Em todo o monorepo.

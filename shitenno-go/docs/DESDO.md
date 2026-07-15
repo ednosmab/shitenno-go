@@ -12,7 +12,19 @@
 
 ---
 
-## 1. Princípios SOLID
+## 1.1 Limites de Tamanho
+
+| Limite | Valor | Regra ESLint | Excepções |
+|--------|-------|--------------|-----------|
+| Ficheiro | 300 linhas | max-lines-per-file | `__tests__/`, `src/templates/` |
+| Função | 50 linhas | max-lines-per-function | — |
+| Profundidade | 4 níveis | max-depth | — |
+| Parâmetros | 4 por função | max-params | — |
+| Complexidade | 15 | complexity | — |
+
+> **Referência:** ADR-007 (docs/adrs/ADR-007-file-size-limits.md)
+
+## 2. Princípios SOLID
 
 - **S** — Single Responsibility: cada função/classe com um motivo para mudar
 - **O** — Open/Closed: aberto para extensão, fechado para modificação
@@ -20,7 +32,7 @@
 - **I** — Interface Segregation: interfaces pequenas e específicas
 - **D** — Dependency Inversion: depender de abstrações, não implementações
 
-## 2. TDD — Test-Driven Development
+## 3. TDD — Test-Driven Development
 
 ### Ciclo Red-Green-Refactor
 1. **RED** — Escrever teste que falha
@@ -32,7 +44,7 @@
 - **Integração** — Médios, fluxos entre serviços
 - **E2E** — Poucos, lentos, críticos
 
-## 3. Segurança
+## 4. Segurança
 
 1. Sanitizar todo input dinâmico
 2. Usar componentes seguros (nunca `dangerouslySetInnerHTML` sem sanitização)
@@ -40,19 +52,19 @@
 4. RLS em todas as tabelas
 5. Sanitizar output (prevenir XSS)
 
-## 4. Documentação
+## 5. Documentação
 
 - **JSDoc** obrigatório em todas as funções exportadas
 - **ADRs** para decisões arquitecturais (`docs/adrs/`)
 - **SDRs** para decisões de solução (`docs/sdr/` — futuro)
 
-## 5. Performance
+## 6. Performance
 
 - Não optimizar prematuramente
 - Medir primeiro com ferramentas de profiling
 - Definir métricas antes de optimizar
 
-## 6. Git e Branches
+## 7. Git e Branches
 
 ### Conventional Commits
 ```

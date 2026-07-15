@@ -27,7 +27,7 @@ import { getFeedbackRecords, computeFeedbackSummary } from "./session-feedback.j
 import { logger } from "./logger.js";
 import { computeInputHash } from "./briefing-cache.js";
 import { computeKeyChecksums, getCached, setCache } from "./cache.js";
-import { readPersistedEvents, type EventEnvelope } from "./event-bus.js";
+import { readPersistedEvents, getEventBus, type EventEnvelope } from "./event-bus.js";
 
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -370,6 +370,18 @@ function loadQuickBoard(shitenDir: string): {
 
     const content = readFileSync(bufferPath, "utf-8");
     const data = parseYaml(content);
+
+    // Publish context.p4_loaded event for on-demand reads outside initial profile
+    try {
+      const bus = getEventBus();
+      bus.publish("context.p4_loaded", {
+        docPath: "governance/context/context_buffer.yaml",
+        taskType: "loadQuickBoard",
+        tierDeclared: "P4",
+      });
+    } catch {
+      // Best-effort event publishing
+    }
 
     // Extract current task
     const currentTask = data?.current_task?.description
