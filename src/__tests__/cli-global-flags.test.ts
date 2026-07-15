@@ -33,43 +33,35 @@ describe("logger — SHITEN_QUIET env var", () => {
     delete process.env.SHITEN_QUIET;
     setLogLevel("debug"); // Enable all levels
 
-    const spies = {
-      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
-      log: vi.spyOn(console, "log").mockImplementation(() => {}),
-      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
-      error: vi.spyOn(console, "error").mockImplementation(() => {}),
-    };
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     logger.debug("test", "debug message");
     logger.info("test", "info message");
     logger.warn("test", "warn message");
     logger.error("test", "error message");
 
-    expect(spies.debug).toHaveBeenCalledOnce();
-    expect(spies.log).toHaveBeenCalledOnce();
-    expect(spies.warn).toHaveBeenCalledOnce();
-    expect(spies.error).toHaveBeenCalledOnce();
+    expect(stderrSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 
   it("suppresses debug/info/warn when SHITEN_QUIET=1", () => {
     process.env.SHITEN_QUIET = "1";
 
-    const spies = {
-      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
-      log: vi.spyOn(console, "log").mockImplementation(() => {}),
-      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
-      error: vi.spyOn(console, "error").mockImplementation(() => {}),
-    };
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     logger.debug("test", "should be suppressed");
     logger.info("test", "should be suppressed");
     logger.warn("test", "should be suppressed");
     logger.error("test", "should pass through");
 
-    expect(spies.debug).not.toHaveBeenCalled();
-    expect(spies.log).not.toHaveBeenCalled();
-    expect(spies.warn).not.toHaveBeenCalled();
-    expect(spies.error).toHaveBeenCalledOnce();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 
   it("still outputs error level when SHITEN_QUIET=1", () => {
@@ -85,16 +77,14 @@ describe("logger — SHITEN_QUIET env var", () => {
     process.env.SHITEN_QUIET = "1";
     setLogLevel("debug"); // Would normally show debug
 
-    const spies = {
-      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
-      error: vi.spyOn(console, "error").mockImplementation(() => {}),
-    };
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     logger.debug("test", "should be suppressed by quiet");
     logger.error("test", "should pass through");
 
-    expect(spies.debug).not.toHaveBeenCalled();
-    expect(spies.error).toHaveBeenCalledOnce();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 });
 
@@ -113,22 +103,18 @@ describe("logger — muteLogs utility", () => {
   it("suppresses all output except error", () => {
     muteLogs();
 
-    const spies = {
-      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
-      log: vi.spyOn(console, "log").mockImplementation(() => {}),
-      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
-      error: vi.spyOn(console, "error").mockImplementation(() => {}),
-    };
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     logger.debug("test", "debug msg");
     logger.info("test", "info msg");
     logger.warn("test", "warn msg");
     logger.error("test", "error msg");
 
-    expect(spies.debug).not.toHaveBeenCalled();
-    expect(spies.log).not.toHaveBeenCalled();
-    expect(spies.warn).not.toHaveBeenCalled();
-    expect(spies.error).toHaveBeenCalledOnce();
-    expect(spies.error.mock.calls[0]![0]!).toContain("error msg");
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledOnce();
+    expect(errorSpy.mock.calls[0]![0]!).toContain("error msg");
   });
 });

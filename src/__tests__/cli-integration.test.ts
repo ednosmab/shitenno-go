@@ -518,6 +518,15 @@ describe("CLI Integration Tests", () => {
       expect(json).toHaveProperty("failCount");
       expect(Array.isArray(json.results)).toBe(true);
     });
+
+    it("keeps stdout as pure JSON even when doc-sync-hook logs during the run", async () => {
+      const { dir } = scaffoldTestProject("json-stdout-pollution", "junior");
+      dirs.push(dir);
+
+      const { stdout, exitCode } = await runShiten("status --json", dir);
+      expect(exitCode).toBe(0);
+      expect(() => JSON.parse(stdout)).not.toThrow();
+    });
   });
 
   // ──────────────────────────────────────────────

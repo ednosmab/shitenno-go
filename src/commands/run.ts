@@ -18,6 +18,7 @@ import { detectPatterns, writePatternReport } from "../pattern-detector.js";
 import { auditHealth, writeHealthReport } from "../health-auditor.js";
 import { analyzeEvolution, writeEvolutionReport } from "../auto-evolution.js";
 import { output, outputBlank, outputError } from "../output.js";
+import { muteLogs } from "../logger.js";
 import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 
@@ -91,6 +92,7 @@ export const runCommand = new Command("run")
   .option("--json", "Output results as JSON")
   .action(async (options) => {
     const isJson = options.json === true;
+    if (isJson) muteLogs();
 
     if (!isJson) {
       outputBlank();

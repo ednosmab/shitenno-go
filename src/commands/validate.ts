@@ -8,6 +8,7 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { SHITEN_DIR_NAME } from "../constants.js";
 import { output, outputBlank } from "../output.js";
+import { muteLogs } from "../logger.js";
 
 interface ValidationResult {
   name: string;
@@ -22,6 +23,7 @@ export const validateCommand = new Command("validate")
   .option("--json", "Output results as JSON")
   .action((options) => {
     const isJson = options.json === true;
+    if (isJson) muteLogs();
 
     if (!isJson) {
       outputBlank();

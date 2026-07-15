@@ -49,15 +49,20 @@ function formatMessage(level: LogLevel, module: string, message: string): string
   return `${prefix} ${levelTag} ${message}`;
 }
 
+function writeStderr(line: string, args: unknown[]): void {
+  const extra = args.length ? " " + args.map(String).join(" ") : "";
+  process.stderr.write(line + extra + "\n");
+}
+
 export const logger = {
   debug(module: string, message: string, ...args: unknown[]): void {
     if (shouldLog("debug")) {
-      console.debug(formatMessage("debug", module, message), ...args);
+      writeStderr(formatMessage("debug", module, message), args);
     }
   },
   info(module: string, message: string, ...args: unknown[]): void {
     if (shouldLog("info")) {
-      console.log(formatMessage("info", module, message), ...args);
+      writeStderr(formatMessage("info", module, message), args);
     }
   },
   warn(module: string, message: string, ...args: unknown[]): void {

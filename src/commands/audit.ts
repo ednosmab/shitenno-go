@@ -14,6 +14,7 @@ import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../b
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { generateFixSuggestions, prioritizeSuggestions } from "../audit/suggestion-engine.js";
+import { muteLogs } from "../logger.js";
 
 // ── Helper Functions for Issue Categorization ──────────────────────────────
 
@@ -151,6 +152,7 @@ export const auditCommand = new Command("audit")
   .option("--auto-backlog", "Auto-detect gaps and add to BACKLOG.md")
   .action(async (options) => {
     const isJson = options.json === true;
+    if (isJson) muteLogs();
 
     if (!isJson) {
       const levelLabel = options.level === "enterprise" ? "enterprise" : options.level === "code-review" ? "code-review" : options.level === "quick" ? "quick" : "standard";

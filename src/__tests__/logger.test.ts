@@ -2,12 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { logger, setLogLevel, muteLogs } from "../logger.js";
 
 describe("logger", () => {
-  let consoleSpy: { debug: ReturnType<typeof vi.spyOn>; log: ReturnType<typeof vi.spyOn>; warn: ReturnType<typeof vi.spyOn>; error: ReturnType<typeof vi.spyOn> };
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+  let consoleSpy: { warn: ReturnType<typeof vi.spyOn>; error: ReturnType<typeof vi.spyOn> };
 
   beforeEach(() => {
+    stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     consoleSpy = {
-      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
-      log: vi.spyOn(console, "log").mockImplementation(() => {}),
       warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
       error: vi.spyOn(console, "error").mockImplementation(() => {}),
     };
@@ -18,11 +20,16 @@ describe("logger", () => {
     vi.restoreAllMocks();
   });
 
-  it("info logs to console.log", () => {
+  it("info writes to stderr", () => {
     logger.info("TestModule", "hello");
-    expect(consoleSpy.log).toHaveBeenCalledOnce();
-    expect(consoleSpy.log.mock.calls[0]![0]!).toContain("[TestModule]");
-    expect(consoleSpy.log.mock.calls[0]![0]!).toContain("hello");
+    expect(stderrSpy).toHaveBeenCalledOnce();
+    expect(stderrSpy.mock.calls[0]![0]).toContain("[TestModule]");
+    expect(stderrSpy.mock.calls[0]![0]).toContain("hello");
+  });
+
+  it("info does not write to stdout", () => {
+    logger.info("TestModule", "hello");
+    expect(stdoutSpy).not.toHaveBeenCalled();
   });
 
   it("warn logs to console.warn", () => {
@@ -38,13 +45,15 @@ describe("logger", () => {
 
   it("debug does not log when level is info", () => {
     logger.debug("TestModule", "hidden");
-    expect(consoleSpy.debug).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
   });
 
-  it("debug logs to console.debug when level is debug", () => {
+  it("debug writes to stderr when level is debug", () => {
     setLogLevel("debug");
     logger.debug("TestModule", "visible");
-    expect(consoleSpy.debug).toHaveBeenCalledOnce();
+    expect(stderrSpy).toHaveBeenCalledOnce();
+    expect(stderrSpy.mock.calls[0]![0]).toContain("[TestModule]");
+    expect(stderrSpy.mock.calls[0]![0]).toContain("visible");
   });
 
   it("muteLogs suppresses all except error", () => {
@@ -56,7 +65,6 @@ describe("logger", () => {
     expect(consoleSpy.error.mock.calls.length).toBe(1);
     expect(consoleSpy.error.mock.calls[0]![0]!).toContain("visible");
     expect(consoleSpy.warn).not.toHaveBeenCalled();
-    expect(consoleSpy.log).not.toHaveBeenCalled();
-    expect(consoleSpy.debug).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
   });
 });

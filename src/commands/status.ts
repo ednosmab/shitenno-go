@@ -11,7 +11,7 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
-import { logger } from "../logger.js";
+import { logger, muteLogs } from "../logger.js";
 import { output, outputBlank } from "../output.js";
 
 interface StatusCheck {
@@ -28,6 +28,7 @@ export const statusCommand = new Command("status")
   .option("--fix", "Auto-fix governance issues (like doctor)")
   .action(async (options) => {
     const isJson = options.json === true;
+    if (isJson) muteLogs();
 
     if (!isJson) {
       outputBlank();        banner("shiten status", "Health Check");

@@ -11,7 +11,7 @@ import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { checkAndArchiveDonePlans } from "../plan-lifecycle.js";
 import { output, outputBlank, outputSection, outputSuccess, outputError } from "../output.js";
-import { logger } from "../logger.js";
+import { logger, muteLogs } from "../logger.js";
 
 export const detectCommand = new Command("detect")
   .description("Detect patterns in history and propose candidate rules (Phase 2)")
@@ -24,6 +24,7 @@ export const detectCommand = new Command("detect")
   .option("--auto", "Non-interactive mode for git hooks (suppresses banner and spinner)")
   .action(async (options) => {
     const isJson = options.json === true;
+    if (isJson) muteLogs();
     const isAuto = options.auto === true;
     const format = isJson ? "json" : (String(options.format || "text"));
 
