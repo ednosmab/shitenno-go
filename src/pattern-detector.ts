@@ -12,57 +12,19 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// ── Types (re-exported from domain entities) ────────────────────────────────
 
-/** Um padrão detectado no histórico. */
-export interface DetectedPattern {
-  /** Tipo de padrão detectado. */
-  type: "recurring_error" | "repeated_violation" | "reverted_decision" | "hot_area";
-  /** Descrição legível do padrão. */
-  description: string;
-  /** Número de ocorrências no histórico. */
-  occurrences: number;
-  /** Evidência: lista de entradas do histórico que suportam o padrão. */
-  evidence: string[];
-  /** Área ou regra afectada. */
-  affectedArea: string;
-  /** Severidade percebida (1-5). */
-  severity: number;
-}
+import type {
+  DetectedPattern,
+  CandidateRule,
+  PatternDetectionReport,
+} from "./domain/entities/engineering-state.js";
 
-/** Uma regra candidata proposta pelo detector. */
-export interface CandidateRule {
-  /** Identificador único da candidata. */
-  id: string;
-  /** Título da regra proposta. */
-  title: string;
-  /** Descrição da regra. */
-  description: string;
-  /** Onde aplicar: FORBIDDEN_OPERATIONS ou AGENTS.md. */
-  target: "FORBIDDEN_OPERATIONS" | "AGENTS.md";
-  /** Padrões que justificam esta regra. */
-  supportingPatterns: DetectedPattern[];
-  /** Texto exacto da regra a adicionar. */
-  ruleText: string;
-  /** Estado da proposta. */
-  status: "proposed" | "accepted" | "rejected" | "modified";
-}
-
-/** Resultado completo da detecção de padrões. */
-export interface PatternDetectionReport {
-  /** Data da detecção. */
-  detectedAt: string;
-  /** Total de entradas do histórico analisadas. */
-  historyEntriesAnalyzed: number;
-  /** Total de relatórios analisados. */
-  reportsAnalyzed: number;
-  /** Padrões detectados. */
-  patterns: DetectedPattern[];
-  /** Regras candidatas propostas. */
-  candidateRules: CandidateRule[];
-  /** Resumo legível. */
-  summary: string;
-}
+export type {
+  DetectedPattern,
+  CandidateRule,
+  PatternDetectionReport,
+} from "./domain/entities/engineering-state.js";
 
 // ── History Reader ───────────────────────────────────────────────────────────
 

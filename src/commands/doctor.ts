@@ -19,6 +19,7 @@ import { healthBar, outputJson, calculateHealthPenalty } from "../formatting.js"
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { recordFeedback } from "../feedback-loops.js";
+import { output, outputBlank, outputError } from "../output.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -258,11 +259,11 @@ export const doctorCommand = new Command("doctor")
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║    nexus doctor — Engineering Mentor ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║    nexus doctor — Engineering Mentor ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -295,58 +296,58 @@ export const doctorCommand = new Command("doctor")
         report.overallHealth === "warning" ? chalk.yellow :
         chalk.red;
 
-      console.log(chalk.bold("  Health:"));
-      console.log(`    ${healthColor(report.overallHealth.toUpperCase())} — ${report.healthScore}/100 ${healthBar(report.healthScore, 100)}`);
-      console.log("");
+      output(chalk.bold("  Health:"));
+      output(`    ${healthColor(report.overallHealth.toUpperCase())} — ${report.healthScore}/100 ${healthBar(report.healthScore, 100)}`);
+      outputBlank();
 
       // Risks
       const risks = report.findings.filter((f) => f.category === "risk");
       if (risks.length > 0) {
-        console.log(chalk.bold.red("  🔍 Risks:"));
-        console.log("");
+        output(chalk.bold.red("  🔍 Risks:"));
+        outputBlank();
         for (const finding of risks) {
           const icon = finding.severity === "critical" ? "🔴" : finding.severity === "high" ? "🟠" : "🟡";
-          console.log(`    ${icon} ${chalk.bold(finding.title)}`);
-          console.log(chalk.gray(`       ${finding.description}`));
-          console.log(chalk.gray(`       Impact: ${finding.impact}`));
-          console.log(chalk.cyan("       Next steps:"));
+          output(`    ${icon} ${chalk.bold(finding.title)}`);
+          output(chalk.gray(`       ${finding.description}`));
+          output(chalk.gray(`       Impact: ${finding.impact}`));
+          output(chalk.cyan("       Next steps:"));
           for (const step of finding.nextSteps) {
-            console.log(chalk.cyan(`         → ${step}`));
+            output(chalk.cyan(`         → ${step}`));
           }
-          console.log("");
+          outputBlank();
         }
       }
 
       // Improvements
       const improvements = report.findings.filter((f) => f.category === "improvement");
       if (improvements.length > 0) {
-        console.log(chalk.bold.yellow("  💡 Improvements:"));
-        console.log("");
+        output(chalk.bold.yellow("  💡 Improvements:"));
+        outputBlank();
         for (const finding of improvements) {
-          console.log(`    ⚡ ${chalk.bold(finding.title)}`);
-          console.log(chalk.gray(`       ${finding.description}`));
-          console.log(chalk.cyan("       Next steps:"));
+          output(`    ⚡ ${chalk.bold(finding.title)}`);
+          output(chalk.gray(`       ${finding.description}`));
+          output(chalk.cyan("       Next steps:"));
           for (const step of finding.nextSteps) {
-            console.log(chalk.cyan(`         → ${step}`));
+            output(chalk.cyan(`         → ${step}`));
           }
-          console.log("");
+          outputBlank();
         }
       }
 
       // Teaching moments
       if (report.teachingMoments.length > 0) {
-        console.log(chalk.bold.cyan("  📚 Learn:"));
-        console.log("");
+        output(chalk.bold.cyan("  📚 Learn:"));
+        outputBlank();
         for (const moment of report.teachingMoments) {
-          console.log(chalk.gray(`    ${moment}`));
-          console.log("");
+          output(chalk.gray(`    ${moment}`));
+          outputBlank();
         }
       }
 
       // Summary
-      console.log(chalk.bold("  📝 Summary:"));
-      console.log(chalk.gray(`    ${report.summary}`));
-      console.log("");
+      output(chalk.bold("  📝 Summary:"));
+      output(chalk.gray(`    ${report.summary}`));
+      outputBlank();
 
       // Publish event
       getEventBus().publish("health.checked", {
@@ -369,7 +370,7 @@ export const doctorCommand = new Command("doctor")
 
     } catch (error) {
       spinner.fail("Doctor analysis failed");
-      console.error(chalk.red(`  Error: ${error}`));
-      console.log("");
+      outputError(chalk.red(`  Error: ${error}`));
+      outputBlank();
     }
   });

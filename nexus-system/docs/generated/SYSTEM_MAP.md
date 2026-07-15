@@ -1,7 +1,7 @@
 # System Map
 
-> Generated: 2026-07-12T02:02:46.878Z
-> Session Score: 70/100
+> Generated: 2026-07-14T04:51:49.123Z
+> Session Score: 99/100
 
 ## Overview
 
@@ -20,19 +20,19 @@
 - ADR-005: Automated Task Completion Pipeline — docs/adrs/ADR-005-automated-task-completion-pipeline.md
 - ADR-006: Restrict Filesystem Access in CLI Commands — docs/adrs/ADR-006-filesystem-access-restriction.md
 
-### Skills (25)
+### Skills (17)
 
-- animation protocol — docs/skills/animation_protocol.md
 - architectural integrity — docs/skills/architectural_integrity.md
 - ci cd pipeline — docs/skills/ci_cd_pipeline.md
 - clean code standards — docs/skills/clean_code_standards.md
 - codebase hygiene git — docs/skills/codebase_hygiene_git.md
-- ddd patterns — docs/skills/ddd_patterns.md
 - design patterns — docs/skills/design_patterns.md
 - domain driven design (ddd) — docs/skills/domain_driven_design_(ddd).md
 - error handling observability — docs/skills/error_handling_observability.md
 - handbook-fill — docs/skills/handbook-fill.md
-- ... and 15 more
+- operacao no nexus — docs/skills/operacao_no_nexus.md
+- optimistic ui — docs/skills/optimistic_ui.md
+- ... and 7 more
 
 ### Contracts (4)
 
@@ -63,11 +63,10 @@
 
 - merge — docs/runbooks/merge.md
 
-### Plans (4)
+### Plans (3)
 
-- 2026 07 02 nexus dashboard restructure — governance/plans/2026-07-02-nexus-dashboard-restructure.md
-- 2026 07 11 nexus living plano v2 3fases — governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md
-- PLAN DYNAMIC RULE ADAPTATION — governance/plans/PLAN-DYNAMIC-RULE-ADAPTATION.md
+- 2026 07 12 migrar console log para logger — governance/plans/2026-07-12-migrar-console-log-para-logger.md
+- PLAN doc semantic sync — governance/plans/PLAN-doc-semantic-sync.md
 - README — governance/plans/README.md
 
 ### Scripts (6)
@@ -79,7 +78,7 @@
 - sync docs — scripts/sync-docs.ts
 - validate session — scripts/validate-session.ts
 
-### Docs (13)
+### Docs (14)
 
 - AGENTS — docs/AGENTS.md
 - BACKLOG — docs/BACKLOG.md
@@ -91,21 +90,18 @@
 - INDEX — docs/INDEX.md
 - KNOWLEDGE LIFECYCLE — docs/KNOWLEDGE_LIFECYCLE.md
 - Nexus-System GUIDE — docs/Nexus-System_GUIDE.md
-- ... and 3 more
+- ... and 4 more
 
-### Reports (30)
+### Reports (8)
 
-- complexity 2026 06 30 — reports/complexity-2026-06-30.json
-- complexity nexus cli 2026 07 01 session1 — reports/complexity-nexus-cli-2026-07-01-session1.json
-- complexity nexus cli 2026 07 01 session2 — reports/complexity-nexus-cli-2026-07-01-session2.json
-- complexity nexus cli 2026 07 01 session3 — reports/complexity-nexus-cli-2026-07-01-session3.json
-- complexity nexus cli 2026 07 01 session4 — reports/complexity-nexus-cli-2026-07-01-session4.json
-- complexity nexus cli 2026 07 01 session5 — reports/complexity-nexus-cli-2026-07-01-session5.json
-- complexity nexus cli 2026 07 03 session1 — reports/complexity-nexus-cli-2026-07-03-session1.json
-- complexity nexus cli 2026 07 03 session2 — reports/complexity-nexus-cli-2026-07-03-session2.json
-- complexity nexus cli 2026 07 03 session3 — reports/complexity-nexus-cli-2026-07-03-session3.json
-- complexity nexus cli 2026 07 08 session1 — reports/complexity-nexus-cli-2026-07-08-session1.json
-- ... and 20 more
+- complexity nexus cli 2026 07 12 session1 — reports/complexity-nexus-cli-2026-07-12-session1.json
+- complexity nexus cli 2026 07 13 session1 — reports/complexity-nexus-cli-2026-07-13-session1.json
+- doc lifecycle 2026 07 12 — reports/doc-lifecycle-2026-07-12.json
+- doc lifecycle 2026 07 13 — reports/doc-lifecycle-2026-07-13.json
+- doc sync 2026 07 12 — reports/doc-sync-2026-07-12.json
+- doc sync 2026 07 13 — reports/doc-sync-2026-07-13.json
+- patterns 2026 07 12 — reports/patterns-2026-07-12.json
+- patterns 2026 07 13 — reports/patterns-2026-07-13.json
 
 ### Contexts (1)
 

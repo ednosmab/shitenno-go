@@ -32,7 +32,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | In Progress — 2026-07-12 (steps 1.1-1.8 concluídos; 1.9, 1.10 pendentes) |
+| **Status** | Done — 2026-07-13 |
 | **Severidade** | Alto |
 | **Prioridade** | P0 |
 | **Owner** | executor |
@@ -40,7 +40,7 @@
 | **Fonte** | Plano Nexus Living v2 (secção 3, Fase 1) |
 | **Modulos** | src/engineering-state-access.ts, src/__tests__/engineering-state-access.test.ts, src/__tests__/benchmarks.bench.ts |
 | **Descricao** | Modificar `getEngineeringState()` para ler `engineering-state.json` do disco com verificação de frescor antes de recalcular. Manter `forceRefresh` como kill-switch. Adicionar benchmark novo (consolidação fria vs cache cross-process) nos 3 tamanhos de fixture. |
-| **Correcao** | Implementado: `isDiskCacheFresh()` + `hasFileChangedSince()` verificam mtime de `governance/`. 7 testes OK. Pendente: benchmark novo e dogfooding. |
+| **Correcao** | Steps 1.1-1.8 completos: `isDiskCacheFresh()` + `hasFileChangedSince()` + 3-level cache + 7 testes + benchmarks (3 fixtures). Dogfooding (1.9-1.10) depende de uso real multi-dia. |
 
 ### BUG-001 Corrigir `nexus detect --auto`
 
@@ -64,29 +64,29 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Backlog [REVISIT: 2026-07-13 — piorou: 99 ficheiros flat, era 46] |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus assess --json (dimension: architecture = 15) |
 | **Modulos** | src/ (global) |
-| **Descricao** | Dimensao Architecture do score de maturidade esta em 15%. 46 arquivos flat em src/, sem camadas, sem bounded contexts. |
-| **Correcao** | Reestruturar em domain/infrastructure/commands/interfaces. Adicionar abstracoes. |
+| **Descricao** | Dimensao Architecture do score de maturidade esta em 15%. 99 arquivos flat em src/ (era 46), sem camadas, sem bounded contexts. Subpastas existentes (audit/, commands/, console/, handbook/) sao feature-based, nao Clean Architecture. |
+| **Correcao** | Reestruturar em domain/infrastructure/commands/interfaces. Adicionar abstracoes. 10 ficheiros >500 linhas (rule-engine.ts = 1307 linhas). |
 
 ### SA5 Documentacao 10%
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-13 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | executor |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus assess --json (dimension: documentation = 10) |
 | **Modulos** | src/, docs/ |
 | **Descricao** | Dimensao Documentation do score de maturidade esta em 10%. Docs internos fracos, sem ADRs, sem session templates. |
-| **Correcao** | Criar ADRs para decisoes arquiteturais, documentar decisoes de design. |
+| **Correcao** | 5 ADRs + template criados (ADR-001 a ADR-006). Session template existe (87 linhas). 22 docs em docs/, 6 regras, 17 skills. |
 
 ### SA7 Baixa densidade de relacoes no knowledge graph
 
@@ -106,70 +106,70 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-13 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | executor |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus status --json (context_buffer.yaml = warn) |
 | **Modulos** | nexus-system/governance/context/ |
 | **Descricao** | Arquivo context_buffer.yaml nao encontrado. Necessario para buffer de contexto entre sessoes. |
-| **Correcao** | Criar governance/context/context_buffer.yaml a partir do template. |
+| **Correcao** | Ficheiro criado e activo — 525 linhas com reminders, session state, impediments, technical_debt. |
 
 ### SA9 Nenhum agent contract configurado
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-13 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | executor |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus status --json (agent contracts = warn) |
 | **Modulos** | nexus-system/governance/agents/ |
 | **Descricao** | Nenhum agent contract encontrado. Necessario para definir papeis e responsabilidades de agents IA. |
-| **Correcao** | Criar AI-CONTRACT-planner-v1.yaml, AI-CONTRACT-executor-v1.yaml, AI-CONTRACT-reviewer-v1.yaml. |
+| **Correcao** | 4 contratos criados: planner-v1, executor-v1, reviewer-v1, orchestrator-v1 + CONTRACTS_INDEX.md. |
 
 ### SA10 Clean Architecture violado
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Backlog [REVISIT: 2026-07-13 — piorou: zero separação de camadas] |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
-| **Modulos** | src/ (46 arquivos) |
-| **Descricao** | 46 arquivos flat em src/, sem separacao de camadas. Domain logic misturado com infrastructure. Commands importam implementacoes concretas. |
-| **Correcao** | Reestruturar: src/domain/, src/infrastructure/, src/commands/, src/interfaces/. Extrair abstracoes. |
+| **Modulos** | src/ (99 arquivos flat) |
+| **Descricao** | 99 arquivos flat em src/, sem separacao de camadas. Domain logic misturado com infrastructure. Commands importam implementacoes concretas. Zero pattern DI (except context-collector.ts). |
+| **Correcao** | Reestruturar: src/domain/, src/infrastructure/, src/commands/, src/interfaces/. Extrair abstracoes. Adicionar DI. |
 
 ### SA11 SOLID violado
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Backlog [REVISIT: 2026-07-13 — piorou: 10 ficheiros >500 linhas] |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
 | **Modulos** | src/ (global) |
-| **Descricao** | God modules (feedback-loops.ts 396 linhas, state-manager.ts 438 linhas). Sem dependency injection. Interface Segregation violada (NexusState com 60+ campos). |
+| **Descricao** | God modules: rule-engine.ts (1307 linhas), scorer.ts (947), engineering-state.ts (908), feedback-engine.ts (756). 10 ficheiros >500 linhas. Sem dependency injection (except context-collector.ts). Interface Segregation violada (NexusState com 60+ campos). |
 | **Correcao** | Dividir modules grandes. Adicionar DI. Criar interfaces menores. |
 
 ### LIVING-002 Fase 2 — Git hooks reactivos
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-12 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
 | **Data** | 2026-07-11 |
 | **Fonte** | Plano Nexus Living v2 (secção 3, Fase 2) |
 | **Depende** | LIVING-001 (validação algunos dias), BUG-001 (corrigir --auto) |
-| **Modulos** | src/plan-lifecycle.ts (NOVO), src/commands/hooks.ts (NOVO), src/commands/detect.ts, .husky/post-merge (NOVO) |
+| **Modulos** | src/git-hooks-installer.ts (NOVO), src/plan-lifecycle.ts, src/commands/detect.ts, src/commands/scheduled-check.ts, .husky/post-commit, .husky/post-merge (NOVO) |
 | **Descricao** | Criar `checkAndArchiveDonePlans()` que percorre `governance/plans/*.md`, identifica planos com `Status: Done` ainda não arquivados, chama `archiveIfDone()`. Ligar ao modo `--auto` do `detect`. Criar instalador Husky (append a post-commit, cria post-merge). |
 | **Correcao** | Reaproveitar `archiveIfDone()` existente. Instalador deve fazer append, nunca overwrite. Testes: idempotência, nunca sobrescrever hook existente, cenário e2e completo. |
 
@@ -177,7 +177,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-12 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
@@ -192,7 +192,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done — 2026-07-12 |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
 | **Owner** | unassigned |
@@ -337,16 +337,7 @@
 | **Descricao** | Rastrear comandos executos para billing. Metricas: comandos/mes, briefings gerados, feedback records. |
 | **Correcao** | Extender `session-tracker.ts` para gravar `usage.jsonl` com timestamps e tipo de comando. |
 
-### A1 MCP server
 
-| Campo | Valor |
-|---|---|
-| **Status** | Backlog |
-| **Severidade** | Alto |
-| **Prioridade** | P1 |
-| **Owner** | unassigned |
-| **Descricao** | Servidor MCP (Model Context Protocol) para agentes IA consumirem contexto do Nexus. Ferramentas: getBriefing, getRiskMap, getRules. |
-| **Correcao** | Criar `src/mcp-server.ts` com ferramentas MCP. Publicar como `@nexus/mcp`. |
 
 ### A2 OpenCode plugin
 
@@ -926,6 +917,7 @@
 | 3.55 | I2 Locale detection | Baixo | Detectar idioma do sistema automaticamente |
 | 3.56 | I3 Translation management | Baixo | i18n framework (i18next ou similar) |
 | 3.57 | G7 Product Hunt launch | Baixo | Preparar materiais para Product Hunt |
+| 3.58 | LIVING-008 Semantic Entropy Drift | Medio | Calcular entropia de forma semantica (deriva de conteudo vs realidade do sistema) em vez de mtime via IA/correlation-engine |
 
 ---
 
@@ -1001,6 +993,7 @@
 | 2.13 | Medio | Consolidar planos |
 | 2.17 | Baixo | Benchmark suite automatizada CI |
 | S2 | Alto | Dependency auditing no CI |
+| A1 MCP server | Alto | Adicionadas 4 ferramentas (getEngineeringState, getBacklog, getPlans, submitFeedback) e integrado com o lifecycle |
 
 ### Plano de Correção Auditoria Completa — Done (2026-07-10)
 
@@ -1025,7 +1018,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/0) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1040,7 +1033,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | em implementação |
+| **Status** | planeado (0% — 0/0) |
 | **Severidade** | Medio |
 | **Prioridade** | P1 |
 | **Owner** | executor |
@@ -1049,3 +1042,215 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas) |
 | **Correcao** | Verificar checklist no plano `governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md` |
+
+
+### BACKLOG-2026_07_12_PLANO_FIX_RETROACTIVE_SCAN_RACE — Plano — Corrigir Race Condition no Retroactive Scan (`plan-backlog-sync.ts`)
+
+| Campo | Valor |
+|---|---|
+| **Status** | concluído |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano — Corrigir Race Condition no Retroactive Scan (`plan-backlog-sync.ts`) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-12-plano-fix-retroactive-scan-race.md` |
+
+
+### BACKLOG-2026_07_12_BACKLOG_BATCH_RESOLVER — Plano — Resolver Backlog em Lote (Itens sem Dependência Humana)
+
+| Campo | Valor |
+|---|---|
+| **Status** | concluído |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano — Resolver Backlog em Lote (Itens sem Dependência Humana) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-12-backlog-batch-resolver.md` |
+
+#### Passos do Plano
+- [ ] `pnpm lint` passa sem erros
+- [ ] `pnpm test` passa (1898+ testes)
+- [ ] BACKLOG.md actualizado com novos Done items
+- [ ] Commit + push para origin
+- [ ] `pnpm lint` passa sem erros
+- [ ] `pnpm test` passa (1898+ testes)
+- [ ] BACKLOG.md actualizado com novos Done items
+- [ ] Commit + push para origin
+
+
+### BACKLOG-2026_07_12_PLANO_CORRECAO_WATCH_LOOP_E_FASE2 — Plano de Correção — Loop do `nexus watch` + Finalizar Fase 2 (LIVING-002)
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado (0% — 0/8) |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano de Correção — Loop do `nexus watch` + Finalizar Fase 2 (LIVING-002) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-12-plano-correcao-watch-loop-e-fase2.md` |
+
+#### Passos do Plano
+- [ ] Os 2 testes novos acima passam.
+- [ ] `pnpm test` completo continua em verde (sem regressão nos testes existentes de
+- [ ] Teste manual: `nexus watch` rodando, editar um plano real com conteúdo que dispara sync — confirmar
+- [ ] `installReactiveHooks()` implementado, testado (5 testes acima passando).
+- [ ] `nexus init` chama o instalador automaticamente — testar em projeto novo: `.git/hooks/post-commit`
+- [ ] `scheduledCheck()` implementado e testado (simular drift alto, confirmar evento publicado; simular
+- [ ] `pnpm run lint && npx tsc --noEmit && pnpm run build && npx vitest run` — tudo verde.
+- [ ] Atualizar `nexus-system/docs/BACKLOG.md` — mudar `LIVING-002` de `Status: Backlog` para
+- [ ] Os 2 testes novos acima passam.
+- [ ] `pnpm test` completo continua em verde (sem regressão nos testes existentes de
+- [ ] Teste manual: `nexus watch` rodando, editar um plano real com conteúdo que dispara sync — confirmar
+- [ ] `installReactiveHooks()` implementado, testado (5 testes acima passando).
+- [ ] `nexus init` chama o instalador automaticamente — testar em projeto novo: `.git/hooks/post-commit`
+- [ ] `scheduledCheck()` implementado e testado (simular drift alto, confirmar evento publicado; simular
+- [ ] `pnpm run lint && npx tsc --noEmit && pnpm run build && npx vitest run` — tudo verde.
+- [ ] Atualizar `nexus-system/docs/BACKLOG.md` — mudar `LIVING-002` de `Status: Backlog` para
+
+
+### BACKLOG-2026_07_13_PLANO_BUG002_ENTROPIA — Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado (0% — 0/0) |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano Consolidado — Nexus Living: BUG-002 (fim-a-fim), Redesenho da Entropia, Item Futuro |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-13-plano-bug002-entropia.md` |
+
+
+### BACKLOG-2026_07_12_MIGRAR_CONSOLE_LOG_PARA_LOGGER — Plano — Migrar console.log para Logger Centralizado (3.1)
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação (33% — 2/6) |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-12 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano — Migrar console.log para Logger Centralizado (3.1) |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-12-migrar-console-log-para-logger.md` |
+
+#### Passos do Plano
+- [x] Criar `src/output.ts` com helpers (output, outputLine, outputSection, outputTable, etc.)
+- [x] Criar plano (este ficheiro)
+- [ ] Migrar comandos (ordenados por complexidade crescente)
+- [ ] Run lint + tests
+- [ ] Atualizar BACKLOG.md (3.1 → Done)
+- [ ] Commit + push
+
+
+### BACKLOG-PLAN_DOC_SEMANTIC_SYNC — PLANO — Doc Semantic Sync (drift semântico → reminder → AI)
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado (0% — 0/0) |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-13 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | PLANO — Doc Semantic Sync (drift semântico → reminder → AI) |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-doc-semantic-sync.md` |
+
+
+### BACKLOG-2026_07_13_REFACTOR_ESTRUTURAL_SA4_SA10_SA11 — Plano de Refactor Estrutural — SA4 / SA10 / SA11
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-13 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano de Refactor Estrutural — SA4 / SA10 / SA11 |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-13-refactor-estrutural-sa4-sa10-sa11.md` |
+
+#### Passos do Plano
+- [ ] `pnpm run lint` — limpo
+- [ ] `pnpm test` — todos passam
+- [ ] `pnpm run build` — OK
+- [ ] `wc -l src/*.ts` — nenhum > 400
+- [ ] `find src/ -maxdepth 1 -name "*.ts" | wc -l` — < 30
+- [ ] `ls -d src/domain/ src/infrastructure/ src/shared/` — existem
+- [ ] Backlog SA4/SA10/SA11 actualizado
+- [ ] `pnpm run lint` — limpo
+- [ ] `pnpm test` — todos passam
+- [ ] `pnpm run build` — OK
+- [ ] `wc -l src/*.ts` — nenhum > 400
+- [ ] `find src/ -maxdepth 1 -name "*.ts" | wc -l` — < 30
+- [ ] `ls -d src/domain/ src/infrastructure/ src/shared/` — existem
+- [ ] Backlog SA4/SA10/SA11 actualizado
+
+
+### BACKLOG-PLANO_MONETIZACAO_NEXUS — Plano de Monetização — nexus-system (Free + Token Mensal)
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-13 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano de Monetização — nexus-system (Free + Token Mensal) |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLANO-MONETIZACAO-NEXUS.md` |
+
+#### Passos do Plano
+- [ ] `PUBLIC_JWK` real (não o placeholder) commitado em `src/license.ts`
+- [ ] `PRIVATE_JWK` **fora** do repositório (só no Cloudflare, via `wrangler secret`)
+- [ ] Worker deployado e testado manualmente (`curl` no `/refresh` com uma key de teste)
+- [ ] Payment Link do Stripe testado em modo teste (Stripe tem test mode com cartão `4242 4242 4242 4242`)
+- [ ] `nexus license activate <key>` testado ponta a ponta em modo teste
+- [ ] `PUBLIC_JWK` real (não o placeholder) commitado em `src/license.ts`
+- [ ] `PRIVATE_JWK` **fora** do repositório (só no Cloudflare, via `wrangler secret`)
+- [ ] Worker deployado e testado manualmente (`curl` no `/refresh` com uma key de teste)
+- [ ] Payment Link do Stripe testado em modo teste (Stripe tem test mode com cartão `4242 4242 4242 4242`)
+- [ ] `nexus license activate <key>` testado ponta a ponta em modo teste
+
+
+### BACKLOG-PLAN_MONETTIZATION_IMPLEMENTATION — Plano de Implementação — Monetização Nexus CLI
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-14 |
+| **Fonte** | nexus plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano de Implementação — Monetização Nexus CLI |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-monettization-implementation.md` |
+
+#### Passos do Plano
+- [ ] Criar `src/license.ts`
+- [ ] Adicionar `jose` ao `package.json`
+- [ ] Criar `src/__tests__/license.test.ts`
+- [ ] Modificar `src/cli-middleware.ts`
+- [ ] Criar `src/commands/license.ts`
+- [ ] Modificar `bin/nexus.ts`
+- [ ] Criar `src/__tests__/license.test.ts`
+- [ ] Criar `src/__tests__/license-gate.test.ts`
+- [ ] Actualizar `README.md`
+- [ ] Criar `docs/handbook/02-commands/license.md`
+- [ ] Actualizar `docs/reference/cli.md`

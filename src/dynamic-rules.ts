@@ -14,26 +14,11 @@ import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { logger } from "./logger.js";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types (re-exported from domain entities) ────────────────────────────────
 
-export type RuleSeverity = "critical" | "high" | "medium" | "low";
+import type { RuleSeverity, DynamicRule } from "./domain/entities/engineering-state.js";
 
-export interface DynamicRule {
-  /** Unique rule identifier */
-  id: string;
-  /** The rule text */
-  rule: string;
-  /** Source of the rule (git, history, pattern) */
-  source: "git-incident" | "history-analysis" | "pattern-detection";
-  /** Rule severity */
-  severity: RuleSeverity;
-  /** Evidence supporting this rule */
-  evidence: string;
-  /** When the rule was generated */
-  generatedAt: string;
-  /** Number of incidents supporting this rule */
-  incidentCount: number;
-}
+export type { RuleSeverity, DynamicRule } from "./domain/entities/engineering-state.js";
 
 // ── Git Incident Detection ─────────────────────────────────────────────────
 

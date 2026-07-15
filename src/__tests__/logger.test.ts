@@ -18,19 +18,19 @@ describe("logger", () => {
     vi.restoreAllMocks();
   });
 
-  it("info logs when level is info", () => {
+  it("info logs to console.log", () => {
     logger.info("TestModule", "hello");
-    expect(consoleSpy.error).toHaveBeenCalledOnce();
-    expect(consoleSpy.error.mock.calls[0]![0]!).toContain("[TestModule]");
-    expect(consoleSpy.error.mock.calls[0]![0]!).toContain("hello");
+    expect(consoleSpy.log).toHaveBeenCalledOnce();
+    expect(consoleSpy.log.mock.calls[0]![0]!).toContain("[TestModule]");
+    expect(consoleSpy.log.mock.calls[0]![0]!).toContain("hello");
   });
 
-  it("warn logs when level is info", () => {
+  it("warn logs to console.warn", () => {
     logger.warn("TestModule", "warning");
     expect(consoleSpy.warn).toHaveBeenCalledOnce();
   });
 
-  it("error always logs", () => {
+  it("error logs to console.error", () => {
     setLogLevel("error");
     logger.error("TestModule", "fail");
     expect(consoleSpy.error).toHaveBeenCalledOnce();
@@ -38,13 +38,13 @@ describe("logger", () => {
 
   it("debug does not log when level is info", () => {
     logger.debug("TestModule", "hidden");
-    expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.debug).not.toHaveBeenCalled();
   });
 
-  it("debug logs when level is debug", () => {
+  it("debug logs to console.debug when level is debug", () => {
     setLogLevel("debug");
     logger.debug("TestModule", "visible");
-    expect(consoleSpy.error).toHaveBeenCalledOnce();
+    expect(consoleSpy.debug).toHaveBeenCalledOnce();
   });
 
   it("muteLogs suppresses all except error", () => {
@@ -56,5 +56,7 @@ describe("logger", () => {
     expect(consoleSpy.error.mock.calls.length).toBe(1);
     expect(consoleSpy.error.mock.calls[0]![0]!).toContain("visible");
     expect(consoleSpy.warn).not.toHaveBeenCalled();
+    expect(consoleSpy.log).not.toHaveBeenCalled();
+    expect(consoleSpy.debug).not.toHaveBeenCalled();
   });
 });

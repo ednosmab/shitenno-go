@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { auditHealth, writeHealthReport, type HealthAuditReport } from "../health-auditor.js";
 import { getCached, setCache, computeKeyChecksums } from "../cache.js";
 import { healthBar, outputJson, banner } from "../formatting.js";
+import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { getHookBus } from "../plugin-system.js";
@@ -153,10 +154,10 @@ export const auditCommand = new Command("audit")
 
     if (!isJson) {
       const levelLabel = options.level === "enterprise" ? "enterprise" : options.level === "code-review" ? "code-review" : options.level === "quick" ? "quick" : "standard";
-      console.log("");
+      outputBlank();
       banner("nexus audit", "Health Audit");
-      console.log(chalk.gray(`    Level: ${levelLabel}`));
-      console.log("");
+      output(chalk.gray(`    Level: ${levelLabel}`));
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -212,15 +213,15 @@ export const auditCommand = new Command("audit")
 
       // What was measured section
       if (!isJson) {
-        console.log("");
-        console.log(chalk.bold("  📏 What Was Measured:"));
-        console.log("");
-        console.log(chalk.gray(`    Duration:         ${report.durationMs}ms`));
-        console.log(chalk.gray(`    Files scanned:    ${report.filesScanned}`));
-        console.log(chalk.gray(`    Detectors run:    ${report.detectorsRun.length}`));
-        console.log(chalk.gray(`    Rules evaluated:  ${report.totalRules}`));
-        console.log(chalk.gray(`    History sessions: ${report.historyEntries}`));
-        console.log("");
+        outputBlank();
+        output(chalk.bold("  📏 What Was Measured:"));
+        outputBlank();
+        output(chalk.gray(`    Duration:         ${report.durationMs}ms`));
+        output(chalk.gray(`    Files scanned:    ${report.filesScanned}`));
+        output(chalk.gray(`    Detectors run:    ${report.detectorsRun.length}`));
+        output(chalk.gray(`    Rules evaluated:  ${report.totalRules}`));
+        output(chalk.gray(`    History sessions: ${report.historyEntries}`));
+        outputBlank();
       }
 
       // JSON output
@@ -290,15 +291,15 @@ export const auditCommand = new Command("audit")
 
       // Human-readable output
       if (cacheHit) {
-        console.log(chalk.gray("  📦 Used cached results"));
+        output(chalk.gray("  📦 Used cached results"));
       }
-      console.log("");
-      console.log(chalk.bold("  🏥 Health Audit Results:"));
-      console.log("");
-      console.log(chalk.gray(`    Rules:           ${report.totalRules}`));
-      console.log(chalk.gray(`    History entries:  ${report.historyEntries}`));
-      console.log(chalk.gray(`    Issues found:    ${report.issues.length}`));
-      console.log(chalk.gray(`    Optimizations:   ${report.optimizations.length}`));
+      outputBlank();
+      output(chalk.bold("  🏥 Health Audit Results:"));
+      outputBlank();
+      output(chalk.gray(`    Rules:           ${report.totalRules}`));
+      output(chalk.gray(`    History entries:  ${report.historyEntries}`));
+      output(chalk.gray(`    Issues found:    ${report.issues.length}`));
+      output(chalk.gray(`    Optimizations:   ${report.optimizations.length}`));
       // New issue type counts
       const datePlaceholders = report.issues.filter((i) => i.type === "date_placeholder").length;
       const emptyDirs = report.issues.filter((i) => i.type === "empty_dir").length;
@@ -306,12 +307,12 @@ export const auditCommand = new Command("audit")
       const missingGitignore = report.issues.filter((i) => i.type === "missing_gitignore").length;
       const maturityIssues = report.issues.filter((i) => i.type === "maturity_inconsistency").length;
       const adrGaps = report.issues.filter((i) => i.type === "adr_coverage_gap").length;
-      if (datePlaceholders > 0) console.log(chalk.gray(`    Date placeholders: ${datePlaceholders}`));
-      if (emptyDirs > 0) console.log(chalk.gray(`    Empty directories: ${emptyDirs}`));
-      if (brokenRefs > 0) console.log(chalk.gray(`    Broken references: ${brokenRefs}`));
-      if (missingGitignore > 0) console.log(chalk.gray(`    Missing .gitignore: ${missingGitignore}`));
-      if (maturityIssues > 0) console.log(chalk.gray(`    Maturity issues:   ${maturityIssues}`));
-      if (adrGaps > 0) console.log(chalk.gray(`    ADR coverage gaps: ${adrGaps}`));
+      if (datePlaceholders > 0) output(chalk.gray(`    Date placeholders: ${datePlaceholders}`));
+      if (emptyDirs > 0) output(chalk.gray(`    Empty directories: ${emptyDirs}`));
+      if (brokenRefs > 0) output(chalk.gray(`    Broken references: ${brokenRefs}`));
+      if (missingGitignore > 0) output(chalk.gray(`    Missing .gitignore: ${missingGitignore}`));
+      if (maturityIssues > 0) output(chalk.gray(`    Maturity issues:   ${maturityIssues}`));
+      if (adrGaps > 0) output(chalk.gray(`    ADR coverage gaps: ${adrGaps}`));
       // Engineering audit dimensions
       const testFailures = report.issues.filter((i) => i.type === "test_failure").length;
       const orphanModules = report.issues.filter((i) => i.type === "orphan_module").length;
@@ -321,141 +322,141 @@ export const auditCommand = new Command("audit")
       const anyTypeUsage = report.issues.filter((i) => i.type === "any_type_usage").length;
       const typeErrors = report.issues.filter((i) => i.type === "type_error").length;
       const consoleLogs = report.issues.filter((i) => i.type === "console_log_outside_cmd").length;
-      if (testFailures > 0) console.log(chalk.red(`    Test failures:      ${testFailures}`));
-      if (orphanModules > 0) console.log(chalk.gray(`    Orphan modules:     ${orphanModules}`));
-      if (oversizedFiles > 0) console.log(chalk.gray(`    Oversized files:    ${oversizedFiles}`));
-      if (lintErrors > 0) console.log(chalk.yellow(`    Lint errors:        ${lintErrors}`));
-      if (missingTests > 0) console.log(chalk.gray(`    Missing tests:      ${missingTests}`));
-      if (anyTypeUsage > 0) console.log(chalk.gray(`    Any type usage:     ${anyTypeUsage}`));
-      if (typeErrors > 0) console.log(chalk.yellow(`    Type errors:        ${typeErrors}`));
-      if (consoleLogs > 0) console.log(chalk.gray(`    Console.log:        ${consoleLogs}`));
+      if (testFailures > 0) output(chalk.red(`    Test failures:      ${testFailures}`));
+      if (orphanModules > 0) output(chalk.gray(`    Orphan modules:     ${orphanModules}`));
+      if (oversizedFiles > 0) output(chalk.gray(`    Oversized files:    ${oversizedFiles}`));
+      if (lintErrors > 0) output(chalk.yellow(`    Lint errors:        ${lintErrors}`));
+      if (missingTests > 0) output(chalk.gray(`    Missing tests:      ${missingTests}`));
+      if (anyTypeUsage > 0) output(chalk.gray(`    Any type usage:     ${anyTypeUsage}`));
+      if (typeErrors > 0) output(chalk.yellow(`    Type errors:        ${typeErrors}`));
+      if (consoleLogs > 0) output(chalk.gray(`    Console.log:        ${consoleLogs}`));
       // Code quality issues
       const emptyCatchBlocks = report.issues.filter((i) => i.type === "empty_catch").length;
       const circularDeps = report.issues.filter((i) => i.type === "circular_dep").length;
       const highComplexity = report.issues.filter((i) => i.type === "high_complexity").length;
       const unusedExports = report.issues.filter((i) => i.type === "unused_export").length;
       const deadCode = report.issues.filter((i) => i.type === "dead_code").length;
-      if (emptyCatchBlocks > 0) console.log(chalk.yellow(`    Empty catch blocks: ${emptyCatchBlocks}`));
-      if (circularDeps > 0) console.log(chalk.red(`    Circular deps:      ${circularDeps}`));
-      if (highComplexity > 0) console.log(chalk.yellow(`    High complexity:    ${highComplexity}`));
-      if (unusedExports > 0) console.log(chalk.gray(`    Unused exports:     ${unusedExports}`));
-      if (deadCode > 0) console.log(chalk.gray(`    Dead code:          ${deadCode}`));
+      if (emptyCatchBlocks > 0) output(chalk.yellow(`    Empty catch blocks: ${emptyCatchBlocks}`));
+      if (circularDeps > 0) output(chalk.red(`    Circular deps:      ${circularDeps}`));
+      if (highComplexity > 0) output(chalk.yellow(`    High complexity:    ${highComplexity}`));
+      if (unusedExports > 0) output(chalk.gray(`    Unused exports:     ${unusedExports}`));
+      if (deadCode > 0) output(chalk.gray(`    Dead code:          ${deadCode}`));
       // Supply chain issues
       const unpinnedVersions = report.issues.filter((i) => i.type === "unpinned_version").length;
       const missingLockFile = report.issues.filter((i) => i.type === "missing_lock_file").length;
       const lockFileDrift = report.issues.filter((i) => i.type === "lock_file_drift").length;
       const phantomDeps = report.issues.filter((i) => i.type === "phantom_dep").length;
       const deprecatedPackages = report.issues.filter((i) => i.type === "deprecated_package").length;
-      if (unpinnedVersions > 0) console.log(chalk.yellow(`    Unpinned versions:  ${unpinnedVersions}`));
-      if (missingLockFile > 0) console.log(chalk.red(`    Missing lock file:  ${missingLockFile}`));
-      if (lockFileDrift > 0) console.log(chalk.yellow(`    Lock file drift:    ${lockFileDrift}`));
-      if (phantomDeps > 0) console.log(chalk.yellow(`    Phantom deps:       ${phantomDeps}`));
-      if (deprecatedPackages > 0) console.log(chalk.yellow(`    Deprecated pkgs:    ${deprecatedPackages}`));
-      console.log("");
+      if (unpinnedVersions > 0) output(chalk.yellow(`    Unpinned versions:  ${unpinnedVersions}`));
+      if (missingLockFile > 0) output(chalk.red(`    Missing lock file:  ${missingLockFile}`));
+      if (lockFileDrift > 0) output(chalk.yellow(`    Lock file drift:    ${lockFileDrift}`));
+      if (phantomDeps > 0) output(chalk.yellow(`    Phantom deps:       ${phantomDeps}`));
+      if (deprecatedPackages > 0) output(chalk.yellow(`    Deprecated pkgs:    ${deprecatedPackages}`));
+      outputBlank();
 
       // Health score with bar
-      console.log(chalk.bold("    Code Health:"));
-      console.log(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
-      console.log("");
+      output(chalk.bold("    Code Health:"));
+      output(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
+      outputBlank();
 
       // Knowledge Graph section
-      console.log(chalk.bold("  📊 Knowledge Graph:"));
-      console.log("");
+      output(chalk.bold("  📊 Knowledge Graph:"));
+      outputBlank();
       const graphColor = graphAnalysis.healthScore >= 70 ? chalk.green
         : graphAnalysis.healthScore >= 40 ? chalk.yellow : chalk.red;
-      console.log(`    Health:  ${graphColor(graphAnalysis.healthScore + "/100")}  ${healthBar(graphAnalysis.healthScore, 100)}`);
-      console.log(`    Artifacts: ${graphAnalysis.totalArtifacts} | Relations: ${graphAnalysis.totalRelations}`);
-      console.log("");
+      output(`    Health:  ${graphColor(graphAnalysis.healthScore + "/100")}  ${healthBar(graphAnalysis.healthScore, 100)}`);
+      output(`    Artifacts: ${graphAnalysis.totalArtifacts} | Relations: ${graphAnalysis.totalRelations}`);
+      outputBlank();
 
       if (graphAnalysis.orphanArtifacts.length > 0) {
-        console.log(chalk.yellow(`    ⚠ ${graphAnalysis.orphanArtifacts.length} orphaned artifact(s):`));
+        output(chalk.yellow(`    ⚠ ${graphAnalysis.orphanArtifacts.length} orphaned artifact(s):`));
         for (const orphan of graphAnalysis.orphanArtifacts.slice(0, 5)) {
-          console.log(chalk.gray(`      - ${orphan.name} (${orphan.type})`));
+          output(chalk.gray(`      - ${orphan.name} (${orphan.type})`));
         }
-        console.log("");
+        outputBlank();
       }
 
       if (graphAnalysis.hubArtifacts.length > 0) {
-        console.log(chalk.cyan("    🔗 Top Hubs:"));
+        output(chalk.cyan("    🔗 Top Hubs:"));
         for (const hub of graphAnalysis.hubArtifacts.slice(0, 5)) {
-          console.log(chalk.gray(`      - ${hub.artifact.name}: ${hub.connectionCount} connection(s)`));
+          output(chalk.gray(`      - ${hub.artifact.name}: ${hub.connectionCount} connection(s)`));
         }
-        console.log("");
+        outputBlank();
       }
 
       if (graphAnalysis.suggestions.length > 0) {
-        console.log(chalk.blue("    💡 Suggestions:"));
+        output(chalk.blue("    💡 Suggestions:"));
         for (const suggestion of graphAnalysis.suggestions) {
-          console.log(chalk.gray(`      - ${suggestion}`));
+          output(chalk.gray(`      - ${suggestion}`));
         }
-        console.log("");
+        outputBlank();
       }
 
       if (report.issues.length === 0) {
-        console.log(chalk.green("  ✔ No issues found. Governance is healthy!"));
-        console.log("");
+        output(chalk.green("  ✔ No issues found. Governance is healthy!"));
+        outputBlank();
       } else {
         // Group issues by category and severity
         const categorized = categorizeIssues(report.issues);
 
         // Display critical issues first (top 5)
         if (categorized.critical.length > 0) {
-          console.log(chalk.bold("  🚨 Critical Issues (require immediate attention):"));
-          console.log("");
+          output(chalk.bold("  🚨 Critical Issues (require immediate attention):"));
+          outputBlank();
           for (const issue of categorized.critical.slice(0, 5)) {
-            console.log(`    🔴 ${chalk.red("[CRITICAL]")} ${issue.description}`);
-            console.log(chalk.gray(`       Location: ${issue.location}`));
-            console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
-            console.log("");
+            output(`    🔴 ${chalk.red("[CRITICAL]")} ${issue.description}`);
+            output(chalk.gray(`       Location: ${issue.location}`));
+            output(chalk.gray(`       Fix: ${issue.recommendation}`));
+            outputBlank();
           }
           if (categorized.critical.length > 5) {
-            console.log(chalk.gray(`    ... and ${categorized.critical.length - 5} more critical issues`));
-            console.log("");
+            output(chalk.gray(`    ... and ${categorized.critical.length - 5} more critical issues`));
+            outputBlank();
           }
         }
 
         // Display warnings (top 5)
         if (categorized.warnings.length > 0) {
-          console.log(chalk.bold("  ⚠️  Warnings (should be addressed):"));
-          console.log("");
+          output(chalk.bold("  ⚠️  Warnings (should be addressed):"));
+          outputBlank();
           for (const issue of categorized.warnings.slice(0, 5)) {
-            console.log(`    🟡 ${chalk.yellow("[WARNING]")} ${issue.description}`);
-            console.log(chalk.gray(`       Location: ${issue.location}`));
-            console.log(chalk.gray(`       Fix: ${issue.recommendation}`));
-            console.log("");
+            output(`    🟡 ${chalk.yellow("[WARNING]")} ${issue.description}`);
+            output(chalk.gray(`       Location: ${issue.location}`));
+            output(chalk.gray(`       Fix: ${issue.recommendation}`));
+            outputBlank();
           }
           if (categorized.warnings.length > 5) {
-            console.log(chalk.gray(`    ... and ${categorized.warnings.length - 5} more warnings`));
-            console.log("");
+            output(chalk.gray(`    ... and ${categorized.warnings.length - 5} more warnings`));
+            outputBlank();
           }
         }
 
         // Display info issues grouped by type (condensed)
         if (categorized.info.length > 0) {
-          console.log(chalk.bold("  ℹ️  Info (informational, low priority):"));
-          console.log("");
+          output(chalk.bold("  ℹ️  Info (informational, low priority):"));
+          outputBlank();
           const groupedByType = groupByType(categorized.info);
           for (const [type, issues] of Object.entries(groupedByType)) {
             const first = issues[0];
             if (first && issues.length === 1) {
-              console.log(chalk.gray(`    • ${first.description}`));
+              output(chalk.gray(`    • ${first.description}`));
             } else {
-              console.log(chalk.gray(`    • ${formatTypeGroup(type, issues)}`));
+              output(chalk.gray(`    • ${formatTypeGroup(type, issues)}`));
             }
           }
-          console.log("");
+          outputBlank();
         }
 
         // Quick Wins section
         const quickWins = identifyQuickWins(report.issues);
         if (quickWins.length > 0) {
-          console.log(chalk.bold("  ⚡ Quick Wins (low effort, high impact):"));
-          console.log("");
+          output(chalk.bold("  ⚡ Quick Wins (low effort, high impact):"));
+          outputBlank();
           for (const win of quickWins.slice(0, 5)) {
-            console.log(chalk.green(`    ✔ ${win.description}`));
-            console.log(chalk.gray(`       Effort: ${win.effort} | Impact: ${win.impact}`));
+            output(chalk.green(`    ✔ ${win.description}`));
+            output(chalk.gray(`       Effort: ${win.effort} | Impact: ${win.impact}`));
           }
-          console.log("");
+          outputBlank();
         }
 
         // Fix Suggestions from Suggestion Engine
@@ -463,32 +464,32 @@ export const auditCommand = new Command("audit")
           const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
           const prioritized = prioritizeSuggestions(suggestions);
           if (prioritized.length > 0) {
-            console.log(chalk.bold("  🔧 Top Fix Suggestions (auto-generated):"));
-            console.log("");
+            output(chalk.bold("  🔧 Top Fix Suggestions (auto-generated):"));
+            outputBlank();
             for (const s of prioritized.slice(0, 3)) {
-              console.log(chalk.cyan(`    ${s.description}`));
-              console.log(chalk.gray(`       File: ${s.file} | Confidence: ${Math.round(s.confidence * 100)}%`));
+              output(chalk.cyan(`    ${s.description}`));
+              output(chalk.gray(`       File: ${s.file} | Confidence: ${Math.round(s.confidence * 100)}%`));
             }
-            console.log("");
+            outputBlank();
           }
         }
 
         // Display optimizations (condensed)
         if (report.optimizations.length > 0) {
-          console.log(chalk.bold("  🔧 Proposed Optimizations:"));
-          console.log("");
+          output(chalk.bold("  🔧 Proposed Optimizations:"));
+          outputBlank();
           const optByAction = groupOptimizationsByAction(report.optimizations);
           for (const [action, opts] of Object.entries(optByAction)) {
-            console.log(chalk.cyan(`    ${action}: ${opts.length} item(s)`));
+            output(chalk.cyan(`    ${action}: ${opts.length} item(s)`));
           }
-          console.log(chalk.yellow("  ⚠ These are PROPOSALS only. Manual approval required."));
-          console.log("");
+          output(chalk.yellow("  ⚠ These are PROPOSALS only. Manual approval required."));
+          outputBlank();
         }
       }
 
       if (reportFile) {
-        console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
-        console.log("");
+        output(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
+        outputBlank();
       }
 
       // Generate and display dynamic rules
@@ -497,13 +498,13 @@ export const auditCommand = new Command("audit")
         const dynamicRules = generateDynamicRules(ctx.projectRoot, ctx.nexusDir);
 
         if (dynamicRules.length > 0 && !isJson) {
-          console.log(chalk.bold("  🚨 Dynamic Rules (from History):"));
-          console.log("");
+          output(chalk.bold("  🚨 Dynamic Rules (from History):"));
+          outputBlank();
           for (const rule of dynamicRules.slice(0, 5)) {
             const severityIcon = rule.severity === "critical" ? "🔴" : rule.severity === "high" ? "🟡" : "ℹ️";
-            console.log(`    ${severityIcon} ${rule.rule}`);
-            console.log(chalk.gray(`      Evidence: ${rule.evidence}`));
-            console.log("");
+            output(`    ${severityIcon} ${rule.rule}`);
+            output(chalk.gray(`      Evidence: ${rule.evidence}`));
+            outputBlank();
           }
         }
       } catch {
@@ -511,13 +512,13 @@ export const auditCommand = new Command("audit")
       }
 
       // Summary
-      console.log(chalk.bold("  📝 Summary:"));
-      console.log(chalk.gray(`    ${report.summary}`));
-      console.log("");
+      output(chalk.bold("  📝 Summary:"));
+      output(chalk.gray(`    ${report.summary}`));
+      outputBlank();
 
       // Growth profile
-      console.log(formatGrowthProgress(growthProfile));
-      console.log("");
+      output(formatGrowthProgress(growthProfile));
+      outputBlank();
 
       // Publish event
       const auditStatus = report.healthScore >= 70 ? "healthy" : report.healthScore >= 40 ? "degraded" : "critical";
@@ -558,12 +559,12 @@ export const auditCommand = new Command("audit")
           const result = appendBacklogSection(backlogPath, backlogItems, today);
 
           if (!isJson) {
-            console.log(chalk.bold("  📋 Auto-backlog:"));
-            console.log(chalk.green(`    ✔ ${result.itemsAdded} item(s) adicionado(s) ao backlog`));
+            output(chalk.bold("  📋 Auto-backlog:"));
+            output(chalk.green(`    ✔ ${result.itemsAdded} item(s) adicionado(s) ao backlog`));
             if (result.itemsSkipped > 0) {
-              console.log(chalk.gray(`    ⊘ ${result.itemsSkipped} item(s) duplicado(s) ignorado(s)`));
+              output(chalk.gray(`    ⊘ ${result.itemsSkipped} item(s) duplicado(s) ignorado(s)`));
             }
-            console.log("");
+            outputBlank();
           }
         }
       }
@@ -581,11 +582,11 @@ export const auditCommand = new Command("audit")
         return null;
       });
       if (customResults.length > 0 && !isJson) {
-        console.log(chalk.bold("  🔌 Custom Checks:"));
+        output(chalk.bold("  🔌 Custom Checks:"));
         for (const result of customResults) {
-          if (result) console.log(chalk.gray(`    ${result}`));
+          if (result) output(chalk.gray(`    ${result}`));
         }
-        console.log("");
+        outputBlank();
       }
 
     } catch (error) {
@@ -593,8 +594,8 @@ export const auditCommand = new Command("audit")
         outputJson({ error: "audit_failed", message: String(error) });
       } else {
         if (spinner) spinner.fail("Health audit failed");
-        console.log(chalk.red(`  Error: ${error}`));
-        console.log("");
+        output(chalk.red(`  Error: ${error}`));
+        outputBlank();
       }
     }
   });

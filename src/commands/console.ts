@@ -20,6 +20,7 @@ import { getFeedbackRecords, computeFeedbackSummary } from "../session-feedback.
 import { getSessionMetrics } from "../session-tracker.js";
 import { outputJson } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
+import { output, outputBlank, outputSection } from "../output.js";
 
 // ── Display Helpers ────────────────────────────────────────────────────────
 
@@ -37,66 +38,64 @@ function displayConsole(
   sessionMetrics: ReturnType<typeof getSessionMetrics>,
   periodDays: number
 ): void {
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║  nexus console — Token Economy       ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-  console.log("");
+  outputBlank();
+  outputSection("nexus console — Token Economy");
+  outputBlank();
 
   // ── Session Overview ────────────────────────────────────────────
-  console.log(chalk.bold("  📊 Session Overview (last " + periodDays + " days)"));
-  console.log(`     Total sessions: ${chalk.cyan(String(summary.totalSessions))}`);
-  console.log(`     Success rate:   ${chalk.cyan(Math.round(summary.successRate * 100) + "%")}`);
-  console.log(`     ${chalk.green("✓ Success:")} ${summary.byOutcome.success}  ${chalk.red("✗ Failure:")} ${summary.byOutcome.failure}  ${chalk.yellow("⚠ Partial:")} ${summary.byOutcome.partial}`);
-  console.log("");
+  outputSection(`Session Overview (last ${periodDays} days)`);
+  output(`     Total sessions: ${chalk.cyan(String(summary.totalSessions))}`);
+  output(`     Success rate:   ${chalk.cyan(Math.round(summary.successRate * 100) + "%")}`);
+  output(`     ${chalk.green("✓ Success:")} ${summary.byOutcome.success}  ${chalk.red("✗ Failure:")} ${summary.byOutcome.failure}  ${chalk.yellow("⚠ Partial:")} ${summary.byOutcome.partial}`);
+  outputBlank();
 
   // ── Token Economy ──────────────────────────────────────────────
-  console.log(chalk.bold("  💰 Token Economy"));
-  console.log(`     Total saved (estimated):    ${chalk.green("~" + summary.tokenEconomy.totalTokensSaved.toLocaleString() + " tokens")}`);
-  console.log(`     Avg per session (estimated): ${chalk.green("~" + summary.tokenEconomy.avgTokensSaved.toLocaleString() + " tokens")}`);
-  console.log(`     Cache hits:     ${chalk.cyan(String(summary.tokenEconomy.cacheHits))} / ${summary.totalSessions}`);
-  console.log(`     Cache hit rate: ${healthBar(summary.tokenEconomy.cacheHitRate * 100, 100)} ${Math.round(summary.tokenEconomy.cacheHitRate * 100)}%`);
-  console.log("");
+  outputSection("Token Economy");
+  output(`     Total saved (estimated):    ${chalk.green("~" + summary.tokenEconomy.totalTokensSaved.toLocaleString() + " tokens")}`);
+  output(`     Avg per session (estimated): ${chalk.green("~" + summary.tokenEconomy.avgTokensSaved.toLocaleString() + " tokens")}`);
+  output(`     Cache hits:     ${chalk.cyan(String(summary.tokenEconomy.cacheHits))} / ${summary.totalSessions}`);
+  output(`     Cache hit rate: ${healthBar(summary.tokenEconomy.cacheHitRate * 100, 100)} ${Math.round(summary.tokenEconomy.cacheHitRate * 100)}%`);
+  outputBlank();
 
   // ── Monthly Projection ─────────────────────────────────────────
-  console.log(chalk.bold("  📈 Monthly Projection (10 sessions)"));
-  console.log(`     Tokens saved (estimated):   ${chalk.green("~" + summary.tokenEconomy.monthlyProjection.toLocaleString())}`);
+  outputSection("Monthly Projection (10 sessions)");
+  output(`     Tokens saved (estimated):   ${chalk.green("~" + summary.tokenEconomy.monthlyProjection.toLocaleString())}`);
   const monthlyCost = (summary.tokenEconomy.monthlyProjection / 1_000_000) * 5;
-  console.log(`     Cost saved (estimated, heuristic baseline):     ${chalk.green("~$" + monthlyCost.toFixed(2) + "/month")}`);
-  console.log("");
+  output(`     Cost saved (estimated, heuristic baseline):     ${chalk.green("~$" + monthlyCost.toFixed(2) + "/month")}`);
+  outputBlank();
 
   // ── Failure Hotspots ───────────────────────────────────────────
   if (summary.failureHotspots.length > 0) {
-    console.log(chalk.bold("  🔥 Failure Hotspots"));
+    outputSection("Failure Hotspots");
     for (const area of summary.failureHotspots) {
-      console.log(chalk.red(`     • ${area}`));
+      output(chalk.red(`     • ${area}`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Duration ───────────────────────────────────────────────────
   if (summary.avgSuccessDuration !== null) {
-    console.log(chalk.bold("  ⏱ Session Duration"));
-    console.log(`     Avg (success):  ${chalk.cyan(summary.avgSuccessDuration + " min")}`);
-    console.log("");
+    outputSection("Session Duration");
+    output(`     Avg (success):  ${chalk.cyan(summary.avgSuccessDuration + " min")}`);
+    outputBlank();
   }
 
   // ── Session Tracker (from session-tracker.ts) ─────────────────
   if (sessionMetrics.totalSessions > 0) {
-    console.log(chalk.bold("  📊 Session Tracker"));
-    console.log(`     Total sessions: ${chalk.cyan(String(sessionMetrics.totalSessions))}`);
-    console.log(`     Avg duration:   ${chalk.cyan(sessionMetrics.avgDuration + " min")}`);
-    console.log(`     Total commands: ${chalk.cyan(String(sessionMetrics.totalCommands))}`);
+    outputSection("Session Tracker");
+    output(`     Total sessions: ${chalk.cyan(String(sessionMetrics.totalSessions))}`);
+    output(`     Avg duration:   ${chalk.cyan(sessionMetrics.avgDuration + " min")}`);
+    output(`     Total commands: ${chalk.cyan(String(sessionMetrics.totalCommands))}`);
     if (Object.keys(sessionMetrics.commandFrequency).length > 0) {
       const topCmds = Object.entries(sessionMetrics.commandFrequency)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5);
-      console.log(chalk.gray("     Top commands:"));
+      output(chalk.gray("     Top commands:"));
       for (const [cmd, count] of topCmds) {
-        console.log(chalk.gray(`       ${cmd}: ${count}`));
+        output(chalk.gray(`       ${cmd}: ${count}`));
       }
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Session Score ───────────────────────────────────────────────
@@ -105,25 +104,25 @@ function displayConsole(
     (summary.tokenEconomy.cacheHitRate * 30) +
     (summary.totalSessions > 0 ? 30 : 0)
   );
-  console.log(chalk.bold("  🏥 Session Score"));
-  console.log(`     Score: ${healthBar(healthScore, 100)} ${healthScore}/100`);
-  console.log("");
+  outputSection("Session Score");
+  output(`     Score: ${healthBar(healthScore, 100)} ${healthScore}/100`);
+  outputBlank();
 
   // ── Recommendations ────────────────────────────────────────────
-  console.log(chalk.bold("  💡 Recommendations"));
+  outputSection("Recommendations");
   if (summary.tokenEconomy.cacheHitRate < 0.5) {
-    console.log(chalk.cyan("     → Use `nexus briefing` more often to improve cache hit rate"));
+    output(chalk.cyan("     → Use `nexus briefing` more often to improve cache hit rate"));
   }
   if (summary.byOutcome.failure > summary.byOutcome.success) {
-    console.log(chalk.cyan("     → Review failure hotspots and add test coverage"));
+    output(chalk.cyan("     → Review failure hotspots and add test coverage"));
   }
   if (summary.totalSessions < 5) {
-    console.log(chalk.cyan("     → More sessions = more data = better recommendations"));
+    output(chalk.cyan("     → More sessions = more data = better recommendations"));
   }
   if (summary.tokenEconomy.cacheHitRate >= 0.8 && summary.successRate >= 0.8) {
-    console.log(chalk.green("     ✓ Excellent! Token economy is optimized"));
+    output(chalk.green("     ✓ Excellent! Token economy is optimized"));
   }
-  console.log("");
+  outputBlank();
 }
 
 // ── Command ────────────────────────────────────────────────────────────────
@@ -139,11 +138,9 @@ export function consoleCommand(): Command {
       const periodDays = parseInt(String(options.period || "30"), 10);
 
       if (!isJson) {
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║  nexus console — Token Economy       ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
+        output("");
+        outputSection("nexus console — Token Economy");
+        outputBlank();
       }
 
       const ctx = guardNotInitialized(options, isJson);

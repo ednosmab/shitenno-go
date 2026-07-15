@@ -322,6 +322,615 @@ nexus report [--dir <path>] [--json] [--period <days>] [--save]
 
 ---
 
+### nexus daemon
+
+Manage the background automation daemon.
+
+```bash
+nexus daemon <start|stop|status|restart>
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `start` | Start the daemon in the background |
+| `stop` | Stop the daemon gracefully |
+| `status` | Show PID, uptime, circuit breaker state |
+| `restart` | Stop then start |
+
+**What it does:**
+- Watches governance files for changes
+- Auto-archives completed plans
+- Exposes IPC socket for state queries
+- Circuit breaker: 5 crashes in 60s trips the breaker
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus watch
+
+Real-time event log for governance monitoring.
+
+```bash
+nexus watch [--events <types>] [--dir <path>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--events <types>` | Comma-separated event types to filter (e.g. `plan.*,session.*`) |
+
+**What it does:**
+- Subscribes to 44+ event types on the event bus
+- Displays events with timestamp, color-coded category, and label
+- Shows heartbeat every 30 seconds
+- Press Ctrl+C to stop
+
+**Exit codes:** 0 (interrupted), 1 (error)
+
+---
+
+### nexus hooks
+
+Install or uninstall Nexus git hooks.
+
+```bash
+nexus hooks [--uninstall] [--dir <path>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--uninstall` | Remove Nexus hooks from git hooks |
+
+**What it does:**
+- Installs `nexus detect --auto` in `.husky/post-commit` and `.husky/post-merge`
+- Idempotent: detects if already installed
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus events
+
+Show rule engine execution trace.
+
+```bash
+nexus events [--last <n>] [--trigger <type>] [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--last <n>` | Show last N events (default: 20) |
+| `--trigger <type>` | Filter by trigger type |
+| `--json` | Output as JSON |
+
+**What it does:**
+- Reads `telemetry/rule-trace.jsonl`
+- Shows timestamps, triggers, event types, and per-rule results
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus context
+
+Full project context for AI agents.
+
+```bash
+nexus context [--json] [--for-agent <name>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+| `--for-agent <name>` | Filter context for a specific agent |
+
+**What it does:**
+- Outputs project name, stack, engineering state, health, entropy, maturity, capabilities, assets, rules, policies, trend forecast, and active challenges
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus history
+
+View engineering state history with optional diffs.
+
+```bash
+nexus history [--from <date>] [--to <date>] [--diff] [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--from <date>` | Start date (ISO format) |
+| `--to <date>` | End date (ISO format) |
+| `--diff` | Show diff between consecutive snapshots |
+| `--json` | Output as JSON |
+
+**What it does:**
+- Lists historical snapshots of the Engineering State
+- With `--diff`: shows health score, entropy, assets, and capability changes between snapshots
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus handbook
+
+Browse the project handbook in the terminal.
+
+```bash
+nexus handbook [--print] [--level <1|2|3>] [--list]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--print` | Non-interactive mode: print content as plain text |
+| `--level <n>` | Show only a specific level (1, 2, or 3) |
+| `--list` | List all available topics |
+
+**What it does:**
+- Default: launches interactive TUI (Ink-based)
+- `--print`: outputs plain text for screen readers or piping
+- Level 1: Fundamentals, Level 2: Commands, Level 3: Architecture
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus mcp
+
+MCP server management for AI integration.
+
+```bash
+nexus mcp [--dir <path>]
+nexus mcp install [--check] [--upgrade] [--json]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| (root) | Start MCP server over stdio |
+| `install` | Install MCP Filesystem server globally |
+
+**Options (install):**
+
+| Option | Description |
+|--------|-------------|
+| `--check` | Check installation status without installing |
+| `--upgrade` | Upgrade to latest version |
+| `--json` | Output as JSON |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus briefing
+
+Pre-session briefing for AI agents (Context Pipeline).
+
+```bash
+nexus briefing [--summary] [--write] [--json] [--depth <minimal|standard|full>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--summary` | One-line summary only |
+| `--write` | Write briefing to `.nexus/BRIEFING.md` |
+| `--depth <level>` | Briefing depth: `minimal`, `standard`, or `full` |
+
+**What it does:**
+- Collects project context (fingerprint, risk map, rules, dynamic rules, maturity)
+- Computes input hash for cache validation
+- Generates briefing markdown with Quick Board, risk areas, test coverage, recommendations
+- Caches result to avoid regeneration within same session
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus feedback
+
+Report session outcome for the Context Pipeline feedback loop.
+
+```bash
+nexus feedback --outcome <success|failure|partial> [--areas <list>] [--notes <text>] [--json] [--summary] [--list] [--personalized]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--outcome <type>` | Session outcome: `success`, `failure`, or `partial` |
+| `--areas <list>` | Comma-separated modified areas (e.g. `src/auth,src/payments`) |
+| `--notes <text>` | Optional notes about the session |
+| `--duration <minutes>` | Session duration in minutes |
+| `--user-rating <1-5>` | User rating for the session |
+| `--user-comment <text>` | User comment about the session |
+| `--summary` | Show feedback summary statistics |
+| `--list` | List all feedback records |
+| `--personalized` | Generate personalized feedback based on user profile |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus digest
+
+Daily digest of project health and recent changes.
+
+```bash
+nexus digest [--json]
+```
+
+**What it does:**
+- Reads maturity profile and knowledge debt
+- Analyzes recent git changes (last 24h): files modified, lines added/removed
+- Generates health assessment and actionable recommendations
+- Publishes `analysis.complete` event
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus bench
+
+Benchmark token economy and Context Pipeline performance.
+
+```bash
+nexus bench [--json] [--iterations <n>] [--compare]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--iterations <n>` | Number of benchmark iterations (default: 5) |
+| `--compare` | Compare with previous benchmark result |
+
+**What it does:**
+- Measures fresh briefing generation time vs cached
+- Estimates token savings vs manual discovery
+- Projects monthly cost savings
+- Saves result to `reports/bench-history.json`
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus console
+
+Token economy console with session metrics.
+
+```bash
+nexus console [--json] [--period <days>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--period <days>` | Period in days (default: 30) |
+
+**What it does:**
+- Shows session overview (total, success rate, outcomes)
+- Token economy metrics (tokens saved, cache hit rate)
+- Monthly cost projection
+- Failure hotspots and session duration
+- Session score (0-100)
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus dashboard
+
+Interactive engineering dashboard with tabs, mouse, and accessibility.
+
+```bash
+nexus dashboard [--json] [--live <seconds>] [--screen-reader]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON instead of TUI |
+| `--live <seconds>` | Auto-refresh interval (0 = no refresh) |
+| `--screen-reader` | Enable screen reader mode |
+
+**What it does:**
+- Launches interactive Ink-based TUI dashboard
+- Multiple tabs: health, maturity, capabilities, debt
+- Mouse and keyboard navigation
+- Auto-refresh with `--live`
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus profile
+
+View and update your user profile for personalized feedback.
+
+```bash
+nexus profile [--set] [--name <name>] [--role <role>] [--architecture <level>] [--coding <level>] [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--set` | Interactive profile setup |
+| `--name <name>` | Set user name |
+| `--role <role>` | Set role description |
+| `--architecture <level>` | Architecture skill level (`junior`, `pleno`, `senior`) |
+| `--coding <level>` | Coding skill level (`junior`, `pleno`, `senior`) |
+| `--leadership <level>` | Leadership skill level |
+| `--tone <tone>` | Feedback tone (`mentor`, `peer`, `relatorio`) |
+| `--language <lang>` | Language (`pt`, `en`) |
+| `--code-free <percent>` | Code-free percentage (0-100) |
+| `--focus <areas>` | Comma-separated focus areas |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus goal
+
+Manage governance goals.
+
+```bash
+nexus goal <subcommand> [options]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `create <title>` | Create a new goal |
+| `list` | List goals (filter by `--status`, `--priority`, `--target`, `--tag`) |
+| `show <id>` | Show goal details |
+| `update <id>` | Update goal (`--progress`, `--title`, `--priority`) |
+| `activate <id>` | Activate a draft goal |
+| `complete <id>` | Complete an active goal |
+| `abandon <id>` | Abandon a goal |
+| `stats` | Show goal statistics |
+| `delete <id>` | Delete a goal |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus decide
+
+Evaluate proposed actions using specialized evaluators.
+
+```bash
+nexus decide "<action>" [--category <cat>] [--risk <level>] [--impact <level>] [--json]
+nexus decide list [--category <cat>] [--json]
+nexus decide show <id> [--json]
+nexus decide stats [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--category <cat>` | Action category (`security`, `quality`, `architecture`, etc.) |
+| `--risk <level>` | Risk level: `low`, `medium`, `high`, `critical` |
+| `--impact <level>` | Impact level: `minimal`, `low`, `medium`, `high`, `critical` |
+| `--goal <id>` | Target goal ID |
+| `--introduces-debt` | Action introduces technical debt |
+
+**What it does:**
+- Evaluates risk, impact, confidence, and goal alignment
+- Returns recommendation: `proceed`, `proceed_with_caution`, `defer`, or `block`
+- Records decisions for historical analysis
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus policy
+
+Manage and evaluate declarative governance policies.
+
+```bash
+nexus policy <subcommand> [options]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List all policies (filter by `--mode`, `--category`) |
+| `show <id>` | Show policy details |
+| `create <name>` | Create a new policy |
+| `evaluate` | Evaluate policies against a context |
+| `enable <id>` | Enable a policy |
+| `disable <id>` | Disable a policy |
+| `delete <id>` | Delete a policy |
+| `stats` | Show policy statistics |
+
+**Policy modes:** `enforce` (blocking), `advisory` (warning only)
+**Policy effects:** `allow`, `deny`, `require`, `notify`
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus act
+
+Execute actions with idempotency guarantees.
+
+```bash
+nexus act <subcommand> [options]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `log-event` | Log an event (`--event`, `--message`) |
+| `notify` | Send a notification (`--message`, `--level`) |
+| `reminder` | Create a reminder (`--message`, `--priority`) |
+| `script` | Run a whitelisted script (`--script`) |
+| `list` | List action executions |
+| `show <id>` | Show execution details |
+| `rollback <id>` | Rollback a completed action |
+| `stats` | Show execution statistics |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus plan
+
+Manage coordinated action sequences (plans).
+
+```bash
+nexus plan <subcommand> [options]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `create <name>` | Create a plan with steps |
+| `execute <id>` | Execute a plan |
+| `rollback <id>` | Rollback a plan |
+| `cancel <id>` | Cancel a plan |
+| `list` | List plans (filter by `--status`) |
+| `show <id>` | Show plan details |
+| `stats` | Show plan statistics |
+| `delete <id>` | Delete a plan |
+| `md list` | List markdown execution plans |
+| `md show <id>` | Show markdown plan details |
+| `md status <id> <status>` | Update plan status (`andamento`, `parado`, `done`) |
+| `md done <id>` | Mark plan as done |
+| `md create <title>` | Create a new markdown plan |
+| `md prepare <id>` | Prepare plan: format, checklist, sync backlog, notify |
+| `md lifecycle` | Detect, review and archive completed plans |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus reminders
+
+List, add, remove, and manage session reminders.
+
+```bash
+nexus reminders [add|rm|clear] [options]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| (root) | List all active reminders |
+| `add <msg>` | Add reminder |
+| `rm <index>` | Remove by index |
+| `rm --message <text>` | Remove by partial message match |
+| `clear` | Remove all reminders |
+
+**Options (add):**
+
+| Option | Description |
+|--------|-------------|
+| `--priority <level>` | Priority: `high`, `medium`, `low` (default: `medium`) |
+| `--category <cat>` | Category: `bug`, `feature`, `debt`, `security`, `docs`, `infra` |
+| `--notify` | Send desktop notification |
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus update
+
+Detect changes in templates and apply updates.
+
+```bash
+nexus update [--apply] [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--apply` | Apply detected updates |
+
+**What it does:**
+- Compares current files against template hashes
+- Shows diff of changes since last install/upgrade
+- Optionally applies updates and updates manifest
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus docs-audit
+
+Audit documentation lifecycle and propose organization.
+
+```bash
+nexus docs-audit [--apply] [--json]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--apply` | Apply proposed moves (requires confirmation) |
+
+**What it does:**
+- Classifies docs as: `planned`, `in_progress`, `completed`, `superseded`, `stale`
+- Proposes moves to appropriate directories
+- Publishes `doc.lifecycle.audited` event
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
+### nexus shell-init
+
+Output shell hooks for session tracking.
+
+```bash
+nexus shell-init [--shell <type>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--shell <type>` | Shell type: `bash`, `zsh`, `fish` |
+
+**What it does:**
+- Outputs shell integration code for session tracking
+- Add to `.bashrc`/`.zshrc`: `eval $(nexus shell-init)`
+
+**Exit codes:** 0 (success), 1 (error)
+
+---
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -331,4 +940,4 @@ nexus report [--dir <path>] [--json] [--period <days>] [--save]
 
 ---
 
-*Last updated: 2026-06-29*
+*Last updated: 2026-07-13*

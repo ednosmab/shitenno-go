@@ -11,6 +11,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
+import { output, outputBlank } from "../output.js";
+import { logger } from "../logger.js";
 import { analyzeEvolution, writeEvolutionReport } from "../auto-evolution.js";
 import { recordFeedback, detectFeedbackPatterns, getAllFeedbackSummaries, recordDimensionFeedback, type PerformanceMetric } from "../feedback-loops.js";
 import { getEventBus } from "../event-bus.js";
@@ -34,11 +36,11 @@ export const evolveCommand = new Command("evolve")
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║    nexus evolve — Recommendations    ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║    nexus evolve — Recommendations    ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -110,12 +112,12 @@ export const evolveCommand = new Command("evolve")
         outputJson({ feedback: record });
       } else {
         const icon = action === "accepted" ? chalk.green("✔") : chalk.red("✘");
-        console.log(`  ${icon} Recommendation ${recId} ${action}`);
+        output(`  ${icon} Recommendation ${recId} ${action}`);
         if (pathChoice) {
-          console.log(`    Path: ${pathChoice === "comfortable" ? chalk.green("Comfortable") : chalk.yellow("Challenging")}`);
+          output(`    Path: ${pathChoice === "comfortable" ? chalk.green("Comfortable") : chalk.yellow("Challenging")}`);
         }
-        if (reason) console.log(`    Reason: ${chalk.gray(reason)}`);
-        console.log("");
+        if (reason) output(`    Reason: ${chalk.gray(reason)}`);
+        outputBlank();
       }
       return;
     }
@@ -169,59 +171,59 @@ export const evolveCommand = new Command("evolve")
       }
 
       // Human-readable output
-      console.log(chalk.bold("  Current State:"));
-      console.log(`    Maturity: ${report.currentState.maturityScore}/100`);
-      console.log(`    Knowledge Debt: ${report.currentState.knowledgeDebtScore}/100`);
-      console.log(`    Capabilities: ${report.currentState.installedCapabilities.length} installed`);
-      console.log("");
+      output(chalk.bold("  Current State:"));
+      output(`    Maturity: ${report.currentState.maturityScore}/100`);
+      output(`    Knowledge Debt: ${report.currentState.knowledgeDebtScore}/100`);
+      output(`    Capabilities: ${report.currentState.installedCapabilities.length} installed`);
+      outputBlank();
 
       // Growth profile
-      console.log(formatGrowthProgress(report.growthProfile));
-      console.log("");
+      output(formatGrowthProgress(report.growthProfile));
+      outputBlank();
 
       // Feedback summary
       if (totalFeedback > 0) {
-        console.log(chalk.bold("  Feedback History:"));
-        console.log(`    Total interactions: ${totalFeedback}`);
+        output(chalk.bold("  Feedback History:"));
+        output(`    Total interactions: ${totalFeedback}`);
         for (const p of patterns) {
-          console.log(chalk.gray(`    ⚠ ${p.description}`));
+          output(chalk.gray(`    ⚠ ${p.description}`));
         }
-        console.log("");
+        outputBlank();
       }
 
       // Dual paths
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║           DUAL PATH — Choose Your Way           ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════════════╝"));
-      console.log("");
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║           DUAL PATH — Choose Your Way           ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════════════════╝"));
+      outputBlank();
 
       for (const dualPath of report.dualPaths) {
-        console.log(formatDualPath(dualPath.comfortable, dualPath.challenging, report.growthProfile));
+        output(formatDualPath(dualPath.comfortable, dualPath.challenging, report.growthProfile));
       }
 
       // Top next steps
       if (report.topNextSteps.length > 0) {
-        console.log(chalk.bold("  Top Next Steps:"));
+        output(chalk.bold("  Top Next Steps:"));
         for (const step of report.topNextSteps) {
-          console.log(`    → ${step}`);
+          output(`    → ${step}`);
         }
-        console.log("");
+        outputBlank();
       }
 
       // Usage hint
-      console.log(chalk.gray("  Usage:"));
-      console.log(chalk.gray("    nexus evolve --accept EVO-001 --comfortable   # Choose comfortable path"));
-      console.log(chalk.gray("    nexus evolve --accept CHL-001 --challenging   # Choose challenging path"));
-      console.log(chalk.gray("    nexus evolve --reject EVO-001 --reason \"Not now\""));
-      console.log("");
+      output(chalk.gray("  Usage:"));
+      output(chalk.gray("    nexus evolve --accept EVO-001 --comfortable   # Choose comfortable path"));
+      output(chalk.gray("    nexus evolve --accept CHL-001 --challenging   # Choose challenging path"));
+      output(chalk.gray("    nexus evolve --reject EVO-001 --reason \"Not now\""));
+      outputBlank();
 
     } catch (error) {
       if (spinner) spinner.fail("Evolution analysis failed");
       if (isJson) {
         outputJson({ error: "evolution_failed", message: String(error) });
       } else {
-        console.error(chalk.red(`  Error: ${error}`));
+        logger.error("evolve", `Evolution analysis failed: ${error}`);
       }
-      console.log("");
+      outputBlank();
     }
   });

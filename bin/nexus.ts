@@ -43,6 +43,7 @@ import { contextCommand } from "../src/commands/context.js";
 import { handbookCommand } from "../src/commands/handbook.js";
 import { watchCommand } from "../src/commands/watch.js";
 import { hooksCommand } from "../src/commands/hooks.js";
+import { internalScheduledCheckCommand } from "../src/commands/scheduled-check.js";
 
 import { getEventBus, enableEventPersistence } from "../src/event-bus.js";
 import { initializeRuleEngine, initializeRules } from "../src/rule-engine.js";
@@ -62,9 +63,25 @@ import { consolidateEngineeringState } from "../src/engineering-state.js";
 import { initializeProactiveEngine } from "../src/proactive-engine.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 import { NEXUS_DIR_NAME } from "../src/constants.js";
+import { daemonCommand } from "../src/commands/daemon.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { version } = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+
+/**
+ * Walk up from startDir to find the directory containing package.json.
+ * Works in both dev (tsx) and bundled (dist/bin/) modes.
+ */
+function findPackageRoot(startDir: string): string {
+  let dir = startDir;
+  while (dir !== dirname(dir)) {
+    if (existsSync(join(dir, "package.json"))) return dir;
+    dir = dirname(dir);
+  }
+  return process.cwd();
+}
+
+const packageRoot = findPackageRoot(__dirname);
+const { version } = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf-8"));
 
 // ── Event-Driven Bootstrap ──────────────────────────────────────────────────
 
@@ -215,7 +232,18 @@ const program = new Command();
 program
   .name("nexus")
   .description("AI governance ecosystem that grows with your project")
-  .version(version);
+  .version(version)
+  .option("--quiet", "Suppress informational output (errors only)")
+  .option("--no-color", "Disable colored output")
+  .hook("preAction", () => {
+    const globalOpts = program.opts();
+    if (globalOpts.quiet) {
+      process.env.NEXUS_QUIET = "1";
+    }
+    if (globalOpts.color === false) {
+      chalk.level = 0;
+    }
+  });
 
 // ── Custom Help Formatting ──────────────────────────────────────────────────
 
@@ -338,6 +366,8 @@ program.addCommand(contextCommand);
 program.addCommand(handbookCommand);
 program.addCommand(watchCommand());
 program.addCommand(hooksCommand);
+program.addCommand(daemonCommand());
+program.addCommand(internalScheduledCheckCommand);
 
 // ── Middleware Pipeline ──────────────────────────────────────────────────────
 

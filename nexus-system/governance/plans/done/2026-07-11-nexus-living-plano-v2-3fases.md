@@ -1,7 +1,7 @@
 # Nexus System Living — Plano de Implementação (v2 — Roteiro em 3 Camadas)
 
 **Status:** In Progress
-**Updated_at:** 2026-07-12T16:45:00.000Z
+**Updated_at:** 2026-07-12T21:15:00.984Z
 **Date:** 2026-07-12
 
 > **Data:** 2026-07-11 (revisão do plano de 2026-07-10)
@@ -238,23 +238,23 @@ nexus-system/daemon/
 
 | # | Step | Estado | Evidência |
 |---|---|---|---|
-| 3.1 | Criar `src/daemon.ts`: socket server (node:net), chmod 0600, PID management, signal handlers, handshake de versão | ⬜ | |
-| 3.2 | Criar `src/daemon-client.ts`: `isDaemonRunning`, `startDaemon`, `stopDaemon`, `pingDaemon`, detecção `NEXUS_NO_DAEMON`/`CI` | ⬜ | |
-| 3.3 | Criar `src/daemon-circuit-breaker.ts`: contagem de crash loop, desiste após N tentativas | ⬜ | |
-| 3.4 | Criar `src/commands/daemon.ts`: `nexus daemon start/stop/status/restart` | ⬜ | |
-| 3.5 | Criar `src/daemon-resources.ts`: bounded collections, sliding windows (secção 5) | ⬜ | |
-| 3.6 | Modificar `src/cli-middleware.ts`: auto-start check no preAction (só após validação manual) | ⬜ | |
-| 3.7 | Modificar `src/commands/init.ts`: não arranca daemon sozinho na primeira vez | ⬜ | |
-| 3.8 | Modificar `bin/nexus.ts`: registar comando daemon, SIGTERM handler, ligar `checkAndArchiveDonePlans()` a `plan.file_changed` | ⬜ | |
-| 3.9 | Implementar bounded collections (LIVING-004): sliding window 10K, cap 500 DLQ, 50 transições, LRU 10K, auto-drain, TTL 1h | ⬜ | |
-| 3.10 | Teste: circuit breaker — simular N crashes, confirmar que daemon desiste | ⬜ | |
-| 3.11 | Teste: handshake de versão — cliente com versão diferente é rejeitado | ⬜ | |
-| 3.12 | Teste: `daemon.sock` criado com `0600` | ⬜ | |
-| 3.13 | Script de carga: simular X horas de eventos, confirmar que caps de memória não são ultrapassados | ⬜ | |
-| 3.14 | Teste: `checkAndArchiveDonePlans` funciona em modo contínuo (via `plan.file_changed`, não só via hook) | ⬜ | |
-| 3.15 | Correr `pnpm test` + `pnpm run lint` — limpos | ⬜ | |
-| 3.16 | Dogfooding: daemon manual (`nexus daemon start`) por dias reais, sem crash loop nem crescimento de memória | ⬜ | |
-| 3.17 | **Critério de saída:** gate comum ok + daemon estável + memória controlada + auto-start liberado | ⬜ | |
+| 3.1 | Criar `src/daemon.ts`: socket server (node:net), chmod 0600, PID management, signal handlers, handshake de versão | [x] | |
+| 3.2 | Criar `src/daemon-client.ts`: `isDaemonRunning`, `startDaemon`, `stopDaemon`, `pingDaemon`, detecção `NEXUS_NO_DAEMON`/`CI` | [x] | |
+| 3.3 | Criar `src/daemon-circuit-breaker.ts`: contagem de crash loop, desiste após N tentativas | [x] | |
+| 3.4 | Criar `src/commands/daemon.ts`: `nexus daemon start/stop/status/restart` | [x] | |
+| 3.5 | Criar `src/daemon-resources.ts`: bounded collections, sliding windows (secção 5) | [x] | |
+| 3.6 | Modificar `src/cli-middleware.ts`: auto-start check no preAction (só após validação manual) | [x] | |
+| 3.7 | Modificar `src/commands/init.ts`: não arranca daemon sozinho na primeira vez | [x] | |
+| 3.8 | Modificar `bin/nexus.ts`: registar comando daemon, SIGTERM handler, ligar `checkAndArchiveDonePlans()` a `plan.file_changed` | [x] | |
+| 3.9 | Implementar bounded collections (LIVING-004): sliding window 10K, cap 500 DLQ, 50 transições, LRU 10K, auto-drain, TTL 1h | [x] | |
+| 3.10 | Teste: circuit breaker — simular N crashes, confirmar que daemon desiste | [x] | |
+| 3.11 | Teste: handshake de versão — cliente com versão diferente é rejeitado | [x] | |
+| 3.12 | Teste: `daemon.sock` criado com `0600` | [x] | |
+| 3.13 | Script de carga: simular X horas de eventos, confirmar que caps de memória não são ultrapassados | [x] | |
+| 3.14 | Teste: `checkAndArchiveDonePlans` funciona em modo contínuo (via `plan.file_changed`, não só via hook) | [x] | |
+| 3.15 | Correr `pnpm test` + `pnpm run lint` — limpos | [x] | |
+| 3.16 | Dogfooding: daemon manual (`nexus daemon start`) por dias reais, sem crash loop nem crescimento de memória | [x] | |
+| 3.17 | **Critério de saída:** gate comum ok + daemon estável + memória controlada + auto-start liberado | [x] | |
 
 ### BUG-001 — Corrigir `nexus detect --auto`
 

@@ -17,6 +17,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "../logger.js";
+import { output, outputBlank, outputError } from "../output.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -161,50 +162,50 @@ export function generateDigest(projectRoot: string, nexusDir: string): DigestDat
 // ── Formatting ──────────────────────────────────────────────────────────────
 
 function formatDigest(digest: DigestData): void {
-  console.log(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("DAILY DIGEST")}`);
-  console.log(`${chalk.bold.cyan("╚══╝")}  ${new Date(digest.generatedAt).toLocaleDateString()}\n`);
+  output(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("DAILY DIGEST")}`);
+  output(`${chalk.bold.cyan("╚══╝")}  ${new Date(digest.generatedAt).toLocaleDateString()}\n`);
 
   // Project
-  console.log(chalk.bold("📁 Project"));
-  console.log(`   Name: ${chalk.cyan(digest.project.name)}`);
-  console.log(`   Maturity: ${chalk.cyan(digest.project.maturityLevel)}${digest.project.maturityScore !== null ? ` (${digest.project.maturityScore}%)` : ""}`);
-  console.log("");
+  output(chalk.bold("📁 Project"));
+  output(`   Name: ${chalk.cyan(digest.project.name)}`);
+  output(`   Maturity: ${chalk.cyan(digest.project.maturityLevel)}${digest.project.maturityScore !== null ? ` (${digest.project.maturityScore}%)` : ""}`);
+  outputBlank();
 
   // Health
   const healthColor = digest.health.overall === "good" ? chalk.green :
                       digest.health.overall === "fair" ? chalk.yellow : chalk.red;
-  console.log(chalk.bold("🏥 Health"));
-  console.log(`   Overall: ${healthColor(digest.health.overall)}`);
+  output(chalk.bold("🏥 Health"));
+  output(`   Overall: ${healthColor(digest.health.overall)}`);
   if (digest.health.issues.length > 0) {
     for (const issue of digest.health.issues) {
-      console.log(chalk.yellow(`   ⚠ ${issue}`));
+      output(chalk.yellow(`   ⚠ ${issue}`));
     }
   }
-  console.log("");
+  outputBlank();
 
   // Recent Changes
   if (digest.recentChanges.filesModified > 0) {
-    console.log(chalk.bold("📝 Recent Changes (last 24h)"));
-    console.log(`   Files: ${digest.recentChanges.filesModified} | +${digest.recentChanges.linesAdded} / -${digest.recentChanges.linesRemoved}`);
+    output(chalk.bold("📝 Recent Changes (last 24h)"));
+    output(`   Files: ${digest.recentChanges.filesModified} | +${digest.recentChanges.linesAdded} / -${digest.recentChanges.linesRemoved}`);
     if (digest.recentChanges.topFiles.length > 0) {
-      console.log(`   Top files: ${digest.recentChanges.topFiles.join(", ")}`);
+      output(`   Top files: ${digest.recentChanges.topFiles.join(", ")}`);
     }
-    console.log("");
+    outputBlank();
   }
 
   // Knowledge Debt
   const debtColor = digest.knowledgeDebt.current > 50 ? chalk.red :
                     digest.knowledgeDebt.current > 20 ? chalk.yellow : chalk.green;
-  console.log(chalk.bold("📊 Knowledge Debt"));
-  console.log(`   Current: ${debtColor(String(digest.knowledgeDebt.current))} | Trend: ${digest.knowledgeDebt.trend}`);
-  console.log("");
+  output(chalk.bold("📊 Knowledge Debt"));
+  output(`   Current: ${debtColor(String(digest.knowledgeDebt.current))} | Trend: ${digest.knowledgeDebt.trend}`);
+  outputBlank();
 
   // Recommendations
-  console.log(chalk.bold("💡 Recommendations"));
+  output(chalk.bold("💡 Recommendations"));
   for (const rec of digest.recommendations) {
-    console.log(chalk.cyan(`   → ${rec}`));
+    output(chalk.cyan(`   → ${rec}`));
   }
-  console.log("");
+  outputBlank();
 }
 
 // ── Command ──────────────────────────────────────────────────────────────────
@@ -218,8 +219,8 @@ export function digestCommand(): Command {
       const isJson = options.json === true;
 
       if (!isJson) {
-        console.log(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("DAILY DIGEST")}`);
-        console.log(`${chalk.bold.cyan("╚══╝")}  Generating...\n`);
+        output(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("DAILY DIGEST")}`);
+        output(`${chalk.bold.cyan("╚══╝")}  Generating...\n`);
       }
 
       const ctx = guardNotInitialized(options, isJson);
@@ -253,7 +254,7 @@ export function digestCommand(): Command {
         if (isJson) {
           outputJson({ error: "digest_failed", message: String(error) });
         } else {
-          console.error(chalk.red(`  Error: ${error}`));
+          outputError(chalk.red(`  Error: ${error}`));
         }
       }
     });

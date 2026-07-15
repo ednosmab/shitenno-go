@@ -2,6 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 
+import { output, outputBlank } from "../output.js";
+
 import {
   auditDocLifecycle,
   applyMoves,
@@ -23,11 +25,11 @@ export const docsAuditCommand = new Command("docs-audit")
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║  nexus docs-audit — Plans + ADRs    ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║  nexus docs-audit — Plans + ADRs    ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -59,77 +61,76 @@ export const docsAuditCommand = new Command("docs-audit")
         return;
       }
 
-      // Human-readable output
-      console.log(chalk.bold("  📊 Documentation Lifecycle Report:"));
-      console.log(chalk.gray("     Scoped to Plans + ADRs only"));
-      console.log("");
+      output(chalk.bold("  📊 Documentation Lifecycle Report:"));
+      output(chalk.gray("     Scoped to Plans + ADRs only"));
+      outputBlank();
 
       const statusCounts = getStatusCounts(report);
-      console.log(chalk.gray(`    Plans:          ${report.totalPlans}`));
-      console.log(chalk.gray(`    ADRs:           ${report.totalAdrs}`));
-      console.log(chalk.gray(`    Active:         ${statusCounts.planned + statusCounts.in_progress}`));
-      console.log(chalk.gray(`    Completed:      ${statusCounts.completed}`));
-      console.log(chalk.gray(`    Superseded:     ${statusCounts.superseded}`));
-      console.log(chalk.gray(`    Stale:          ${statusCounts.stale}`));
-      console.log("");
+      output(chalk.gray(`    Plans:          ${report.totalPlans}`));
+      output(chalk.gray(`    ADRs:           ${report.totalAdrs}`));
+      output(chalk.gray(`    Active:         ${statusCounts.planned + statusCounts.in_progress}`));
+      output(chalk.gray(`    Completed:      ${statusCounts.completed}`));
+      output(chalk.gray(`    Superseded:     ${statusCounts.superseded}`));
+      output(chalk.gray(`    Stale:          ${statusCounts.stale}`));
+      outputBlank();
 
       // Proposed moves
       if (report.proposedMoves.length > 0) {
         const mode = options.apply ? chalk.green("Apply") : chalk.yellow("Proposed Moves (dry-run)");
-        console.log(chalk.bold(`  🔍 ${mode}:`));
-        console.log("");
+        output(chalk.bold(`  🔍 ${mode}:`));
+        outputBlank();
 
         // Group moves by type
         const planMoves = report.proposedMoves.filter((m) => m.docType === "plan");
         const adrMoves = report.proposedMoves.filter((m) => m.docType === "adr");
 
         if (planMoves.length > 0) {
-          console.log(chalk.bold("    Plans:"));
+          output(chalk.bold("    Plans:"));
           for (const move of planMoves) {
             printMove(move, report);
           }
         }
 
         if (adrMoves.length > 0) {
-          console.log(chalk.bold("    ADRs:"));
+          output(chalk.bold("    ADRs:"));
           for (const move of adrMoves) {
             printMove(move, report);
           }
         }
       } else {
-        console.log(chalk.green("  ✔ No moves proposed. Plans and ADRs are well organized."));
-        console.log("");
+        output(chalk.green("  ✔ No moves proposed. Plans and ADRs are well organized."));
+        outputBlank();
       }
 
       // Apply moves if requested
       if (options.apply && report.proposedMoves.length > 0) {
-        console.log(chalk.bold("  📁 Applying moves..."));
-        console.log("");
+        output(chalk.bold("  📁 Applying moves..."));
+        outputBlank();
 
         const result = applyMoves(report, ctx.nexusDir, false);
 
         if (result.movesApplied > 0) {
-          console.log(chalk.green(`    ✔ ${result.movesApplied} move(s) applied successfully`));
+          output(chalk.green(`    ✔ ${result.movesApplied} move(s) applied successfully`));
         }
         if (result.movesSkipped > 0) {
-          console.log(chalk.yellow(`    ⊘ ${result.movesSkipped} move(s) skipped`));
+          output(chalk.yellow(`    ⊘ ${result.movesSkipped} move(s) skipped`));
         }
         if (result.errors.length > 0) {
-          console.log(chalk.red("    Errors:"));
+          output(chalk.red("    Errors:"));
           for (const error of result.errors) {
-            console.log(chalk.red(`      - ${error}`));
+            output(chalk.red(`      - ${error}`));
           }
         }
-        console.log("");
+        outputBlank();
       }
 
-      console.log(chalk.bold("  📝 Summary:"));
-      console.log(chalk.gray(`    ${report.summary}`));
-      console.log("");
+      output(chalk.bold("  📝 Summary:"));
+      output(chalk.gray(`    ${report.summary}`));
+      outputBlank();
 
       if (reportFile) {
-        console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
-        console.log("");
+        output(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
+        outputBlank();
       }
 
       getEventBus().publish("doc.lifecycle.audited", {
@@ -144,8 +145,8 @@ export const docsAuditCommand = new Command("docs-audit")
         outputJson({ error: "docs_audit_failed", message: String(error) });
       } else {
         if (spinner) spinner.fail("Documentation lifecycle audit failed");
-        console.log(chalk.red(`  Error: ${error}`));
-        console.log("");
+        output(chalk.red(`  Error: ${error}`));
+        outputBlank();
       }
     }
   });
@@ -195,9 +196,9 @@ function printMove(move: { source: string; destination: string; docType: DocType
   const classification = report.classifications.find((c) => c.path.endsWith(move.source));
   const confidence = classification ? `${Math.round(classification.confidence * 100)}%` : "unknown";
 
-  console.log(chalk.cyan(`    ${icon} ${move.source}`));
-  console.log(chalk.gray(`      → ${move.destination}`));
-  console.log(chalk.gray(`      Status: ${statusColor(move.status)} (confidence: ${confidence})`));
-  console.log(chalk.gray(`      Reason: ${move.reason}`));
-  console.log("");
+  output(chalk.cyan(`    ${icon} ${move.source}`));
+  output(chalk.gray(`      → ${move.destination}`));
+  output(chalk.gray(`      Status: ${statusColor(move.status)} (confidence: ${confidence})`));
+  output(chalk.gray(`      Reason: ${move.reason}`));
+  outputBlank();
 }

@@ -19,6 +19,7 @@ import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
 import { consolidateEngineeringState } from "../engineering-state.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputError } from "../output.js";
 
 export function mcpCommand(): Command {
   const cmd = new Command("mcp")
@@ -33,7 +34,7 @@ export function mcpCommand(): Command {
       try {
         consolidateEngineeringState(projectRoot, nexusDir);
       } catch {
-        console.error(
+        outputError(
           chalk.red(
             `  Error: Nexus not initialized in ${projectRoot}. Run 'nexus init' first.`
           )
@@ -42,20 +43,20 @@ export function mcpCommand(): Command {
         return;
       }
 
-      console.error(
+      outputError(
         chalk.gray("  nexus-mcp: Starting MCP server over stdio...")
       );
-      console.error(
+      outputError(
         chalk.gray(
-          "  Tools: getBriefing, getRiskMap, getRules"
+          "  Tools: getBriefing, getRiskMap, getRules, getEngineeringState, getBacklog, getPlans, submitFeedback"
         )
       );
-      console.error("");
+      outputBlank();
 
       try {
         await startMcpServer(projectRoot, nexusDir);
       } catch (error) {
-        console.error(
+        outputError(
           chalk.red(
             `  MCP server error: ${error instanceof Error ? error.message : String(error)}`
           )
@@ -76,17 +77,17 @@ export function mcpCommand(): Command {
       const isJson = subOptions.json === true;
 
       if (!isJson) {
-        console.log("");
-        console.log(
+        outputBlank();
+        output(
           chalk.bold.cyan("  ╔════════════════════════════════════════════╗")
         );
-        console.log(
+        output(
           chalk.bold.cyan("  ║  nexus mcp install — MCP Filesystem Server ║")
         );
-        console.log(
+        output(
           chalk.bold.cyan("  ╚════════════════════════════════════════════╝")
         );
-        console.log("");
+        outputBlank();
       }
 
       const ctx = guardNotInitialized({ dir: subOptions.dir as string | undefined }, isJson);
@@ -108,41 +109,41 @@ export function mcpCommand(): Command {
         }
 
         if (result.installed) {
-          console.log(
+          output(
             chalk.green(`  ✔ MCP Filesystem Server is installed`)
           );
           if (result.version) {
-            console.log(chalk.gray(`    Version: ${result.version}`));
+            output(chalk.gray(`    Version: ${result.version}`));
           }
           if (result.upgrade) {
-            console.log(
+            output(
               chalk.yellow("    ⚠ New version available. Run 'nexus mcp install --upgrade'")
             );
           }
           if (result.latestVersionCheckFailed) {
-            console.log(
+            output(
               chalk.yellow("    ⚠ Could not check latest version (offline or registry unavailable)")
             );
           }
         } else {
-          console.log(
+          output(
             chalk.yellow("  ⚠ MCP Filesystem Server is NOT installed")
           );
           if (result.error) {
-            console.log(chalk.gray(`    ${result.error}`));
+            output(chalk.gray(`    ${result.error}`));
           }
-          console.log(
+          output(
             chalk.gray("    Run 'nexus mcp install' to install it.")
           );
         }
-        console.log("");
+        outputBlank();
         return;
       }
 
       // Install
       if (!isJson) {
-        console.log(chalk.gray("  Installing @modelcontextprotocol/server-filesystem globally..."));
-        console.log("");
+        output(chalk.gray("  Installing @modelcontextprotocol/server-filesystem globally..."));
+        outputBlank();
       }
 
       const result = installMcpServer({
@@ -159,11 +160,11 @@ export function mcpCommand(): Command {
           return;
         }
 
-        console.log(chalk.red("  ✘ Installation failed"));
+        output(chalk.red("  ✘ Installation failed"));
         if (result.error) {
-          console.log("");
-          console.log(chalk.red(`    ${result.error}`));
-          console.log("");
+          outputBlank();
+          output(chalk.red(`    ${result.error}`));
+          outputBlank();
         }
         return;
       }
@@ -184,44 +185,44 @@ export function mcpCommand(): Command {
       }
 
       const action = result.upgrade ? "upgraded" : "installed";
-      console.log(
+      output(
         chalk.green(
           `  ✔ MCP Filesystem Server ${action} successfully`
         )
       );
-      console.log(
+      output(
         chalk.gray(`    Version: ${result.version}`)
       );
       if (result.previousVersion) {
-        console.log(
+        output(
           chalk.gray(`    Previous: ${result.previousVersion}`)
         );
       }
       if (result.latestVersionCheckFailed) {
-        console.log(
+        output(
           chalk.yellow("    ⚠ Could not check latest version (offline or registry unavailable)")
         );
       }
-      console.log("");
+      outputBlank();
 
       if (timeoutUpdate.changed) {
-        console.log(
+        output(
           chalk.green("  ✔ opencode.json updated with MCP timeout (15000ms)")
         );
       } else if (timeoutUpdate.error) {
-        console.log(
+        output(
           chalk.yellow(`  ⚠ ${timeoutUpdate.error}`)
         );
       } else {
-        console.log(
+        output(
           chalk.gray("  MCP timeout already configured in opencode.json")
         );
       }
-      console.log("");
-      console.log(
+      outputBlank();
+      output(
         chalk.gray("  The opencode session may need to be restarted for changes to take effect.")
       );
-      console.log("");
+      outputBlank();
     });
 
   cmd.addCommand(installCmd);

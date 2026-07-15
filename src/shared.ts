@@ -12,6 +12,7 @@ import { join } from "node:path";
 import chalk from "chalk";
 import { outputJson } from "./formatting.js";
 import { NEXUS_DIR_NAME } from "./constants.js";
+import { output, outputBlank } from "./output.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,9 +63,9 @@ export function checkLifecycleGate(
         requiredState: getRequiredState(command),
       });
     } else {
-      console.log(chalk.yellow(`  ⚠ Command '${command}' cannot run in '${state}' state.`));
-      console.log(chalk.gray(`  Required state: ${getRequiredState(command)} or later.`));
-      console.log("");
+      output(chalk.yellow(`  ⚠ Command '${command}' cannot run in '${state}' state.`));
+      output(chalk.gray(`  Required state: ${getRequiredState(command)} or later.`));
+      outputBlank();
     }
     return false;
   }
@@ -117,9 +118,9 @@ export function guardNotInitialized(
     if (isJson) {
       outputJson({ error: "not_initialized", message: "Run 'nexus init' to initialize governance." });
     } else {
-      console.log(chalk.yellow("  ⚠ This project is not initialized with nexus."));
-      console.log(chalk.gray("  Run 'nexus init' to initialize governance."));
-      console.log("");
+      output(chalk.yellow("  ⚠ This project is not initialized with nexus."));
+      output(chalk.gray("  Run 'nexus init' to initialize governance."));
+      outputBlank();
     }
     return null;
   }
@@ -129,9 +130,9 @@ export function guardNotInitialized(
     if (isJson) {
       outputJson({ error: "nexus_dir_missing", message: "nexus-system/ directory not found. Run 'nexus init' to recreate." });
     } else {
-      console.log(chalk.yellow("  ⚠ nexus-system/ directory not found."));
-      console.log(chalk.gray("  Run 'nexus init' to recreate it."));
-      console.log("");
+      output(chalk.yellow("  ⚠ nexus-system/ directory not found."));
+      output(chalk.gray("  Run 'nexus init' to recreate it."));
+      outputBlank();
     }
     return null;
   }
@@ -187,9 +188,9 @@ export function guardInteractive(
       hint: "Pass --answers-file <path> to run in non-interactive mode.",
     });
   } else {
-    console.log(chalk.red("  ✘ Non-interactive environment detected and no --answers-file provided."));
-    console.log(chalk.gray("    Pass --answers-file <path> to run non-interactively."));
-    console.log("");
+    output(chalk.red("  ✘ Non-interactive environment detected and no --answers-file provided."));
+    output(chalk.gray("    Pass --answers-file <path> to run non-interactively."));
+    outputBlank();
   }
   process.exitCode = 1;
   return false;

@@ -2,7 +2,7 @@
  * ai-interface.test.ts — Tests for AI interface (context command + model config)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -113,9 +113,11 @@ describe("ai-interface", () => {
       mkdirSync(nexusDir, { recursive: true });
       createMockEngineeringState(nexusDir);
 
-      const consoleSpy = { output: "" };
-      const originalLog = console.log;
-      console.log = (msg: string) => { consoleSpy.output += msg + "\n"; };
+      const capturedOutput = { output: "" };
+      const outputSpy = vi.spyOn(process.stdout, "write").mockImplementation((msg: string | Uint8Array) => {
+        capturedOutput.output += msg;
+        return true;
+      });
 
       const originalCwd = process.cwd;
       process.cwd = () => projectDir;
@@ -123,11 +125,11 @@ describe("ai-interface", () => {
       try {
         executeContextCommand({ json: false });
 
-        expect(consoleSpy.output).toContain("Project Context");
-        expect(consoleSpy.output).toContain("test-project");
-        expect(consoleSpy.output).toContain("Engineering State");
+        expect(capturedOutput.output).toContain("Project Context");
+        expect(capturedOutput.output).toContain("test-project");
+        expect(capturedOutput.output).toContain("Engineering State");
       } finally {
-        console.log = originalLog;
+        outputSpy.mockRestore();
         process.cwd = originalCwd;
       }
     });
@@ -138,9 +140,11 @@ describe("ai-interface", () => {
       mkdirSync(nexusDir, { recursive: true });
       createMockEngineeringState(nexusDir);
 
-      const consoleSpy = { output: "" };
-      const originalLog = console.log;
-      console.log = (msg: string) => { consoleSpy.output += msg + "\n"; };
+      const capturedOutput = { output: "" };
+      const outputSpy = vi.spyOn(process.stdout, "write").mockImplementation((msg: string | Uint8Array) => {
+        capturedOutput.output += msg;
+        return true;
+      });
 
       const originalCwd = process.cwd;
       process.cwd = () => projectDir;
@@ -148,11 +152,11 @@ describe("ai-interface", () => {
       try {
         executeContextCommand({ json: true });
 
-        const parsed = JSON.parse(consoleSpy.output);
+        const parsed = JSON.parse(capturedOutput.output);
         expect(parsed.version).toBe("1.0.0");
         expect(parsed.project.name).toBe("test-project");
       } finally {
-        console.log = originalLog;
+        outputSpy.mockRestore();
         process.cwd = originalCwd;
       }
     });

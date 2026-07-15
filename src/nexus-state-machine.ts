@@ -11,21 +11,11 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { join } from "node:path";
 import { getEventBus } from "./event-bus.js";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types (re-exported from domain entities) ────────────────────────────────
 
-export type NexusLifecycleState =
-  | "uninitialized"
-  | "discovered"
-  | "assessed"
-  | "governed"
-  | "evolved";
+import type { NexusLifecycleState, StateTransition } from "./domain/entities/engineering-state.js";
 
-export interface StateTransition {
-  from: NexusLifecycleState;
-  to: NexusLifecycleState;
-  trigger: string;
-  timestamp: string;
-}
+export type { NexusLifecycleState, StateTransition } from "./domain/entities/engineering-state.js";
 
 interface StateMachineFile {
   currentState: NexusLifecycleState;

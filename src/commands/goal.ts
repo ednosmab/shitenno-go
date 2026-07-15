@@ -22,6 +22,7 @@ import { guardNotInitialized } from "../shared.js";
 import { GoalEngine, type GoalStatus, type GoalPriority, FileGoalRepository } from "../goal-engine.js";
 import { outputJson } from "../formatting.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError, outputWarning } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -103,10 +104,10 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson(goal as unknown as Record<string, unknown>);
       } else {
-        console.log("");
-        console.log(chalk.green(`  ✓ Goal created: ${chalk.bold(goal.id)}`));
-        console.log(`    ${goal.title}`);
-        console.log("");
+        outputBlank();
+        outputSuccess(`Goal created: ${chalk.bold(goal.id)}`);
+        output(`    ${goal.title}`);
+        outputBlank();
       }
     });
 
@@ -137,17 +138,17 @@ export function goalCommand(): Command {
         return;
       }
 
-      console.log("");
+      outputBlank();
       if (goals.length === 0) {
-        console.log(chalk.dim("  No goals found. Create one with: nexus goal create \"<title>\""));
+        output(chalk.dim("  No goals found. Create one with: nexus goal create \"<title>\""));
       } else {
-        console.log(chalk.bold(`  Goals (${goals.length})`));
-        console.log(chalk.dim("  " + "─".repeat(70)));
+        outputSection(`Goals (${goals.length})`);
+        output(chalk.dim("  " + "─".repeat(70)));
         for (const goal of goals) {
-          console.log(formatGoal(goal));
+          output(formatGoal(goal));
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── show ────────────────────────────────────────────────────────────────
@@ -168,7 +169,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found" });
         } else {
-          console.log(chalk.red(`  Goal not found: ${id}`));
+          outputError(`Goal not found: ${id}`);
         }
         return;
       }
@@ -178,22 +179,22 @@ export function goalCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  ${goal.id}`));
-      console.log(`  ${goal.title}`);
-      if (goal.description) console.log(`  ${chalk.dim(goal.description)}`);
-      console.log("");
-      console.log(`  Status:     ${STATUS_COLORS[goal.status](goal.status)}`);
-      console.log(`  Priority:   ${PRIORITY_COLORS[goal.priority](goal.priority)}`);
-      console.log(`  Progress:   ${progressBar(goal.progress)}`);
-      if (goal.targets.length > 0) console.log(`  Targets:    ${goal.targets.join(", ")}`);
-      if (goal.criteria.length > 0) console.log(`  Criteria:   ${goal.criteria.join(", ")}`);
-      if (goal.tags.length > 0) console.log(`  Tags:       ${goal.tags.join(", ")}`);
-      if (goal.parentId) console.log(`  Parent:     ${goal.parentId}`);
-      console.log(`  Created:    ${goal.createdAt}`);
-      console.log(`  Updated:    ${goal.updatedAt}`);
-      if (goal.completedAt) console.log(`  Completed:  ${goal.completedAt}`);
-      console.log("");
+      outputBlank();
+      output(chalk.bold(`  ${goal.id}`));
+      output(`  ${goal.title}`);
+      if (goal.description) output(`  ${chalk.dim(goal.description)}`);
+      outputBlank();
+      output(`  Status:     ${STATUS_COLORS[goal.status](goal.status)}`);
+      output(`  Priority:   ${PRIORITY_COLORS[goal.priority](goal.priority)}`);
+      output(`  Progress:   ${progressBar(goal.progress)}`);
+      if (goal.targets.length > 0) output(`  Targets:    ${goal.targets.join(", ")}`);
+      if (goal.criteria.length > 0) output(`  Criteria:   ${goal.criteria.join(", ")}`);
+      if (goal.tags.length > 0) output(`  Tags:       ${goal.tags.join(", ")}`);
+      if (goal.parentId) output(`  Parent:     ${goal.parentId}`);
+      output(`  Created:    ${goal.createdAt}`);
+      output(`  Updated:    ${goal.updatedAt}`);
+      if (goal.completedAt) output(`  Completed:  ${goal.completedAt}`);
+      outputBlank();
     });
 
   // ── update ──────────────────────────────────────────────────────────────
@@ -218,7 +219,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found" });
         } else {
-          console.log(chalk.red(`  Goal not found: ${id}`));
+          outputError(`Goal not found: ${id}`);
         }
         return;
       }
@@ -226,7 +227,7 @@ export function goalCommand(): Command {
       if (opts.progress !== undefined) {
         const pct = parseInt(opts.progress as string, 10);
         if (isNaN(pct) || pct < 0 || pct > 100) {
-          console.log(chalk.red("  Progress must be between 0 and 100"));
+          outputError("Progress must be between 0 and 100");
           return;
         }
         goal = engine.updateProgress(id, pct);
@@ -243,8 +244,8 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson(goal as unknown as Record<string, unknown>);
       } else if (goal) {
-        console.log(chalk.green(`  ✓ Goal updated: ${goal.id}`));
-        console.log(`    ${formatGoal(goal)}`);
+        outputSuccess(`Goal updated: ${goal.id}`);
+        output(`    ${formatGoal(goal)}`);
       }
     });
 
@@ -266,7 +267,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found or not in draft status" });
         } else {
-          console.log(chalk.red(`  Cannot activate goal: ${id} (not found or not in draft status)`));
+          outputError(`Cannot activate goal: ${id} (not found or not in draft status)`);
         }
         return;
       }
@@ -274,7 +275,7 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson(goal as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Goal activated: ${goal.id}`));
+        outputSuccess(`Goal activated: ${goal.id}`);
       }
     });
 
@@ -296,7 +297,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found or not active" });
         } else {
-          console.log(chalk.red(`  Cannot complete goal: ${id} (not found or not active)`));
+          outputError(`Cannot complete goal: ${id} (not found or not active)`);
         }
         return;
       }
@@ -304,7 +305,7 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson(goal as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Goal completed: ${goal.id}`));
+        outputSuccess(`Goal completed: ${goal.id}`);
       }
     });
 
@@ -326,7 +327,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found or already completed" });
         } else {
-          console.log(chalk.red(`  Cannot abandon goal: ${id}`));
+          outputError(`Cannot abandon goal: ${id}`);
         }
         return;
       }
@@ -334,7 +335,7 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson(goal as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.yellow(`  ⚠ Goal abandoned: ${goal.id}`));
+        outputWarning(`Goal abandoned: ${goal.id}`);
       }
     });
 
@@ -356,22 +357,22 @@ export function goalCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Goal Statistics"));
-      console.log(chalk.dim("  " + "─".repeat(40)));
-      console.log(`  Total:     ${stats.total}`);
-      console.log(`  Avg Progress: ${stats.avgProgress}%`);
-      console.log("");
-      console.log(chalk.bold("  By Status:"));
+      outputBlank();
+      outputSection("Goal Statistics");
+      output(chalk.dim("  " + "─".repeat(40)));
+      output(`  Total:     ${stats.total}`);
+      output(`  Avg Progress: ${stats.avgProgress}%`);
+      outputBlank();
+      outputSection("By Status:");
       for (const [status, count] of Object.entries(stats.byStatus)) {
-        if (count > 0) console.log(`    ${STATUS_COLORS[status as GoalStatus](status)}: ${count}`);
+        if (count > 0) output(`    ${STATUS_COLORS[status as GoalStatus](status)}: ${count}`);
       }
-      console.log("");
-      console.log(chalk.bold("  By Priority:"));
+      outputBlank();
+      outputSection("By Priority:");
       for (const [priority, count] of Object.entries(stats.byPriority)) {
-        if (count > 0) console.log(`    ${PRIORITY_COLORS[priority as GoalPriority](priority)}: ${count}`);
+        if (count > 0) output(`    ${PRIORITY_COLORS[priority as GoalPriority](priority)}: ${count}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── delete ──────────────────────────────────────────────────────────────
@@ -392,7 +393,7 @@ export function goalCommand(): Command {
         if (isJson) {
           outputJson({ error: "Goal not found" });
         } else {
-          console.log(chalk.red(`  Goal not found: ${id}`));
+          outputError(`Goal not found: ${id}`);
         }
         return;
       }
@@ -400,7 +401,7 @@ export function goalCommand(): Command {
       if (isJson) {
         outputJson({ deleted: true, id });
       } else {
-        console.log(chalk.green(`  ✓ Goal deleted: ${id}`));
+        outputSuccess(`Goal deleted: ${id}`);
       }
     });
 

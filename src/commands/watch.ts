@@ -13,6 +13,7 @@ import { guardNotInitialized } from "../shared.js";
 import { startWatching } from "../file-watcher.js";
 import { getEventBus, type NexusEventType } from "../event-bus.js";
 import { initPlanBacklogSync } from "../plan-backlog-sync.js";
+import { output, outputBlank } from "../output.js";
 
 // ── Event Formatting ────────────────────────────────────────────────────────
 
@@ -117,11 +118,11 @@ export function watchCommand(): Command {
       if (!ctx) return;
 
       // Banner
-      console.log("");
-      console.log(chalk.bold.cyan("  🔭 Nexus Watcher — Live System Log"));
-      console.log(chalk.gray(`  Watching: ${ctx.nexusDir}`));
-      console.log(chalk.gray("  Press Ctrl+C to stop."));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  🔭 Nexus Watcher — Live System Log"));
+      output(chalk.gray(`  Watching: ${ctx.nexusDir}`));
+      output(chalk.gray("  Press Ctrl+C to stop."));
+      outputBlank();
 
       // Init plan-backlog sync subscribers BEFORE starting watcher (prevents race condition)
       initPlanBacklogSync(ctx.projectRoot, ctx.nexusDir);
@@ -147,14 +148,14 @@ export function watchCommand(): Command {
           const ts = timestamp();
           const label = extractLabel(payload);
           const padded = eventType.padEnd(28);
-          console.log(`  ${chalk.gray(ts)} ${color(padded)} ${chalk.bold(label)}`);
+          output(`  ${chalk.gray(ts)} ${color(padded)} ${chalk.bold(label)}`);
         });
       }
 
       // Status line every 30 seconds
       const statusInterval = setInterval(() => {
         const ts = timestamp();
-        console.log(
+        output(
           chalk.gray(`  ${ts} — watcher alive — ${eventCount} events logged`)
         );
       }, 30_000);
@@ -165,7 +166,7 @@ export function watchCommand(): Command {
           clearInterval(statusInterval);
           stopWatcher();
           bus.removeAllListeners();
-          console.log(chalk.yellow(`\n  — ${eventCount} events logged. Stopped. Bye.`));
+          output(chalk.yellow(`\n  — ${eventCount} events logged. Stopped. Bye.`));
           resolve();
         });
         process.on("SIGTERM", () => {

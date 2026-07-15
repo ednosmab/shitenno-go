@@ -15,6 +15,8 @@ import {
   updateNextP0,
   addCompletedTask,
   updateSessionLifecycle,
+  addReminder,
+  clearRemindersByCategory,
 } from "../context-buffer-writer.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -176,5 +178,143 @@ describe("updateSessionLifecycle", () => {
     expect(result.success).toBe(true);
     expect(result.message).toContain("session.status");
     expect(result.message).toContain("current_task.status");
+  });
+});
+
+// ── Reminders ─────────────────────────────────────────────────────────────
+
+describe("addReminder", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = createTmpNexus();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("adds a reminder to buffer", () => {
+    const result = addReminder(tmpDir, {
+      message: "Doc desatualizada: daemon.md",
+      priority: "high",
+      category: "docs",
+      createdAt: "2026-07-13T00:00:00Z",
+    });
+    expect(result.success).toBe(true);
+    expect(result.skipped).toBeUndefined();
+    const content = readFileSync(join(tmpDir, "governance", "context", "context_buffer.yaml"), "utf-8");
+    expect(content).toContain('message: "Doc desatualizada: daemon.md"');
+    expect(content).toContain('priority: "high"');
+    expect(content).toContain('category: "docs"');
+  });
+
+  it("deduplicates by message text", () => {
+    addReminder(tmpDir, {
+      message: "Duplicate reminder",
+      priority: "medium",
+      category: "docs",
+      createdAt: "2026-07-13T00:00:00Z",
+    });
+    const result = addReminder(tmpDir, {
+      message: "Duplicate reminder",
+      priority: "high",
+      category: "bug",
+      createdAt: "2026-07-14T00:00:00Z",
+    });
+    expect(result.success).toBe(true);
+    expect(result.skipped).toBe(true);
+  });
+
+  it("creates reminders section if not present", () => {
+    const noReminders = `session:
+  id: session-001
+  status: active
+`;
+    const governanceDir = join(tmpDir, "governance", "context");
+    writeFileSync(join(governanceDir, "context_buffer.yaml"), noReminders, "utf-8");
+
+    const result = addReminder(tmpDir, {
+      message: "First reminder",
+      priority: "low",
+      category: "infra",
+      createdAt: "2026-07-13T00:00:00Z",
+    });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("new section");
+    const content = readFileSync(join(governanceDir, "context_buffer.yaml"), "utf-8");
+    expect(content).toMatch(/^reminders:\n/);
+    expect(content).toContain('message: "First reminder"');
+  });
+
+  it("returns error when buffer not found", () => {
+    const result = addReminder("/nonexistent", {
+      message: "test",
+      priority: "low",
+      category: "docs",
+      createdAt: "2026-07-13T00:00:00Z",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("clearRemindersByCategory", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = createTmpNexus();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("removes reminders matching category", () => {
+    const bufferWithReminders = `session:
+  id: session-001
+  status: active
+
+reminders:
+  - message: "Doc drift daemon"
+    priority: "high"
+    category: "docs"
+    createdAt: "2026-07-13T00:00:00Z"
+  - message: "Bug fix pending"
+    priority: "medium"
+    category: "bug"
+    createdAt: "2026-07-13T00:00:00Z"
+  - message: "Doc drift watch"
+    priority: "low"
+    category: "docs"
+    createdAt: "2026-07-13T00:00:00Z"
+`;
+    writeFileSync(join(tmpDir, "governance", "context", "context_buffer.yaml"), bufferWithReminders, "utf-8");
+
+    const result = clearRemindersByCategory(tmpDir, "docs");
+    expect(result.success).toBe(true);
+    expect(result.removed).toBe(2);
+    const content = readFileSync(join(tmpDir, "governance", "context", "context_buffer.yaml"), "utf-8");
+    expect(content).toContain('category: "bug"');
+    expect(content).not.toContain('category: "docs"');
+  });
+
+  it("returns 0 when no matching reminders", () => {
+    const bufferWithReminders = `reminders:
+  - message: "Only bug"
+    priority: "high"
+    category: "bug"
+    createdAt: "2026-07-13T00:00:00Z"
+`;
+    writeFileSync(join(tmpDir, "governance", "context", "context_buffer.yaml"), bufferWithReminders, "utf-8");
+
+    const result = clearRemindersByCategory(tmpDir, "docs");
+    expect(result.success).toBe(true);
+    expect(result.removed).toBe(0);
+  });
+
+  it("handles empty reminders section", () => {
+    const result = clearRemindersByCategory(tmpDir, "docs");
+    expect(result.success).toBe(true);
+    expect(result.removed).toBe(0);
   });
 });

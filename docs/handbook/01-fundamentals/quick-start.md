@@ -9,7 +9,7 @@
 O fluxo básico do Nexus é:
 
 ```
-init → status → detect → briefing → trabalhar → feedback
+init → status → detect → briefing → daemon → watch → trabalhar → feedback
 ```
 
 Vamos passar por cada etapa.
@@ -147,17 +147,57 @@ Recomendações
 
 ---
 
-## Passo 5: Trabalhar no projeto
+## Passo 5: Iniciar o daemon (automatização)
+
+```bash
+nexus daemon start
+```
+
+O daemon corre em background e:
+
+- **Observa** arquivos de governança para mudanças
+- **Auto-arquiva** planos concluídos
+- **Expõe IPC** para consultas de estado
+- **Circuit breaker** protege contra crashes (5 em 60s)
+
+Verificar estado:
+
+```bash
+nexus daemon status
+```
+
+---
+
+## Passo 6: Monitorizar eventos (watch)
+
+```bash
+nexus watch
+```
+
+Mostra eventos em tempo real — mudanças de plano, sessões, daemon, etc.
+
+Filtrar por tipo:
+
+```bash
+nexus watch --events plan.*,daemon.*
+```
+
+Parar com `Ctrl+C`.
+
+---
+
+## Passo 7: Trabalhar no projeto
 
 Agora trabalhe normalmente. O Nexus observa em segundo plano:
 
+- **Daemon** — Automatiza tarefas de governança
 - **File watcher** — Detecta mudanças em arquivos
 - **Rule engine** — Reage a eventos (ex: novo arquivo de plano)
 - **Session tracker** — Registra início e fim de sessões
 
 ---
 
-## Passo 6: Fechar o feedback
+## Passo 8: Fechar o feedback
 
 Ao terminar uma sessão de trabalho:
 
@@ -182,9 +222,11 @@ Isso alimenta o **Context Pipeline** e melhora recomendações futuras.
 # Início do dia
 nexus briefing          # Ver contexto do projeto
 nexus status            # Ver saúde
+nexus daemon start      # Iniciar automação
 
 # Durante o trabalho
 nexus detect            # Ver padrões (opcional)
+nexus watch --events plan.*  # Monitorizar planos (opcional)
 
 # Fim do dia
 nexus feedback --outcome success  # Fechar sessão
@@ -200,6 +242,8 @@ nexus feedback --outcome success  # Fechar sessão
 | `nexus status` | Mostra saúde do projeto | Diariamente |
 | `nexus detect` | Detecta padrões | Semanalmente |
 | `nexus briefing` | Gera briefing para AI | Início de sessão AI |
+| `nexus daemon start` | Inicia automação | Início do dia |
+| `nexus watch` | Monitoriza eventos | Quando precisar de visibilidade |
 | `nexus feedback` | Fecha loop de feedback | Fim de sessão |
 | `nexus audit` | Auditoria completa | Mensalmente |
 | `nexus doctor` | Diagnóstico de riscos | Quando há dúvidas |

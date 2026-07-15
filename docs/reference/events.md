@@ -302,6 +302,130 @@ Emitted when validation completes.
 
 ---
 
+## Plan Events
+
+### plan.created
+
+Emitted when a new execution plan is created.
+
+- **Payload:** `{ planId: string, title: string }`
+- **Published by:** plan command
+- **Subscribed by:** plan-backlog-sync
+
+### plan.file_changed
+
+Emitted when a plan file is modified.
+
+- **Payload:** `{ planId: string, path: string }`
+- **Published by:** file-watcher
+- **Subscribed by:** plan-backlog-sync, daemon
+
+### plan.status_changed
+
+Emitted when a plan's status changes.
+
+- **Payload:** `{ planId: string, previous: string, current: string }`
+- **Published by:** plan-backlog-sync
+- **Subscribed by:** daemon
+
+### plan.archived
+
+Emitted when a completed plan is archived.
+
+- **Payload:** `{ planId: string, path: string }`
+- **Published by:** daemon
+- **Subscribed by:** knowledge-graph
+
+### plan.format_warning
+
+Emitted when a plan has format issues.
+
+- **Payload:** `{ planId: string, issues: string[] }`
+- **Published by:** plan-backlog-sync
+- **Subscribed by:** session-tracker
+
+---
+
+## Backlog Events
+
+### backlog.updated
+
+Emitted when BACKLOG.md is modified.
+
+- **Payload:** `{ changes: string[] }`
+- **Published by:** file-watcher
+- **Subscribed by:** plan-backlog-sync
+
+---
+
+## Documentation Events
+
+### docs.sync.triggered
+
+Emitted when documentation sync is triggered by file changes.
+
+- **Payload:** `{ significance: number, outputLevel: string, files: string[] }`
+- **Published by:** file-watcher
+- **Subscribed by:** doc-sync-hook
+
+### doc.lifecycle.audited
+
+Emitted when documentation lifecycle is audited.
+
+- **Payload:** `{ results: AuditResult[] }`
+- **Published by:** docs-audit
+- **Subscribed by:** session-tracker
+
+---
+
+## Task Events
+
+### task.completed
+
+Emitted when a task is marked as completed.
+
+- **Payload:** `{ taskId: string, description: string }`
+- **Published by:** context-buffer-writer
+- **Subscribed by:** session-tracker
+
+---
+
+## Command Events
+
+### command.completed
+
+Emitted when a CLI command finishes execution.
+
+- **Payload:** `{ command: string, duration: number, success: boolean }`
+- **Published by:** CLI infrastructure
+- **Subscribed by:** session-tracker, telemetry
+
+---
+
+## Challenge Events
+
+### challenge.generated
+
+Emitted when challenges are auto-generated from engineering state.
+
+- **Payload:** `{ challenges: Challenge[] }`
+- **Published by:** context command
+- **Subscribed by:** rule-engine
+
+---
+
+## State Events
+
+### state.mutated
+
+Emitted when the engineering state is mutated.
+
+- **Payload:** `{ field: string, previous: unknown, current: unknown }`
+- **Published by:** context-buffer-writer
+- **Subscribed by:** telemetry
+
+---
+
 ## Event Relationships
 
 ```
@@ -316,4 +440,4 @@ session.start → analysis.complete → score.calculated → pattern.detected
 
 ---
 
-*Last updated: 2026-06-29*
+*Last updated: 2026-07-13*

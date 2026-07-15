@@ -11,6 +11,7 @@ import chalk from "chalk";
 import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
 import { listSnapshots, getSnapshotAt, diffSnapshots } from "../engineering-state-history.js";
+import { output, outputBlank } from "../output.js";
 import { join } from "node:path";
 import { NEXUS_DIR_NAME } from "../constants.js";
 
@@ -34,7 +35,7 @@ export const historyCommand = new Command("history")
     const snapshots = listSnapshots(nexusDir, range);
 
     if (snapshots.length === 0) {
-      console.log(chalk.yellow("No snapshots found."));
+      output(chalk.yellow("No snapshots found."));
       return;
     }
 
@@ -49,14 +50,14 @@ export const historyCommand = new Command("history")
       return;
     }
 
-    console.log(chalk.bold(`\nEngineering State History (${snapshots.length} snapshots)\n`));
+    output(chalk.bold(`\nEngineering State History (${snapshots.length} snapshots)\n`));
 
     for (const snapshot of snapshots) {
-      console.log(`  ${chalk.cyan(snapshot.timestamp)}`);
+      output(`  ${chalk.cyan(snapshot.timestamp)}`);
     }
 
     if (options.diff && snapshots.length >= 2) {
-      console.log(chalk.bold("\nDiffs:\n"));
+      output(chalk.bold("\nDiffs:\n"));
 
       for (let i = 1; i < snapshots.length; i++) {
         const prevMeta = snapshots[i - 1];
@@ -71,14 +72,14 @@ export const historyCommand = new Command("history")
           const healthColor = delta.healthScoreChange >= 0 ? chalk.green : chalk.red;
           const entropyColor = delta.entropyChange <= 0 ? chalk.green : chalk.red;
 
-          console.log(`  ${chalk.cyan(prevMeta.timestamp)} → ${chalk.cyan(currMeta.timestamp)}`);
-          console.log(`    Health: ${healthColor(`${delta.healthScoreChange >= 0 ? "+" : ""}${delta.healthScoreChange}`)}`);
-          console.log(`    Entropy: ${entropyColor(`${delta.entropyChange >= 0 ? "+" : ""}${delta.entropyChange}`)}`);
-          console.log(`    Assets: +${delta.assetsAdded}/-${delta.assetsRemoved}`);
+          output(`  ${chalk.cyan(prevMeta.timestamp)} → ${chalk.cyan(currMeta.timestamp)}`);
+          output(`    Health: ${healthColor(`${delta.healthScoreChange >= 0 ? "+" : ""}${delta.healthScoreChange}`)}`);
+          output(`    Entropy: ${entropyColor(`${delta.entropyChange >= 0 ? "+" : ""}${delta.entropyChange}`)}`);
+          output(`    Assets: +${delta.assetsAdded}/-${delta.assetsRemoved}`);
           if (delta.capabilitiesChanged) {
-            console.log(`    ${chalk.yellow("Capabilities changed")}`);
+            output(`    ${chalk.yellow("Capabilities changed")}`);
           }
-          console.log("");
+          outputBlank();
         }
       }
     }

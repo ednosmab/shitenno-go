@@ -8,6 +8,7 @@ import { invalidateCache } from "../cache.js";
 import { outputJson } from "../formatting.js";
 import { checkLifecycleGate } from "../shared.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputError } from "../output.js";
 
 const { copySync, ensureDirSync, writeFileSync } = fse;
 
@@ -36,11 +37,11 @@ export const syncCommand = new Command("sync")
     }
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║      nexus sync — Update Project     ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║      nexus sync — Update Project     ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      outputBlank();
     }
 
     // Validate nexus-system path
@@ -48,10 +49,10 @@ export const syncCommand = new Command("sync")
       if (isJson) {
         outputJson({ error: "missing_path", message: "nexus-system path not specified. Use --nexus-path or NEXUS_SYSTEM_PATH env var." });
       } else {
-        console.log(chalk.red("  ✘ nexus-system path not specified."));
-        console.log(chalk.gray("  Use --nexus-path <path> or set NEXUS_SYSTEM_PATH environment variable."));
-        console.log(chalk.gray("  Example: nexus sync --nexus-path /path/to/nexus-system"));
-        console.log(chalk.gray("  Or: NEXUS_SYSTEM_PATH=/path/to/nexus-system nexus sync"));
+        output(chalk.red("  ✘ nexus-system path not specified."));
+        output(chalk.gray("  Use --nexus-path <path> or set NEXUS_SYSTEM_PATH environment variable."));
+        output(chalk.gray("  Example: nexus sync --nexus-path /path/to/nexus-system"));
+        output(chalk.gray("  Or: NEXUS_SYSTEM_PATH=/path/to/nexus-system nexus sync"));
       }
       return;
     }
@@ -61,7 +62,7 @@ export const syncCommand = new Command("sync")
       if (isJson) {
         outputJson({ error: "missing_nexus_dir", message: `nexus-system directory not found: ${nexusDir}` });
       } else {
-        console.log(chalk.red(`  ✘ nexus-system directory not found: ${nexusDir}`));
+        output(chalk.red(`  ✘ nexus-system directory not found: ${nexusDir}`));
       }
       return;
     }
@@ -71,8 +72,8 @@ export const syncCommand = new Command("sync")
       if (isJson) {
         outputJson({ error: "not_initialized", message: "Run 'nexus init' first, then 'nexus sync' to update." });
       } else {
-        console.log(chalk.yellow("  ⚠ This project doesn't seem to be initialized with nexus."));
-        console.log(chalk.gray("  Run 'nexus init' first, then 'nexus sync' to update."));
+        output(chalk.yellow("  ⚠ This project doesn't seem to be initialized with nexus."));
+        output(chalk.gray("  Run 'nexus init' first, then 'nexus sync' to update."));
       }
       return;
     }
@@ -106,30 +107,30 @@ export const syncCommand = new Command("sync")
       spinner.stop();
 
       // Display changes
-      console.log(chalk.bold("  Changes to apply:"));
-      console.log("");
+      output(chalk.bold("  Changes to apply:"));
+      outputBlank();
 
       const createCount = changes.filter((c) => c.action === "create").length;
       const updateCount = changes.filter((c) => c.action === "update").length;
       const skipCount = changes.filter((c) => c.action === "skip").length;
 
       if (createCount > 0) {
-        console.log(chalk.green(`    + ${createCount} files to create`));
+        output(chalk.green(`    + ${createCount} files to create`));
       }
       if (updateCount > 0) {
-        console.log(chalk.yellow(`    ~ ${updateCount} files to update`));
+        output(chalk.yellow(`    ~ ${updateCount} files to update`));
       }
       if (skipCount > 0) {
-        console.log(chalk.gray(`    - ${skipCount} files unchanged`));
+        output(chalk.gray(`    - ${skipCount} files unchanged`));
       }
-      console.log("");
+      outputBlank();
 
       // Show detailed changes
       for (const change of changes) {
         if (change.action === "create") {
-          console.log(chalk.green(`    + ${change.path}`));
+          output(chalk.green(`    + ${change.path}`));
         } else if (change.action === "update") {
-          console.log(chalk.yellow(`    ~ ${change.path}`));
+          output(chalk.yellow(`    ~ ${change.path}`));
         }
       }
 
@@ -137,15 +138,15 @@ export const syncCommand = new Command("sync")
         if (isJson) {
           outputJson({ dryRun: true, createCount, updateCount, skipCount, changes: changes.map((c) => ({ path: c.path, action: c.action })) });
         } else {
-          console.log("");
-          console.log(chalk.gray("  Dry run complete. No files were modified."));
+          outputBlank();
+          output(chalk.gray("  Dry run complete. No files were modified."));
         }
         return;
       }
 
       // Ask for confirmation if not forced
       if (!options.force && (createCount > 0 || updateCount > 0)) {
-        console.log("");
+        outputBlank();
         const { confirm } = await import("inquirer").then((mod) =>
           mod.default.prompt([
             {
@@ -158,7 +159,7 @@ export const syncCommand = new Command("sync")
         );
 
         if (!confirm) {
-          console.log(chalk.gray("  Sync cancelled."));
+          output(chalk.gray("  Sync cancelled."));
           return;
         }
       }
@@ -203,20 +204,20 @@ export const syncCommand = new Command("sync")
           updated: changes.filter((c) => c.action !== "skip").map((c) => c.path),
         });
       } else {
-        console.log("");
-        console.log(chalk.green("  ✔ Sync complete!"));
-        console.log("");
-        console.log(chalk.gray("  Updated files:"));
+        outputBlank();
+        output(chalk.green("  ✔ Sync complete!"));
+        outputBlank();
+        output(chalk.gray("  Updated files:"));
         for (const change of changes) {
           if (change.action !== "skip") {
-            console.log(chalk.gray(`    - ${change.path}`));
+            output(chalk.gray(`    - ${change.path}`));
           }
         }
-        console.log("");
+        outputBlank();
       }
     } catch (error) {
       spinner.stop();
-      console.error(chalk.red("  ✘ Sync failed:"), error);
+      outputError(chalk.red(`  ✘ Sync failed: ${error}`));
       return;
     }
   });

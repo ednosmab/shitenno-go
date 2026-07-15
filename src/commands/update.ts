@@ -28,6 +28,8 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { outputJson } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError, outputWarning, outputInfo } from "../output.js";
+import { logger } from "../logger.js";
 
 const { copySync, ensureDirSync, removeSync } = fse;
 
@@ -57,43 +59,43 @@ function displayDiff(diff: ManifestDiff, isJson: boolean): void {
     return;
   }
 
-  console.log(chalk.bold("  Changes detected:"));
+  outputSection("Changes detected:");
 
   if (diff.added.length > 0) {
-    console.log(chalk.green(`    + ${diff.added.length} file(s) added`));
+    outputSuccess(`    + ${diff.added.length} file(s) added`);
     for (const f of diff.added.slice(0, 10)) {
-      console.log(chalk.green(`      + ${f}`));
+      output(chalk.green(`      + ${f}`));
     }
     if (diff.added.length > 10) {
-      console.log(chalk.gray(`      ... and ${diff.added.length - 10} more`));
+      output(chalk.gray(`      ... and ${diff.added.length - 10} more`));
     }
   }
 
   if (diff.removed.length > 0) {
-    console.log(chalk.red(`    - ${diff.removed.length} file(s) removed`));
+    outputError(`    - ${diff.removed.length} file(s) removed`);
     for (const f of diff.removed.slice(0, 10)) {
-      console.log(chalk.red(`      - ${f}`));
+      output(chalk.red(`      - ${f}`));
     }
     if (diff.removed.length > 10) {
-      console.log(chalk.gray(`      ... and ${diff.removed.length - 10} more`));
+      output(chalk.gray(`      ... and ${diff.removed.length - 10} more`));
     }
   }
 
   if (diff.changed.length > 0) {
-    console.log(chalk.yellow(`    ~ ${diff.changed.length} file(s) changed`));
+    outputWarning(`    ~ ${diff.changed.length} file(s) changed`);
     for (const f of diff.changed.slice(0, 10)) {
-      console.log(chalk.yellow(`      ~ ${f}`));
+      output(chalk.yellow(`      ~ ${f}`));
     }
     if (diff.changed.length > 10) {
-      console.log(chalk.gray(`      ... and ${diff.changed.length - 10} more`));
+      output(chalk.gray(`      ... and ${diff.changed.length - 10} more`));
     }
   }
 
   if (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) {
-    console.log(chalk.green("    No changes detected. Everything is up to date."));
+    outputSuccess("    No changes detected. Everything is up to date.");
   }
 
-  console.log("");
+  outputBlank();
 }
 
 function applyUpdates(
@@ -119,7 +121,7 @@ function applyUpdates(
       }
     }
 
-    console.log(chalk.gray(`  Backup created at: ${backupDir.replace(targetDir + "/", "")}`));
+    output(chalk.gray(`  Backup created at: ${backupDir.replace(targetDir + "/", "")}`));
   }
 
   // Apply changes
@@ -146,7 +148,7 @@ function applyUpdates(
     }
   }
 
-  console.log(chalk.green(`  ✔ Updated ${filesUpdated} file(s)`));
+  outputSuccess(`  ✔ Updated ${filesUpdated} file(s)`);
 }
 
 // ── Command ──────────────────────────────────────────────────────────────────
@@ -164,11 +166,9 @@ export const updateCommand = new Command("update")
     const targetDir = resolve(options.dir || ".");
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║  nexus update — Change Detection         ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
-      console.log("");
+      output("");
+      outputSection("nexus update — Change Detection");
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -183,9 +183,9 @@ export const updateCommand = new Command("update")
       if (isJson) {
         outputJson({ error: "no_manifest", message: "No manifest found. Run 'nexus init' or 'nexus upgrade' first." });
       } else {
-        console.log(chalk.yellow("  ⚠ No manifest found."));
-        console.log(chalk.gray("  Run 'nexus init' or 'nexus upgrade' to create a manifest."));
-        console.log("");
+        outputWarning("  ⚠ No manifest found.");
+        output(chalk.gray("  Run 'nexus init' or 'nexus upgrade' to create a manifest."));
+        outputBlank();
       }
       return;
     }
@@ -229,10 +229,10 @@ export const updateCommand = new Command("update")
           installedAt: currentManifest.installedAt,
         });
       } else {
-        console.log(chalk.green("  ✔ Everything is up to date!"));
-        console.log(chalk.gray(`  CLI version: ${currentCliVersion}`));
-        console.log(chalk.gray(`  Last updated: ${currentManifest.installedAt}`));
-        console.log("");
+        outputSuccess("  ✔ Everything is up to date!");
+        output(chalk.gray(`  CLI version: ${currentCliVersion}`));
+        output(chalk.gray(`  Last updated: ${currentManifest.installedAt}`));
+        outputBlank();
       }
       return;
     }
@@ -240,8 +240,8 @@ export const updateCommand = new Command("update")
     // Show version info
     if (!isJson) {
       if (versionMismatch) {
-        console.log(chalk.yellow(`  ℹ CLI version changed: ${currentManifest.cliVersion} → ${currentCliVersion}`));
-        console.log("");
+        outputInfo(`  ℹ CLI version changed: ${currentManifest.cliVersion} → ${currentCliVersion}`);
+        outputBlank();
       }
 
       displayDiff(diff, false);
@@ -253,8 +253,8 @@ export const updateCommand = new Command("update")
         if (isJson) {
           outputJson({ dryRun: true, diff });
         } else {
-          console.log(chalk.gray("  Dry run — no changes applied."));
-          console.log("");
+          output(chalk.gray("  Dry run — no changes applied."));
+          outputBlank();
         }
         return;
       }
@@ -289,16 +289,16 @@ export const updateCommand = new Command("update")
             filesChanged: diff.changed.length + diff.added.length + diff.removed.length,
           });
         } else {
-          console.log(chalk.gray(`  CLI version: ${currentCliVersion}`));
-          console.log(chalk.gray(`  Last updated: ${updatedManifest.installedAt}`));
-          console.log("");
+          output(chalk.gray(`  CLI version: ${currentCliVersion}`));
+          output(chalk.gray(`  Last updated: ${updatedManifest.installedAt}`));
+          outputBlank();
         }
       } catch (error) {
         applySpinner.fail("Failed to apply updates");
         if (isJson) {
           outputJson({ error: "apply_failed", message: String(error) });
         } else {
-          console.error(chalk.red(`  Error: ${error}`));
+          logger.error("update", `Error: ${error}`);
         }
         return;
       }
@@ -311,9 +311,9 @@ export const updateCommand = new Command("update")
           hint: "Run 'nexus update --apply' to apply changes",
         });
       } else {
-        console.log(chalk.gray("  Run 'nexus update --apply' to apply these changes."));
-        console.log(chalk.gray("  Run 'nexus update --dry-run' to preview without applying."));
-        console.log("");
+        output(chalk.gray("  Run 'nexus update --apply' to apply these changes."));
+        output(chalk.gray("  Run 'nexus update --dry-run' to preview without applying."));
+        outputBlank();
       }
     }
   });

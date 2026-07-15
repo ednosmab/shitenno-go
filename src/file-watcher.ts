@@ -18,6 +18,7 @@ import {
   type SignificanceResult,
 } from "./doc-sync-significance.js";
 import { logger } from "./logger.js";
+import { isSyncWriteInProgress } from "./sync-write-guard.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,10 +68,10 @@ export function startWatching(
   }
 
   // Watch specific subdirectories (chokidar v5 is slow scanning entire tree)
+  // NOTE: reports/ excluded — generated output (doc-sync reports) should not trigger re-sync loops
   const watchPaths = [
     join(nexusDir, "governance"),
     join(nexusDir, "docs"),
-    join(nexusDir, "reports"),
     ...(options.extraPaths || []),
   ];
 
@@ -84,6 +85,7 @@ export function startWatching(
       /(^|[\/\\])\../, // dot files
       /node_modules/,
       /telemetry\/events-/, // event log files
+      /docs\/generated\//, // auto-generated documentation
     ],
   });
 
@@ -273,6 +275,9 @@ function handleFileChange(
   }
 
   // Plan file change — publish event for rule engine to evaluate
+  // Guard: if this change was caused by our own sync write, don't re-trigger
+  if (isSyncWriteInProgress()) return;
+
   const relativePath = filePath.slice(nexusDir.length + 1);
   if (relativePath.startsWith("governance/plans/") && relativePath.endsWith(".md")) {
     const fileName = basename(filePath);

@@ -90,18 +90,20 @@ describe("miniBar", () => {
 
 describe("outputJson", () => {
   it("outputs valid JSON to stdout", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     outputJson({ key: "value", num: 42 });
     expect(spy).toHaveBeenCalledTimes(1);
-    const output = JSON.parse(spy.mock.calls[0]![0] as string);
+    const raw = spy.mock.calls[0]![0] as string;
+    const output = JSON.parse(raw.replace(/\n$/, ""));
     expect(output).toEqual({ key: "value", num: 42 });
     spy.mockRestore();
   });
 
   it("outputs nested objects", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     outputJson({ arr: [1, 2], nested: { a: true } });
-    const output = JSON.parse(spy.mock.calls[0]![0] as string);
+    const raw = spy.mock.calls[0]![0] as string;
+    const output = JSON.parse(raw.replace(/\n$/, ""));
     expect(output.arr).toEqual([1, 2]);
     expect(output.nested.a).toBe(true);
     spy.mockRestore();
@@ -137,18 +139,18 @@ describe("statusIcon", () => {
 
 describe("banner", () => {
   it("prints a 3-line box containing the title and subtitle", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     banner("nexus status", "Health Check");
-    const output = spy.mock.calls.map((c) => c[0]).join("\n");
+    const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("nexus status — Health Check");
     expect(spy).toHaveBeenCalledTimes(3);
     spy.mockRestore();
   });
 
   it("box width adapts to content length", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     banner("nexus init", "Setup");
-    const lines = spy.mock.calls.map((c) => c[0] as string);
+    const lines = spy.mock.calls.map((c) => (c[0] as string).replace(/\n$/, ""));
     const label = "nexus init — Setup";
     const expectedWidth = label.length + 4;
     expect(lines[0]).toContain("═".repeat(expectedWidth));

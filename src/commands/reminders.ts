@@ -24,6 +24,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { execSync } from "node:child_process";
 import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
+import { output, outputBlank } from "../output.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
 import type { Reminder, ReminderPriority, ReminderCategory } from "../briefing.js";
 
@@ -153,13 +154,13 @@ export function remindersCommand(): Command {
       return;
     }
 
-    console.log("");
+    outputBlank();
     if (reminders.length === 0) {
-      console.log(chalk.dim("  No active reminders."));
-      console.log(chalk.dim("  Use 'nexus reminders add \"message\"' to create one."));
+      output(chalk.dim("  No active reminders."));
+      output(chalk.dim("  Use 'nexus reminders add \"message\"' to create one."));
     } else {
-      console.log(chalk.bold(`  Active Reminders (${reminders.length})`));
-      console.log(chalk.dim("  " + "─".repeat(60)));
+      output(chalk.bold(`  Active Reminders (${reminders.length})`));
+      output(chalk.dim("  " + "─".repeat(60)));
 
       // Sort by priority: high → medium → low
       const priorityOrder: Record<ReminderPriority, number> = { high: 0, medium: 1, low: 2 };
@@ -171,10 +172,10 @@ export function remindersCommand(): Command {
         const r = sortedReminders[i]!;
         const icon = PRIORITY_ICONS[r.priority];
         const categoryIcon = CATEGORY_ICONS[r.category];
-        console.log(`  ${chalk.cyan(`${i + 1}.`)} ${icon} ${r.message} ${chalk.dim(`${categoryIcon} ${r.category}`)}`);
+        output(`  ${chalk.cyan(`${i + 1}.`)} ${icon} ${r.message} ${chalk.dim(`${categoryIcon} ${r.category}`)}`);
       }
     }
-    console.log("");
+    outputBlank();
   });
 
   // ── add ─────────────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ export function remindersCommand(): Command {
         if (isJson) {
           outputJson({ error: `Invalid priority: ${priority}. Must be: ${VALID_PRIORITIES.join(", ")}` });
         } else {
-          console.log(chalk.red(`  Invalid priority: ${priority}. Must be: ${VALID_PRIORITIES.join(", ")}`));
+          output(chalk.red(`  Invalid priority: ${priority}. Must be: ${VALID_PRIORITIES.join(", ")}`));
         }
         return;
       }
@@ -209,7 +210,7 @@ export function remindersCommand(): Command {
         if (isJson) {
           outputJson({ error: `Invalid category: ${category}. Must be: ${VALID_CATEGORIES.join(", ")}` });
         } else {
-          console.log(chalk.red(`  Invalid category: ${category}. Must be: ${VALID_CATEGORIES.join(", ")}`));
+          output(chalk.red(`  Invalid category: ${category}. Must be: ${VALID_CATEGORIES.join(", ")}`));
         }
         return;
       }
@@ -222,7 +223,7 @@ export function remindersCommand(): Command {
         if (isJson) {
           outputJson({ skipped: true, message: `Reminder already exists: ${message}` });
         } else {
-          console.log(chalk.yellow(`  ⚠ Reminder already exists: ${message} — skipped`));
+          output(chalk.yellow(`  ⚠ Reminder already exists: ${message} — skipped`));
         }
         return;
       }
@@ -246,8 +247,8 @@ export function remindersCommand(): Command {
       } else {
         const icon = PRIORITY_ICONS[priority];
         const categoryIcon = CATEGORY_ICONS[category];
-        console.log(chalk.green(`  ✓ Reminder added: ${icon} ${message} ${chalk.dim(`${categoryIcon} ${category}`)}`));
-        console.log(chalk.dim(`  Total reminders: ${reminders.length}`));
+        output(chalk.green(`  ✓ Reminder added: ${icon} ${message} ${chalk.dim(`${categoryIcon} ${category}`)}`));
+        output(chalk.dim(`  Total reminders: ${reminders.length}`));
       }
     });
 
@@ -269,7 +270,7 @@ export function remindersCommand(): Command {
         if (isJson) {
           outputJson({ error: "No reminders to remove" });
         } else {
-          console.log(chalk.red("  No reminders to remove."));
+          output(chalk.red("  No reminders to remove."));
         }
         return;
       }
@@ -285,7 +286,7 @@ export function remindersCommand(): Command {
           if (isJson) {
             outputJson({ error: `Reminder not found: ${message}` });
           } else {
-            console.log(chalk.red(`  Reminder not found: ${message}`));
+            output(chalk.red(`  Reminder not found: ${message}`));
           }
           return;
         }
@@ -296,7 +297,7 @@ export function remindersCommand(): Command {
           if (isJson) {
             outputJson({ error: `Invalid index: ${index}` });
           } else {
-            console.log(chalk.red(`  Invalid index: ${index}. Must be 1-${reminders.length}`));
+            output(chalk.red(`  Invalid index: ${index}. Must be 1-${reminders.length}`));
           }
           return;
         }
@@ -304,7 +305,7 @@ export function remindersCommand(): Command {
         if (isJson) {
           outputJson({ error: "Specify index or --message" });
         } else {
-          console.log(chalk.red("  Specify index or --message to remove a reminder."));
+          output(chalk.red("  Specify index or --message to remove a reminder."));
         }
         return;
       }
@@ -317,8 +318,8 @@ export function remindersCommand(): Command {
         outputJson({ removed: removedReminder, index: removedIndex + 1, count: reminders.length });
       } else {
         const icon = PRIORITY_ICONS[removedReminder.priority];
-        console.log(chalk.green(`  ✓ Reminder removed: ${icon} ${removedReminder.message}`));
-        console.log(chalk.dim(`  Remaining reminders: ${reminders.length}`));
+        output(chalk.green(`  ✓ Reminder removed: ${icon} ${removedReminder.message}`));
+        output(chalk.dim(`  Remaining reminders: ${reminders.length}`));
       }
     });
 
@@ -341,9 +342,9 @@ export function remindersCommand(): Command {
         outputJson({ cleared: count });
       } else {
         if (count === 0) {
-          console.log(chalk.dim("  No reminders to clear."));
+          output(chalk.dim("  No reminders to clear."));
         } else {
-          console.log(chalk.green(`  ✓ Cleared ${count} reminder(s).`));
+          output(chalk.green(`  ✓ Cleared ${count} reminder(s).`));
         }
       }
     });

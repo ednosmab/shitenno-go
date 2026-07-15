@@ -27,6 +27,7 @@ import {
   type ComparisonOperator,
 } from "../policy-engine.js";
 import { outputJson } from "../formatting.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError, outputWarning } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -77,20 +78,20 @@ export function policyCommand(): Command {
         return;
       }
 
-      console.log("");
+      outputBlank();
       if (policies.length === 0) {
-        console.log(chalk.dim("  No policies defined. Create one with: nexus policy create \"<name>\""));
+        output(chalk.dim("  No policies defined. Create one with: nexus policy create \"<name>\""));
       } else {
-        console.log(chalk.bold(`  Policies (${policies.length})`));
-        console.log(chalk.dim("  " + "─".repeat(70)));
+        outputSection(`Policies (${policies.length})`);
+        output(chalk.dim("  " + "─".repeat(70)));
         for (const p of policies) {
           const status = p.enabled ? chalk.green("ON ") : chalk.dim("OFF");
           const mode = MODE_COLORS[p.mode](p.mode.padEnd(8));
           const effect = EFFECT_COLORS[p.effect](p.effect.padEnd(8));
-          console.log(`  ${chalk.bold(p.id)}  ${status}  ${mode}  ${effect}  ${p.name}`);
+          output(`  ${chalk.bold(p.id)}  ${status}  ${mode}  ${effect}  ${p.name}`);
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── show ────────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ export function policyCommand(): Command {
         if (isJson) {
           outputJson({ error: "Policy not found" });
         } else {
-          console.log(chalk.red(`  Policy not found: ${id}`));
+          outputError(`Policy not found: ${id}`);
         }
         return;
       }
@@ -121,31 +122,31 @@ export function policyCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  ${policy.id}`));
-      console.log(`  ${policy.name}`);
-      if (policy.description) console.log(`  ${chalk.dim(policy.description)}`);
-      console.log("");
-      console.log(`  Mode:     ${MODE_COLORS[policy.mode](policy.mode)}`);
-      console.log(`  Effect:   ${EFFECT_COLORS[policy.effect](policy.effect)}`);
-      console.log(`  Enabled:  ${policy.enabled ? chalk.green("Yes") : chalk.red("No")}`);
-      console.log(`  Priority: ${policy.priority}`);
-      if (policy.categories?.length) console.log(`  Categories: ${policy.categories.join(", ")}`);
-      if (policy.tags?.length) console.log(`  Tags:     ${policy.tags.join(", ")}`);
-      console.log("");
+      outputBlank();
+      output(chalk.bold(`  ${policy.id}`));
+      output(`  ${policy.name}`);
+      if (policy.description) output(`  ${chalk.dim(policy.description)}`);
+      outputBlank();
+      output(`  Mode:     ${MODE_COLORS[policy.mode](policy.mode)}`);
+      output(`  Effect:   ${EFFECT_COLORS[policy.effect](policy.effect)}`);
+      output(`  Enabled:  ${policy.enabled ? chalk.green("Yes") : chalk.red("No")}`);
+      output(`  Priority: ${policy.priority}`);
+      if (policy.categories?.length) output(`  Categories: ${policy.categories.join(", ")}`);
+      if (policy.tags?.length) output(`  Tags:     ${policy.tags.join(", ")}`);
+      outputBlank();
       if (policy.conditions.length > 0) {
-        console.log(chalk.bold("  Conditions:"));
+        outputSection("Conditions:");
         for (const c of policy.conditions) {
-          console.log(`    ${c.field} ${c.operator} ${c.value ?? "(any)"}`);
+          output(`    ${c.field} ${c.operator} ${c.value ?? "(any)"}`);
         }
       }
       if (policy.actions.length > 0) {
-        console.log(chalk.bold("  Actions:"));
+        outputSection("Actions:");
         for (const a of policy.actions) {
-          console.log(`    ${a.type}: ${JSON.stringify(a.params)}`);
+          output(`    ${a.type}: ${JSON.stringify(a.params)}`);
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── create ──────────────────────────────────────────────────────────────
@@ -189,8 +190,8 @@ export function policyCommand(): Command {
       if (isJson) {
         outputJson(policy as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Policy created: ${chalk.bold(policy.id)}`));
-        console.log(`    ${policy.name}`);
+        outputSuccess(`Policy created: ${chalk.bold(policy.id)}`);
+        output(`    ${policy.name}`);
       }
     });
 
@@ -233,24 +234,24 @@ export function policyCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Policy Evaluation"));
-      console.log(chalk.dim("  " + "─".repeat(60)));
-      console.log(`  Evaluated: ${evaluation.evaluated}`);
-      console.log(`  Matched:   ${evaluation.matched}`);
-      console.log(`  Violations: ${chalk.red(String(evaluation.violations))}`);
-      console.log(`  Warnings:  ${chalk.yellow(String(evaluation.warnings))}`);
-      console.log(`  Compliant: ${evaluation.compliant ? chalk.green("Yes") : chalk.red("No")}`);
-      console.log("");
+      outputBlank();
+      outputSection("Policy Evaluation");
+      output(chalk.dim("  " + "─".repeat(60)));
+      output(`  Evaluated: ${evaluation.evaluated}`);
+      output(`  Matched:   ${evaluation.matched}`);
+      output(`  Violations: ${chalk.red(String(evaluation.violations))}`);
+      output(`  Warnings:  ${chalk.yellow(String(evaluation.warnings))}`);
+      output(`  Compliant: ${evaluation.compliant ? chalk.green("Yes") : chalk.red("No")}`);
+      outputBlank();
 
       if (evaluation.results.some((r) => r.matched)) {
-        console.log(chalk.bold("  Matched Policies:"));
+        outputSection("Matched Policies:");
         for (const r of evaluation.results.filter((r) => r.matched)) {
           const icon = r.violated ? chalk.red("✗") : chalk.yellow("⚠");
-          console.log(`    ${icon} ${r.policyName} (${r.mode}) — ${r.message}`);
+          output(`    ${icon} ${r.policyName} (${r.mode}) — ${r.message}`);
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── enable ──────────────────────────────────────────────────────────────
@@ -271,7 +272,7 @@ export function policyCommand(): Command {
         if (isJson) {
           outputJson({ error: "Policy not found" });
         } else {
-          console.log(chalk.red(`  Policy not found: ${id}`));
+          outputError(`Policy not found: ${id}`);
         }
         return;
       }
@@ -279,7 +280,7 @@ export function policyCommand(): Command {
       if (isJson) {
         outputJson(policy as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Policy enabled: ${policy.id}`));
+        outputSuccess(`Policy enabled: ${policy.id}`);
       }
     });
 
@@ -301,7 +302,7 @@ export function policyCommand(): Command {
         if (isJson) {
           outputJson({ error: "Policy not found" });
         } else {
-          console.log(chalk.red(`  Policy not found: ${id}`));
+          outputError(`Policy not found: ${id}`);
         }
         return;
       }
@@ -309,7 +310,7 @@ export function policyCommand(): Command {
       if (isJson) {
         outputJson(policy as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.yellow(`  ⚠ Policy disabled: ${policy.id}`));
+        outputWarning(`Policy disabled: ${policy.id}`);
       }
     });
 
@@ -331,7 +332,7 @@ export function policyCommand(): Command {
         if (isJson) {
           outputJson({ error: "Policy not found" });
         } else {
-          console.log(chalk.red(`  Policy not found: ${id}`));
+          outputError(`Policy not found: ${id}`);
         }
         return;
       }
@@ -339,7 +340,7 @@ export function policyCommand(): Command {
       if (isJson) {
         outputJson({ deleted: true, id });
       } else {
-        console.log(chalk.green(`  ✓ Policy deleted: ${id}`));
+        outputSuccess(`Policy deleted: ${id}`);
       }
     });
 
@@ -372,15 +373,15 @@ export function policyCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Policy Statistics"));
-      console.log(chalk.dim("  " + "─".repeat(40)));
-      console.log(`  Total:     ${stats.total}`);
-      console.log(`  Enabled:   ${chalk.green(String(stats.enabled))}`);
-      console.log(`  Disabled:  ${chalk.gray(String(stats.disabled))}`);
-      console.log(`  Enforce:   ${chalk.red(String(stats.enforce))}`);
-      console.log(`  Advisory:  ${chalk.yellow(String(stats.advisory))}`);
-      console.log("");
+      outputBlank();
+      outputSection("Policy Statistics");
+      output(chalk.dim("  " + "─".repeat(40)));
+      output(`  Total:     ${stats.total}`);
+      output(`  Enabled:   ${chalk.green(String(stats.enabled))}`);
+      output(`  Disabled:  ${chalk.gray(String(stats.disabled))}`);
+      output(`  Enforce:   ${chalk.red(String(stats.enforce))}`);
+      output(`  Advisory:  ${chalk.yellow(String(stats.advisory))}`);
+      outputBlank();
     });
 
   return cmd;

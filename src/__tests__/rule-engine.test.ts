@@ -5,7 +5,7 @@
  * and the full rule engine pipeline.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -93,6 +93,7 @@ describe("rule-engine", () => {
     });
 
     it("ignores invalid JSON files", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
       const rulesPath = join(nexusDir, "governance", "rules");
       writeFileSync(join(rulesPath, "invalid.json"), "not json", "utf-8");
       writeFileSync(join(rulesPath, "valid.json"), JSON.stringify(createMockRule()), "utf-8");

@@ -616,6 +616,27 @@ async function main() {
 
   generateReport();
 
+  // ── Semantic drift check ──────────────────────────────────────────────────
+  try {
+    const { runSemanticDocSync } = await import("../../src/doc-semantic-sync.js");
+    const semanticResult = runSemanticDocSync({
+      projectRoot: ROOT,
+      nexusDir: NEXUS,
+    });
+
+    if (!QUIET && semanticResult.driftFound > 0) {
+      log(
+        `\n🧠 Drift semântico: ${semanticResult.driftFound} doc(s) desalinhado(s). ` +
+        `${semanticResult.remindersWritten} reminder(s) novo(s) escrito(s) em context_buffer.yaml.`
+      );
+    }
+  } catch {
+    // Semantic sync is non-critical — don't block on errors
+    if (VERBOSE) {
+      log("\n⚠️  Semantic drift check skipped (module not available)");
+    }
+  }
+
   if (errors > 0 && !FIX) {
     log("\n❌ Documentation sync failed — run with --fix to auto-fix");
     process.exit(1);

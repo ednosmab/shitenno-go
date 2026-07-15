@@ -1,10 +1,10 @@
 {
   "name": "nexus-system",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "AI governance framework that grows with your project — scoring, pattern detection, health auditing",
   "type": "module",
   "bin": {
-    "nexus": "./dist/nexus.js"
+    "nexus": "./dist/bin/nexus.js"
   },
   "main": "./dist/nexus.js",
   "files": [
@@ -14,7 +14,7 @@
     ".": "./dist/nexus.js"
   },
   "scripts": {
-    "build": "tsup && rm -rf dist/templates && cp -r src/templates dist/templates",
+    "build": "tsup && rm -rf dist/templates && cp -r src/templates dist/templates && cp package.json dist/package.json",
     "dev": "tsx bin/nexus.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
@@ -32,7 +32,8 @@
     "sync:docs:fix": "tsx nexus-system/scripts/sync-docs.ts --fix",
     "sync:docs:dry": "tsx nexus-system/scripts/sync-docs.ts --dry-run",
     "validate:docs": "tsx nexus-system/scripts/sync-docs.ts",
-    "backlog": "tsx nexus-system/scripts/backlog.ts"
+    "backlog": "tsx nexus-system/scripts/backlog.ts",
+    "nexus": "node ./dist/bin/nexus.js"
   },
   "keywords": [
     "ai",
@@ -84,7 +85,8 @@
     "tsup": "^8.3.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "vitest-fail-on-console": "^0.10.1"
   },
   "overrides": {
     "esbuild": ">=0.28.1"

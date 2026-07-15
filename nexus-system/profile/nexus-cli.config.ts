@@ -19,7 +19,6 @@ export const profile: ProjectProfile = {
     "src/__tests__",
     "src/commands",
     "src/templates",
-  ]",
   ],
 
   /** Palavras-chave que indicam superfície sensível. */

@@ -26,6 +26,7 @@ import {
   type ActionResult,
 } from "../action-engine.js";
 import { outputJson } from "../formatting.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -88,8 +89,8 @@ export function actCommand(): Command {
       if (isJson) {
         outputJson(record as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Action executed: ${record.executionId}`));
-        console.log(`    ${formatExecution(record)}`);
+        outputSuccess(`Action executed: ${record.executionId}`);
+        output(`    ${formatExecution(record)}`);
       }
     });
 
@@ -118,7 +119,7 @@ export function actCommand(): Command {
       if (isJson) {
         outputJson(record as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Notification sent: ${record.executionId}`));
+        outputSuccess(`Notification sent: ${record.executionId}`);
       }
     });
 
@@ -147,7 +148,7 @@ export function actCommand(): Command {
       if (isJson) {
         outputJson(record as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Reminder created: ${record.executionId}`));
+        outputSuccess(`Reminder created: ${record.executionId}`);
       }
     });
 
@@ -176,7 +177,7 @@ export function actCommand(): Command {
         outputJson(record as unknown as Record<string, unknown>);
       } else {
         const icon = record.status === "completed" ? chalk.green("✓") : chalk.red("✗");
-        console.log(`${icon} Script executed: ${record.executionId}`);
+        output(`${icon} Script executed: ${record.executionId}`);
       }
     });
 
@@ -205,17 +206,17 @@ export function actCommand(): Command {
         return;
       }
 
-      console.log("");
+      outputBlank();
       if (records.length === 0) {
-        console.log(chalk.dim("  No executions found."));
+        output(chalk.dim("  No executions found."));
       } else {
-        console.log(chalk.bold(`  Executions (${records.length})`));
-        console.log(chalk.dim("  " + "─".repeat(70)));
+        outputSection(`Executions (${records.length})`);
+        output(chalk.dim("  " + "─".repeat(70)));
         for (const r of records) {
-          console.log(formatExecution(r));
+          output(formatExecution(r));
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── show ────────────────────────────────────────────────────────────────
@@ -236,7 +237,7 @@ export function actCommand(): Command {
         if (isJson) {
           outputJson({ error: "Execution not found" });
         } else {
-          console.log(chalk.red(`  Execution not found: ${id}`));
+          outputError(`Execution not found: ${id}`);
         }
         return;
       }
@@ -246,26 +247,26 @@ export function actCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  ${record.executionId}`));
-      console.log(`  Action:     ${record.request.type}`);
-      console.log(`  Action ID:  ${record.request.id}`);
-      console.log(`  Status:     ${STATUS_COLORS[record.status](record.status)}`);
-      if (record.result) console.log(`  Result:     ${RESULT_COLORS[record.result](record.result)}`);
-      console.log(`  Hash:       ${record.executionHash}`);
-      console.log(`  Started:    ${record.startedAt}`);
-      if (record.completedAt) console.log(`  Completed:  ${record.completedAt}`);
-      if (record.duration) console.log(`  Duration:   ${record.duration}ms`);
-      if (record.error) console.log(`  Error:      ${chalk.red(record.error)}`);
-      if (record.output) console.log(`  Output:     ${JSON.stringify(record.output)}`);
-      if (record.request.correlationId) console.log(`  Correlation: ${record.request.correlationId}`);
+      outputBlank();
+      output(chalk.bold(`  ${record.executionId}`));
+      output(`  Action:     ${record.request.type}`);
+      output(`  Action ID:  ${record.request.id}`);
+      output(`  Status:     ${STATUS_COLORS[record.status](record.status)}`);
+      if (record.result) output(`  Result:     ${RESULT_COLORS[record.result](record.result)}`);
+      output(`  Hash:       ${record.executionHash}`);
+      output(`  Started:    ${record.startedAt}`);
+      if (record.completedAt) output(`  Completed:  ${record.completedAt}`);
+      if (record.duration) output(`  Duration:   ${record.duration}ms`);
+      if (record.error) output(`  Error:      ${chalk.red(record.error)}`);
+      if (record.output) output(`  Output:     ${JSON.stringify(record.output)}`);
+      if (record.request.correlationId) output(`  Correlation: ${record.request.correlationId}`);
       if (record.rollback) {
-        console.log(chalk.bold("  Rollback:"));
-        console.log(`    ID:       ${record.rollback.rollbackId}`);
-        console.log(`    Status:   ${record.rollback.status}`);
-        if (record.rollback.error) console.log(`    Error:    ${record.rollback.error}`);
+        outputSection("Rollback:");
+        output(`    ID:       ${record.rollback.rollbackId}`);
+        output(`    Status:   ${record.rollback.status}`);
+        if (record.rollback.error) output(`    Error:    ${record.rollback.error}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── rollback ────────────────────────────────────────────────────────────
@@ -286,7 +287,7 @@ export function actCommand(): Command {
         if (isJson) {
           outputJson({ error: "Execution not found or not rollbackable" });
         } else {
-          console.log(chalk.red(`  Cannot rollback: ${id}`));
+          outputError(`Cannot rollback: ${id}`);
         }
         return;
       }
@@ -295,9 +296,9 @@ export function actCommand(): Command {
         outputJson(record as unknown as Record<string, unknown>);
       } else {
         if (record.rollback?.status === "completed") {
-          console.log(chalk.green(`  ✓ Action rolled back: ${record.executionId}`));
+          outputSuccess(`Action rolled back: ${record.executionId}`);
         } else {
-          console.log(chalk.red(`  ✗ Rollback failed: ${record.rollback?.error}`));
+          outputError(`Rollback failed: ${record.rollback?.error}`);
         }
       }
     });
@@ -320,17 +321,17 @@ export function actCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Execution Statistics"));
-      console.log(chalk.dim("  " + "─".repeat(40)));
-      console.log(`  Total:       ${stats.total}`);
-      console.log(`  Avg Duration: ${stats.avgDuration}ms`);
-      console.log(`  Success Rate: ${stats.successRate}%`);
-      console.log("");
+      outputBlank();
+      outputSection("Execution Statistics");
+      output(chalk.dim("  " + "─".repeat(40)));
+      output(`  Total:       ${stats.total}`);
+      output(`  Avg Duration: ${stats.avgDuration}ms`);
+      output(`  Success Rate: ${stats.successRate}%`);
+      outputBlank();
       for (const [status, count] of Object.entries(stats.byStatus)) {
-        if (count > 0) console.log(`  ${STATUS_COLORS[status as ActionStatus](status)}: ${count}`);
+        if (count > 0) output(`  ${STATUS_COLORS[status as ActionStatus](status)}: ${count}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   return cmd;

@@ -251,6 +251,114 @@ export function updateSessionLifecycle(
   return { success: false, message: "No fields updated" };
 }
 
+// ── Reminders ──────────────────────────────────────────────────────────────
+
+import type { ReminderPriority, ReminderCategory } from "./briefing.js";
+
+export interface ReminderInput {
+  message: string;
+  priority: ReminderPriority;
+  category: ReminderCategory;
+  createdAt: string;
+}
+
+/**
+ * Add a reminder to context_buffer.yaml.
+ * Appends to the `reminders` array. Deduplicates by message text —
+ * skips if a reminder with the same message already exists.
+ */
+export function addReminder(
+  nexusDir: string,
+  reminder: ReminderInput
+): { success: boolean; message: string; skipped?: boolean } {
+  const content = readBuffer(nexusDir);
+  if (content === null) {
+    return { success: false, message: "context_buffer.yaml not found" };
+  }
+
+  // Dedup: same message already present → skip
+  if (content.includes(`message: "${reminder.message}"`)) {
+    return { success: true, message: "Reminder already exists, skipped", skipped: true };
+  }
+
+  const entry = `  - message: "${reminder.message}"
+    priority: "${reminder.priority}"
+    category: "${reminder.category}"
+    createdAt: "${reminder.createdAt}"
+`;
+
+  const remindersRegex = /^reminders:\s*\n/m;
+  const match = remindersRegex.exec(content);
+
+  if (match) {
+    const insertPos = match.index + match[0].length;
+    const updated = content.slice(0, insertPos) + entry + content.slice(insertPos);
+    writeBuffer(nexusDir, updated);
+    return { success: true, message: `Reminder added: ${reminder.message}` };
+  }
+
+  // reminders section doesn't exist — create at the beginning
+  const updated = "reminders:\n" + entry + "\n" + content;
+  writeBuffer(nexusDir, updated);
+  return { success: true, message: `Reminder added (new section): ${reminder.message}` };
+}
+
+/**
+ * Remove reminders that match a category.
+ * Call after the agent resolves a reminder to prevent stale entries.
+ */
+export function clearRemindersByCategory(
+  nexusDir: string,
+  category: ReminderCategory
+): { success: boolean; removed: number } {
+  const content = readBuffer(nexusDir);
+  if (content === null) return { success: false, removed: 0 };
+
+  const lines = content.split("\n");
+  const remindersStart = lines.findIndex((l) => /^reminders:\s*$/.test(l));
+  if (remindersStart === -1) return { success: true, removed: 0 };
+
+  // Find where reminders section ends (next non-indented line or EOF)
+  let remindersEnd = lines.length;
+  for (let i = remindersStart + 1; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (line.length > 0 && !line.startsWith(" ") && !line.startsWith("\t")) {
+      remindersEnd = i;
+      break;
+    }
+  }
+
+  // Collect entries: each entry starts with "  - " and may have continuation lines
+  const entries: string[][] = [];
+  let currentEntry: string[] | null = null;
+  for (let i = remindersStart + 1; i < remindersEnd; i++) {
+    const line = lines[i]!;
+    if (/^\s+- /.test(line)) {
+      if (currentEntry) entries.push(currentEntry);
+      currentEntry = [line];
+    } else if (currentEntry) {
+      currentEntry.push(line);
+    }
+  }
+  if (currentEntry) entries.push(currentEntry);
+
+  // Filter: keep entries that do NOT match the category
+  const kept = entries.filter(
+    (entry) => !entry.some((l) => l.includes(`category: "${category}"`))
+  );
+  const removed = entries.length - kept.length;
+
+  if (removed === 0) return { success: true, removed: 0 };
+
+  // Rebuild: reminders header + kept entries + rest of file
+  const keptBlock = kept.length > 0 ? kept.map((e) => e.join("\n")).join("\n") + "\n" : "[]\n";
+  const before = lines.slice(0, remindersStart + 1).join("\n");
+  const after = lines.slice(remindersEnd).join("\n");
+  const updated = before + "\n" + keptBlock + (after.startsWith("\n") ? after.slice(1) : after);
+  writeBuffer(nexusDir, updated);
+  return { success: true, removed };
+}
+
 // ── Impediments ──────────────────────────────────────────────────────────────
 
 export interface Impediment {

@@ -7,6 +7,7 @@ import { outputJson, statusIcon, banner } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank } from "../output.js";
 
 interface ValidationResult {
   name: string;
@@ -23,9 +24,9 @@ export const validateCommand = new Command("validate")
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");
+      outputBlank();
       banner("nexus validate", "Session Check");
-      console.log("");
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -319,13 +320,13 @@ function checkGitStatus(targetDir: string): ValidationResult {
       };
     }
 
-    const output = execSync("git status --porcelain", {
+    const gitOutput = execSync("git status --porcelain", {
       cwd: targetDir,
       encoding: "utf-8",
       timeout: 5000,
     });
 
-    const lines = output.trim().split("\n").filter((l) => l.length > 0);
+    const lines = gitOutput.trim().split("\n").filter((l) => l.length > 0);
 
     if (lines.length === 0) {
       return {
@@ -354,8 +355,8 @@ function displayValidationResults(
   fix: boolean,
   targetDir: string
 ): void {
-  console.log(chalk.bold("  Validation Results:"));
-  console.log("");
+  output(chalk.bold("  Validation Results:"));
+  outputBlank();
 
   let passCount = 0;
   let warnCount = 0;
@@ -367,40 +368,40 @@ function displayValidationResults(
     else if (result.status === "warn") warnCount++;
     else failCount++;
 
-    console.log(`    ${color(icon)} ${chalk.bold(result.name)}: ${color(result.message)}`);
+    output(`    ${color(icon)} ${chalk.bold(result.name)}: ${color(result.message)}`);
   }
 
-  console.log("");
-  console.log(chalk.bold("  Summary:"));
-  console.log(
+  outputBlank();
+  output(chalk.bold("  Summary:"));
+  output(
     `    ${chalk.green(`✔ ${passCount} passed`)}  ${chalk.yellow(`⚠ ${warnCount} warnings`)}  ${chalk.red(`✘ ${failCount} failed`)}`
   );
-  console.log("");
+  outputBlank();
 
   if (failCount > 0 && fix) {
-    console.log(chalk.yellow("  Attempting to fix issues..."));
-    console.log("");
+    output(chalk.yellow("  Attempting to fix issues..."));
+    outputBlank();
 
     const fixResults = attemptFixes(targetDir, results);
 
     if (fixResults.length > 0) {
-      console.log(chalk.green("  Fixed:"));
+      output(chalk.green("  Fixed:"));
       for (const fix of fixResults) {
-        console.log(chalk.green(`    ✔ ${fix}`));
+        output(chalk.green(`    ✔ ${fix}`));
       }
-      console.log("");
+      outputBlank();
     }
   }
 
   if (failCount > 0) {
-    console.log(chalk.red("  Some checks failed. Run 'nexus validate --fix' to attempt repairs."));
+    output(chalk.red("  Some checks failed. Run 'nexus validate --fix' to attempt repairs."));
   } else if (warnCount > 0) {
-    console.log(chalk.yellow("  Session is valid with warnings."));
+    output(chalk.yellow("  Session is valid with warnings."));
   } else {
-    console.log(chalk.green("  Session is valid!"));
+    output(chalk.green("  Session is valid!"));
   }
 
-  console.log("");
+  outputBlank();
 }
 
 function attemptFixes(targetDir: string, results: ValidationResult[]): string[] {

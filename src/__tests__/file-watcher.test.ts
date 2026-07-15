@@ -322,6 +322,42 @@ describe("startWatching", () => {
     stop();
   });
 
+  it("does not re-trigger docs.sync.triggered when syncing writes to docs/generated/", async () => {
+    // Override the mock for calculateSignificance to return 0.0 for this test
+    const { calculateSignificance } = await import("../doc-sync-significance.js");
+    vi.mocked(calculateSignificance).mockReturnValueOnce({
+      score: 0.0,
+      level: "ignore",
+      shouldSync: false,
+      outputLevel: "silent",
+      reasons: ["directory:docs/generated/(0.0)"],
+    });
+
+    const { startWatching } = await import("../file-watcher.js");
+    const { getEventBus } = await import("../event-bus.js");
+
+    vi.useFakeTimers();
+    const stop = startWatching("/nexus", { debounceMs: 100 });
+    const bus = vi.mocked(getEventBus).mock.results[0]?.value;
+
+    const { watch } = await import("chokidar");
+    const watcher = vi.mocked(watch).mock.results[0]?.value;
+    const changeHandler = (watcher as any)?.on?.mock?.calls?.find?.((c: any) => c[0] === "change")?.[1];
+
+    if (changeHandler) {
+      changeHandler("/nexus/docs/generated/ARCHITECTURE.md");
+    }
+
+    vi.advanceTimersByTime(150);
+
+    const docSyncCalls = vi.mocked(bus?.publish).mock.calls.filter(
+      (c: any) => c[0] === "docs.sync.triggered"
+    );
+    expect(docSyncCalls).toHaveLength(0); // Zero calls because it's ignored
+    vi.useRealTimers();
+    stop();
+  });
+
   it("includes extraPaths in watch list", async () => {
     const { startWatching } = await import("../file-watcher.js");
     const { watch } = await import("chokidar");

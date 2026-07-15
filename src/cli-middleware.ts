@@ -10,9 +10,12 @@
  */
 
 import { Command } from "commander";
+import { existsSync } from "node:fs";
 import { getEventBus } from "./event-bus.js";
 import { trackCommand } from "./session-tracker.js";
 import { loadPlugins, getHookBus } from "./plugin-system.js";
+import { isDaemonRunning, startDaemon, shouldSkipDaemon, getApprovedPath } from "./daemon-client.js";
+import { DaemonCircuitBreaker } from "./daemon-circuit-breaker.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +64,26 @@ export function installMiddleware(program: Command, ctx: MiddlewareContext): voi
 
     // Ensure plugins are loaded
     await ensurePluginsLoaded(ctx.projectRoot);
+
+    // Daemon auto-start: only if approved by user and circuit not tripped
+    // Fire-and-forget — never blocks or throws into CLI flow
+    if (!shouldSkipDaemon() && commandName !== "daemon") {
+      try {
+        const breaker = new DaemonCircuitBreaker(ctx.nexusDir);
+        const approvedPath = getApprovedPath(ctx.nexusDir);
+        if (
+          existsSync(approvedPath) &&
+          !breaker.isTripped() &&
+          !isDaemonRunning(ctx.nexusDir)
+        ) {
+          startDaemon(ctx.nexusDir).catch(() => {
+            // Auto-start failure is silent — CLI continues without daemon
+          });
+        }
+      } catch {
+        // Daemon logic must never crash the CLI
+      }
+    }
 
     // Execute pre-analysis hook
     const hookBus = getHookBus();

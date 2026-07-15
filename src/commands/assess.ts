@@ -23,6 +23,7 @@ import {
   type MaturityProfile,
 } from "../maturity-profile.js";
 import { outputJson, healthBar } from "../formatting.js";
+import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, guardInteractive, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { recordFeedback, recordDimensionFeedback, type PerformanceMetric } from "../feedback-loops.js";
@@ -42,17 +43,17 @@ function displayDimensionBar(label: string, value: number, prev?: number): void 
     else delta = chalk.gray(" =");
   }
 
-  console.log(`    ${label.padEnd(16)} ${bar} ${chalk.bold(String(value).padStart(3))}%${delta}`);
+  output(`    ${label.padEnd(16)} ${bar} ${chalk.bold(String(value).padStart(3))}%${delta}`);
 }
 
 function displayEvolution(history: Array<{ timestamp: string; overallScore: number }>): void {
   if (history.length < 2) {
-    console.log(chalk.gray("    (need more assessments to show evolution)"));
+    output(chalk.gray("    (need more assessments to show evolution)"));
     return;
   }
 
-  console.log(chalk.bold("  Evolution:"));
-  console.log("");
+  output(chalk.bold("  Evolution:"));
+  outputBlank();
 
   const maxScore = Math.max(...history.map((h) => h.overallScore));
 
@@ -67,8 +68,8 @@ function displayEvolution(history: Array<{ timestamp: string; overallScore: numb
     return chars[idx];
   }).join("");
 
-  console.log(`    ${chalk.cyan(sparkline)} ${chalk.gray(`(${history.length} assessments)`)}`);
-  console.log("");
+  output(`    ${chalk.cyan(sparkline)} ${chalk.gray(`(${history.length} assessments)`)}`);
+  outputBlank();
 }
 
 function displayComplexity(projectRoot: string, nexusDir: string, isJson: boolean): void {
@@ -89,43 +90,43 @@ function displayComplexity(projectRoot: string, nexusDir: string, isJson: boolea
     return;
   }
 
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║  nexus assess complexity                 ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
+  output(chalk.bold.cyan("  ║  nexus assess complexity                 ║"));
+  output(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
+  outputBlank();
 
   const levelColor = result.level === "simple" ? chalk.green : result.level === "medium" ? chalk.yellow : chalk.red;
-  console.log(chalk.bold("  Project Complexity Analysis"));
-  console.log("  " + "─".repeat(40));
-  console.log(`  Level:     ${levelColor.bold(result.level)}`);
-  console.log(`  Score:     ${result.score}`);
-  console.log("");
+  output(chalk.bold("  Project Complexity Analysis"));
+  output("  " + "─".repeat(40));
+  output(`  Level:     ${levelColor.bold(result.level)}`);
+  output(`  Score:     ${result.score}`);
+  outputBlank();
 
-  console.log(chalk.bold("  Factors:"));
+  output(chalk.bold("  Factors:"));
   for (const f of result.factors) {
     const icon = f.score >= 3 ? "🔴" : f.score >= 2 ? "🟡" : "🟢";
-    console.log(`    ${icon} ${f.description}`);
+    output(`    ${icon} ${f.description}`);
   }
-  console.log("");
+  outputBlank();
 
-  console.log(chalk.bold("  Recommended Capabilities:"));
+  output(chalk.bold("  Recommended Capabilities:"));
   for (const cap of result.recommendedCapabilities) {
-    console.log(chalk.green(`    ✅ ${cap}`));
+    output(chalk.green(`    ✅ ${cap}`));
   }
-  console.log("");
+  outputBlank();
 
-  console.log(chalk.bold("  Rules loaded:"));
-  console.log(`    Complexity: ${result.level}`);
-  console.log(`    Active: ${active.loadedCount}/${active.totalCount} rules`);
+  output(chalk.bold("  Rules loaded:"));
+  output(`    Complexity: ${result.level}`);
+  output(`    Active: ${active.loadedCount}/${active.totalCount} rules`);
   if (result.level === "simple") {
-    console.log(chalk.gray("    ℹ️  Simple project — only core rules active"));
+    output(chalk.gray("    ℹ️  Simple project — only core rules active"));
   } else if (result.level === "medium") {
-    console.log(chalk.gray("    ℹ️  Medium project — core + knowledge + governance + quality rules active"));
+    output(chalk.gray("    ℹ️  Medium project — core + knowledge + governance + quality rules active"));
   } else {
-    console.log(chalk.gray("    ℹ️  Complex project — all rules active"));
+    output(chalk.gray("    ℹ️  Complex project — all rules active"));
   }
-  console.log("");
+  outputBlank();
 }
 
 export const assessCommand = new Command("assess")
@@ -147,11 +148,11 @@ export const assessCommand = new Command("assess")
     }
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║  nexus assess — Maturity Assessment      ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║  nexus assess — Maturity Assessment      ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════════╝"));
+      outputBlank();
     }
 
     if (!checkLifecycleGate("assess", ctx.projectRoot, ctx.nexusDir, isJson)) return;
@@ -221,8 +222,8 @@ export const assessCommand = new Command("assess")
       // Guard against non-interactive environments
       if (!guardInteractive(options, isJson)) return;
 
-      console.log(chalk.bold("  Re-evaluate your maturity profile:"));
-      console.log("");
+      output(chalk.bold("  Re-evaluate your maturity profile:"));
+      outputBlank();
 
       let answers: Awaited<ReturnType<typeof askQuestions>>;
       if (options.answersFile) {
@@ -231,7 +232,7 @@ export const assessCommand = new Command("assess")
           if (isJson) {
             outputJson({ error: "answers_file_not_found", message: `File not found: ${answersPath}` });
           } else {
-            console.log(chalk.red(`  ✘ Answers file not found: ${answersPath}`));
+            output(chalk.red(`  ✘ Answers file not found: ${answersPath}`));
           }
           process.exitCode = 1;
           return;
@@ -239,7 +240,7 @@ export const assessCommand = new Command("assess")
         const raw = readFileSync(answersPath, "utf-8");
         answers = JSON.parse(raw);
         if (!isJson) {
-          console.log(chalk.gray(`  Loaded answers from ${options.answersFile}`));
+          output(chalk.gray(`  Loaded answers from ${options.answersFile}`));
         }
       } else {
         answers = await askQuestions(analysis);
@@ -327,33 +328,33 @@ export const assessCommand = new Command("assess")
     }
 
     // Human-readable output
-    console.log("");
-    console.log(chalk.bold.green("  ═══ Maturity Assessment Results ═══"));
-    console.log("");
+    outputBlank();
+    output(chalk.bold.green("  ═══ Maturity Assessment Results ═══"));
+    outputBlank();
 
     if (previousProfile) {
       const color = scoreDelta !== undefined
         ? scoreDelta > 0 ? chalk.green : scoreDelta < 0 ? chalk.red : chalk.gray
         : chalk.gray;
 
-      console.log(chalk.bold("  Previous Score:"));
-      console.log(`    ${previousProfile.overallScore}/100 ${healthBar(previousProfile.overallScore, 100)}`);
-      console.log("");
+      output(chalk.bold("  Previous Score:"));
+      output(`    ${previousProfile.overallScore}/100 ${healthBar(previousProfile.overallScore, 100)}`);
+      outputBlank();
 
-      console.log(chalk.bold("  New Score:"));
+      output(chalk.bold("  New Score:"));
       const deltaStr = scoreDelta !== undefined
         ? ` (${scoreDelta > 0 ? "+" : ""}${scoreDelta})`
         : "";
-      console.log(`    ${newProfile.overallScore}/100 ${healthBar(newProfile.overallScore, 100)}${color(deltaStr)}`);
+      output(`    ${newProfile.overallScore}/100 ${healthBar(newProfile.overallScore, 100)}${color(deltaStr)}`);
     } else {
-      console.log(chalk.bold("  Overall Score:"));
-      console.log(`    ${newProfile.overallScore}/100 ${healthBar(newProfile.overallScore, 100)}`);
+      output(chalk.bold("  Overall Score:"));
+      output(`    ${newProfile.overallScore}/100 ${healthBar(newProfile.overallScore, 100)}`);
     }
-    console.log("");
+    outputBlank();
 
     // Dimensions with delta
-    console.log(chalk.bold("  Dimensions:"));
-    console.log("");
+    output(chalk.bold("  Dimensions:"));
+    outputBlank();
     const dimLabels: Record<string, string> = {
       architecture: "Arquitetura",
       governance: "Governança",
@@ -368,33 +369,33 @@ export const assessCommand = new Command("assess")
       const prevDim = previousProfile?.dimensions[key as keyof typeof previousProfile.dimensions];
       displayDimensionBar(label, newProfile.dimensions[key as keyof typeof newProfile.dimensions], prevDim);
     }
-    console.log("");
+    outputBlank();
 
     // Capabilities
     const installed = newProfile.installedCapabilities;
     const recommended = newProfile.recommendedCapabilities;
     const future = newProfile.futureCapabilities;
 
-    console.log(chalk.bold("  Installed Capabilities:"));
+    output(chalk.bold("  Installed Capabilities:"));
     for (const cap of installed) {
-      console.log(chalk.green(`    ✓ ${cap}`));
+      output(chalk.green(`    ✓ ${cap}`));
     }
-    console.log("");
+    outputBlank();
 
     if (recommended.length > 0) {
-      console.log(chalk.bold("  🎯 Recommended Capabilities:"));
+      output(chalk.bold("  🎯 Recommended Capabilities:"));
       for (const cap of recommended) {
-        console.log(chalk.cyan(`    → ${cap} — install with: nexus upgrade --capability ${cap}`));
+        output(chalk.cyan(`    → ${cap} — install with: nexus upgrade --capability ${cap}`));
       }
-      console.log("");
+      outputBlank();
     }
 
     if (future.length > 0) {
-      console.log(chalk.bold("  Future Capabilities:"));
+      output(chalk.bold("  Future Capabilities:"));
       for (const cap of future) {
-        console.log(chalk.gray(`    □ ${cap}`));
+        output(chalk.gray(`    □ ${cap}`));
       }
-      console.log("");
+      outputBlank();
     }
 
     // Evolution
@@ -403,19 +404,19 @@ export const assessCommand = new Command("assess")
 
     // Summary
     if (recommended.length > 0) {
-      console.log(chalk.bold("  📝 Summary:"));
-      console.log(chalk.gray(`    ${recommended.length} capability(ies) recommended.`));
-      console.log("");
-      console.log(chalk.bold.cyan("  🎯 Next step:"));
-      console.log(chalk.cyan("    nexus upgrade --accept-recommended"));
-      console.log(chalk.gray("    This will install all recommended capabilities for your maturity level."));
-      console.log("");
-      console.log(chalk.gray("    Or install individually:"));
+      output(chalk.bold("  📝 Summary:"));
+      output(chalk.gray(`    ${recommended.length} capability(ies) recommended.`));
+      outputBlank();
+      output(chalk.bold.cyan("  🎯 Next step:"));
+      output(chalk.cyan("    nexus upgrade --accept-recommended"));
+      output(chalk.gray("    This will install all recommended capabilities for your maturity level."));
+      outputBlank();
+      output(chalk.gray("    Or install individually:"));
       for (const cap of recommended) {
-        console.log(chalk.gray(`      nexus upgrade --capability ${cap}`));
+        output(chalk.gray(`      nexus upgrade --capability ${cap}`));
       }
     } else {
-      console.log(chalk.green("  ✔ Your project is well-equipped! No new capabilities recommended."));
+      output(chalk.green("  ✔ Your project is well-equipped! No new capabilities recommended."));
     }
-    console.log("");
+    outputBlank();
   });

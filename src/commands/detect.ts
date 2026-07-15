@@ -10,6 +10,8 @@ import { recordFeedback } from "../feedback-loops.js";
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { checkAndArchiveDonePlans } from "../plan-lifecycle.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError } from "../output.js";
+import { logger } from "../logger.js";
 
 export const detectCommand = new Command("detect")
   .description("Detect patterns in history and propose candidate rules (Phase 2)")
@@ -26,9 +28,9 @@ export const detectCommand = new Command("detect")
     const format = isJson ? "json" : (String(options.format || "text"));
 
     if (!isJson && !isAuto) {
-      console.log("");
+      output("");
       banner("nexus detect", "Pattern Detection");
-      console.log("");
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -47,10 +49,10 @@ export const detectCommand = new Command("detect")
 
       if (!cached) {
         if (isJson) {
-          outputJson({ error: "no_report", message: "No detection report found. Run 'nexus detect' first." });
+        outputJson({ error: "no_report", message: "No detection report found. Run 'nexus detect' first." });
         } else {
-          console.log(chalk.red("  ✘ No detection report found."));
-          console.log(chalk.gray("    Run 'nexus detect' first."));
+        outputError("No detection report found.");
+        output(chalk.gray("    Run 'nexus detect' first."));
         }
         return;
       }
@@ -58,13 +60,13 @@ export const detectCommand = new Command("detect")
       const rule = cached.candidateRules.find((r) => r.id === ruleId);
       if (!rule) {
         if (isJson) {
-          outputJson({ error: "rule_not_found", message: `Rule '${ruleId}' not found in candidate rules.` });
+        outputJson({ error: "rule_not_found", message: `Rule '${ruleId}' not found in candidate rules.` });
         } else {
-          console.log(chalk.red(`  ✘ Rule '${ruleId}' not found.`));
-          console.log(chalk.gray("    Available rules:"));
-          for (const r of cached.candidateRules) {
-            console.log(chalk.gray(`      • ${r.id}: ${r.title}`));
-          }
+        outputError(`Rule '${ruleId}' not found.`);
+        output(chalk.gray("    Available rules:"));
+        for (const r of cached.candidateRules) {
+        output(chalk.gray(`      • ${r.id}: ${r.title}`));
+        }
         }
         return;
       }
@@ -81,11 +83,11 @@ export const detectCommand = new Command("detect")
       } else {
         const icon = action === "approve" ? "✅" : "❌";
         const color = action === "approve" ? chalk.green : chalk.red;
-        console.log("");
-        console.log(`${icon} ${color(`Rule ${ruleId} ${action}d`)}`);
-        console.log(chalk.gray(`   Title: ${rule.title}`));
-        console.log(chalk.gray(`   Target: ${rule.target}`));
-        console.log("");
+        output("");
+        output(`${icon} ${color(`Rule ${ruleId} ${action}d`)}`);
+        output(chalk.gray(`   Title: ${rule.title}`));
+        output(chalk.gray(`   Target: ${rule.target}`));
+        outputBlank();
       }
 
       return;
@@ -97,11 +99,11 @@ export const detectCommand = new Command("detect")
         const result = checkAndArchiveDonePlans(ctx.nexusDir);
         if (result.archived > 0) {
           // Log minimal info for hooks (goes to stderr which is /dev/null usually, but good practice)
-          console.error(`[nexus detect --auto] Archived ${result.archived} plan(s): ${result.archivedIds.join(", ")}`);
+          logger.error("detect", `[nexus detect --auto] Archived ${result.archived} plan(s): ${result.archivedIds.join(", ")}`);
         }
       } catch (err) {
         // Don't crash the hook if archiving fails
-        console.error(`[nexus detect --auto] Plan archiving failed: ${err}`);
+        logger.error("detect", `[nexus detect --auto] Plan archiving failed: ${err}`);
       }
     }
 
@@ -202,32 +204,32 @@ export const detectCommand = new Command("detect")
         lines.push(`${report.summary}`);
         lines.push(``);
 
-        console.log(lines.join("\n"));
+        output(lines.join("\n"));
         return;
       }
 
       // Human-readable output
       if (cacheHit) {
-        console.log(chalk.gray("  📦 Used cached results"));
+        output(chalk.gray("  Used cached results"));
       }
-      console.log("");
-      console.log(chalk.bold("  📊 Detection Results:"));
-      console.log("");
-      console.log(chalk.gray(`    History entries analyzed: ${report.historyEntriesAnalyzed}`));
-      console.log(chalk.gray(`    Reports analyzed:        ${report.reportsAnalyzed}`));
-      console.log(chalk.gray(`    Patterns detected:       ${report.patterns.length}`));
-      console.log(chalk.gray(`    Candidate rules:         ${report.candidateRules.length}`));
-      console.log("");
+      output("");
+      outputSection("Detection Results:");
+      outputBlank();
+      output(chalk.gray(`    History entries analyzed: ${report.historyEntriesAnalyzed}`));
+      output(chalk.gray(`    Reports analyzed:        ${report.reportsAnalyzed}`));
+      output(chalk.gray(`    Patterns detected:       ${report.patterns.length}`));
+      output(chalk.gray(`    Candidate rules:         ${report.candidateRules.length}`));
+      outputBlank();
 
       if (report.patterns.length === 0) {
-        console.log(chalk.green("  ✔ No significant patterns detected. System is healthy."));
-        console.log("");
+        outputSuccess("No significant patterns detected. System is healthy.");
+        outputBlank();
         return;
       }
 
       // Display patterns
-      console.log(chalk.bold("  🔍 Patterns Found:"));
-      console.log("");
+      outputSection("Patterns Found:");
+      outputBlank();
 
       for (const pattern of report.patterns) {
         const severityColor = pattern.severity >= 4 ? chalk.red : pattern.severity >= 2 ? chalk.yellow : chalk.gray;
@@ -235,50 +237,50 @@ export const detectCommand = new Command("detect")
                      pattern.type === "reverted_decision" ? "🟡" :
                      pattern.type === "hot_area" ? "🟠" : "⚪";
 
-        console.log(`    ${icon} ${chalk.bold(pattern.description)}`);
-        console.log(chalk.gray(`       Type: ${pattern.type} | Severity: ${severityColor(pattern.severity + "/5")} | Occurrences: ${pattern.occurrences}`));
-        console.log(chalk.gray(`       Affected: ${pattern.affectedArea}`));
+        output(`    ${icon} ${chalk.bold(pattern.description)}`);
+        output(chalk.gray(`       Type: ${pattern.type} | Severity: ${severityColor(pattern.severity + "/5")} | Occurrences: ${pattern.occurrences}`));
+        output(chalk.gray(`       Affected: ${pattern.affectedArea}`));
         for (const ev of pattern.evidence.slice(0, 3)) {
-          console.log(chalk.gray(`         • ${ev}`));
+          output(chalk.gray(`         • ${ev}`));
         }
         if (pattern.evidence.length > 3) {
-          console.log(chalk.gray(`         ... and ${pattern.evidence.length - 3} more`));
+          output(chalk.gray(`         ... and ${pattern.evidence.length - 3} more`));
         }
-        console.log("");
+        outputBlank();
       }
 
       // Display candidate rules
       if (report.candidateRules.length > 0) {
-        console.log(chalk.bold("  📋 Candidate Rules (require Tech Lead approval):"));
-        console.log("");
+        outputSection("Candidate Rules (require Tech Lead approval):");
+        outputBlank();
 
         for (const rule of report.candidateRules) {
-          console.log(chalk.cyan(`    ${rule.id}: ${rule.title}`));
-          console.log(chalk.gray(`      Target: ${rule.target}`));
-          console.log(chalk.gray(`      ${rule.description}`));
-          console.log(chalk.gray(`      Rule: ${rule.ruleText}`));
-          console.log("");
+          output(chalk.cyan(`    ${rule.id}: ${rule.title}`));
+          output(chalk.gray(`      Target: ${rule.target}`));
+          output(chalk.gray(`      ${rule.description}`));
+          output(chalk.gray(`      Rule: ${rule.ruleText}`));
+          outputBlank();
         }
 
-        console.log(chalk.yellow("  ⚠ These rules are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
+        output(chalk.yellow("  ⚠ These rules are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
       }
 
-      console.log("");
+      outputBlank();
 
       if (reportFile) {
-        console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
-        console.log("");
+        output(chalk.gray(`  Report saved: nexus-system/reports/${reportFile}`));
+        outputBlank();
       }
 
       // Summary
-      console.log(chalk.bold("  📝 Summary:"));
-      console.log(chalk.gray(`    ${report.summary}`));
-      console.log("");
+      outputSection("Summary:");
+      output(chalk.gray(`    ${report.summary}`));
+      outputBlank();
 
       // Growth profile
       const growthProfile = loadGrowthProfile(ctx.nexusDir);
-      console.log(formatGrowthProgress(growthProfile));
-      console.log("");
+      output(formatGrowthProgress(growthProfile));
+      outputBlank();
 
       // Publish event
       const avgConfidence = report.patterns.length > 0
@@ -308,8 +310,8 @@ export const detectCommand = new Command("detect")
         outputJson({ error: "detection_failed", message: String(error) });
       } else if (!isAuto) {
         spinner?.fail("Pattern detection failed");
-        console.log(chalk.red(`  Error: ${error}`));
-        console.log("");
+        outputError(`Error: ${error}`);
+        outputBlank();
       }
     }
   });

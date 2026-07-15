@@ -47,8 +47,14 @@ APÓS exibir o Quick Board, confirmar internamente:
 - [ todos os campos estão preenchidos com dados reais
 - [ ] A data está correcta
 
+### PASSO 3.5: Verificar Reminders Activos
+Se `governance/context/context_buffer.yaml` contém `reminders` não vazios:
+1. Listar cada reminder com: prioridade, categoria, mensagem resumida
+2. Perguntar ao utilizador: "Existem X reminders activos. Quer resolver algum agora?"
+3. NÃO ignorar reminders de prioridade `high` — estes são obrigatórios de apresentar
+
 ### PASSO 4: Processar Mensagem
-SÓ APÓS validação do Passo 3, processar a mensagem do utilizador.
+SÓ APÓS validação do Passo 3 e Passo 3.5, processar a mensagem do utilizador.
 
 ## ⛔ Regras de Bloqueio
 

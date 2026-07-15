@@ -21,6 +21,7 @@ import {
   InferenceEngine,
   type PlanInference,
 } from "./inference-engine.js";
+import { output, outputBlank } from "./output.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -159,22 +160,22 @@ function printInference(inf: PlanInference): void {
     inf.inferredStatus === "inconsistent" ? "⚠️" :
     inf.inferredStatus === "paused" ? "⏸️" : "🔄";
 
-  console.log(`  ${icon} ${chalk.bold(inf.id)}`);
-  console.log(`     Title: ${inf.title}`);
-  console.log(`     Status: ${inf.rawStatus} → inferred: ${chalk.bold(inf.inferredStatus)}`);
+  output(`  ${icon} ${chalk.bold(inf.id)}`);
+  output(`     Title: ${inf.title}`);
+  output(`     Status: ${inf.rawStatus} → inferred: ${chalk.bold(inf.inferredStatus)}`);
 
   if (inf.checkboxes.total > 0) {
-    console.log(`     Checkboxes: ${inf.checkboxes.closed}/${inf.checkboxes.total} (${inf.checkboxes.percentage}%)`);
+    output(`     Checkboxes: ${inf.checkboxes.closed}/${inf.checkboxes.total} (${inf.checkboxes.percentage}%)`);
   } else {
-    console.log(`     Checkboxes: none (design document)`);
+    output(`     Checkboxes: none (design document)`);
   }
 
-  console.log(`     Age: ${inf.ageInDays} day(s)`);
+  output(`     Age: ${inf.ageInDays} day(s)`);
   if (inf.estado) {
-    console.log(`     Estado: ${inf.estado}`);
+    output(`     Estado: ${inf.estado}`);
   }
-  console.log(`     🤖 Recommendation: ${chalk.bold(inf.recommendation)} — ${inf.reason}`);
-  console.log("");
+  output(`     🤖 Recommendation: ${chalk.bold(inf.recommendation)} — ${inf.reason}`);
+  outputBlank();
 }
 
 // ── Main Lifecycle Flow ────────────────────────────────────────────────────
@@ -186,25 +187,25 @@ export async function runLifecycleReview(
   const nexusDir = join(projectRoot, NEXUS_DIR_NAME);
   const result: LifecycleResult = { active: 0, archived: 0, removed: 0, skipped: 0 };
 
-  console.log("");
-  console.log(chalk.bold.cyan("🔍 PLAN LIFECYCLE — Checking active plans"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("🔍 PLAN LIFECYCLE — Checking active plans"));
+  outputBlank();
 
   // 1. Run inference
   const inferenceEngine = new InferenceEngine(nexusDir);
   const summary = inferenceEngine.generateSummary();
 
   if (summary.totalPlans === 0) {
-    console.log(chalk.green("  No active plans found. All archived."));
-    console.log("");
+    output(chalk.green("  No active plans found. All archived."));
+    outputBlank();
     return result;
   }
 
   result.active = summary.totalPlans;
 
   // 2. Show inference summary
-  console.log(`  ${chalk.bold(String(summary.totalPlans))} active plan(s):`);
-  console.log("");
+  output(`  ${chalk.bold(String(summary.totalPlans))} active plan(s):`);
+  outputBlank();
 
   for (const inf of summary.plans) {
     printInference(inf);
@@ -216,15 +217,15 @@ export async function runLifecycleReview(
     if (!plan) continue;
 
     // Technical validation
-    console.log(chalk.bold(`  🔧 Validating: ${inf.id}`));
+    output(chalk.bold(`  🔧 Validating: ${inf.id}`));
     const validation = await runValidationWithProgress(plan, projectRoot);
-    console.log("");
+    outputBlank();
 
     if (!validation.valid) {
-      console.log(
+      output(
         chalk.yellow("  ⚠️  Technical checks failed. Skipping.")
       );
-      console.log("");
+      outputBlank();
       result.skipped++;
       continue;
     }
@@ -234,24 +235,24 @@ export async function runLifecycleReview(
       const action = inf.recommendation;
       if (action === "archive" || action === "remove") {
         if (options.dry) {
-          console.log(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
-          console.log("");
+          output(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
+          outputBlank();
           continue;
         }
         try {
           archivePlan(nexusDir, inf.id);
-          console.log(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
-          console.log("");
+          output(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
+          outputBlank();
           if (action === "archive") result.archived++;
           else result.removed++;
         } catch (error) {
-          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-          console.log("");
+          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          outputBlank();
           result.skipped++;
         }
       } else {
-        console.log(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
-        console.log("");
+        output(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
+        outputBlank();
         result.skipped++;
       }
       continue;
@@ -265,55 +266,55 @@ export async function runLifecycleReview(
     switch (answer) {
       case "a": {
         if (options.dry) {
-          console.log(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
+          output(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
           break;
         }
         try {
           archivePlan(nexusDir, inf.id);
-          console.log(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
+          output(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
           result.archived++;
         } catch (error) {
-          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
           result.skipped++;
         }
         break;
       }
       case "r": {
         if (options.dry) {
-          console.log(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
+          output(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
           break;
         }
         try {
           removePlan(nexusDir, inf.id);
-          console.log(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
+          output(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
           result.removed++;
         } catch (error) {
-          console.log(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
           result.skipped++;
         }
         break;
       }
       case "m": {
-        console.log(chalk.dim(`  Kept: ${inf.id}`));
+        output(chalk.dim(`  Kept: ${inf.id}`));
         result.skipped++;
         break;
       }
       default: {
-        console.log(chalk.dim(`  Skipped: ${inf.id}`));
+        output(chalk.dim(`  Skipped: ${inf.id}`));
         result.skipped++;
         break;
       }
     }
-    console.log("");
+    outputBlank();
   }
 
   // 4. Summary
-  console.log(chalk.bold("  ── Summary ──"));
-  console.log(`  Active:   ${result.active}`);
-  console.log(`  Archived: ${chalk.green(String(result.archived))}`);
-  console.log(`  Removed:  ${chalk.red(String(result.removed))}`);
-  console.log(`  Skipped:  ${chalk.yellow(String(result.skipped))}`);
-  console.log("");
+  output(chalk.bold("  ── Summary ──"));
+  output(`  Active:   ${result.active}`);
+  output(`  Archived: ${chalk.green(String(result.archived))}`);
+  output(`  Removed:  ${chalk.red(String(result.removed))}`);
+  output(`  Skipped:  ${chalk.yellow(String(result.skipped))}`);
+  outputBlank();
 
   return result;
 }

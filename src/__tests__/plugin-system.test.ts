@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getHookBus, resetHookBus, type NexusPlugin } from "../plugin-system.js";
 
 describe("PluginSystem", () => {
@@ -21,6 +21,7 @@ describe("PluginSystem", () => {
     });
 
     it("rejects duplicate plugins", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
       const bus = getHookBus();
       const plugin: NexusPlugin = {
         name: "test-plugin",
@@ -99,6 +100,7 @@ describe("PluginSystem", () => {
     });
 
     it("executeHook handles plugin errors gracefully", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
       const bus = getHookBus();
 
       const failingPlugin: NexusPlugin = {

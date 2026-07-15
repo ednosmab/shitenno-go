@@ -22,6 +22,8 @@ import { healthBar, outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { METRIC_LABELS, type PerformanceMetric } from "../feedback-loops.js";
+import { output, outputBlank, outputSection } from "../output.js";
+import { logger } from "../logger.js";
 
 // ── Formatting Helpers ───────────────────────────────────────────────────────
 
@@ -44,75 +46,77 @@ export function formatInsight(insight: Insight): string {
 }
 
 export function formatReport(report: PerformanceReport): void {
-  console.log(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("REPORT")}`);
-  console.log(`${chalk.bold.cyan("╚══╝")}  Relatório de Desempenho — Últimos ${report.period.days} dias`);
-  console.log(`   ${chalk.gray(`${report.period.from} → ${report.period.to}`)}\n`);
+  output("");
+  output(`${chalk.bold.cyan("╔══╗")}  ${chalk.bold("REPORT")}`);
+  output(`${chalk.bold.cyan("╚══╝")}  Relatório de Desempenho — Últimos ${report.period.days} dias`);
+  output(`   ${chalk.gray(`${report.period.from} → ${report.period.to}`)}`);
+  outputBlank();
 
   // Profile
-  console.log(chalk.bold("📊 Perfil"));
-  console.log(`   Padrão: ${chalk.cyan(report.profile.growthPattern)} (${report.profile.challengeLevel > 0.5 ? "desafiador" : "conforto"})`);
-  console.log(`   Capacidade: ${chalk.cyan(Math.round(report.profile.growthCapacity * 100) + "%")}`);
-  console.log(`   Nível de desafio: ${chalk.cyan(Math.round(report.profile.challengeLevel * 100) + "%")}`);
-  console.log("");
+  outputSection("📊 Perfil");
+  output(`   Padrão: ${chalk.cyan(report.profile.growthPattern)} (${report.profile.challengeLevel > 0.5 ? "desafiador" : "conforto"})`);
+  output(`   Capacidade: ${chalk.cyan(Math.round(report.profile.growthCapacity * 100) + "%")}`);
+  output(`   Nível de desafio: ${chalk.cyan(Math.round(report.profile.challengeLevel * 100) + "%")}`);
+  outputBlank();
 
   // Dimensions
-  console.log(chalk.bold("📐 Dimensões"));
+  outputSection("📐 Dimensões");
   const dims = Object.entries(report.dimensions) as [PerformanceMetric, DimensionReport][];
   // Sort by score descending
   dims.sort((a, b) => b[1].score - a[1].score);
   for (const [dim, data] of dims) {
-    console.log(formatDimensionBar(METRIC_LABELS[dim], data));
+    output(formatDimensionBar(METRIC_LABELS[dim], data));
   }
-  console.log("");
+  outputBlank();
 
   // Trends
-  console.log(chalk.bold("📈 Tendências"));
+  outputSection("📈 Tendências");
   const debtColor = report.debtTrend.delta < 0 ? chalk.green : report.debtTrend.delta > 0 ? chalk.red : chalk.gray;
   const matColor = report.maturityTrend.delta > 0 ? chalk.green : report.maturityTrend.delta < 0 ? chalk.red : chalk.gray;
-  console.log(`   Maturidade:  ${report.maturityTrend.current} → ${report.maturityTrend.current + report.maturityTrend.delta}  (${matColor((report.maturityTrend.delta > 0 ? "+" : "") + report.maturityTrend.delta)})`);
-  console.log(`   Knowledge Debt:  ${report.debtTrend.current} → ${report.debtTrend.current + report.debtTrend.delta}  (${debtColor((report.debtTrend.delta > 0 ? "+" : "") + report.debtTrend.delta)})`);
-  console.log("");
+  output(`   Maturidade:  ${report.maturityTrend.current} → ${report.maturityTrend.current + report.maturityTrend.delta}  (${matColor((report.maturityTrend.delta > 0 ? "+" : "") + report.maturityTrend.delta)})`);
+  output(`   Knowledge Debt:  ${report.debtTrend.current} → ${report.debtTrend.current + report.debtTrend.delta}  (${debtColor((report.debtTrend.delta > 0 ? "+" : "") + report.debtTrend.delta)})`);
+  outputBlank();
 
   // Feedback
-  console.log(chalk.bold("💬 Feedback"));
-  console.log(`   ${report.feedback.totalInteractions} interações | ${report.feedback.acceptanceRate}% aceitação | ${report.feedback.challengingRatio}% desafio`);
+  outputSection("💬 Feedback");
+  output(`   ${report.feedback.totalInteractions} interações | ${report.feedback.acceptanceRate}% aceitação | ${report.feedback.challengingRatio}% desafio`);
   if (report.feedback.patterns.length > 0) {
     for (const pattern of report.feedback.patterns) {
-      console.log(`   ${chalk.gray("•")} ${pattern}`);
+      output(`   ${chalk.gray("•")} ${pattern}`);
     }
   }
-  console.log("");
+  outputBlank();
 
   // Sessions
   if (report.sessions.total > 0) {
-    console.log(chalk.bold("🕐 Sessões"));
-    console.log(`   Total: ${report.sessions.total} | Média: ${report.sessions.avgDuration}min`);
+    outputSection("🕐 Sessões");
+    output(`   Total: ${report.sessions.total} | Média: ${report.sessions.avgDuration}min`);
     if (Object.keys(report.sessions.commandFrequency).length > 0) {
       const topCmds = Object.entries(report.sessions.commandFrequency)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
-      console.log(`   Comandos: ${topCmds.map(([cmd, count]) => `${cmd}(${count})`).join(", ")}`);
+      output(`   Comandos: ${topCmds.map(([cmd, count]) => `${cmd}(${count})`).join(", ")}`);
     }
-    console.log("");
+    outputBlank();
   }
 
   // Insights
-  console.log(chalk.bold("💡 Insights"));
+  outputSection("💡 Insights");
   for (const insight of report.insights) {
-    console.log(formatInsight(insight));
+    output(formatInsight(insight));
   }
-  console.log("");
+  outputBlank();
 
   // Next Steps
-  console.log(chalk.bold("📌 Próximos Passos"));
+  outputSection("📌 Próximos Passos");
   for (let i = 0; i < report.nextSteps.length; i++) {
-    console.log(`   ${i + 1}. ${report.nextSteps[i]}`);
+    output(`   ${i + 1}. ${report.nextSteps[i]}`);
   }
-  console.log("");
+  outputBlank();
 
   // Summary
-  console.log(chalk.gray(report.summary));
-  console.log("");
+  output(chalk.gray(report.summary));
+  outputBlank();
 }
 
 // ── Command ──────────────────────────────────────────────────────────────────
@@ -129,8 +133,10 @@ export function reportCommand(): Command {
       const days = Number(options.period) || 30;
 
       if (!isJson) {
-        console.log(`\n${chalk.bold.cyan("╔══╗")}  ${chalk.bold("REPORT")}`);
-        console.log(`${chalk.bold.cyan("╚══╝")}  Relatório de Desempenho\n`);
+        output("");
+        output(`${chalk.bold.cyan("╔══╗")}  ${chalk.bold("REPORT")}`);
+        output(`${chalk.bold.cyan("╚══╝")}  Relatório de Desempenho`);
+        outputBlank();
       }
 
       const ctx = guardNotInitialized(options, isJson);
@@ -157,7 +163,7 @@ export function reportCommand(): Command {
         if (options.save) {
           const filename = writePerformanceReport(ctx.nexusDir, report);
           if (filename && !isJson) {
-            console.log(chalk.gray(`  Relatório salvo em: reports/${filename}`));
+            output(chalk.gray(`  Relatório salvo em: reports/${filename}`));
           }
         }
 
@@ -174,7 +180,7 @@ export function reportCommand(): Command {
         if (isJson) {
           outputJson({ error: "report_failed", message: String(error) });
         } else {
-          console.error(chalk.red(`  Erro: ${error}`));
+          logger.error("report", `Erro: ${error}`);
         }
       }
     });

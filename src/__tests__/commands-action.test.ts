@@ -12,16 +12,16 @@ import { syncCommand } from "../commands/sync.js";
 
 
 let tempDir: string;
-let consoleSpy: ReturnType<typeof vi.spyOn>;
+let stdoutSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "nexus-action-"));
-  consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+  stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 });
 
 afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
-  consoleSpy.mockRestore();
+  stdoutSpy.mockRestore();
 });
 
 function setupNexusDir(dir: string) {
@@ -40,11 +40,25 @@ function setupNexusDirGoverned(dir: string) {
 }
 
 function getJsonOutput(): Record<string, unknown> {
-  const jsonCalls = consoleSpy.mock.calls.find(
-    (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).startsWith("{")
-  );
-  if (!jsonCalls) return {};
-  return JSON.parse(jsonCalls[0] as string);
+  const allOutput = stdoutSpy.mock.calls.map((c: unknown[]) => c[0] as string).join("");
+  const start = allOutput.indexOf("{");
+  if (start === -1) return {};
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < allOutput.length; i++) {
+    const ch = allOutput[i]!;
+    if (escape) { escape = false; continue; }
+    if (ch === "\\\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    if (ch === "}") {
+      depth--;
+      if (depth === 0) return JSON.parse(allOutput.slice(start, i + 1));
+    }
+  }
+  return {};
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

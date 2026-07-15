@@ -2,7 +2,7 @@
  * state-mutations.test.ts — Tests for mutation governance
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -86,6 +86,7 @@ describe("engineering-state-mutations", () => {
     });
 
     it("rejects mutation without new state", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
       const mutation: StateMutation = {
         nexusDir: tmpDir,
         newState: undefined as unknown as EngineeringState,
@@ -101,6 +102,7 @@ describe("engineering-state-mutations", () => {
     });
 
     it("rejects mutation with invalid health score", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
       const mutation: StateMutation = {
         nexusDir: tmpDir,
         newState: createMockState({
@@ -118,6 +120,7 @@ describe("engineering-state-mutations", () => {
     });
 
     it("rejects mutation with invalid entropy score", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
       const mutation: StateMutation = {
         nexusDir: tmpDir,
         newState: createMockState({

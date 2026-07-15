@@ -14,7 +14,7 @@ import { join } from "node:path";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type SessionOutcome = "success" | "failure" | "partial";
+export type SessionOutcome = "success" | "failure" | "partial" | "session-start" | "session-end";
 
 export interface SessionFeedbackRecord {
   /** Unique record ID. */
@@ -200,6 +200,8 @@ export function computeFeedbackSummary(
     success: 0,
     failure: 0,
     partial: 0,
+    "session-start": 0,
+    "session-end": 0,
   };
 
   let totalDuration = 0;

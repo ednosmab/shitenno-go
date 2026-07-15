@@ -18,19 +18,22 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import React from "react";
 import { banner } from "../formatting.js";
+import { output, outputBlank } from "../output.js";
 
-function findProjectRoot(startDir: string): string {
+function findHandbookRoot(startDir: string): string {
   let dir = startDir;
   while (true) {
-    if (existsSync(join(dir, "package.json"))) return dir;
+    if (existsSync(join(dir, "docs", "handbook"))) return join(dir, "docs", "handbook");
     const parent = dirname(dir);
-    if (parent === dir) throw new Error("Could not find project root");
+    if (parent === dir) break;
     dir = parent;
   }
+  // Fallback: assume running from project root
+  return join(process.cwd(), "docs", "handbook");
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const HANDBOOK_ROOT = join(findProjectRoot(__dirname), "docs", "handbook");
+const HANDBOOK_ROOT = findHandbookRoot(__dirname);
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -80,72 +83,72 @@ function readTopicContent(topic: HandbookTopic): string | null {
 function printTopicContent(topic: HandbookTopic): void {
   const content = readTopicContent(topic);
   if (!content) {
-    console.log(chalk.red(`  Arquivo não encontrado: ${topic.file}`));
+    output(chalk.red(`  Arquivo não encontrado: ${topic.file}`));
     return;
   }
 
-  console.log("");
-  console.log(chalk.bold.cyan(`# ${topic.title}`));
-  console.log(chalk.gray(`Nível ${topic.level} — ${topic.levelName}`));
-  console.log("");
-  console.log(content);
+  outputBlank();
+  output(chalk.bold.cyan(`# ${topic.title}`));
+  output(chalk.gray(`Nível ${topic.level} — ${topic.levelName}`));
+  outputBlank();
+  output(content);
 }
 
 function printLevel(level: number): void {
   const topics = TOPICS.filter((t) => t.level === level);
   if (topics.length === 0) {
-    console.log(chalk.red(`  Nível ${level} não encontrado.`));
+    output(chalk.red(`  Nível ${level} não encontrado.`));
     return;
   }
 
   const levelName = topics[0]!.levelName;
 
-  console.log("");
+  outputBlank();
   banner(`nexus handbook --print --level ${level}`, levelName);
-  console.log("");
+  outputBlank();
 
   for (const topic of topics) {
     printTopicContent(topic);
-    console.log("");
-    console.log(chalk.gray("─".repeat(60)));
-    console.log("");
+    outputBlank();
+    output(chalk.gray("─".repeat(60)));
+    outputBlank();
   }
 }
 
 function printAllLevels(): void {
-  console.log("");
+  outputBlank();
   banner("nexus handbook --print", "Handbook Completo");
-  console.log("");
+  outputBlank();
 
   for (const topic of TOPICS) {
     printTopicContent(topic);
-    console.log("");
-    console.log(chalk.gray("─".repeat(60)));
-    console.log("");
+    outputBlank();
+    output(chalk.gray("─".repeat(60)));
+    outputBlank();
   }
 }
 
 function listTopics(): void {
-  console.log("");
+  outputBlank();
   banner("nexus handbook", "Todos os Tópicos");
-  console.log("");
+  outputBlank();
 
   let currentLevel = 0;
 
   for (const topic of TOPICS) {
     if (topic.level !== currentLevel) {
       currentLevel = topic.level;
-      console.log(chalk.bold.green(`  Nível ${topic.level} — ${topic.levelName}:`));
+      output(chalk.bold.green(`  Nível ${topic.level} — ${topic.levelName}:`));
     }
 
     const filePath = join(HANDBOOK_ROOT, topic.file);
     const exists = existsSync(filePath);
     const status = exists ? chalk.green("✅") : chalk.red("❌");
 
-    console.log(`    ${status} ${chalk.bold(topic.title)} — ${chalk.gray(topic.description)}`);
+    output(`    ${status} ${chalk.bold(topic.title)} — ${chalk.gray(topic.description)}`);
   }
 
-  console.log("");
+  outputBlank();
 }
 
 // ── Command Export ─────────────────────────────────────────────────────────
@@ -167,7 +170,7 @@ export const handbookCommand = new Command("handbook")
       if (options.level) {
         const level = parseInt(options.level, 10);
         if (level < 1 || level > 3) {
-          console.log(chalk.red("  Nível inválido. Use 1, 2 ou 3."));
+          output(chalk.red("  Nível inválido. Use 1, 2 ou 3."));
           return;
         }
         printLevel(level);
@@ -188,9 +191,9 @@ export const handbookCommand = new Command("handbook")
       await waitUntilExit();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.log(chalk.red(`  ✘ Failed to launch handbook: ${msg}`));
-      console.log(chalk.gray("  Falling back to static output..."));
-      console.log("");
+      output(chalk.red(`  ✘ Failed to launch handbook: ${msg}`));
+      output(chalk.gray("  Falling back to static output..."));
+      outputBlank();
       printAllLevels();
     }
   });

@@ -31,38 +31,37 @@ import {
   type FeedbackTone,
 } from "../feedback-engine.js";
 import { getEventBus } from "../event-bus.js";
+import { output, outputBlank, outputSection, outputSuccess, outputError } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function displayProfile(profile: UserProfile): void {
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║      nexus profile — User Profile    ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-  console.log("");
-  console.log(chalk.bold("  📋 Perfil Actual"));
-  console.log(`     Nome:          ${chalk.cyan(profile.name)}`);
-  console.log(`     Cargo:         ${chalk.cyan(profile.role)}`);
-  console.log(`     Arquitectura:  ${chalk.cyan(profile.architecture)}`);
-  console.log(`     Código:        ${chalk.cyan(profile.coding)}`);
-  console.log(`     Leadership:    ${chalk.cyan(profile.leadership)}`);
-  console.log(`     Tom:           ${chalk.cyan(profile.tone)}`);
-  console.log(`     Idioma:        ${chalk.cyan(profile.language)}`);
-  console.log(`     % No-code:     ${chalk.cyan(String(profile.codeFreePercent))}%`);
-  console.log(`     Áreas foco:    ${chalk.cyan(profile.focusAreas.join(", ") || "nenhuma")}`);
-  console.log("");
+  outputBlank();
+  outputSection("nexus profile — User Profile");
+  outputBlank();
+  outputSection("📋 Perfil Actual");
+  output(`     Nome:          ${chalk.cyan(profile.name)}`);
+  output(`     Cargo:         ${chalk.cyan(profile.role)}`);
+  output(`     Arquitectura:  ${chalk.cyan(profile.architecture)}`);
+  output(`     Código:        ${chalk.cyan(profile.coding)}`);
+  output(`     Leadership:    ${chalk.cyan(profile.leadership)}`);
+  output(`     Tom:           ${chalk.cyan(profile.tone)}`);
+  output(`     Idioma:        ${chalk.cyan(profile.language)}`);
+  output(`     % No-code:     ${chalk.cyan(String(profile.codeFreePercent))}%`);
+  output(`     Áreas foco:    ${chalk.cyan(profile.focusAreas.join(", ") || "nenhuma")}`);
+  outputBlank();
 
   // Calibration preview
   const toneLabel = profile.tone === "mentor" ? "Mentor (suportivo, didático)"
     : profile.tone === "peer" ? "Peer (direto, entre pares)"
     : "Relatório (técnico, impessoal)";
-  console.log(chalk.bold("  🎯 Calibragem de Feedback"));
-  console.log(`     Tom:           ${toneLabel}`);
-  console.log(`     No-code:       ${profile.codeFreePercent >= 80 ? "Forte (foco em visão/leadership)" : profile.codeFreePercent >= 50 ? "Moderado" : "Técnico (foco em código)"}`);
-  console.log("");
-  console.log(chalk.gray("  Para alterar: nexus profile --name 'Novo Nome'"));
-  console.log(chalk.gray("  Para configurar interactivamente: nexus profile --set"));
-  console.log("");
+  outputSection("🎯 Calibragem de Feedback");
+  output(`     Tom:           ${toneLabel}`);
+  output(`     No-code:       ${profile.codeFreePercent >= 80 ? "Forte (foco em visão/leadership)" : profile.codeFreePercent >= 50 ? "Moderado" : "Técnico (foco em código)"}`);
+  outputBlank();
+  output(chalk.gray("  Para alterar: nexus profile --name 'Novo Nome'"));
+  output(chalk.gray("  Para configurar interactivamente: nexus profile --set"));
+  outputBlank();
 }
 
 // ── Command ────────────────────────────────────────────────────────────────
@@ -105,13 +104,11 @@ export function profileCommand(): Command {
           return;
         }
 
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║   nexus profile — Setup Interactivo  ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
-        console.log(chalk.gray("  Pressiona Enter para manter o valor actual."));
-        console.log("");
+        output("");
+        outputSection("nexus profile — Setup Interactivo");
+        outputBlank();
+        output(chalk.gray("  Pressiona Enter para manter o valor actual."));
+        outputBlank();
 
         const readline = await import("node:readline");
         const rl = readline.createInterface({
@@ -159,7 +156,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_level", message: "Level must be junior, pleno, or senior" });
           } else {
-            console.log(chalk.red("  ✘ Level must be junior, pleno, or senior"));
+            outputError("  ✘ Level must be junior, pleno, or senior");
           }
           return;
         }
@@ -172,7 +169,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_level", message: "Level must be junior, pleno, or senior" });
           } else {
-            console.log(chalk.red("  ✘ Level must be junior, pleno, or senior"));
+            outputError("  ✘ Level must be junior, pleno, or senior");
           }
           return;
         }
@@ -185,7 +182,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_level", message: "Level must be junior, pleno, or senior" });
           } else {
-            console.log(chalk.red("  ✘ Level must be junior, pleno, or senior"));
+            outputError("  ✘ Level must be junior, pleno, or senior");
           }
           return;
         }
@@ -198,7 +195,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_tone", message: "Tone must be mentor, peer, or relatorio" });
           } else {
-            console.log(chalk.red("  ✘ Tone must be mentor, peer, or relatorio"));
+            outputError("  ✘ Tone must be mentor, peer, or relatorio");
           }
           return;
         }
@@ -211,7 +208,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_language", message: "Language must be pt or en" });
           } else {
-            console.log(chalk.red("  ✘ Language must be pt or en"));
+            outputError("  ✘ Language must be pt or en");
           }
           return;
         }
@@ -224,7 +221,7 @@ export function profileCommand(): Command {
           if (isJson) {
             outputJson({ error: "invalid_percent", message: "Code-free must be 0-100" });
           } else {
-            console.log(chalk.red("  ✘ Code-free must be 0-100"));
+            outputError("  ✘ Code-free must be 0-100");
           }
           return;
         }
@@ -246,7 +243,7 @@ export function profileCommand(): Command {
         if (isJson) {
           outputJson({ type: "profile_updated", ...profile });
         } else {
-          console.log(chalk.green("  ✔ Perfil actualizado com sucesso."));
+          outputSuccess("  ✔ Perfil actualizado com sucesso.");
           displayProfile(profile);
         }
 

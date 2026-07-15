@@ -5,6 +5,7 @@
  */
 
 import chalk from "chalk";
+import { output, outputBlank } from "./output.js";
 
 // ── Health Score Constants ──────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export function miniBar(score: number, max: number = 10): string {
  * Output JSON to stdout when --json flag is used.
  */
 export function outputJson(data: Record<string, unknown>): void {
-  console.log(JSON.stringify(data, null, 2));
+  output(JSON.stringify(data, null, 2));
 }
 
 /**
@@ -101,9 +102,9 @@ export function banner(title: string, subtitle: string): void {
   const width = label.length + 4;
   const line = "═".repeat(width);
   const inner = `  ${label}${" ".repeat(Math.max(0, width - 2 - label.length))}`;
-  console.log(chalk.bold.cyan(`╔${line}╗`));
-  console.log(chalk.bold.cyan(`║${inner}║`));
-  console.log(chalk.bold.cyan(`╚${line}╝`));
+  output(chalk.bold.cyan(`╔${line}╗`));
+  output(chalk.bold.cyan(`║${inner}║`));
+  output(chalk.bold.cyan(`╚${line}╝`));
 }
 
 /**
@@ -111,8 +112,8 @@ export function banner(title: string, subtitle: string): void {
  * Replaces duplicated `chalk.bold("  ⚠ Risk Status")` patterns.
  */
 export function section(emoji: string, title: string): void {
-  console.log("");
-  console.log(chalk.bold(`  ${emoji} ${title}`));
+  outputBlank();
+  output(chalk.bold(`  ${emoji} ${title}`));
 }
 
 /**
@@ -121,5 +122,5 @@ export function section(emoji: string, title: string): void {
  */
 export function kv(key: string, value: string, indent: number = 5): void {
   const pad = " ".repeat(indent);
-  console.log(`${pad}${chalk.gray(key.padEnd(12))} ${chalk.cyan(value)}`);
+  output(`${pad}${chalk.gray(key.padEnd(12))} ${chalk.cyan(value)}`);
 }

@@ -30,6 +30,7 @@ import { ActionEngine, FileExecutionRepository } from "../action-engine.js";
 import { outputJson, banner } from "../formatting.js";
 import { validatePlanFormat, extractChecklistItems, extractStepHeadings } from "../plan-format-validator.js";
 import { getEventBus } from "../event-bus.js";
+import { output, outputBlank } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -410,13 +411,13 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson(plan as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
-        console.log(`    ${plan.name} (${plan.steps.length} steps)`);
-        console.log("");
+        output(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
+        output(`    ${plan.name} (${plan.steps.length} steps)`);
+        outputBlank();
         for (const step of plan.steps) {
-          console.log(`    ${chalk.dim(`${step.order + 1}.`)} ${step.name}`);
+          output(`    ${chalk.dim(`${step.order + 1}.`)} ${step.name}`);
         }
-        console.log("");
+        outputBlank();
       }
     });
 
@@ -439,25 +440,25 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson(plan as unknown as Record<string, unknown>);
         } else {
-          console.log("");
+          outputBlank();
           const icon = plan.status === "completed" ? chalk.green("✓") : chalk.red("✗");
-          console.log(`${icon} Plan ${plan.id}: ${plan.status}`);
-          console.log(`  Duration: ${plan.duration}ms`);
-          console.log("");
+          output(`${icon} Plan ${plan.id}: ${plan.status}`);
+          output(`  Duration: ${plan.duration}ms`);
+          outputBlank();
           for (const step of plan.steps) {
             const stepIcon = step.status === "completed" ? chalk.green("✓") :
               step.status === "failed" ? chalk.red("✗") :
               step.status === "skipped" ? chalk.yellow("○") : chalk.dim("○");
-            console.log(`    ${stepIcon} ${step.name} — ${step.status}`);
-            if (step.error) console.log(chalk.red(`      ${step.error}`));
+            output(`    ${stepIcon} ${step.name} — ${step.status}`);
+            if (step.error) output(chalk.red(`      ${step.error}`));
           }
-          console.log("");
+          outputBlank();
         }
       } catch (error) {
         if (isJson) {
           outputJson({ error: error instanceof Error ? error.message : String(error) });
         } else {
-          console.log(chalk.red(`  ✗ ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  ✗ ${error instanceof Error ? error.message : String(error)}`));
         }
       }
     });
@@ -480,7 +481,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "Plan not found or cannot be rolled back" });
         } else {
-          console.log(chalk.red(`  Cannot rollback plan: ${id}`));
+          output(chalk.red(`  Cannot rollback plan: ${id}`));
         }
         return;
       }
@@ -488,7 +489,7 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson(plan as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.yellow(`  ⚠ Plan rolled back: ${plan.id}`));
+        output(chalk.yellow(`  ⚠ Plan rolled back: ${plan.id}`));
       }
     });
 
@@ -510,7 +511,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "Plan not found or cannot be cancelled" });
         } else {
-          console.log(chalk.red(`  Cannot cancel plan: ${id}`));
+          output(chalk.red(`  Cannot cancel plan: ${id}`));
         }
         return;
       }
@@ -518,7 +519,7 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson(plan as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.yellow(`  ⚠ Plan cancelled: ${plan.id}`));
+        output(chalk.yellow(`  ⚠ Plan cancelled: ${plan.id}`));
       }
     });
 
@@ -541,17 +542,17 @@ export function planCommand(): Command {
         return;
       }
 
-      console.log("");
+      outputBlank();
       if (plans.length === 0) {
-        console.log(chalk.dim("  No plans found."));
+        output(chalk.dim("  No plans found."));
       } else {
-        console.log(chalk.bold(`  Plans (${plans.length})`));
-        console.log(chalk.dim("  " + "─".repeat(70)));
+        output(chalk.bold(`  Plans (${plans.length})`));
+        output(chalk.dim("  " + "─".repeat(70)));
         for (const p of plans) {
-          console.log(formatPlan(p));
+          output(formatPlan(p));
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── show ────────────────────────────────────────────────────────────────
@@ -572,7 +573,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "Plan not found" });
         } else {
-          console.log(chalk.red(`  Plan not found: ${id}`));
+          output(chalk.red(`  Plan not found: ${id}`));
         }
         return;
       }
@@ -582,18 +583,18 @@ export function planCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  ${plan.id}`));
-      console.log(`  ${plan.name}`);
-      if (plan.description) console.log(`  ${chalk.dim(plan.description)}`);
-      console.log("");
-      console.log(`  Status:     ${STATUS_COLORS[plan.status](plan.status)}`);
-      console.log(`  Correlation: ${plan.correlationId}`);
-      console.log(`  Created:    ${plan.createdAt}`);
-      if (plan.completedAt) console.log(`  Completed:  ${plan.completedAt}`);
-      if (plan.duration) console.log(`  Duration:   ${plan.duration}ms`);
-      console.log("");
-      console.log(chalk.bold("  Steps:"));
+      outputBlank();
+      output(chalk.bold(`  ${plan.id}`));
+      output(`  ${plan.name}`);
+      if (plan.description) output(`  ${chalk.dim(plan.description)}`);
+      outputBlank();
+      output(`  Status:     ${STATUS_COLORS[plan.status](plan.status)}`);
+      output(`  Correlation: ${plan.correlationId}`);
+      output(`  Created:    ${plan.createdAt}`);
+      if (plan.completedAt) output(`  Completed:  ${plan.completedAt}`);
+      if (plan.duration) output(`  Duration:   ${plan.duration}ms`);
+      outputBlank();
+      output(chalk.bold("  Steps:"));
       for (const step of plan.steps) {
         const stepIcon = step.status === "completed" ? chalk.green("✓") :
           step.status === "failed" ? chalk.red("✗") :
@@ -601,10 +602,10 @@ export function planCommand(): Command {
           step.status === "running" ? chalk.cyan("⟳") : chalk.dim("○");
         const deps = step.dependencies.length > 0 ? chalk.dim(` [deps: ${step.dependencies.join(", ")}]`) : "";
         const optional = step.optional ? chalk.dim(" (optional)") : "";
-        console.log(`    ${stepIcon} ${step.name}${deps}${optional}`);
-        if (step.error) console.log(chalk.red(`      ${step.error}`));
+        output(`    ${stepIcon} ${step.name}${deps}${optional}`);
+        if (step.error) output(chalk.red(`      ${step.error}`));
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── stats ───────────────────────────────────────────────────────────────
@@ -625,17 +626,17 @@ export function planCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Plan Statistics"));
-      console.log(chalk.dim("  " + "─".repeat(40)));
-      console.log(`  Total:       ${stats.total}`);
-      console.log(`  Avg Steps:   ${stats.avgSteps}`);
-      console.log(`  Avg Duration: ${stats.avgDuration}ms`);
-      console.log("");
+      outputBlank();
+      output(chalk.bold("  Plan Statistics"));
+      output(chalk.dim("  " + "─".repeat(40)));
+      output(`  Total:       ${stats.total}`);
+      output(`  Avg Steps:   ${stats.avgSteps}`);
+      output(`  Avg Duration: ${stats.avgDuration}ms`);
+      outputBlank();
       for (const [status, count] of Object.entries(stats.byStatus)) {
-        if (count > 0) console.log(`  ${STATUS_COLORS[status as PlanStatus](status)}: ${count}`);
+        if (count > 0) output(`  ${STATUS_COLORS[status as PlanStatus](status)}: ${count}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── delete ──────────────────────────────────────────────────────────────
@@ -656,7 +657,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "Plan not found" });
         } else {
-          console.log(chalk.red(`  Plan not found: ${id}`));
+          output(chalk.red(`  Plan not found: ${id}`));
         }
         return;
       }
@@ -664,7 +665,7 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson({ deleted: true, id });
       } else {
-        console.log(chalk.green(`  ✓ Plan deleted: ${id}`));
+        output(chalk.green(`  ✓ Plan deleted: ${id}`));
       }
     });
 
@@ -697,20 +698,20 @@ export function planCommand(): Command {
       }
 
       if (plans.length === 0) {
-        console.log(chalk.dim("  No markdown plans found."));
+        output(chalk.dim("  No markdown plans found."));
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  Markdown Plans (${plans.length})`));
-      console.log(chalk.dim("  " + "─".repeat(50)));
+      outputBlank();
+      output(chalk.bold(`  Markdown Plans (${plans.length})`));
+      output(chalk.dim("  " + "─".repeat(50)));
       for (const plan of plans) {
         const status = plan.status === "done" ? chalk.green("done") :
                        plan.status === "parado" ? chalk.yellow("parado") :
                        chalk.cyan("andamento");
-        console.log(`  ${chalk.bold(plan.id)}  ${status.padEnd(12)}  ${plan.title}`);
+        output(`  ${chalk.bold(plan.id)}  ${status.padEnd(12)}  ${plan.title}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── md show ──────────────────────────────────────────────────────────────
@@ -731,7 +732,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "Plan not found" });
         } else {
-          console.log(chalk.red(`  Plan not found: ${id}`));
+          output(chalk.red(`  Plan not found: ${id}`));
         }
         return;
       }
@@ -741,15 +742,15 @@ export function planCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  Plan: ${plan.title}`));
-      console.log(chalk.dim("  " + "─".repeat(50)));
-      console.log(`  ID:       ${plan.id}`);
-      console.log(`  Status:   ${plan.status}`);
-      console.log(`  Created:  ${plan.createdAt || "N/A"}`);
-      console.log(`  Updated:  ${plan.updatedAt || "N/A"}`);
-      console.log(`  Path:     ${plan.relativePath}`);
-      console.log("");
+      outputBlank();
+      output(chalk.bold(`  Plan: ${plan.title}`));
+      output(chalk.dim("  " + "─".repeat(50)));
+      output(`  ID:       ${plan.id}`);
+      output(`  Status:   ${plan.status}`);
+      output(`  Created:  ${plan.createdAt || "N/A"}`);
+      output(`  Updated:  ${plan.updatedAt || "N/A"}`);
+      output(`  Path:     ${plan.relativePath}`);
+      outputBlank();
     });
 
   // ── md status ────────────────────────────────────────────────────────────
@@ -769,7 +770,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
         } else {
-          console.log(chalk.red(`  Invalid status: ${status}. Must be: ${validStatuses.join(", ")}`));
+          output(chalk.red(`  Invalid status: ${status}. Must be: ${validStatuses.join(", ")}`));
         }
         return;
       }
@@ -781,16 +782,16 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson(updated as unknown as Record<string, unknown>);
         } else {
-          console.log(chalk.green(`  ✓ Plan status updated: ${id} → ${status}`));
+          output(chalk.green(`  ✓ Plan status updated: ${id} → ${status}`));
           if (status === "done") {
-            console.log(chalk.dim(`    Moved to done/ directory`));
+            output(chalk.dim(`    Moved to done/ directory`));
           }
         }
       } catch (error) {
         if (isJson) {
           outputJson({ error: error instanceof Error ? error.message : String(error) });
         } else {
-          console.log(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
         }
       }
     });
@@ -813,14 +814,14 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson(updated as unknown as Record<string, unknown>);
         } else {
-          console.log(chalk.green(`  ✓ Plan marked as done: ${id}`));
-          console.log(chalk.dim(`    Moved to done/ directory`));
+          output(chalk.green(`  ✓ Plan marked as done: ${id}`));
+          output(chalk.dim(`    Moved to done/ directory`));
         }
       } catch (error) {
         if (isJson) {
           outputJson({ error: error instanceof Error ? error.message : String(error) });
         } else {
-          console.log(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
         }
       }
     });
@@ -852,10 +853,10 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson(plan as unknown as Record<string, unknown>);
       } else {
-        console.log(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
-        console.log(`    ${plan.title}`);
-        console.log(`    Path: ${plan.relativePath}`);
-        console.log("");
+        output(chalk.green(`  ✓ Plan created: ${chalk.bold(plan.id)}`));
+        output(`    ${plan.title}`);
+        output(`    Path: ${plan.relativePath}`);
+        outputBlank();
       }
     });
 
@@ -878,18 +879,18 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: "not_found", message: `Plan not found: ${id}` });
         } else {
-          console.log(chalk.red(`  ✘ Plan not found: ${id}`));
+          output(chalk.red(`  ✘ Plan not found: ${id}`));
         }
         return;
       }
 
       if (!isJson) {
-        console.log("");
+        outputBlank();
         banner("nexus plan prepare", "Plan Preparation");
-        console.log("");
-        console.log(chalk.gray(`  Plan: ${plan.title}`));
-        console.log(chalk.gray(`  Path: ${plan.relativePath}`));
-        console.log("");
+        outputBlank();
+        output(chalk.gray(`  Plan: ${plan.title}`));
+        output(chalk.gray(`  Path: ${plan.relativePath}`));
+        outputBlank();
       }
 
       const results = await runPrepare(ctx.projectRoot, nexusDir, id);
@@ -897,15 +898,15 @@ export function planCommand(): Command {
       if (isJson) {
         outputJson({ planId: id, title: plan.title, results });
       } else {
-        console.log(chalk.bold("  Results:"));
-        console.log("");
+        output(chalk.bold("  Results:"));
+        outputBlank();
         for (const r of results) {
           const icon = r.status === "done" ? "✅" : r.status === "skip" ? "⏭" : r.status === "error" ? "❌" : "⏳";
-          console.log(`    ${icon} ${r.step}: ${r.detail}`);
+          output(`    ${icon} ${r.step}: ${r.detail}`);
         }
-        console.log("");
-        console.log(chalk.green(`  ✓ Plan "${plan.title}" prepared`));
-        console.log("");
+        outputBlank();
+        output(chalk.green(`  ✓ Plan "${plan.title}" prepared`));
+        outputBlank();
       }
     });
 
@@ -935,7 +936,7 @@ export function planCommand(): Command {
         if (isJson) {
           outputJson({ error: error instanceof Error ? error.message : String(error) });
         } else {
-          console.log(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
+          output(chalk.red(`  Error: ${error instanceof Error ? error.message : String(error)}`));
         }
       }
     });

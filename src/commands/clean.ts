@@ -7,6 +7,7 @@ import { outputJson, banner } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { logger } from "../logger.js";
+import { output, outputBlank } from "../output.js";
 
 export const cleanCommand = new Command("clean")
   .description("Clear nexus cache and temporary files")
@@ -21,9 +22,9 @@ export const cleanCommand = new Command("clean")
     if (!checkLifecycleGate("clean", ctx.projectRoot, ctx.nexusDir, isJson)) return;
 
     if (!isJson) {
-      console.log("");
+      outputBlank();
       banner("nexus clean", "Clear Cache");
-      console.log("");
+      outputBlank();
     }
 
     const itemsRemoved: string[] = [];
@@ -76,13 +77,13 @@ export const cleanCommand = new Command("clean")
       });
     } else {
       if (itemsRemoved.length === 0) {
-        console.log(chalk.green("  ✔ Cache is already clean."));
+        output(chalk.green("  ✔ Cache is already clean."));
       } else {
-        console.log(chalk.green(`  ✔ Removed ${itemsRemoved.length} item(s):`));
+        output(chalk.green(`  ✔ Removed ${itemsRemoved.length} item(s):`));
         for (const item of itemsRemoved) {
-          console.log(chalk.gray(`    - ${item}`));
+          output(chalk.gray(`    - ${item}`));
         }
       }
-      console.log("");
+      outputBlank();
     }
   });

@@ -11,18 +11,20 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { HandbookLevel, HandbookTopic, ViewMode } from "../types.js";
 
-function findProjectRoot(startDir: string): string {
+function findHandbookRoot(startDir: string): string {
   let dir = startDir;
   while (true) {
-    if (existsSync(join(dir, "package.json"))) return dir;
+    if (existsSync(join(dir, "docs", "handbook"))) return join(dir, "docs", "handbook");
     const parent = dirname(dir);
-    if (parent === dir) throw new Error("Could not find project root");
+    if (parent === dir) break;
     dir = parent;
   }
+  // Fallback: assume running from project root
+  return join(process.cwd(), "docs", "handbook");
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const HANDBOOK_ROOT = join(findProjectRoot(__dirname), "docs", "handbook");
+const HANDBOOK_ROOT = findHandbookRoot(__dirname);
 
 // ── Topic Registry ─────────────────────────────────────────────────────────
 

@@ -60,7 +60,8 @@ export type NexusEventType =
   | "backlog.updated"
   | "system.updated"
   | "challenge.generated"
-  | "state.mutated";
+  | "state.mutated"
+  | "workdir.large_uncommitted_drift";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

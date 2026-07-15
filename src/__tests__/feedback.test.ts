@@ -77,7 +77,7 @@ describe("feedback command (session-feedback module)", () => {
       const summary = computeFeedbackSummary([]);
       expect(summary.totalSessions).toBe(0);
       expect(summary.successRate).toBe(0);
-      expect(summary.byOutcome).toEqual({ success: 0, failure: 0, partial: 0 });
+      expect(summary.byOutcome).toEqual({ success: 0, failure: 0, partial: 0, "session-start": 0, "session-end": 0 });
     });
 
     it("computes correct success rate", () => {

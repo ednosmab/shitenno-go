@@ -12,6 +12,9 @@ import { join } from "node:path";
 import { getEventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
 import { addImpediment, clearImpediments } from "./context-buffer-writer.js";
+import { acquireScanLock, releaseScanLock } from "./plan-backlog-sync-lock.js";
+import { shouldSkipScan, markScanRun } from "./plan-backlog-sync-cooldown.js";
+import { withSyncWriteGuard, isSyncWriteInProgress } from "./sync-write-guard.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +92,7 @@ export function syncPlanToBacklog(
 
     const updatedBacklog = backlog.replace(statusRegex, `$1${statusWithPct}$3`);
     if (updatedBacklog !== backlog) {
-      writeFileSync(backlogPath, updatedBacklog, "utf-8");
+      withSyncWriteGuard(() => writeFileSync(backlogPath, updatedBacklog, "utf-8"));
       logger.info("plan-backlog-sync", `Updated ${planIdUpper}: ${percentage}% complete`);
       getEventBus().publish("backlog.updated", {
         planId,
@@ -130,8 +133,25 @@ export function syncBacklogToPlan(
   content = content.replace(/\*\*Status:\*\*\s*.+/, `**Status:** ${planStatus}`);
   content = content.replace(/\*\*Updated_at:\*\*\s*.+/, `**Updated_at:** ${new Date().toISOString()}`);
 
-  writeFileSync(planPath, content, "utf-8");
+  withSyncWriteGuard(() => {
+    markPlanWritten(planId);
+    writeFileSync(planPath, content, "utf-8");
+  });
   logger.info("plan-backlog-sync", `Updated plan ${planId} status to ${planStatus}`);
+}
+
+// ── Cooldown per Plan ─────────────────────────────────────────────────────────
+
+const PLAN_WRITE_COOLDOWN_MS = 1000;
+const lastPlanWriteTimestamps = new Map<string, number>();
+
+function isWithinPlanCooldown(planId: string): boolean {
+  const lastWrite = lastPlanWriteTimestamps.get(planId) ?? 0;
+  return Date.now() - lastWrite < PLAN_WRITE_COOLDOWN_MS;
+}
+
+function markPlanWritten(planId: string): void {
+  lastPlanWriteTimestamps.set(planId, Date.now());
 }
 
 // ── Initialization ───────────────────────────────────────────────────────────
@@ -191,9 +211,18 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
   // When a plan file changes, sync checklist progress to BACKLOG.md
   // and auto-archive if status changed to done
   bus.subscribe("plan.file_changed", (payload: Record<string, unknown>) => {
+    // Guard: ignore events fired by our own writes (prevent feedback loop)
+    if (isSyncWriteInProgress()) return;
+
     const planId = payload.planId as string;
     const content = payload.content as string;
     if (planId && content) {
+      // Cooldown: ignore events for plans we just wrote to (prevents bidirectional loop)
+      if (isWithinPlanCooldown(planId)) {
+        logger.debug("plan-backlog-sync", `Skipping plan ${planId} — within cooldown`);
+        return;
+      }
+
       logger.info("plan-backlog-sync", `Plan changed: ${planId}`);
       syncPlanToBacklog(nexusDir, planId, content);
 
@@ -212,6 +241,9 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
 
   // When a plan is archived, mark it as done in BACKLOG.md
   bus.subscribe("plan.archived", (payload: Record<string, unknown>) => {
+    // Guard: ignore events fired by our own writes (prevent feedback loop)
+    if (isSyncWriteInProgress()) return;
+
     const planId = payload.planId as string;
     if (planId) {
       logger.info("plan-backlog-sync", `Plan archived: ${planId}`);
@@ -224,7 +256,7 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
           "m"
         );
         backlog = backlog.replace(statusRegex, `$1concluído$3`);
-        writeFileSync(backlogPath, backlog, "utf-8");
+        withSyncWriteGuard(() => writeFileSync(backlogPath, backlog, "utf-8"));
       }
     }
   });
@@ -233,7 +265,11 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
 
   // Retroactive scan: process plans that exist but have no BACKLOG entry
   const plansDir = join(nexusDir, "governance", "plans");
-  if (existsSync(plansDir)) {
+
+  if (existsSync(plansDir) && !shouldSkipScan(nexusDir) && acquireScanLock(nexusDir)) {
+    markScanRun(nexusDir);
+    const scanPromises: Promise<void>[] = [];
+
     const backlogPath = join(nexusDir, "docs", "BACKLOG.md");
     const backlog = existsSync(backlogPath) ? readFileSync(backlogPath, "utf-8") : "";
 
@@ -249,25 +285,20 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
     for (const file of planFiles) {
       const planId = file.replace(".md", "");
       const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
-
       const hasBacklogEntry = backlog.includes(planIdUpper);
       const hasStepsSection = backlog.includes("#### Passos do Plano");
 
-      // Process if: no BACKLOG entry OR exists but no steps section
       if (!hasBacklogEntry || (hasBacklogEntry && !hasStepsSection)) {
         const reason = !hasBacklogEntry ? "no BACKLOG entry" : "no steps section";
         logger.info("plan-backlog-sync", `Retroactive scan: processing ${planId} (${reason})`);
-        import("./commands/plan.js").then(({ runPrepare }) => {
-          runPrepare(projectRoot, nexusDir, planId).then((results) => {
+
+        const p = import("./commands/plan.js")
+          .then(({ runPrepare }) => runPrepare(projectRoot, nexusDir, planId))
+          .then((results) => {
             const done = results.filter((r) => r.status === "done").length;
             const errors = results.filter((r) => r.status === "error").length;
             logger.info("plan-backlog-sync", `Retroactive prepare ${planId}: ${done} done, ${errors} errors`);
-            bus.publish("backlog.updated", {
-              planId,
-              stepsCount: done,
-              errorCount: errors,
-              source: "retroactive_scan",
-            });
+            bus.publish("backlog.updated", { planId, stepsCount: done, errorCount: errors, source: "retroactive_scan" });
             if (errors > 0) {
               addImpediment(nexusDir, {
                 description: `Retroactive sync failed for ${planId}: ${errors} errors`,
@@ -276,17 +307,23 @@ export function initPlanBacklogSync(projectRoot: string, nexusDir: string): void
                 category: "plan_sync",
               });
             }
+          })
+          .catch((err) => {
+            logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
+            addImpediment(nexusDir, {
+              description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
+              priority: "high",
+              createdAt: new Date().toISOString(),
+              category: "plan_sync",
+            });
           });
-        }).catch((err) => {
-          logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
-          addImpediment(nexusDir, {
-            description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
-            priority: "high",
-            createdAt: new Date().toISOString(),
-            category: "plan_sync",
-          });
-        });
+
+        scanPromises.push(p);
       }
     }
+
+    Promise.allSettled(scanPromises).finally(() => releaseScanLock(nexusDir));
+  } else if (existsSync(plansDir)) {
+    logger.debug("plan-backlog-sync", "Retroactive scan skipped (cooldown activo ou lock detido por outro processo)");
   }
 }

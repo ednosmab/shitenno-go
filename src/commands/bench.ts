@@ -22,6 +22,7 @@ import { collectContext, type ContextSnapshot } from "../context-collector.js";
 import { computeInputHash, setCachedBriefing, readCache, invalidateBriefingCache } from "../briefing-cache.js";
 import { outputJson } from "../formatting.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputSection } from "../output.js";
 
 // ── Benchmark Helpers ──────────────────────────────────────────────────────
 
@@ -170,11 +171,9 @@ function saveBenchResult(nexusDir: string, result: BenchmarkResult): void {
 }
 
 function displayComparison(current: BenchmarkResult, previous: BenchmarkResult): void {
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║  nexus bench — Comparison            ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-  console.log("");
+  outputBlank();
+  outputSection("nexus bench — Comparison");
+  outputBlank();
 
   const timeDiff = current.briefingFresh.timeMs - previous.briefingFresh.timeMs;
   const timeImproved = timeDiff < 0;
@@ -182,11 +181,11 @@ function displayComparison(current: BenchmarkResult, previous: BenchmarkResult):
   const timeColor = timeImproved ? chalk.green : chalk.red;
   const timeSign = timeImproved ? "" : "+";
 
-  console.log(chalk.bold("  ⏱ Performance vs Previous"));
-  console.log(`     Previous:  ${chalk.gray(`${previous.briefingFresh.timeMs}ms`)}`);
-  console.log(`     Current:   ${chalk.cyan(`${current.briefingFresh.timeMs}ms`)}`);
-  console.log(`     ${timeIcon} Delta:    ${timeColor(`${timeSign}${timeDiff.toFixed(2)}ms`)}`);
-  console.log("");
+  outputSection("⏱ Performance vs Previous");
+  output(`     Previous:  ${chalk.gray(`${previous.briefingFresh.timeMs}ms`)}`);
+  output(`     Current:   ${chalk.cyan(`${current.briefingFresh.timeMs}ms`)}`);
+  output(`     ${timeIcon} Delta:    ${timeColor(`${timeSign}${timeDiff.toFixed(2)}ms`)}`);
+  outputBlank();
 
   const tokenDiff = current.savings.tokens - previous.savings.tokens;
   const tokensImproved = tokenDiff > 0;
@@ -194,44 +193,42 @@ function displayComparison(current: BenchmarkResult, previous: BenchmarkResult):
   const tokenColor = tokensImproved ? chalk.green : chalk.red;
   const tokenSign = tokensImproved ? "+" : "";
 
-  console.log(chalk.bold("  💰 Token Savings vs Previous"));
-  console.log(`     Previous:  ${chalk.gray(`~${previous.savings.tokens.toLocaleString()} tokens (${previous.savings.percent}%)`)}`);
-  console.log(`     Current:   ${chalk.cyan(`~${current.savings.tokens.toLocaleString()} tokens (${current.savings.percent}%)`)}`);
-  console.log(`     ${tokenIcon} Delta:    ${tokenColor(`${tokenSign}${tokenDiff.toLocaleString()} tokens`)}`);
-  console.log("");
+  outputSection("💰 Token Savings vs Previous");
+  output(`     Previous:  ${chalk.gray(`~${previous.savings.tokens.toLocaleString()} tokens (${previous.savings.percent}%)`)}`);
+  output(`     Current:   ${chalk.cyan(`~${current.savings.tokens.toLocaleString()} tokens (${current.savings.percent}%)`)}`);
+  output(`     ${tokenIcon} Delta:    ${tokenColor(`${tokenSign}${tokenDiff.toLocaleString()} tokens`)}`);
+  outputBlank();
 }
 
 // ── Display ────────────────────────────────────────────────────────────────
 
 function displayBenchmark(result: BenchmarkResult): void {
-  console.log("");
-  console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-  console.log(chalk.bold.cyan("  ║    nexus bench — Token Benchmark      ║"));
-  console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-  console.log("");
+  outputBlank();
+  outputSection("nexus bench — Token Benchmark");
+  outputBlank();
 
-  console.log(chalk.bold("  ⏱ Performance"));
-  console.log(`     Fresh briefing:   ${chalk.cyan(`${result.briefingFresh.timeMs}ms`)} (avg of ${result.iterations} runs)`);
-  console.log(`     Cached briefing:  ${chalk.green(`${result.briefingCached.timeMs}ms`)} (cache hit)`);
-  console.log("");
+  outputSection("⏱ Performance");
+  output(`     Fresh briefing:   ${chalk.cyan(`${result.briefingFresh.timeMs}ms`)} (avg of ${result.iterations} runs)`);
+  output(`     Cached briefing:  ${chalk.green(`${result.briefingCached.timeMs}ms`)} (cache hit)`);
+  outputBlank();
 
-  console.log(chalk.bold("  💰 Token Comparison"));
-  console.log(`     Manual discovery: ${chalk.red(`~${result.manualDiscovery.estimatedTokens.toLocaleString()} tokens`)}`);
-  console.log(`     With briefing:    ${chalk.green(`~${result.briefingFresh.tokens.toLocaleString()} tokens`)}`);
-  console.log(`     With cache:       ${chalk.green("~0 tokens")}`);
-  console.log("");
+  outputSection("💰 Token Comparison");
+  output(`     Manual discovery: ${chalk.red(`~${result.manualDiscovery.estimatedTokens.toLocaleString()} tokens`)}`);
+  output(`     With briefing:    ${chalk.green(`~${result.briefingFresh.tokens.toLocaleString()} tokens`)}`);
+  output(`     With cache:       ${chalk.green("~0 tokens")}`);
+  outputBlank();
 
-  console.log(chalk.bold("  📊 Savings"));
-  console.log(chalk.green(`     Tokens saved:     ~${result.savings.tokens.toLocaleString()} tokens (${result.savings.percent}%)`));
-  console.log(chalk.green(`     Per session:      ~${result.savings.timeMs}ms faster`));
+  outputSection("📊 Savings");
+  output(chalk.green(`     Tokens saved:     ~${result.savings.tokens.toLocaleString()} tokens (${result.savings.percent}%)`));
+  output(chalk.green(`     Per session:      ~${result.savings.timeMs}ms faster`));
 
   const monthlyTokens = result.savings.tokens * 10;
   const monthlyCost = (monthlyTokens / 1_000_000) * 5;
-  console.log("");
-  console.log(chalk.bold("  📈 Monthly Projection (10 sessions)"));
-  console.log(chalk.green(`     Tokens saved:     ~${monthlyTokens.toLocaleString()}`));
-  console.log(chalk.green(`     Cost saved:       ~$${monthlyCost.toFixed(2)}/month`));
-  console.log("");
+  outputBlank();
+  outputSection("📈 Monthly Projection (10 sessions)");
+  output(chalk.green(`     Tokens saved:     ~${monthlyTokens.toLocaleString()}`));
+  output(chalk.green(`     Cost saved:       ~$${monthlyCost.toFixed(2)}/month`));
+  outputBlank();
 }
 
 // ── Command ────────────────────────────────────────────────────────────────
@@ -248,11 +245,9 @@ export function benchCommand(): Command {
       const iterations = parseInt(String(options.iterations || "5"), 10);
 
       if (!isJson) {
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║    nexus bench — Token Benchmark      ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
+        output("");
+        outputSection("nexus bench — Token Benchmark");
+        outputBlank();
       }
 
       const ctx = guardNotInitialized(options, isJson);

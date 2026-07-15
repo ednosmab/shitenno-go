@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getEventBus, resetEventBus } from "../event-bus.js";
 
 import type { CorrelationId, TraceId } from "../event-payloads.js";
@@ -111,6 +111,7 @@ describe("EventBus", () => {
   });
 
   it("handler errors do not affect other handlers", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const bus = getEventBus();
     const received: string[] = [];
 

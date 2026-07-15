@@ -17,6 +17,7 @@ import { calculateComplexityScore, writeComplexityReport } from "../scorer.js";
 import { detectPatterns, writePatternReport } from "../pattern-detector.js";
 import { auditHealth, writeHealthReport } from "../health-auditor.js";
 import { analyzeEvolution, writeEvolutionReport } from "../auto-evolution.js";
+import { output, outputBlank, outputError } from "../output.js";
 import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 
@@ -72,7 +73,7 @@ const evolveStage: PipelineStage = {
   description: "Generate evolution recommendations",
   execute: async (ctx: PipelineContext) => {
     if (!checkLifecycleGate("evolve", ctx.projectRoot, ctx.nexusDir, false)) {
-      console.log(chalk.yellow("  ⚠ Skipping evolve stage (requires 'governed' state)"));
+      output(chalk.yellow("  ⚠ Skipping evolve stage (requires 'governed' state)"));
       return { ...ctx, __lastStageSkipped: true };
     }
     const report = analyzeEvolution(ctx.projectRoot, ctx.nexusDir);
@@ -92,11 +93,11 @@ export const runCommand = new Command("run")
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");
-      console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      console.log(chalk.bold.cyan("  ║    nexus run — Full Analysis         ║"));
-      console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      console.log("");
+      outputBlank();
+      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+      output(chalk.bold.cyan("  ║    nexus run — Full Analysis         ║"));
+      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -162,54 +163,54 @@ export const runCommand = new Command("run")
       }
 
       // Human-readable summary
-      console.log(chalk.bold("  Pipeline Results:"));
-      console.log("");
+      output(chalk.bold("  Pipeline Results:"));
+      outputBlank();
 
       for (const sr of result.stageResults) {
         const icon = sr.status === "success" ? chalk.green("✔")
           : sr.status === "skipped" ? chalk.yellow("⊘")
           : chalk.red("✘");
         const duration = chalk.gray(`(${sr.duration}ms)`);
-        console.log(`    ${icon} ${sr.stage} ${duration}`);
+        output(`    ${icon} ${sr.stage} ${duration}`);
       }
-      console.log("");
+      outputBlank();
 
       if (complexity) {
         const color = complexity.level === "junior" ? chalk.green
           : complexity.level === "pleno" ? chalk.yellow : chalk.red;
-        console.log(chalk.bold("  Summary:"));
-        console.log(`    Complexity: ${color(complexity.score + "/20")} — ${color(complexity.level)}`);
+        output(chalk.bold("  Summary:"));
+        output(`    Complexity: ${color(complexity.score + "/20")} — ${color(complexity.level)}`);
       }
 
       if (patterns) {
-        console.log(`    Patterns:  ${patterns.patterns.length} detected, ${patterns.candidateRules.length} candidate rules`);
+        output(`    Patterns:  ${patterns.patterns.length} detected, ${patterns.candidateRules.length} candidate rules`);
       }
 
       if (health) {
         const color = health.healthScore >= 70 ? chalk.green : health.healthScore >= 40 ? chalk.yellow : chalk.red;
-        console.log(`    Health:    ${color(health.healthScore + "/100")}`);
+        output(`    Health:    ${color(health.healthScore + "/100")}`);
       }
 
       if (evolution) {
-        console.log(`    Evolution: ${evolution.totalRecommendations} recommendation(s)`);
+        output(`    Evolution: ${evolution.totalRecommendations} recommendation(s)`);
       }
 
       if (result.errors.length > 0) {
-        console.log("");
-        console.log(chalk.red(`  ${result.errors.length} stage(s) failed:`));
+        outputBlank();
+        output(chalk.red(`  ${result.errors.length} stage(s) failed:`));
         for (const e of result.errors) {
-          console.log(chalk.red(`    - ${e.stage}: ${e.error.message}`));
+          output(chalk.red(`    - ${e.stage}: ${e.error.message}`));
         }
       }
 
-      console.log("");
+      outputBlank();
     } catch (error) {
       if (spinner) spinner.fail("Pipeline failed");
       if (isJson) {
         outputJson({ error: "pipeline_failed", message: String(error) });
       } else {
-        console.error(chalk.red(`  Error: ${error}`));
+        outputError(chalk.red(`  Error: ${error}`));
       }
-      console.log("");
+      outputBlank();
     }
   });

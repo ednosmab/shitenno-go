@@ -161,6 +161,9 @@ Override with `loading_profile` field in `opencode.json`.
 | `NEXUS_HOME` | Nexus home directory | `~/.nexus` |
 | `NEXUS_PLUGINS` | Plugin directory | `nexus-system/plugins/` |
 | `NEXUS_LOG_LEVEL` | Log level (`debug`, `info`, `warn`, `error`) | `info` |
+| `NEXUS_NO_DAEMON` | Set to `1` to disable daemon auto-start | unset |
+| `NEXUS_DAEMON` | Force daemon mode | unset |
+| `CI` | Disables daemon in CI environments | unset |
 
 ---
 

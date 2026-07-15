@@ -100,7 +100,8 @@ As regras abaixo foram movidas para ficheiros separados para optimização de to
 **ANTES de iniciar qualquer tarefa:**
 1. Leia `governance/context/context_buffer.yaml` (Quick Board — fonte primária de contexto)
 2. Verifique as áreas de risco, cobertura de testes e regras contextuais
-3. Adapte o comportamento baseado nos alertas e recomendações do briefing
+3. **Se o campo `reminders` não estiver vazio, PAUSE e apresente ao utilizador o resumo dos reminders activos antes de prosseguir.** Cada reminder é um item de accão pendente — pergunte se o utilizador quer resolver algum deles agora.
+4. Adapte o comportamento baseado nos alertas e recomendações do briefing
 
 **APÓS completar a tarefa:**
 1. Execute `nexus feedback --outcome success` se a tarefa foi concluída com sucesso

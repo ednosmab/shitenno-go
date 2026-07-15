@@ -64,6 +64,17 @@ export function isCacheValid(entry: CacheEntry, currentHash: string): boolean {
   return entry.inputHash === currentHash;
 }
 
+/**
+ * Check if a cache entry has expired based on NEXUS_CACHE_TTL_MINUTES env var.
+ * Pure function — only reads env var, no side effects.
+ */
+export function isCacheExpired(entry: CacheEntry, nowMs: number = Date.now()): boolean {
+  const ttlMinutes = parseInt(process.env.NEXUS_CACHE_TTL_MINUTES || "", 10);
+  if (ttlMinutes <= 0 || !entry.computedAt) return false;
+  const ageMs = nowMs - new Date(entry.computedAt).getTime();
+  return ageMs > ttlMinutes * 60 * 1000;
+}
+
 // ── Cache Storage ──────────────────────────────────────────────────────────
 
 function getCachePath(nexusDir: string): string {
@@ -119,7 +130,8 @@ export function getCachedBriefing(
   const cache = readCache(nexusDir);
   if (!cache?.entry) return null;
 
-  if (isCacheValid(cache.entry, currentHash)) {
+  // Check hash validity + optional TTL expiration (3.27)
+  if (isCacheValid(cache.entry, currentHash) && !isCacheExpired(cache.entry)) {
     return { briefing: cache.entry.briefing, cacheHit: true };
   }
 

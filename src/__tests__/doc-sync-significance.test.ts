@@ -126,6 +126,16 @@ describe("detectDirectoryScore", () => {
     expect(detectDirectoryScore(`${NEXUS}/unknown/file.txt`, NEXUS)).toBe(0.1);
   });
 
+  it("scores files inside docs/generated/ as zero significance (BUG-002)", () => {
+    expect(detectDirectoryScore(`${NEXUS}/docs/generated/ARCHITECTURE.md`, NEXUS)).toBe(0.0);
+  });
+
+  it("docs/generated/ takes priority over the generic docs/ prefix", () => {
+    const generatedScore = detectDirectoryScore(`${NEXUS}/docs/generated/ANYTHING.md`, NEXUS);
+    const genericDocsScore = detectDirectoryScore(`${NEXUS}/docs/some-other-file.md`, NEXUS);
+    expect(generatedScore).toBeLessThan(genericDocsScore);
+  });
+
   it("matches longest prefix first", () => {
     expect(detectDirectoryScore(`${NEXUS}/governance/context/state.yaml`, NEXUS)).toBe(0.6);
   });
@@ -275,6 +285,22 @@ describe("calculateSignificance", () => {
     );
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeLessThanOrEqual(1);
+  });
+
+  it("does not trigger sync for files inside docs/generated/ (BUG-002, full pipeline)", () => {
+    const tracker = new ChangeHistoryTracker();
+    const filePath = `${NEXUS}/docs/generated/ARCHITECTURE.md`;
+
+    const result = calculateSignificance(
+      filePath,
+      NEXUS,
+      null,
+      "# Conteúdo gerado\n".repeat(50),
+      tracker.recordChange(filePath)
+    );
+
+    expect(result.shouldSync).toBe(false);
+    expect(result.level).toBe("ignore");
   });
 });
 

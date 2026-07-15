@@ -12,6 +12,7 @@ import { getEventBus } from "../event-bus.js";
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { logger } from "../logger.js";
+import { output, outputBlank } from "../output.js";
 
 interface StatusCheck {
   name: string;
@@ -24,12 +25,13 @@ export const statusCommand = new Command("status")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
   .option("--no-cache", "Skip cache and recalculate")
   .option("--json", "Output results as JSON")
+  .option("--fix", "Auto-fix governance issues (like doctor)")
   .action(async (options) => {
     const isJson = options.json === true;
 
     if (!isJson) {
-      console.log("");        banner("nexus status", "Health Check");
-      console.log("");
+      outputBlank();        banner("nexus status", "Health Check");
+      outputBlank();
     }
 
     const ctx = guardNotInitialized(options, isJson);
@@ -113,11 +115,36 @@ export const statusCommand = new Command("status")
     }
 
     // Human-readable output
-    console.log(chalk.bold("  Project root:"));
-    console.log(chalk.gray(`    ${ctx.projectRoot}`));
-    console.log("");
+    output(chalk.bold("  Project root:"));
+    output(chalk.gray(`    ${ctx.projectRoot}`));
+    outputBlank();
 
     displayResults(checks);
+
+    // 3.26: --fix mode: run auto-fix suggestions
+    if (options.fix) {
+      const failCount = checks.filter((c) => c.status === "fail").length;
+      const warnCount = checks.filter((c) => c.status === "warn").length;
+      if (!isJson) {
+        output(chalk.bold("  🔧 Auto-fix Mode:"));
+        outputBlank();
+        if (failCount > 0) {
+          output(chalk.gray("  Attempting fixes for failed checks..."));
+          output(chalk.gray("  → Run 'nexus init' to fix failed governance checks"));
+          output(chalk.gray("  → Run 'nexus upgrade --accept-recommended' to add missing capabilities"));
+        }
+        if (warnCount > 0) {
+          output(chalk.gray("  Attempting fixes for warnings..."));
+          output(chalk.gray("  → Run 'nexus upgrade' to add optional components"));
+          output(chalk.gray("  → Run 'nexus sync' to synchronize documentation"));
+        }
+        if (failCount === 0 && warnCount === 0) {
+          output(chalk.green("  ✔ No fixes needed — governance is healthy!"));
+        }
+        outputBlank();
+      }
+    }
+
     displayMaturityProfile(maturityProfile, installedCapabilities);
     displayComplexityReport(complexity, analysis);
 
@@ -130,12 +157,12 @@ export const statusCommand = new Command("status")
       saveFingerprint(ctx.nexusDir, fingerprint);
     }
     if (fingerprint) {
-      console.log(chalk.bold("  🔍 Project Fingerprint:"));
-      console.log(chalk.gray(`    Domain:    ${fingerprint.domain}`));
-      console.log(chalk.gray(`    Scale:     ${fingerprint.scale}`));
-      console.log(chalk.gray(`    Stack:     ${fingerprint.stack.slice(0, 5).join(", ")}${fingerprint.stack.length > 5 ? ` (+${fingerprint.stack.length - 5})` : ""}`));
-      console.log(chalk.gray(`    Hash:      ${fingerprint.hash}`));
-      console.log("");
+      output(chalk.bold("  🔍 Project Fingerprint:"));
+      output(chalk.gray(`    Domain:    ${fingerprint.domain}`));
+      output(chalk.gray(`    Scale:     ${fingerprint.scale}`));
+      output(chalk.gray(`    Stack:     ${fingerprint.stack.slice(0, 5).join(", ")}${fingerprint.stack.length > 5 ? ` (+${fingerprint.stack.length - 5})` : ""}`));
+      output(chalk.gray(`    Hash:      ${fingerprint.hash}`));
+      outputBlank();
     }
 
     // Display context pipeline summary via collectContext()
@@ -154,21 +181,21 @@ export const statusCommand = new Command("status")
       const cached = getCachedBriefing(ctx.nexusDir, inputHash);
       const briefing = cached?.briefing ?? snapshot.briefing;
 
-      console.log(chalk.bold("  📋 Pre-Session Briefing:"));
-      console.log(chalk.gray(`    Domain: ${briefing.project.domain} | Scale: ${briefing.project.scale} | Risk: ${briefing.risks.overall}`));
+      output(chalk.bold("  📋 Pre-Session Briefing:"));
+      output(chalk.gray(`    Domain: ${briefing.project.domain} | Scale: ${briefing.project.scale} | Risk: ${briefing.risks.overall}`));
       if (cached?.cacheHit) {
-        console.log(chalk.gray("    Cache: hit"));
+        output(chalk.gray("    Cache: hit"));
       }
       if (briefing.risks.criticalAreas.length > 0) {
-        console.log(chalk.red(`    ⚠ Critical areas: ${briefing.risks.criticalAreas.join(", ")}`));
+        output(chalk.red(`    ⚠ Critical areas: ${briefing.risks.criticalAreas.join(", ")}`));
       }
       if (briefing.tests.areasWithoutTests.length > 0) {
-        console.log(chalk.yellow(`    🧪 Areas without tests: ${briefing.tests.areasWithoutTests.length}`));
+        output(chalk.yellow(`    🧪 Areas without tests: ${briefing.tests.areasWithoutTests.length}`));
       }
       for (const rec of briefing.recommendations.slice(0, 2)) {
-        console.log(chalk.cyan(`    → ${rec}`));
+        output(chalk.cyan(`    → ${rec}`));
       }
-      console.log("");
+      outputBlank();
     } catch (error) {
       logger.debug("status", "Suppressed error", { error });
     }
@@ -182,30 +209,30 @@ export const statusCommand = new Command("status")
       unsubscribe();
       const engineResult = evaluateCapabilities(state, ctx.nexusDir);
 
-      console.log(chalk.bold("  ⚙ Capability Engine:"));
-      console.log(chalk.gray(`    Overall: ${engineResult.overallScore}% | Installed: ${engineResult.byMaturity.installed.length + engineResult.byMaturity.configured.length + engineResult.byMaturity.active.length + engineResult.byMaturity.optimized.length} | Dormant: ${engineResult.byMaturity.dormant.length}`));
+      output(chalk.bold("  ⚙ Capability Engine:"));
+      output(chalk.gray(`    Overall: ${engineResult.overallScore}% | Installed: ${engineResult.byMaturity.installed.length + engineResult.byMaturity.configured.length + engineResult.byMaturity.active.length + engineResult.byMaturity.optimized.length} | Dormant: ${engineResult.byMaturity.dormant.length}`));
 
       const activeCaps = [...engineResult.byMaturity.active, ...engineResult.byMaturity.optimized];
       if (activeCaps.length > 0) {
-        console.log(chalk.green(`    Active: ${activeCaps.join(", ")}`));
+        output(chalk.green(`    Active: ${activeCaps.join(", ")}`));
       }
-      console.log("");
+      outputBlank();
     } catch (error) {
       logger.debug("status", "Suppressed error", { error });
     }
 
     // Growth profile
-    console.log(formatGrowthProgress(growthProfile));
-    console.log("");
+    output(formatGrowthProgress(growthProfile));
+    outputBlank();
 
     if (cacheHit) {
-      console.log(chalk.gray("  📦 Used cached results"));
-      console.log("");
+      output(chalk.gray("  📦 Used cached results"));
+      outputBlank();
     }
 
     if (reportFile) {
-      console.log(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
-      console.log("");
+      output(chalk.gray(`  📄 Report saved: nexus-system/reports/${reportFile}`));
+      outputBlank();
     }
 
     // Publish event
@@ -403,8 +430,8 @@ function checkAgentContracts(nexusDir: string): StatusCheck {
 }
 
 function displayResults(checks: StatusCheck[]): void {
-  console.log(chalk.bold("  Governance Health:"));
-  console.log("");
+  output(chalk.bold("  Governance Health:"));
+  outputBlank();
 
   let passCount = 0;
   let warnCount = 0;
@@ -416,44 +443,44 @@ function displayResults(checks: StatusCheck[]): void {
     else if (check.status === "warn") warnCount++;
     else failCount++;
 
-    console.log(`    ${color(icon)} ${chalk.bold(check.name)}: ${color(check.message)}`);
+    output(`    ${color(icon)} ${chalk.bold(check.name)}: ${color(check.message)}`);
   }
 
-  console.log("");
-  console.log(chalk.bold("  Summary:"));
-  console.log(
+  outputBlank();
+  output(chalk.bold("  Summary:"));
+  output(
     `    ${chalk.green(`✔ ${passCount} passed`)}  ${chalk.yellow(`⚠ ${warnCount} warnings`)}  ${chalk.red(`✘ ${failCount} failed`)}`
   );
-  console.log("");
+  outputBlank();
 
   if (failCount > 0) {
-    console.log(chalk.red("  Run 'nexus init' to fix failed checks."));
+    output(chalk.red("  Run 'nexus init' to fix failed checks."));
   } else if (warnCount > 0) {
-    console.log(chalk.yellow("  Some optional components are missing. Run 'nexus upgrade' to add them."));
+    output(chalk.yellow("  Some optional components are missing. Run 'nexus upgrade' to add them."));
   } else {
-    console.log(chalk.green("  Governance is healthy!"));
+    output(chalk.green("  Governance is healthy!"));
   }
 
-  console.log("");
+  outputBlank();
 }
 
 function displayMaturityProfile(
   profile: MaturityProfile | null,
   installedCapabilities: string[]
 ): void {
-  console.log(chalk.bold("  🎯 Maturity Profile:"));
-  console.log("");
+  output(chalk.bold("  🎯 Maturity Profile:"));
+  outputBlank();
 
   if (!profile) {
-    console.log(chalk.gray("    No maturity profile found. Run 'nexus init' to create one."));
-    console.log("");
+    output(chalk.gray("    No maturity profile found. Run 'nexus init' to create one."));
+    outputBlank();
     return;
   }
 
   // Overall score
   const color = profile.overallScore >= 65 ? chalk.green : profile.overallScore >= 35 ? chalk.yellow : chalk.red;
-  console.log(`    Overall Score: ${color(String(profile.overallScore))}/100 ${healthBar(profile.overallScore, 100)}`);
-  console.log("");
+  output(`    Overall Score: ${color(String(profile.overallScore))}/100 ${healthBar(profile.overallScore, 100)}`);
+  outputBlank();
 
   // Dimensions
   const dimLabels: Record<string, string> = {
@@ -473,26 +500,26 @@ function displayMaturityProfile(
     const empty = barWidth - filled;
     const dimColor = value >= 65 ? chalk.green : value >= 35 ? chalk.yellow : chalk.red;
     const bar = dimColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
-    console.log(`    ${label.padEnd(16)} ${bar} ${String(value).padStart(3)}%`);
+    output(`    ${label.padEnd(16)} ${bar} ${String(value).padStart(3)}%`);
   }
-  console.log("");
+  outputBlank();
 
   // Capabilities
-  console.log(chalk.bold("    Installed Capabilities:"));
+  output(chalk.bold("    Installed Capabilities:"));
   for (const cap of installedCapabilities) {
     const info = CAPABILITIES.find((c) => c.id === cap);
-    console.log(chalk.green(`      ✓ ${info?.name || cap}`));
+    output(chalk.green(`      ✓ ${info?.name || cap}`));
   }
-  console.log("");
+  outputBlank();
 
   // Recommendations
   if (profile.recommendedCapabilities.length > 0) {
-    console.log(chalk.bold("    🎯 Recommended:"));
+    output(chalk.bold("    🎯 Recommended:"));
     for (const cap of profile.recommendedCapabilities) {
       const info = CAPABILITIES.find((c) => c.id === cap);
-      console.log(chalk.cyan(`      → ${info?.name || cap}`));
+      output(chalk.cyan(`      → ${info?.name || cap}`));
     }
-    console.log("");
+    outputBlank();
   }
 }
 
@@ -513,36 +540,36 @@ function displayComplexityReport(
 
   const color = levelColors[complexity.level] || chalk.gray;
 
-  console.log(chalk.bold("  📊 Complexity Analysis:"));
-  console.log("");
-  console.log(chalk.gray("    Project Metrics:"));
-  console.log(chalk.gray(`      Packages:      ${analysis.packageCount}`));
-  console.log(chalk.gray(`      Apps:          ${analysis.appCount}`));
-  console.log(chalk.gray(`      Source files:  ${analysis.sourceFileCount}`));
-  console.log(chalk.gray(`      Dependencies:  ${analysis.dependencyCount}`));
-  console.log(chalk.gray(`      Monorepo:      ${analysis.monorepo ? "yes" : "no"}`));
-  console.log("");
-  console.log(chalk.gray("    Score Breakdown:"));
-  console.log(chalk.gray(`      Static score:  ${complexity.staticScore}`));
-  console.log(chalk.gray(`      Behavior score: ${complexity.behaviorScore}`));
-  console.log(chalk.bold(`      Total score:   ${complexity.score}  ${healthBar(complexity.score, 20)}`));
-  console.log("");
-  console.log(chalk.gray("    Current level:"));
-  console.log(color(`      ${levelNames[complexity.level] || complexity.level}`));
-  console.log("");
-  console.log(chalk.gray("    Factors:"));
+  output(chalk.bold("  📊 Complexity Analysis:"));
+  outputBlank();
+  output(chalk.gray("    Project Metrics:"));
+  output(chalk.gray(`      Packages:      ${analysis.packageCount}`));
+  output(chalk.gray(`      Apps:          ${analysis.appCount}`));
+  output(chalk.gray(`      Source files:  ${analysis.sourceFileCount}`));
+  output(chalk.gray(`      Dependencies:  ${analysis.dependencyCount}`));
+  output(chalk.gray(`      Monorepo:      ${analysis.monorepo ? "yes" : "no"}`));
+  outputBlank();
+  output(chalk.gray("    Score Breakdown:"));
+  output(chalk.gray(`      Static score:  ${complexity.staticScore}`));
+  output(chalk.gray(`      Behavior score: ${complexity.behaviorScore}`));
+  output(chalk.bold(`      Total score:   ${complexity.score}  ${healthBar(complexity.score, 20)}`));
+  outputBlank();
+  output(chalk.gray("    Current level:"));
+  output(color(`      ${levelNames[complexity.level] || complexity.level}`));
+  outputBlank();
+  output(chalk.gray("    Factors:"));
 
   for (const reason of complexity.reasons) {
-    console.log(chalk.gray(`      • ${reason}`));
+    output(chalk.gray(`      • ${reason}`));
   }
 
   // Per-area breakdown
   if (complexity.areaScores.length > 0) {
-    console.log("");
-    console.log(chalk.bold("    📍 Area Breakdown:"));
-    console.log("");
-    console.log(chalk.gray("      Area                    Score  Bar      Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
-    console.log(chalk.gray("      ─────────────────────── ────── ──────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
+    outputBlank();
+    output(chalk.bold("    📍 Area Breakdown:"));
+    outputBlank();
+    output(chalk.gray("      Area                    Score  Bar      Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
+    output(chalk.gray("      ─────────────────────── ────── ──────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
 
     for (const area of complexity.areaScores.sort((a, b) => b.score - a.score)) {
       const areaColor = levelColors[area.level] || chalk.gray;
@@ -557,17 +584,17 @@ function displayComplexityReport(
       const age = String(area.incidentFreeAge).padStart(4);
       const ctx = String(area.contextPressure).padStart(4);
 
-      console.log(`      ${areaColor(areaName)} ${chalk.bold(score)} ${miniBar(area.score)} ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
+      output(`      ${areaColor(areaName)} ${chalk.bold(score)} ${miniBar(area.score)} ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
     }
   }
 
   if (complexity.suggestions.length > 0) {
-    console.log("");
-    console.log(chalk.bold("    💡 Suggestions:"));
+    outputBlank();
+    output(chalk.bold("    💡 Suggestions:"));
     for (const suggestion of complexity.suggestions) {
-      console.log(chalk.cyan(`      → ${suggestion}`));
+      output(chalk.cyan(`      → ${suggestion}`));
     }
   }
 
-  console.log("");
+  outputBlank();
 }

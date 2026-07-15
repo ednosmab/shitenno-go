@@ -11,6 +11,7 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import type { ProjectAnalysis } from "./analyser.js";
 import type { MaturityAnswers } from "./maturity-profile.js";
+import { output, outputBlank } from "./output.js";
 
 export interface UserAnswers {
   principalModel: string;
@@ -44,13 +45,13 @@ export interface UserAnswers {
 export async function askQuestions(
   analysis: ProjectAnalysis
 ): Promise<UserAnswers> {
-  console.log("");
+  outputBlank();
 
   // ── Bloco 1: Configuração IA ──
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   🤖  Configuração IA               │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   🤖  Configuração IA               │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const aiConfig = await inquirer.prompt([
     {
@@ -68,11 +69,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 2: Stack Tecnológica ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   📦  Stack Tecnológica              │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   📦  Stack Tecnológica              │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const stackConfig = await inquirer.prompt([
     {
@@ -109,11 +110,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 3: Experiência ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   👤  Experiência                    │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   👤  Experiência                    │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const experience = await inquirer.prompt([
     {
@@ -131,11 +132,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 4: Projeto ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   📁  Projeto                        │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   📁  Projeto                        │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const projectInfo = await inquirer.prompt([
     {
@@ -169,11 +170,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 5: Arquitetura ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   🏗️   Arquitetura                   │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   🏗️   Arquitetura                   │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const architecture = await inquirer.prompt([
     {
@@ -197,11 +198,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 6: Qualidade ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   ✅  Qualidade                      │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   ✅  Qualidade                      │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   // Auto-detect CI/CD from analysis
   const quality = await inquirer.prompt([
@@ -226,11 +227,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 7: IA ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   🧠  Inteligência Artificial         │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   🧠  Inteligência Artificial         │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const aiUsage = await inquirer.prompt([
     {
@@ -254,11 +255,11 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 8: Governança ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   📋  Governança                     │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   📋  Governança                     │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
 
   const governance = await inquirer.prompt([
     {
@@ -282,13 +283,13 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 9: Perfil do Usuário ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   👤  Perfil do Usuário              │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
-  console.log(chalk.gray("  Para feedback personalizado. Pode configurar depois com 'nexus profile'."));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   👤  Perfil do Usuário              │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
+  output(chalk.gray("  Para feedback personalizado. Pode configurar depois com 'nexus profile'."));
+  outputBlank();
 
   const userProfile = await inquirer.prompt([
     {
@@ -380,13 +381,13 @@ export async function askQuestions(
   ]);
 
   // ── Bloco 10: MCP Server ──
-  console.log("");
-  console.log(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
-  console.log(chalk.bold.cyan("  │   🔌  MCP Server                     │"));
-  console.log(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
-  console.log("");
-  console.log(chalk.gray("  Regista o nexus-mcp em .mcp.json para AI agents (Claude Code, Cursor, etc.)."));
-  console.log("");
+  outputBlank();
+  output(chalk.bold.cyan("  ╭──────────────────────────────────────╮"));
+  output(chalk.bold.cyan("  │   🔌  MCP Server                     │"));
+  output(chalk.bold.cyan("  ╰──────────────────────────────────────╯"));
+  outputBlank();
+  output(chalk.gray("  Regista o nexus-mcp em .mcp.json para AI agents (Claude Code, Cursor, etc.)."));
+  outputBlank();
 
   const mcpConfig = await inquirer.prompt([
     {

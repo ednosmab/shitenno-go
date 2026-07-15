@@ -25,6 +25,7 @@ export type ArtifactType =
   | "telemetry"
   | "report"
   | "feedback"
+  | "generated"
   | "unknown";
 
 export type SignificanceLevel = "ignore" | "low" | "medium" | "high";
@@ -63,6 +64,7 @@ const ARTIFACT_SCORES: Record<ArtifactType, number> = {
   telemetry: 0.0,
   report: 0.0,
   feedback: 0.0,
+  generated: 0.0,
   unknown: 0.1,
 };
 
@@ -71,6 +73,7 @@ const ARTIFACT_SCORES: Record<ArtifactType, number> = {
 const DIRECTORY_SCORES: Record<string, number> = {
   "docs/skills/": 1.0,
   "docs/adrs/": 0.9,
+  "docs/generated/": 0.0,
   "governance/agents/": 0.9,
   "governance/WORKFLOW": 1.0,
   "governance/context/": 0.6,
@@ -95,6 +98,7 @@ const DIRECTORY_SCORES: Record<string, number> = {
 export function detectArtifactType(filePath: string, nexusDir: string): ArtifactType {
   const relative = filePath.slice(nexusDir.length + 1);
 
+  if (relative.startsWith("docs/generated/")) return "generated";
   if (relative.startsWith("docs/skills/")) return "skill";
   if (relative.startsWith("docs/adrs/")) return "adr";
   if (relative.startsWith("governance/WORKFLOW")) return "workflow";

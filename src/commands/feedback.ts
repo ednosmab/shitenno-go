@@ -18,7 +18,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
-import { recordOutcome, createFileStorage, getFeedbackRecords, computeFeedbackSummary } from "../session-feedback.js";
+import { recordOutcome, createFileStorage, getFeedbackRecords, computeFeedbackSummary, type SessionOutcome } from "../session-feedback.js";
 import { trackFeedback } from "../session-tracker.js";
 import { getSessionId } from "../session-context.js";
 import { outputJson } from "../formatting.js";
@@ -32,6 +32,7 @@ import {
   saveUserProfile,
 } from "../feedback-engine.js";
 import { parseUserRating, parseUserTags } from "../feedback-utils.js";
+import { output, outputBlank, outputSection, outputError, outputWarning } from "../output.js";
 
 // ── Command ────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ export function feedbackCommand(): Command {
   const cmd = new Command("feedback")
     .description("Report session outcome for the Context Pipeline feedback loop")
     .option("-d, --dir <path>", "Project directory")
-    .option("--outcome <type>", "Session outcome: success, failure, or partial")
+    .option("--outcome <type>", "Session outcome: success, failure, partial, session-start, session-end")
     .option("--areas <list>", "Comma-separated list of modified areas (e.g. src/auth,src/payments)")
     .option("--notes <text>", "Optional notes about the session")
     .option("--duration <minutes>", "Session duration in minutes")
@@ -74,8 +75,8 @@ export function feedbackCommand(): Command {
               message: "No feedback records found. Run 'nexus feedback --outcome <type>' first.",
             });
           } else {
-            console.log(chalk.red("  ✘ No feedback records found."));
-            console.log(chalk.gray("    Run 'nexus feedback --outcome <type>' first."));
+            outputError("No feedback records found.");
+            output(chalk.gray("    Run 'nexus feedback --outcome <type>' first."));
           }
           return;
         }
@@ -87,9 +88,9 @@ export function feedbackCommand(): Command {
         if (isJson) {
           outputJson({ type: "personalized_feedback", ...feedback });
         } else {
-          console.log("");
-          console.log(markdown);
-          console.log("");
+          output("");
+          output(markdown);
+          outputBlank();
         }
 
         // Save to feedback directory
@@ -119,8 +120,8 @@ export function feedbackCommand(): Command {
           if (isJson) {
             outputJson({ type: "feedback_list", records: [] });
           } else {
-            console.log(chalk.yellow("  No feedback records found."));
-            console.log(chalk.gray("  Run 'nexus feedback --outcome <type>' to record feedback."));
+            outputWarning("No feedback records found.");
+            output(chalk.gray("  Run 'nexus feedback --outcome <type>' to record feedback."));
           }
           return;
         }
@@ -130,11 +131,9 @@ export function feedbackCommand(): Command {
           return;
         }
 
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║   nexus feedback — Session History   ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
+        output("");
+        outputSection("nexus feedback — Session History");
+        outputBlank();
 
         for (const record of records.slice(-20)) {
           const icon = record.outcome === "success" ? "✅" : record.outcome === "failure" ? "❌" : "⚠️";
@@ -142,15 +141,15 @@ export function feedbackCommand(): Command {
           const date = new Date(record.timestamp).toLocaleDateString();
           const time = new Date(record.timestamp).toLocaleTimeString();
 
-          console.log(`  ${icon} ${color(record.outcome.padEnd(8))} ${chalk.gray(`${date} ${time}`)}`);
-          if (record.notes) console.log(chalk.gray(`     Notes: ${record.notes}`));
-          if (record.modifiedAreas?.length) console.log(chalk.gray(`     Areas: ${record.modifiedAreas.join(", ")}`));
-          if (record.userRating) console.log(chalk.gray(`     Rating: ${record.userRating}/5`));
+          output(`  ${icon} ${color(record.outcome.padEnd(8))} ${chalk.gray(`${date} ${time}`)}`);
+          if (record.notes) output(chalk.gray(`     Notes: ${record.notes}`));
+          if (record.modifiedAreas?.length) output(chalk.gray(`     Areas: ${record.modifiedAreas.join(", ")}`));
+          if (record.userRating) output(chalk.gray(`     Rating: ${record.userRating}/5`));
         }
 
-        console.log("");
-        console.log(chalk.gray(`  Showing last ${Math.min(records.length, 20)} of ${records.length} records`));
-        console.log("");
+        outputBlank();
+        output(chalk.gray(`  Showing last ${Math.min(records.length, 20)} of ${records.length} records`));
+        outputBlank();
         return;
       }
 
@@ -164,51 +163,49 @@ export function feedbackCommand(): Command {
           return;
         }
 
-        console.log("");
-        console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-        console.log(chalk.bold.cyan("  ║   nexus feedback — Session Summary   ║"));
-        console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-        console.log("");
-        console.log(chalk.bold("  📊 Statistics"));
-        console.log(`     Total sessions: ${chalk.cyan(String(summary.totalSessions))}`);
-        console.log(`     Success rate:   ${chalk.cyan(`${Math.round(summary.successRate * 100)}%`)}`);
-        console.log(`     Success:        ${chalk.green(String(summary.byOutcome.success))}`);
-        console.log(`     Failure:        ${chalk.red(String(summary.byOutcome.failure))}`);
-        console.log(`     Partial:        ${chalk.yellow(String(summary.byOutcome.partial))}`);
+        output("");
+        outputSection("nexus feedback — Session Summary");
+        outputBlank();
+        outputSection("Statistics");
+        output(`     Total sessions: ${chalk.cyan(String(summary.totalSessions))}`);
+        output(`     Success rate:   ${chalk.cyan(`${Math.round(summary.successRate * 100)}%`)}`);
+        output(`     Success:        ${chalk.green(String(summary.byOutcome.success))}`);
+        output(`     Failure:        ${chalk.red(String(summary.byOutcome.failure))}`);
+        output(`     Partial:        ${chalk.yellow(String(summary.byOutcome.partial))}`);
 
         if (summary.avgSuccessDuration !== null) {
-          console.log(`     Avg duration:   ${chalk.cyan(`${summary.avgSuccessDuration}min`)}`);
+          output(`     Avg duration:   ${chalk.cyan(`${summary.avgSuccessDuration}min`)}`);
         }
 
         if (summary.avgUserRating !== null) {
-          console.log(`     Avg rating:     ${chalk.cyan(`${summary.avgUserRating}/5`)} (${summary.ratedSessions} rated)`);
+          output(`     Avg rating:     ${chalk.cyan(`${summary.avgUserRating}/5`)} (${summary.ratedSessions} rated)`);
         }
 
         if (summary.failureHotspots.length > 0) {
-          console.log("");
-          console.log(chalk.bold("  🔥 Failure Hotspots"));
+          outputBlank();
+          outputSection("Failure Hotspots");
           for (const area of summary.failureHotspots) {
-            console.log(chalk.red(`     • ${area}`));
+            output(chalk.red(`     • ${area}`));
           }
         }
 
-        console.log("");
+        outputBlank();
         return;
       }
 
       // ── Record feedback ──────────────────────────────────────────
       const outcome = options.outcome as string | undefined;
 
-      if (!outcome || !["success", "failure", "partial"].includes(outcome)) {
+      if (!outcome || !["success", "failure", "partial", "session-start", "session-end"].includes(outcome)) {
         if (isJson) {
           outputJson({
             error: "invalid_outcome",
-            message: "Provide --outcome with one of: success, failure, partial",
+            message: "Provide --outcome with one of: success, failure, partial, session-start, session-end",
           });
         } else {
-          console.log(chalk.red("  ✘ Provide --outcome with one of: success, failure, partial"));
-          console.log(chalk.gray("    Example: nexus feedback --outcome success"));
-          console.log(chalk.gray("    Example: nexus feedback --outcome failure --notes 'Build broke'"));
+          outputError("Provide --outcome with one of: success, failure, partial, session-start, session-end");
+          output(chalk.gray("    Example: nexus feedback --outcome success"));
+          output(chalk.gray("    Example: nexus feedback --outcome failure --notes 'Build broke'"));
         }
         return;
       }
@@ -234,7 +231,7 @@ export function feedbackCommand(): Command {
 
       const storage = createFileStorage(ctx.nexusDir);
       const record = recordOutcome(storage, {
-        outcome: outcome as "success" | "failure" | "partial",
+        outcome: outcome as SessionOutcome,
         briefingHash,
         briefingTimestamp,
         modifiedAreas,
@@ -269,24 +266,24 @@ export function feedbackCommand(): Command {
       const icon = outcome === "success" ? "✅" : outcome === "failure" ? "❌" : "⚠️";
       const color = outcome === "success" ? chalk.green : outcome === "failure" ? chalk.red : chalk.yellow;
 
-      console.log("");
-      console.log(`${icon} ${color(`Session outcome: ${outcome}`)}`);
+      output("");
+      output(`${icon} ${color(`Session outcome: ${outcome}`)}`);
       if (userRating) {
-        console.log(chalk.gray(`   Rating: ${userRating}/5`));
+        output(chalk.gray(`   Rating: ${userRating}/5`));
       }
       if (userComment) {
-        console.log(chalk.gray(`   Comment: ${userComment}`));
+        output(chalk.gray(`   Comment: ${userComment}`));
       }
       if (userTags && userTags.length > 0) {
-        console.log(chalk.gray(`   Tags: ${userTags.join(", ")}`));
+        output(chalk.gray(`   Tags: ${userTags.join(", ")}`));
       }
       if (modifiedAreas && modifiedAreas.length > 0) {
-        console.log(chalk.gray(`   Areas: ${modifiedAreas.join(", ")}`));
+        output(chalk.gray(`   Areas: ${modifiedAreas.join(", ")}`));
       }
       if (options.notes) {
-        console.log(chalk.gray(`   Notes: ${options.notes}`));
+        output(chalk.gray(`   Notes: ${options.notes}`));
       }
-      console.log(chalk.gray(`   Recorded: ${record.id}`));
+      output(chalk.gray(`   Recorded: ${record.id}`));
 
       // Auto-link: suggest areas on failure
       if (outcome === "failure" && (!modifiedAreas || modifiedAreas.length === 0)) {
@@ -295,19 +292,19 @@ export function feedbackCommand(): Command {
           if (records.length > 1) {
             const summary = computeFeedbackSummary(records);
             if (summary.failureHotspots.length > 0) {
-              console.log("");
-              console.log(chalk.bold("  🔥 Failure hotspots from past sessions:"));
+              outputBlank();
+              outputSection("Failure hotspots from past sessions:");
               for (const area of summary.failureHotspots.slice(0, 5)) {
-                console.log(chalk.red(`     • ${area}`));
+                output(chalk.red(`     • ${area}`));
               }
-              console.log(chalk.gray("     Tip: use --areas to specify which areas were affected."));
+              output(chalk.gray("     Tip: use --areas to specify which areas were affected."));
             }
           }
         } catch {
           // Non-blocking: ignore if feedback data unavailable
         }
       }
-      console.log("");
+      outputBlank();
 
       // Track feedback in session
       const sessionId = options["session-id"] ? String(options["session-id"]) : getSessionId();

@@ -25,10 +25,12 @@ import { collectContext } from "../context-collector.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
 import { computeInputHash, setCachedBriefing, invalidateBriefingCache, readCache } from "../briefing-cache.js";
 import { briefingToMarkdown, briefingToJson, generateDiff, type Briefing } from "../briefing.js";
-import { compressedSummary, generateOptimizationHints, suggestDepth, type BriefingDepth } from "../token-optimizer.js";
+import { compressedSummary, differentialBriefing, generateOptimizationHints, suggestDepth, type BriefingDepth } from "../token-optimizer.js";
 
 import { outputJson, banner } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
+import { output, outputBlank, outputSection } from "../output.js";
+import { logger } from "../logger.js";
 
 // ── Output Helpers ─────────────────────────────────────────────────────────
 
@@ -45,131 +47,131 @@ function writeBriefingMarkdown(projectRoot: string, briefing: Briefing): string 
 }
 
 function displayBriefingByDepth(briefing: Briefing, cacheHit: boolean, depth: BriefingDepth): void {
-  console.log("");
+  outputBlank();
   banner("nexus briefing", "Context Pipeline");
-  console.log("");
+  outputBlank();
   const tokenLabel = depth === "minimal" ? "~200" : depth === "standard" ? "~500" : "~1000";
-  console.log(chalk.gray(`  Depth: ${depth} (${tokenLabel} tokens)`));
-  console.log("");
+  output(chalk.gray(`  Depth: ${depth} (${tokenLabel} tokens)`));
+  outputBlank();
 
   // ── Project identity (always shown) ──
-  console.log(chalk.bold("  📁 Project Identity"));
-  console.log(`     Domain:   ${chalk.cyan(briefing.project.domain)}`);
-  console.log(`     Scale:    ${chalk.cyan(briefing.project.scale)}`);
+  outputSection("Project Identity");
+  output(`     Domain:   ${chalk.cyan(briefing.project.domain)}`);
+  output(`     Scale:    ${chalk.cyan(briefing.project.scale)}`);
   if (depth !== "minimal") {
-    console.log(`     Stack:    ${briefing.project.stack.join(", ")}`);
-    console.log(`     Maturity: ${briefing.project.maturityScore}/100`);
+    output(`     Stack:    ${briefing.project.stack.join(", ")}`);
+    output(`     Maturity: ${briefing.project.maturityScore}/100`);
   } else {
-    console.log(`     Stack:    ${briefing.project.stack.join(", ")}`);
+    output(`     Stack:    ${briefing.project.stack.join(", ")}`);
   }
-  console.log("");
+  outputBlank();
 
   // ── Risk status (always shown) ──
   const riskColor = briefing.risks.overall === "critical" ? chalk.red :
                     briefing.risks.overall === "high" ? chalk.yellow :
                     briefing.risks.overall === "medium" ? chalk.hex("#FFA500") : chalk.green;
-  console.log(chalk.bold("  ⚠ Risk Status"));
-  console.log(`     Overall:  ${riskColor(briefing.risks.overall)}`);
+  outputSection("Risk Status");
+  output(`     Overall:  ${riskColor(briefing.risks.overall)}`);
   if (briefing.risks.criticalAreas.length > 0) {
-    console.log(chalk.red(`     Critical: ${briefing.risks.criticalAreas.join(", ")}`));
+    output(chalk.red(`     Critical: ${briefing.risks.criticalAreas.join(", ")}`));
   }
   if (depth !== "minimal" && briefing.risks.highAreas.length > 0) {
-    console.log(chalk.yellow(`     High:     ${briefing.risks.highAreas.join(", ")}`));
+    output(chalk.yellow(`     High:     ${briefing.risks.highAreas.join(", ")}`));
   }
-  console.log("");
+  outputBlank();
 
   // ── Test coverage (standard+ only) ──
   if (depth !== "minimal") {
-    console.log(chalk.bold("  🧪 Test Coverage"));
-    console.log(`     Has Tests: ${briefing.tests.hasTests ? chalk.green("Yes") : chalk.red("No")}`);
+    outputSection("Test Coverage");
+    output(`     Has Tests: ${briefing.tests.hasTests ? chalk.green("Yes") : chalk.red("No")}`);
     if (briefing.tests.areasWithoutTests.length > 0) {
-      console.log(chalk.yellow(`     Without Tests: ${briefing.tests.areasWithoutTests.length} area(s)`));
+      output(chalk.yellow(`     Without Tests: ${briefing.tests.areasWithoutTests.length} area(s)`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Recent Activity (standard+ only) ──
   if (depth !== "minimal" && briefing.recentActivity && briefing.recentActivity.events.length > 0) {
-    console.log(chalk.bold("  🕹️ Actividade Recente (24h)"));
+    outputSection("Actividade Recente (24h)");
     for (const event of briefing.recentActivity.events.slice(0, 5)) {
       const time = event.timestamp.slice(11, 16);
       const color = event.type.includes("error") || event.type.includes("warning") ? chalk.red : chalk.gray;
-      console.log(color(`     ${time} ${event.type}: ${event.summary}`));
+      output(color(`     ${time} ${event.type}: ${event.summary}`));
     }
     const syncCount = briefing.recentActivity.syncCount;
     const errorCount = briefing.recentActivity.errorCount;
-    console.log(chalk.gray(`     ${syncCount} sincronizações, ${errorCount} erros`));
-    console.log("");
+    output(chalk.gray(`     ${syncCount} sincronizações, ${errorCount} erros`));
+    outputBlank();
   }
 
   // ── Context rules (standard: text, minimal: skip) ──
   if (depth === "standard" && briefing.contextRules.length > 0) {
-    console.log(chalk.bold("  📏 Context Rules"));
+    outputSection("Context Rules");
     for (const rule of briefing.contextRules) {
-      console.log(chalk.gray(`     • ${rule.rule}`));
+      output(chalk.gray(`     • ${rule.rule}`));
     }
-    console.log("");
+    outputBlank();
   } else if (depth === "full" && briefing.contextRules.length > 0) {
-    console.log(chalk.bold("  📏 Context Rules (Top)"));
+    outputSection("Context Rules (Top)");
     for (const rule of briefing.contextRules) {
-      console.log(chalk.gray(`     • ${rule.rule}`));
+      output(chalk.gray(`     • ${rule.rule}`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Dynamic rules (full only) ──
   if (depth === "full" && briefing.dynamicRules.length > 0) {
-    console.log(chalk.bold("  📜 Dynamic Rules (From History)"));
+    outputSection("Dynamic Rules (From History)");
     for (const rule of briefing.dynamicRules) {
       const icon = rule.severity === "critical" ? "🚨" : rule.severity === "high" ? "⚠️" : "ℹ️";
-      console.log(chalk.gray(`     ${icon} [${rule.severity}] ${rule.rule}`));
+      output(chalk.gray(`     ${icon} [${rule.severity}] ${rule.rule}`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Recurring errors (full only) ──
   if (depth === "full" && briefing.patterns.recurringErrors.length > 0) {
-    console.log(chalk.bold("  🔥 Recurring Error Hotspots"));
+    outputSection("Recurring Error Hotspots");
     for (const area of briefing.patterns.recurringErrors) {
-      console.log(chalk.red(`     • ${area}`));
+      output(chalk.red(`     • ${area}`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Detected patterns (full only) ──
   if (depth === "full" && briefing.patterns.detected.length > 0) {
-    console.log(chalk.bold("  🔍 Detected Patterns"));
+    outputSection("Detected Patterns");
     for (const p of briefing.patterns.detected) {
       const icon = p.severity >= 4 ? "🚨" : p.severity >= 2 ? "⚠️" : "ℹ️";
-      console.log(chalk.gray(`     ${icon} [${p.type}] ${p.description}`));
+      output(chalk.gray(`     ${icon} [${p.type}] ${p.description}`));
     }
-    console.log("");
+    outputBlank();
   }
 
   // ── Recommendations (always at least top 1) ──
   const maxRecs = depth === "minimal" ? 1 : depth === "standard" ? 3 : briefing.recommendations.length;
-  console.log(chalk.bold("  💡 Recommendations"));
+  outputSection("Recommendations");
   for (const rec of briefing.recommendations.slice(0, maxRecs)) {
-    console.log(chalk.cyan(`     → ${rec}`));
+    output(chalk.cyan(`     → ${rec}`));
   }
-  console.log("");
+  outputBlank();
 
   // ── Token economy (standard+ only) ──
   if (depth !== "minimal") {
     if (cacheHit) {
-      console.log(chalk.gray("  📦 Used cached briefing"));
-      console.log("");
+      output(chalk.gray("  Used cached briefing"));
+      outputBlank();
     }
-    console.log(chalk.bold("  💰 Token Economy"));
-    console.log(chalk.green(`     Saved: ~${briefing.tokenEconomy.estimatedTokensSaved.toLocaleString()} tokens vs manual discovery`));
-    console.log("");
+    outputSection("Token Economy");
+    output(chalk.green(`     Saved: ~${briefing.tokenEconomy.estimatedTokensSaved.toLocaleString()} tokens vs manual discovery`));
+    outputBlank();
   } else if (cacheHit) {
-    console.log(chalk.gray("  📦 Cached"));
-    console.log("");
+    output(chalk.gray("  Cached"));
+    outputBlank();
   }
 
-  console.log(chalk.gray(`  Generated: ${briefing.generatedAt}`));
-  console.log("");
+  output(chalk.gray(`  Generated: ${briefing.generatedAt}`));
+  outputBlank();
 }
 
 // ── Shared Briefing Logic ──────────────────────────────────────────────────
@@ -179,6 +181,7 @@ interface BriefingOptions {
   json?: boolean;
   write?: boolean;
   diff?: boolean;
+  compact?: boolean;
   invalidate?: boolean;
   summary?: boolean;
   profile?: string;
@@ -191,11 +194,9 @@ async function runBriefing(
   const isJson = options.json === true;
 
   if (!isJson) {
-    console.log("");
-    console.log(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-    console.log(chalk.bold.cyan("  ║    nexus briefing — Context Pipeline  ║"));
-    console.log(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-    console.log("");
+    output("");
+    outputSection("nexus briefing — Context Pipeline");
+    outputBlank();
   }
 
   const ctx = guardNotInitialized(options, isJson);
@@ -246,23 +247,39 @@ async function runBriefing(
     // Diff mode
     if (options.diff) {
       if (previousBriefing && previousBriefing.generatedAt !== briefing.generatedAt) {
-        const diff = generateDiff(previousBriefing, briefing);
-        if (isJson) {
-          outputJson({
-            type: "diff",
-            oldTimestamp: previousBriefing.generatedAt,
-            newTimestamp: briefing.generatedAt,
-            diff,
-          });
+        // Compact mode: use differentialBriefing (~50 tokens vs ~200)
+        if (options.compact) {
+          const compactDiff = differentialBriefing(previousBriefing, briefing);
+          if (isJson) {
+            outputJson({
+              type: "diff",
+              format: "compact",
+              oldTimestamp: previousBriefing.generatedAt,
+              newTimestamp: briefing.generatedAt,
+              diff: compactDiff,
+            });
+          } else {
+            output(chalk.cyan(`  Compact diff: ${compactDiff}`));
+          }
         } else {
-          console.log(diff);
+          const diff = generateDiff(previousBriefing, briefing);
+          if (isJson) {
+            outputJson({
+              type: "diff",
+              oldTimestamp: previousBriefing.generatedAt,
+              newTimestamp: briefing.generatedAt,
+              diff,
+            });
+          } else {
+            output(diff);
+          }
         }
       } else {
         const msg = "No previous briefing to diff against.";
         if (isJson) {
           outputJson({ type: "diff", message: msg });
         } else {
-          console.log(chalk.gray(`  ${msg}`));
+          output(chalk.gray(`  ${msg}`));
         }
       }
       return;
@@ -274,7 +291,7 @@ async function runBriefing(
       if (isJson) {
         outputJson({ type: "summary", summary, cacheHit });
       } else {
-        console.log(summary);
+        output(summary);
       }
       return;
     }
@@ -317,8 +334,8 @@ async function runBriefing(
     // Write mode
     if (options.write) {
       const filePath = writeBriefingMarkdown(ctx.projectRoot, briefing);
-      console.log(chalk.green(`  ✓ Briefing written to ${filePath}`));
-      console.log("");
+      output(chalk.green(`  Briefing written to ${filePath}`));
+      outputBlank();
     }
 
     // Default: display (depth-aware)
@@ -337,7 +354,7 @@ async function runBriefing(
     if (isJson) {
       outputJson({ error: "briefing_failed", message: String(error) });
     } else {
-      console.error(chalk.red(`  Error: ${error}`));
+      logger.error("briefing", `Error: ${error}`);
     }
   }
 }
@@ -351,9 +368,11 @@ export function briefingCommand(): Command {
     .option("--json", "Output as JSON")
     .option("--write", "Write nexus-system/BRIEFING.md")
     .option("--diff", "Show diff since last briefing")
+    .option("--compact", "Use compact diff format (fewer tokens)")
     .option("--invalidate", "Force cache invalidation")
     .option("--summary", "One-line summary")
     .option("--profile <depth>", "Briefing depth: minimal, standard, full (default: auto)")
+    .option("--watch [seconds]", "Regenerate briefing periodically (default: 30s)")
     .action((options: Record<string, unknown>) => {
       return runBriefing(options as BriefingOptions);
     });

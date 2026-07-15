@@ -24,6 +24,7 @@ import {
 } from "../decision-engine.js";
 import { outputJson } from "../formatting.js";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank, outputSection, outputError } from "../output.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -95,35 +96,35 @@ export function decideCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Decision Engine Result"));
-      console.log(chalk.dim("  " + "─".repeat(60)));
-      console.log(`  ${chalk.bold("ID:")}\t\t${decision.id}`);
-      console.log(`  ${chalk.bold("Action:")}\t${decision.request.action}`);
-      console.log(`  ${chalk.bold("Category:")}\t${decision.request.category}`);
-      console.log("");
-      console.log(chalk.bold("  Evaluator Scores:"));
+      outputBlank();
+      outputSection("Decision Engine Result");
+      output(chalk.dim("  " + "─".repeat(60)));
+      output(`  ${chalk.bold("ID:")}\t\t${decision.id}`);
+      output(`  ${chalk.bold("Action:")}\t${decision.request.action}`);
+      output(`  ${chalk.bold("Category:")}\t${decision.request.category}`);
+      outputBlank();
+      outputSection("Evaluator Scores:");
       for (const score of decision.scores) {
         const bar = chalk.cyan("█".repeat(Math.round(score.score / 10))) +
           chalk.dim("░".repeat(10 - Math.round(score.score / 10)));
-        console.log(`    ${score.evaluator.padEnd(14)} ${bar} ${score.score}/100 — ${score.reasoning}`);
+        output(`    ${score.evaluator.padEnd(14)} ${bar} ${score.score}/100 — ${score.reasoning}`);
         if (score.concerns) {
           for (const c of score.concerns) {
-            console.log(chalk.red(`      ⚠ ${c}`));
+            output(chalk.red(`      ⚠ ${c}`));
           }
         }
         if (score.mitigations) {
           for (const m of score.mitigations) {
-            console.log(chalk.cyan(`      → ${m}`));
+            output(chalk.cyan(`      → ${m}`));
           }
         }
       }
-      console.log("");
-      console.log(chalk.bold("  Result:"));
-      console.log(`  Composite Score:  ${chalk.bold(String(decision.compositeScore))}/100`);
-      console.log(`  Recommendation:   ${RECO_COLORS[decision.recommendation](decision.recommendation.toUpperCase())}`);
-      console.log(`  Confidence:       ${decision.confidence}%`);
-      console.log("");
+      outputBlank();
+      outputSection("Result:");
+      output(`  Composite Score:  ${chalk.bold(String(decision.compositeScore))}/100`);
+      output(`  Recommendation:   ${RECO_COLORS[decision.recommendation](decision.recommendation.toUpperCase())}`);
+      output(`  Confidence:       ${decision.confidence}%`);
+      outputBlank();
     });
 
   // ── list ────────────────────────────────────────────────────────────────
@@ -151,17 +152,17 @@ export function decideCommand(): Command {
         return;
       }
 
-      console.log("");
+      outputBlank();
       if (decisions.length === 0) {
-        console.log(chalk.dim("  No decisions recorded."));
+        output(chalk.dim("  No decisions recorded."));
       } else {
-        console.log(chalk.bold(`  Decisions (${decisions.length})`));
-        console.log(chalk.dim("  " + "─".repeat(80)));
+        outputSection(`Decisions (${decisions.length})`);
+        output(chalk.dim("  " + "─".repeat(80)));
         for (const d of decisions) {
-          console.log(formatDecision(d));
+          output(formatDecision(d));
         }
       }
-      console.log("");
+      outputBlank();
     });
 
   // ── show ────────────────────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export function decideCommand(): Command {
         if (isJson) {
           outputJson({ error: "Decision not found" });
         } else {
-          console.log(chalk.red(`  Decision not found: ${id}`));
+          outputError(`Decision not found: ${id}`);
         }
         return;
       }
@@ -192,21 +193,21 @@ export function decideCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold(`  ${decision.id}`));
-      console.log(`  Action:     ${decision.request.action}`);
-      console.log(`  Category:   ${decision.request.category}`);
-      console.log(`  Decided:    ${decision.decidedAt}`);
-      console.log("");
-      console.log(chalk.bold("  Evaluator Scores:"));
+      outputBlank();
+      output(chalk.bold(`  ${decision.id}`));
+      output(`  Action:     ${decision.request.action}`);
+      output(`  Category:   ${decision.request.category}`);
+      output(`  Decided:    ${decision.decidedAt}`);
+      outputBlank();
+      outputSection("Evaluator Scores:");
       for (const score of decision.scores) {
-        console.log(`    ${score.evaluator.padEnd(14)} ${score.score}/100 — ${score.reasoning}`);
+        output(`    ${score.evaluator.padEnd(14)} ${score.score}/100 — ${score.reasoning}`);
       }
-      console.log("");
-      console.log(`  Composite:  ${decision.compositeScore}/100`);
-      console.log(`  Recommendation: ${RECO_COLORS[decision.recommendation](decision.recommendation)}`);
-      console.log(`  Confidence: ${decision.confidence}%`);
-      console.log("");
+      outputBlank();
+      output(`  Composite:  ${decision.compositeScore}/100`);
+      output(`  Recommendation: ${RECO_COLORS[decision.recommendation](decision.recommendation)}`);
+      output(`  Confidence: ${decision.confidence}%`);
+      outputBlank();
     });
 
   // ── stats ───────────────────────────────────────────────────────────────
@@ -244,17 +245,17 @@ export function decideCommand(): Command {
         return;
       }
 
-      console.log("");
-      console.log(chalk.bold("  Decision Statistics"));
-      console.log(chalk.dim("  " + "─".repeat(40)));
-      console.log(`  Total:       ${stats.total}`);
-      console.log(`  Avg Score:   ${stats.avgCompositeScore}/100`);
-      console.log(`  Avg Confidence: ${stats.avgConfidence}%`);
-      console.log("");
+      outputBlank();
+      outputSection("Decision Statistics");
+      output(chalk.dim("  " + "─".repeat(40)));
+      output(`  Total:       ${stats.total}`);
+      output(`  Avg Score:   ${stats.avgCompositeScore}/100`);
+      output(`  Avg Confidence: ${stats.avgConfidence}%`);
+      outputBlank();
       for (const [reco, count] of Object.entries(stats.byRecommendation)) {
-        console.log(`  ${RECO_COLORS[reco as DecisionRecommendation](reco)}: ${count}`);
+        output(`  ${RECO_COLORS[reco as DecisionRecommendation](reco)}: ${count}`);
       }
-      console.log("");
+      outputBlank();
     });
 
   return cmd;

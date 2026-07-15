@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  id-token: write
+  # id-token: write  # TODO: uncomment when npm publish is enabled
 
 jobs:
   release:
@@ -18,17 +18,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - run: corepack enable
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-          cache: npm
+          node-version: 22
+          # registry-url: https://registry.npmjs.org  # TODO: uncomment when npm publish is enabled
+          cache: pnpm
 
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run build
+      - run: pnpm test
 
       # Verify tag matches package.json version
       - name: Verify tag matches package.json
@@ -40,10 +41,11 @@ jobs:
             exit 1
           fi
 
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # TODO: uncomment when ready to publish to npm
+      # - name: Publish to npm
+      #   run: npm publish --provenance --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.0.6

@@ -1,5 +1,5 @@
 {
-  "consolidatedAt": "2026-07-12T02:02:46.838Z",
+  "consolidatedAt": "2026-07-13T03:30:24.120Z",
   "lifecycle": "governed",
   "project": {
     "name": "nexus-cli",
@@ -14,7 +14,7 @@
     "hasTests": true,
     "hasTypeScript": true,
     "packageCount": 0,
-    "sourceFileCount": 395,
+    "sourceFileCount": 423,
     "monorepo": true
   },
   "maturity": {
@@ -61,7 +61,7 @@
   "knowledgeDebt": {
     "totalGaps": 0,
     "healthScore": 100,
-    "detectedAt": "2026-07-12T02:02:46.836Z"
+    "detectedAt": "2026-07-13T03:30:24.116Z"
   },
   "knowledgeGraph": {
     "totalArtifacts": 60,
@@ -81,8 +81,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -101,8 +101,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -121,8 +121,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -141,8 +141,8 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture",
         "documentation"
@@ -161,30 +161,11 @@
         "architecture"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture",
         "documentation"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-animation_protocol",
-      "type": "skill",
-      "name": "animation protocol",
-      "path": "docs/skills/animation_protocol.md",
-      "description": "Engineering skill: animation_protocol.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
       ],
       "dependencies": []
     },
@@ -199,8 +180,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -218,8 +199,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -237,8 +218,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -256,27 +237,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-ddd_patterns",
-      "type": "skill",
-      "name": "ddd patterns",
-      "path": "docs/skills/ddd_patterns.md",
-      "description": "Engineering skill: ddd_patterns.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -294,8 +256,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -313,8 +275,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -332,8 +294,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -351,27 +313,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-nextjs_performance_seo",
-      "type": "skill",
-      "name": "nextjs performance seo",
-      "path": "docs/skills/nextjs_performance_seo.md",
-      "description": "Engineering skill: nextjs_performance_seo.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -389,8 +332,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -408,8 +351,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -427,27 +370,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-postgresql_performance",
-      "type": "skill",
-      "name": "postgresql performance",
-      "path": "docs/skills/postgresql_performance.md",
-      "description": "Engineering skill: postgresql_performance.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -465,46 +389,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-responsividade",
-      "type": "skill",
-      "name": "responsividade",
-      "path": "docs/skills/responsividade.md",
-      "description": "Engineering skill: responsividade.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-security_xss_prevention",
-      "type": "skill",
-      "name": "security xss prevention",
-      "path": "docs/skills/security_xss_prevention.md",
-      "description": "Engineering skill: security_xss_prevention.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -522,8 +408,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -541,27 +427,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-state_management_protocol",
-      "type": "skill",
-      "name": "state management protocol",
-      "path": "docs/skills/state_management_protocol.md",
-      "description": "Engineering skill: state_management_protocol.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -579,8 +446,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -598,8 +465,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -617,27 +484,8 @@
         "engineering"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "documentation",
-        "quality"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "skill-ui_ux_principles",
-      "type": "skill",
-      "name": "ui ux principles",
-      "path": "docs/skills/ui_ux_principles.md",
-      "description": "Engineering skill: ui_ux_principles.md",
-      "tags": [
-        "skill",
-        "engineering"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation",
         "quality"
@@ -656,8 +504,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -676,8 +524,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -696,8 +544,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -716,8 +564,8 @@
         "ai"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai",
         "governance"
@@ -736,8 +584,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -755,8 +603,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -774,8 +622,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -793,8 +641,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -812,8 +660,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -831,8 +679,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -850,8 +698,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -869,8 +717,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -888,8 +736,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -907,8 +755,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -926,8 +774,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -945,8 +793,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -964,8 +812,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -983,8 +831,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -1001,8 +849,8 @@
         "operations"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "operations",
         "quality"
@@ -1010,54 +858,36 @@
       "dependencies": []
     },
     {
-      "id": "plan-2026-07-02-nexus-dashboard-restructure",
+      "id": "plan-2026-07-12-migrar-console-log-para-logger",
       "type": "plan",
-      "name": "2026 07 02 nexus dashboard restructure",
-      "path": "governance/plans/2026-07-02-nexus-dashboard-restructure.md",
-      "description": "Execution plan: 2026-07-02-nexus-dashboard-restructure.md",
+      "name": "2026 07 12 migrar console log para logger",
+      "path": "governance/plans/2026-07-12-migrar-console-log-para-logger.md",
+      "description": "Execution plan: 2026-07-12-migrar-console-log-para-logger.md",
       "tags": [
         "plan",
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture"
       ],
       "dependencies": []
     },
     {
-      "id": "plan-2026-07-11-nexus-living-plano-v2-3fases",
+      "id": "plan-PLAN-doc-semantic-sync",
       "type": "plan",
-      "name": "2026 07 11 nexus living plano v2 3fases",
-      "path": "governance/plans/2026-07-11-nexus-living-plano-v2-3fases.md",
-      "description": "Execution plan: 2026-07-11-nexus-living-plano-v2-3fases.md",
+      "name": "PLAN doc semantic sync",
+      "path": "governance/plans/PLAN-doc-semantic-sync.md",
+      "description": "Execution plan: PLAN-doc-semantic-sync.md",
       "tags": [
         "plan",
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "architecture"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "plan-PLAN-DYNAMIC-RULE-ADAPTATION",
-      "type": "plan",
-      "name": "PLAN DYNAMIC RULE ADAPTATION",
-      "path": "governance/plans/PLAN-DYNAMIC-RULE-ADAPTATION.md",
-      "description": "Execution plan: PLAN-DYNAMIC-RULE-ADAPTATION.md",
-      "tags": [
-        "plan",
-        "execution"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture"
       ],
@@ -1074,8 +904,8 @@
         "execution"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "architecture"
       ],
@@ -1092,8 +922,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1110,8 +940,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1128,8 +958,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1146,8 +976,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1164,8 +994,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1182,8 +1012,8 @@
         "automation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "automation"
       ],
@@ -1201,8 +1031,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1221,8 +1051,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1241,8 +1071,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1261,8 +1091,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1280,8 +1110,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1298,8 +1128,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1317,8 +1147,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1336,8 +1166,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1355,8 +1185,8 @@
         "governance"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance",
         "documentation"
@@ -1374,8 +1204,26 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
+      "contributesTo": [
+        "documentation"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "doc-REGISTRY",
+      "type": "doc",
+      "name": "REGISTRY",
+      "path": "docs/REGISTRY.md",
+      "description": "Documentation: REGISTRY.md",
+      "tags": [
+        "doc",
+        "documentation"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1392,8 +1240,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1410,8 +1258,8 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
@@ -1428,368 +1276,44 @@
         "documentation"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "documentation"
       ],
       "dependencies": []
     },
     {
-      "id": "report-complexity-2026-06-30",
+      "id": "report-complexity-nexus-cli-2026-07-12-session1",
       "type": "report",
-      "name": "complexity 2026 06 30",
-      "path": "reports/complexity-2026-06-30.json",
-      "description": "Report: complexity-2026-06-30.json",
+      "name": "complexity nexus cli 2026 07 12 session1",
+      "path": "reports/complexity-nexus-cli-2026-07-12-session1.json",
+      "description": "Report: complexity-nexus-cli-2026-07-12-session1.json",
       "tags": [
         "report",
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
       "dependencies": []
     },
     {
-      "id": "report-complexity-nexus-cli-2026-07-01-session1",
+      "id": "report-complexity-nexus-cli-2026-07-13-session1",
       "type": "report",
-      "name": "complexity nexus cli 2026 07 01 session1",
-      "path": "reports/complexity-nexus-cli-2026-07-01-session1.json",
-      "description": "Report: complexity-nexus-cli-2026-07-01-session1.json",
+      "name": "complexity nexus cli 2026 07 13 session1",
+      "path": "reports/complexity-nexus-cli-2026-07-13-session1.json",
+      "description": "Report: complexity-nexus-cli-2026-07-13-session1.json",
       "tags": [
         "report",
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-01-session2",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 01 session2",
-      "path": "reports/complexity-nexus-cli-2026-07-01-session2.json",
-      "description": "Report: complexity-nexus-cli-2026-07-01-session2.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-01-session3",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 01 session3",
-      "path": "reports/complexity-nexus-cli-2026-07-01-session3.json",
-      "description": "Report: complexity-nexus-cli-2026-07-01-session3.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-01-session4",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 01 session4",
-      "path": "reports/complexity-nexus-cli-2026-07-01-session4.json",
-      "description": "Report: complexity-nexus-cli-2026-07-01-session4.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-01-session5",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 01 session5",
-      "path": "reports/complexity-nexus-cli-2026-07-01-session5.json",
-      "description": "Report: complexity-nexus-cli-2026-07-01-session5.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-03-session1",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 03 session1",
-      "path": "reports/complexity-nexus-cli-2026-07-03-session1.json",
-      "description": "Report: complexity-nexus-cli-2026-07-03-session1.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-03-session2",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 03 session2",
-      "path": "reports/complexity-nexus-cli-2026-07-03-session2.json",
-      "description": "Report: complexity-nexus-cli-2026-07-03-session2.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-03-session3",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 03 session3",
-      "path": "reports/complexity-nexus-cli-2026-07-03-session3.json",
-      "description": "Report: complexity-nexus-cli-2026-07-03-session3.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-08-session1",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 08 session1",
-      "path": "reports/complexity-nexus-cli-2026-07-08-session1.json",
-      "description": "Report: complexity-nexus-cli-2026-07-08-session1.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-complexity-nexus-cli-2026-07-11-session1",
-      "type": "report",
-      "name": "complexity nexus cli 2026 07 11 session1",
-      "path": "reports/complexity-nexus-cli-2026-07-11-session1.json",
-      "description": "Report: complexity-nexus-cli-2026-07-11-session1.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-03",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 03",
-      "path": "reports/doc-lifecycle-2026-07-03.json",
-      "description": "Report: doc-lifecycle-2026-07-03.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-04",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 04",
-      "path": "reports/doc-lifecycle-2026-07-04.json",
-      "description": "Report: doc-lifecycle-2026-07-04.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-05",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 05",
-      "path": "reports/doc-lifecycle-2026-07-05.json",
-      "description": "Report: doc-lifecycle-2026-07-05.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-06",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 06",
-      "path": "reports/doc-lifecycle-2026-07-06.json",
-      "description": "Report: doc-lifecycle-2026-07-06.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-07",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 07",
-      "path": "reports/doc-lifecycle-2026-07-07.json",
-      "description": "Report: doc-lifecycle-2026-07-07.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-08",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 08",
-      "path": "reports/doc-lifecycle-2026-07-08.json",
-      "description": "Report: doc-lifecycle-2026-07-08.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-09",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 09",
-      "path": "reports/doc-lifecycle-2026-07-09.json",
-      "description": "Report: doc-lifecycle-2026-07-09.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-10",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 10",
-      "path": "reports/doc-lifecycle-2026-07-10.json",
-      "description": "Report: doc-lifecycle-2026-07-10.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-doc-lifecycle-2026-07-11",
-      "type": "report",
-      "name": "doc lifecycle 2026 07 11",
-      "path": "reports/doc-lifecycle-2026-07-11.json",
-      "description": "Report: doc-lifecycle-2026-07-11.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
@@ -1806,26 +1330,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
       "dependencies": []
     },
     {
-      "id": "report-doc-sync-2026-07-11",
+      "id": "report-doc-lifecycle-2026-07-13",
       "type": "report",
-      "name": "doc sync 2026 07 11",
-      "path": "reports/doc-sync-2026-07-11.json",
-      "description": "Report: doc-sync-2026-07-11.json",
+      "name": "doc lifecycle 2026 07 13",
+      "path": "reports/doc-lifecycle-2026-07-13.json",
+      "description": "Report: doc-lifecycle-2026-07-13.json",
       "tags": [
         "report",
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
@@ -1842,116 +1366,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
       "dependencies": []
     },
     {
-      "id": "report-health-2026-06-30",
+      "id": "report-doc-sync-2026-07-13",
       "type": "report",
-      "name": "health 2026 06 30",
-      "path": "reports/health-2026-06-30.json",
-      "description": "Report: health-2026-06-30.json",
+      "name": "doc sync 2026 07 13",
+      "path": "reports/doc-sync-2026-07-13.json",
+      "description": "Report: doc-sync-2026-07-13.json",
       "tags": [
         "report",
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-health-2026-07-03",
-      "type": "report",
-      "name": "health 2026 07 03",
-      "path": "reports/health-2026-07-03.json",
-      "description": "Report: health-2026-07-03.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-health-2026-07-04",
-      "type": "report",
-      "name": "health 2026 07 04",
-      "path": "reports/health-2026-07-04.json",
-      "description": "Report: health-2026-07-04.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-health-2026-07-06",
-      "type": "report",
-      "name": "health 2026 07 06",
-      "path": "reports/health-2026-07-06.json",
-      "description": "Report: health-2026-07-06.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-health-2026-07-09",
-      "type": "report",
-      "name": "health 2026 07 09",
-      "path": "reports/health-2026-07-09.json",
-      "description": "Report: health-2026-07-09.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
-      "contributesTo": [
-        "observability"
-      ],
-      "dependencies": []
-    },
-    {
-      "id": "report-patterns-2026-07-11",
-      "type": "report",
-      "name": "patterns 2026 07 11",
-      "path": "reports/patterns-2026-07-11.json",
-      "description": "Report: patterns-2026-07-11.json",
-      "tags": [
-        "report",
-        "metrics"
-      ],
-      "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
@@ -1968,8 +1402,26 @@
         "metrics"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
+      "contributesTo": [
+        "observability"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "report-patterns-2026-07-13",
+      "type": "report",
+      "name": "patterns 2026 07 13",
+      "path": "reports/patterns-2026-07-13.json",
+      "description": "Report: patterns-2026-07-13.json",
+      "tags": [
+        "report",
+        "metrics"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "observability"
       ],
@@ -1987,8 +1439,8 @@
         "state"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "governance"
       ],
@@ -2006,8 +1458,8 @@
         "executor"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai"
       ],
@@ -2025,8 +1477,8 @@
         "planner"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai"
       ],
@@ -2044,8 +1496,8 @@
         "reviewer"
       ],
       "status": "active",
-      "createdAt": "2026-07-12T02:02:46.835Z",
-      "updatedAt": "2026-07-12T02:02:46.835Z",
+      "createdAt": "2026-07-13T03:30:24.113Z",
+      "updatedAt": "2026-07-13T03:30:24.113Z",
       "contributesTo": [
         "ai"
       ],
@@ -2054,15 +1506,15 @@
   ],
   "assetsByType": {
     "adr": 5,
-    "skill": 25,
+    "skill": 17,
     "contract": 4,
     "policy": 13,
     "workflow": 1,
     "runbook": 1,
-    "plan": 4,
+    "plan": 3,
     "script": 6,
-    "doc": 13,
-    "report": 30,
+    "doc": 14,
+    "report": 8,
     "context": 1,
     "prompt": 3
   },
@@ -2071,13 +1523,13 @@
   "healthScores": {
     "knowledgeDebt": 100,
     "knowledgeGraph": 100,
-    "overall": 70
+    "overall": 99
   },
   "entropy": {
-    "orphanedAssets": 23,
+    "orphanedAssets": 9,
     "staleAssets": 0,
     "missingDependencies": 0,
-    "score": 100
+    "score": 5
   },
-  "summary": "106 assets. 9 capabilities. Health: 70/100. 23 orphaned. Lifecycle: governed."
+  "summary": "76 assets. 9 capabilities. Health: 99/100. 9 orphaned. Lifecycle: governed."
 }

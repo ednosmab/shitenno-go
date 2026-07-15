@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-09 — gap analysis completo, 2.14 marcado Done, validacao de orphan modules e health issues
+> **Ultima atualizacao:** 2026-07-12 — batch backlog resolver (A4, 3.22, JSDoc, plans consolidados, CLI enhancements), 1898 testes passing
 
 ---
 
@@ -88,6 +88,7 @@
 | 3.21 | Baixo | Briefing --profile com minimal/standard/full — 2026-07-08 |
 | 3.24 | Baixo | Event history query API (getHistory()) — 2026-07-08 |
 | 2.14 | Baixo | KNOWN_LIMITATIONS.md ja existe com 12 limitacoes documentadas — 2026-07-09 |
+| RACE-FIX | Alto | Lock inter-processo + cooldown persistido no retroactive scan — 2026-07-12 |
 
 ---
 
@@ -326,9 +327,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivos** | `src/pattern-detector.ts` (CandidateRule), `src/commands/detect.ts` |
 | **Descricao** | `detectPatterns()` gera `candidateRules` com status "proposed" mas nao existe mecanismo para aprovar/rejeitar. |
 | **Correcao** | Criar `nexus detect --approve RULE-001` e `nexus detect --reject RULE-001`. Persistir decisoes em `nexus-system/governance/rules-decisions.json`. |
@@ -363,9 +364,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivos** | `src/capability-engine.ts`, `src/session-feedback.ts` |
 | **Descricao** | O capability-engine recomenda instalacoes mas nao aprende com falhas. |
 | **Correcao** | No `evaluateCapabilities()`, consultar `failureHotspots` do feedback. Se uma area com capability instalada tem muitos failures, sugerir downgrade. |
@@ -374,9 +375,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivo** | `src/commands/bench.ts` |
 | **Descricao** | Benchmark mostra resultados atuais mas nao compara com execucoes anteriores. |
 | **Correcao** | Salvar resultado em `nexus-system/reports/bench-YYYY-MM-DD.json`. Adicionar `--compare` que mostra tendencia. |
@@ -385,9 +386,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivo** | `src/commands/feedback.ts` |
 | **Descricao** | Nao existe forma de ver os registros de feedback sem usar `--summary`. |
 | **Correcao** | Adicionar `--list` que mostra ultimos 10 registros formatados. |
@@ -416,9 +417,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivos** | `src/commands/briefing.ts`, `src/token-optimizer.ts` |
 | **Descricao** | `differentialBriefing()` do token-optimizer e mais compacto que `generateDiff()` do briefing.ts. O `--diff` usa `generateDiff()` que gera markdown verboso. |
 | **Correcao** | Oferecer `--diff --compact` que usa `differentialBriefing()` (~50 tokens vs ~200). |
@@ -459,10 +460,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P3 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-07-02 |
 | **Fonte** | Teste manual do usuario |
 | **Modulos** | `src/console/tabs/*.tsx`, `src/console/components/*.tsx` |
@@ -496,9 +497,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivos** | `enrichBriefingWithPatterns`, `getFeedbackForSession`, `getLatestFeedback`, `compressedSummary`, `differentialBriefing`, `suggestDepth`, `generateOptimizationHints`, `displayBriefingByDepth` |
 | **Descricao** | 8 funcoes exportadas/novas sem JSDoc. |
 | **Correcao** | Adicionar JSDoc com `@param`, `@returns`, e `@example`. |
@@ -507,12 +508,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
-| **Diretorio** | `plans/` (11 arquivos) |
-| **Descricao** | 11 arquivos de plano com massiva sobreposicao. |
-| **Correcao** | Consolidar em 3 documentos: (a) Plano atual, (b) Historico, (c) Roadmap futuro. |
+| **Owner** | Edson |
+| **Resolucao** | Planos concluidos movidos para plans/done/ — 2026-07-12 |
 
 ### 2.14 Documentar limitacoes conhecidas
 
@@ -528,10 +527,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-07-03 |
 | **Fonte** | Briefing de onboarding (briefing-onboarding-nexus.md, criterio de aceite #5) |
 | **Arquivos** | `docs/tests/onboarding-5min-test.md`, README.md, `apps/nexus-dashboard/src/pages/discover/`, `apps/nexus-dashboard/src/pages/use/` |
@@ -557,9 +556,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivo** | `src/context-collector.ts` |
 | **Descricao** | Todas as importacoes sao estaticas no topo do arquivo. `pattern-detector.ts`, `session-feedback.ts`, `analyser.ts` sao carregados mesmo quando nao necessarios. |
 | **Correcao** | Usar dynamic imports (`await import()`) para modulos que so sao necessarios em branches especificos. |
@@ -568,9 +567,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Arquivos** | `.github/workflows/ci.yml`, `src/__tests__/benchmarks.bench.ts` |
 | **Descricao** | O benchmark existe mas nao roda no CI. Regressoes de performance passam despercebidas. |
 | **Correcao** | Adicionar step `pnpm bench` ao CI com threshold de regressao (ex: +20% tempo = fail). |
@@ -589,7 +588,7 @@
 | ~~3.6~~ | ~~nexus dashboard --live~~ | ~~Baixo~~ | ~~Done: --live <seconds> opção existe em dashboard.tsx~~ |
 | 3.7 | Suportar projectos sem Git | Medio | Fallback para metricas estaticas apenas |
 | 3.8 | Shell completion (bash/zsh/fish) | Baixo | Auto-complete para comandos e opcoes |
-| 3.10 | nexus --quiet / --no-color | Baixo | Modo scriptavel para CI/CD |
+| ~~3.10~~ | ~~nexus --quiet / --no-color~~ | ~~Baixo~~ | ~~Done: --quiet (NEXUS_QUIET) + --no-color (chalk.level=0) em bin/nexus.ts + logger.ts — 2026-07-12~~ |
 | 3.11 | nexus init --dry-run | Baixo | Preview do que seria criado sem criar |
 | 3.12 | nexus upgrade --dry-run | Baixo | Preview do que seria instalado sem instalar |
 | 3.13 | nexus audit --fix | Medio | Auto-fix para problemas de governance detectados |
@@ -598,13 +597,13 @@
 | 3.16 | Metrics export (Prometheus/OpenTelemetry) | Baixo | Exportar metricas de uso para observabilidade |
 | 3.17 | Structured logging | Baixo | JSON logs em vez de console.log para parsing |
 | 3.18 | Plugin versioning e dependency resolution | Baixo | Versao minima de plugins, dependencias entre plugins |
-| 3.19 | nexus detect --approve/--reject | Medio | Aprovar ou rejeitar regras candidatas do pattern-detector |
+| ~~3.19~~ | ~~nexus detect --approve/--reject~~ | ~~Medio~~ | ~~Done: --approve e --reject implementados em src/commands/detect.ts~~ |
 | ~~3.20~~ | ~~nexus feedback --outcome failure auto-link~~ | ~~Baixo~~ | ~~Done: sugere failure hotspots quando --areas nao fornecido~~ |
 | ~~3.21~~ | ~~Briefing --profile no briefingToMarkdown~~ | ~~Baixo~~ | ~~Done: --profile com minimal/standard/full em briefing.ts~~ |
-| 3.22 | HealthBar compartilhado | Baixo | dashboard.ts duplica healthBar de formatting.ts — importar |
+| ~~3.22~~ | ~~HealthBar compartilhado~~ | ~~Baixo~~ | ~~Done: dashboard.tsx importa healthBar de formatting.ts~~ |
 | 3.23 | Colorblind-friendly mode | Baixo | Usar icons/texto em vez de apenas cores |
 | ~~3.24~~ | ~~Event history query API~~ | ~~Baixo~~ | ~~Done: getHistory() publico em event-bus.ts~~ |
-| 3.25 | nexus bench --save / --load | Baixo | Salvar/carregar benchmarks para comparacao offline |
+| ~~3.25~~ | ~~nexus bench --save / --load~~ | ~~Baixo~~ | ~~Done: loadBenchHistory, saveBenchResult + --compare em bench.ts~~ |
 | 3.26 | nexus status --fix | Baixo | Auto-fix para problemas de governance (como doctor) |
 | 3.27 | Briefing cache com TTL configuravel | Baixo | Permitir configurar tempo de vida do cache |
 | 3.28 | Briefing --watch | Baixo | Regenerar briefing automaticamente a cada N segundos |
@@ -612,7 +611,7 @@
 | 3.30 | Validacao de schema com zod/io-ts | Baixo | Validar todos os tipos de record lidos de disco |
 | ~~3.31~~ | ~~nexus detect --format markdown~~ | ~~Baixo~~ | ~~Done: --format text/json/markdown em detect.ts~~ |
 | 3.32 | Briefing cache com compressao | Baixo | Comprimir cache JSON para reduzir tamanho em disco |
-| 3.33 | Feedback com campo `briefingProfile` | Baixo | Registrar qual profile (minimal/standard/full) foi usado |
+| ~~3.33~~ | ~~Feedback com campo `briefingProfile`~~ | ~~Baixo~~ | ~~Done: campo no schema + --profile option em feedback.ts~~ |
 | 3.34 | nexus dashboard --export csv | Baixo | Exportar dados do dashboard em CSV |
 | 3.35 | Plugin sandboxing | Baixo | Isolar plugins em workers para seguranca |
 | 3.36 | Decidir nome do produto | Baixo | Nexus Gaude, Prism, Codex, ou outro — decisao estrategica pendente |
@@ -630,7 +629,7 @@
 | **Status** | Done |
 | **Resolucao** | mcp-server.ts com 3 tools (getBriefing, getRiskMap, getRules). mcp-install.ts para filesystem server. Comando nexus mcp registado em bin/nexus.ts. |
 | **Severidade** | Alto |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Servidor MCP (Model Context Protocol) para agentes IA consumirem contexto do Nexus. Ferramentas: getBriefing, getRiskMap, getRules. |
 | **Correcao** | Criar `src/mcp-server.ts` com ferramentas MCP. Publicar como `@nexus/mcp`. |
 
@@ -638,9 +637,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Hook automatico antes de cada tarefa no OpenCode. Injeta briefing no contexto do agente. |
 | **Correcao** | Criar plugin OpenCode que chama `nexus briefing --summary` antes de cada tarefa e injeta no system prompt. |
 
@@ -648,9 +647,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Extensao para Cursor IDE que mostra briefing no sidebar. |
 | **Correcao** | Criar extensao VS Code (Cursor e compativel) que le `.nexus/BRIEFING.md` e exibe em panel. |
 
@@ -658,19 +657,19 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Pre-commit: auto-briefing. Pre-push: validation. Post-commit: feedback automatico. |
-| **Correcao** | Criar `nexus hooks --install` que configura git hooks via `core.hooksPath`. |
+| **Resolucao** | nexus hooks --install/--uninstall implementado em src/commands/hooks.ts 2014 2026-07-11 |
 
 ### A5 Webhook de sessao
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | POST briefing result para API externa (Slack, Discord, webhook custom). |
 | **Correcao** | Adicionar `--webhook <url>` ao `nexus briefing`. Enviar JSON via POST apos gerar. |
 
@@ -678,9 +677,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Endpoint REST para briefing sob demanda. Agentes podem chamar HTTP em vez de CLI. |
 | **Correcao** | Adicionar `nexus serve` que inicia servidor HTTP com endpoints: GET /briefing, GET /risk-map, GET /rules. |
 
@@ -688,9 +687,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | nexus-cli precisa prover um template para criar novas skills. Atualmente as 14 skills em `nexus-system/docs/skills/` foram criadas manualmente sem padrao formal. O template deve definir: frontmatter obrigatorio (name, description), estrutura de secoes (objetivo, regras, onde aplicar), e validacao. Comando: `nexus skill:create <nome>` que scaffolds um novo arquivo `.md` com o template preenchido. |
 | **Correcao** | Criar `src/templates/base/skills/SKILL_TEMPLATE.md` com frontmatter + secoes padrao. Adicionar comando `skill:create` em `src/commands/skill-create.ts`. Validar frontmatter contra schema existente. |
 
@@ -712,9 +711,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | `nexus tutorial` — guided tour interativo que mostra cada comando com exemplos reais. |
 | **Correcao** | Criar `src/commands/tutorial.ts` com 7 passos: init, status, detect, briefing, feedback, run, evolve. |
 
@@ -722,9 +721,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | 3 templates: web-app (Next.js), API (Express), library (TypeScript). Cada um com governance pre-configurada. |
 | **Correcao** | Criar `examples/` com 3 diretorios. `nexus init --template web-app` para usar. |
 
@@ -732,9 +731,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Como migrar de outros tools (ESLint, Prettier, SonarQube) para Nexus. |
 | **Correcao** | Criar `docs/migration.md` com tabelas de equivalencia. |
 
@@ -742,9 +741,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Referencia completa das funcoes internas para quem quer usar como biblioteca. |
 | **Correcao** | Gerar docs via TypeDoc. Publicar em `docs/api/`. |
 
@@ -752,9 +751,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Uso como biblioteca Node.js, nao CLI. `import { generateBriefing } from 'nexus-system'`. |
 | **Correcao** | Separar core de CLI. Criar `nexus-system/core` export. |
 
@@ -762,9 +761,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | 5min demo no YouTube mostrando o fluxo completo: init → briefing → feedback. |
 | **Correcao** | Gravar screencast. Ferramenta: OBS + terminal grande. |
 
@@ -776,9 +775,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Quais comandos sao mais usados, horarios de pico, taxa de sucesso por comando. |
 | **Correcao** | Dashboard `nexus analytics` que le `usage.jsonl` e gera graficos. |
 
@@ -786,9 +785,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Relatorio automatico de erros: tipo, frequencia, contexto. |
 | **Correcao** | Criar `src/error-tracker.ts` que captura erros nao tratados e grava em `errors.jsonl`. |
 
@@ -796,9 +795,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Fluxo tipico de uso: quais comandos sao executados em sequencia. |
 | **Correcao** | Analisar `session-tracker` para detectar padroes de uso. |
 
@@ -806,9 +805,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Testar variacoes de briefing: formato, profundidade, ordem de secoes. |
 | **Correcao** | Criar `src/experiments.ts` com variante A/B e metricas de aceitacao. |
 
@@ -820,9 +819,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Teste de seguranca no CLI: injection via inputs, path traversal, command injection. |
 | **Correcao** | Contratar pentest ou usar ferramentas (Snyk, npm audit). |
 
@@ -830,9 +829,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | `npm audit` automatico no CI. Bloquear builds com vulnerabilidades criticas. |
 | **Correcao** | Adicionar step `pnpm audit --audit-level=high` ao CI. |
 
@@ -840,9 +839,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Medio |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | Detectar keys/tokens no output do CLI. Evitar vazar informacoes sensiveis. |
 | **Correcao** | Usar `gitleaks` ou `trufflehog` no CI. Adicionar regex para detectar API keys no output. |
 
@@ -850,9 +849,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Descricao** | SLSA compliance, provenance, SBOM. |
 | **Correcao** | Gerar SBOM via `syft`. Assinar commits com Sigstore. |
 
@@ -910,7 +909,7 @@
 | **Resolucao** | maturity-profile.ts actualizado com auto-deteccao de artefactos, policies de governance criadas, answers.json — 2026-07-06 |
 | **Severidade** | Critico |
 | **Prioridade** | P0 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus assess --json (dimension: governance = 0) |
 | **Modulos** | src/ (global) |
@@ -921,10 +920,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus assess --json (dimension: architecture = 15) |
 | **Modulos** | src/ (global) |
@@ -961,10 +960,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus audit --json (knowledgeGraph.suggestions) |
 | **Modulos** | nexus-system/ |
@@ -999,10 +998,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
 | **Modulos** | src/ (46 arquivos) |
@@ -1013,10 +1012,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Alto |
 | **Prioridade** | P1 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
 | **Modulos** | src/ (global) |
@@ -1027,10 +1026,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | nexus doctor --json |
 | **Modulos** | nexus-system/ |
@@ -1067,10 +1066,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
 | **Modulos** | src/ (global) |
@@ -1081,10 +1080,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual |
 | **Modulos** | src/ (global) |
@@ -1095,10 +1094,10 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Backlog |
+| **Status** | Done |
 | **Severidade** | Baixo |
 | **Prioridade** | P2 |
-| **Owner** | unassigned |
+| **Owner** | Edson |
 | **Data** | 2026-06-30 |
 | **Fonte** | Analise manual (commands-action.test.ts) |
 | **Modulos** | src/commands/sync.ts |
@@ -1107,22 +1106,23 @@
 
 ---
 
-## Metricas de Qualidade (snapshot 2026-06-30)
+## Metricas de Qualidade (snapshot 2026-07-12)
 
 ```
 Projeto:       nexus-cli v0.1.0
 TypeScript:    strict: true, 0 erros
-Testes:        606/606 passando (43 arquivos)
+Testes:        1898/1898 passando (119 arquivos)
 Coverage:      ~51% (linhas) | ~82% (funcoes) | ~76% (branches)
 ESLint:        0 erros, 0 warnings
 Dependencias:  6 deps + 10 devDeps (lean)
 CI/CD:         ci.yml (Node 18/20/22 + coverage gate)
-Commands:      18 (init, status, audit, assess, detect, run, evolve,
+Commands:      36 (init, status, audit, assess, detect, run, evolve,
                report, doctor, upgrade, validate, sync, clean, digest,
-               briefing, feedback, bench, dashboard)
+               briefing, feedback, bench, dashboard, hooks, handbook, etc.)
 Context Pipeline: collectContext → cache → briefing → feedback → dashboard
 Auto-backlog:  nexus audit --auto-backlog (detect gaps → BACKLOG.md)
 Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
+Race Fix:      Lock inter-processo (wx flag) + cooldown persistido (15s)
 ```
 
 ---
@@ -1131,9 +1131,9 @@ Auto-analise:  17 gaps identificados (3 P0, 8 P1, 6 P2)
 
 | Prioridade | Itens | Tema Principal |
 |---|---|---|
-| **Done** | 84 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS |
+| **Done** | 89 | Desacoplamento, quick wins, event-driven, MCP, pipeline, ADRs, contracts, feedback, dashboard, KNOWN_LIMITATIONS, race condition fix, --quiet/--no-color, --compact diff, JSDoc, plans consolidados, detect --approve, bench --save/load, briefingProfile |
 | **P0** (≤ 7d) | 0 | Nenhum P0 activo |
 | **P1** (≤ 30d) | 7 | Arquitetura (Clean/SOLID), AI agents (OpenCode, Cursor, Git hooks, skills) |
 | **P2** (≤ 90d) | 15 | Features (detect approve, bench compare), docs, performance, developer experience, security |
-| **P3** (sem SLA) | 20 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
+| **P3** (sem SLA) | 16 | Nice-to-have, ecosystem, observability, i18n, dashboard responsividade |
 | **Total** | **126** | |

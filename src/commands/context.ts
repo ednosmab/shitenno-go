@@ -12,6 +12,7 @@ import { generateForecast } from "../trend-engine.js";
 import { logger } from "../logger.js";
 import { join } from "node:path";
 import { NEXUS_DIR_NAME } from "../constants.js";
+import { output, outputBlank } from "../output.js";
 import { Command } from "commander";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -170,7 +171,7 @@ export async function executeContextCommand(options: { json?: boolean; forAgent?
   let context = generateContext(nexusDir);
 
   if (!context) {
-    console.log("No engineering state found. Run 'nexus init' first.");
+    output("No engineering state found. Run 'nexus init' first.");
     return;
   }
 
@@ -179,46 +180,46 @@ export async function executeContextCommand(options: { json?: boolean; forAgent?
   }
 
   if (options.json) {
-    console.log(JSON.stringify(context, null, 2));
+    output(JSON.stringify(context, null, 2));
   } else {
     printContext(context);
   }
 }
 
 function printContext(context: ContextOutput): void {
-  console.log("📋 Project Context");
-  console.log("==================");
-  console.log(`Project: ${context.project.name}`);
-  console.log(`Stack: ${context.project.stack.join(", ")}`);
-  console.log(`Root: ${context.project.root}`);
-  console.log();
+  output("📋 Project Context");
+  output("==================");
+  output(`Project: ${context.project.name}`);
+  output(`Stack: ${context.project.stack.join(", ")}`);
+  output(`Root: ${context.project.root}`);
+  outputBlank();
 
-  console.log("📊 Engineering State");
-  console.log("====================");
-  console.log(`Lifecycle: ${context.engineeringState.lifecycle}`);
-  console.log(`Health: ${context.engineeringState.healthScores.overall}/100`);
-  console.log(`Knowledge Debt: ${context.engineeringState.healthScores.knowledgeDebt}/100`);
-  console.log(`Knowledge Graph: ${context.engineeringState.healthScores.knowledgeGraph}/100`);
-  console.log(`Entropy: ${context.engineeringState.entropy.score}/100`);
-  console.log(`Capabilities: ${context.engineeringState.capabilities.join(", ")}`);
-  console.log(`Assets: ${context.engineeringState.assets.length}`);
-  console.log(`Rules: ${context.engineeringState.rules}`);
-  console.log(`Policies: ${context.engineeringState.policies}`);
-  console.log();
+  output("📊 Engineering State");
+  output("====================");
+  output(`Lifecycle: ${context.engineeringState.lifecycle}`);
+  output(`Health: ${context.engineeringState.healthScores.overall}/100`);
+  output(`Knowledge Debt: ${context.engineeringState.healthScores.knowledgeDebt}/100`);
+  output(`Knowledge Graph: ${context.engineeringState.healthScores.knowledgeGraph}/100`);
+  output(`Entropy: ${context.engineeringState.entropy.score}/100`);
+  output(`Capabilities: ${context.engineeringState.capabilities.join(", ")}`);
+  output(`Assets: ${context.engineeringState.assets.length}`);
+  output(`Rules: ${context.engineeringState.rules}`);
+  output(`Policies: ${context.engineeringState.policies}`);
+  outputBlank();
 
   if (context.trend) {
-    console.log("📈 Trend");
-    console.log("========");
-    console.log(`Direction: ${context.trend.direction}`);
-    console.log(`Confidence: ${(context.trend.confidence * 100).toFixed(0)}%`);
-    console.log();
+    output("📈 Trend");
+    output("========");
+    output(`Direction: ${context.trend.direction}`);
+    output(`Confidence: ${(context.trend.confidence * 100).toFixed(0)}%`);
+    outputBlank();
   }
 
   if (context.challenges.length > 0) {
-    console.log("⚠️  Challenges");
-    console.log("==============");
+    output("⚠️  Challenges");
+    output("==============");
     for (const challenge of context.challenges) {
-      console.log(`  [${challenge.severity}] ${challenge.description}`);
+      output(`  [${challenge.severity}] ${challenge.description}`);
     }
   }
 }
