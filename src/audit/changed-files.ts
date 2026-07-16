@@ -60,7 +60,7 @@ export function getChangedFiles(
     const files = output
       .split("\n")
       .filter(Boolean)
-      .filter((f) => f.endsWith(".ts") || f.endsWith(".js"));
+      .filter((f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f));
 
     return {
       files,

@@ -197,7 +197,7 @@ export function readKnowledgeState(shitenDir: string): KnowledgeState {
   const scriptsDir = join(shitenDir, "scripts");
   if (existsSync(scriptsDir)) {
     const files = readdirSync(scriptsDir).filter(
-      (f) => f.endsWith(".ts") || f.endsWith(".js")
+      (f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f)
     );
     for (const file of files) {
       state.scripts.push({

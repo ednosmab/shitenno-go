@@ -171,7 +171,7 @@ export function discoverAssets(shitenDir: string): EngineeringAsset[] {
   const scriptsDir = join(shitenDir, "scripts");
   if (existsSync(scriptsDir)) {
     const files = readdirSync(scriptsDir).filter(
-      (f) => f.endsWith(".ts") || f.endsWith(".js")
+      (f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f)
     );
     for (const file of files) {
       assets.push({

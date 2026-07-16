@@ -450,7 +450,7 @@ export function detectMissingPackageJson(shitenDir: string): HealthIssue[] {
     if (existsSync(scriptsDir)) {
       try {
         const scripts = readdirSync(scriptsDir).filter(
-          (f) => f.endsWith(".ts") || f.endsWith(".js"),
+          (f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f),
         );
         if (scripts.length > 0) {
           issues.push({

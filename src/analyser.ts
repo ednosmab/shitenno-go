@@ -216,10 +216,11 @@ function detectTypeScript(rootDir: string): boolean {
 
 function countTotalCommits(rootDir: string): number {
   try {
-    const output = execSync("git rev-list --count HEAD 2>/dev/null", {
+    const output = execSync("git rev-list --count HEAD", {
       encoding: "utf-8",
       cwd: rootDir,
       timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
     });
     return parseInt(output.trim(), 10) || 0;
   } catch {

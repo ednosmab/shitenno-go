@@ -16,7 +16,7 @@ export const ANY_TYPE_SEVERITY_THRESHOLD = 10;
 
 // ── Source File Patterns ─────────────────────────────────────────────────────
 
-export const SOURCE_SKIP_PATTERNS = [/\.test\.ts$/, /\.bench\.ts$/, /index\.ts$/];
+export const SOURCE_SKIP_PATTERNS = [/\.test\.(ts|tsx|js|jsx)$/, /\.bench\.(ts|tsx|js|jsx)$/];
 
 // ── Violation Keywords ───────────────────────────────────────────────────────
 // Re-export from single source of truth in src/constants.ts

@@ -116,7 +116,7 @@ export function detectArtifactType(filePath: string, shitenDir: string): Artifac
 
   if (relative.endsWith(".json") || relative.endsWith(".yaml")) return "config";
   if (relative.endsWith(".md")) return "doc";
-  if (relative.endsWith(".ts")) return "script";
+  if (/\.(ts|tsx|js|jsx|vue|svelte)$/.test(relative)) return "script";
 
   return "unknown";
 }

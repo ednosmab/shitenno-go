@@ -8,38 +8,36 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { SOURCE_SKIP_PATTERNS } from "./constants.js";
+import { walkSourceFiles } from "../utils.js";
 import type { SourceFileInfo, HistoryEntry, HealthIssue } from "./types.js";
 
 /**
- * Collect all .ts source files from the project's src/ directory.
+ * Collect all source files (.ts, .tsx, .js, .jsx, .vue, .svelte) from the project.
+ * Uses the shared walkSourceFiles utility for consistent extension and directory handling.
  */
 export function collectSourceFiles(projectRoot: string): SourceFileInfo[] {
-  const srcDir = join(projectRoot, "src");
-  if (!existsSync(srcDir)) return [];
-
   const result: SourceFileInfo[] = [];
-  const walk = (dir: string) => {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name);
-      if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== "__tests__") {
-        walk(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith(".ts") && !SOURCE_SKIP_PATTERNS.some((p) => p.test(entry.name))) {
-        try {
-          const content = readFileSync(fullPath, "utf-8");
-          const lineCount = content.split("\n").length;
-          result.push({
-            fullPath,
-            relPath: fullPath.replace(projectRoot + "/", ""),
-            basename: entry.name.replace(/\.ts$/, ""),
-            content,
-            lineCount,
-          });
-        } catch { /* skip unreadable files */ }
-      }
-    }
-  };
-  walk(srcDir);
+
+  walkSourceFiles(projectRoot, (fullPath, fileName) => {
+    // Skip test infrastructure (fixtures, mocks, helpers without .test. in name)
+    if (fullPath.includes("/__tests__/") || fullPath.includes("\\__tests__\\")) return;
+    // Apply skip patterns (test files, bench files)
+    if (SOURCE_SKIP_PATTERNS.some((p) => p.test(fileName))) return;
+
+    try {
+      const content = readFileSync(fullPath, "utf-8");
+      const lineCount = content.split("\n").length;
+      const basename = fileName.replace(/\.[^.]+$/, "");
+      result.push({
+        fullPath,
+        relPath: fullPath.replace(projectRoot + "/", ""),
+        basename,
+        content,
+        lineCount,
+      });
+    } catch { /* skip unreadable files */ }
+  });
+
   return result;
 }
 

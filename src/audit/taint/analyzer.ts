@@ -104,7 +104,7 @@ export class TaintAnalyzer {
     const entries = ts.sys.readDirectory(dir, [".ts"], ["node_modules", "__tests__", "dist"]);
     if (entries) {
       for (const entry of entries) {
-        if (!entry.includes(".test.ts") && !entry.includes(".bench.ts") && !entry.includes("index.ts")) {
+        if (!/\.test\.(ts|tsx|js|jsx)$/.test(entry) && !/\.bench\.(ts|tsx|js|jsx)$/.test(entry)) {
           files.push(entry);
         }
       }
