@@ -52,6 +52,13 @@ function detectArtifactType(filePath: string, shitenDir: string): ArtifactType {
 
 let activeWatcher: FSWatcher | null = null;
 const changeHistory = new ChangeHistoryTracker();
+let watcherRestartCount = 0;
+const MAX_RESTARTS = 5;
+const BASE_RESTART_DELAY_MS = 1000;
+
+function getRestartDelay(attempt: number): number {
+  return Math.min(BASE_RESTART_DELAY_MS * 2 ** attempt, 30_000);
+}
 
 /**
  * Start watching governance artifacts for changes.
@@ -67,8 +74,6 @@ export function startWatching(
     activeWatcher.close();
   }
 
-  // Watch specific subdirectories (chokidar v5 is slow scanning entire tree)
-  // NOTE: reports/ excluded — generated output (doc-sync reports) should not trigger re-sync loops
   const watchPaths = [
     join(shitenDir, "governance"),
     join(shitenDir, "docs"),
@@ -78,104 +83,128 @@ export function startWatching(
   const bus = getEventBus();
   const pendingEvents = new Map<string, NodeJS.Timeout>();
 
-  activeWatcher = watch(watchPaths, {
-    ignoreInitial: true,
-    depth: 3,
-    ignored: [
-      /(^|[\/\\])\../, // dot files
-      /node_modules/,
-      /telemetry\/events-/, // event log files
-      /docs\/generated\//, // auto-generated documentation
-    ],
-  });
-
-  activeWatcher.on("ready", () => {
-    logger.info("file-watcher", "Watcher ready");
-  });
-
-  activeWatcher.on("change", (filePath: string) => {
-    // Skip files without governance-relevant extensions
-    if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
-
-    // Debounce rapid changes to the same file
-    const existing = pendingEvents.get(filePath);
-    if (existing) clearTimeout(existing);
-
-    pendingEvents.set(
-      filePath,
-      setTimeout(() => {
-        pendingEvents.delete(filePath);
-        handleFileChange(filePath, shitenDir, bus, enableDocSync);
-      }, debounceMs)
-    );
-  });
-
-  activeWatcher.on("add", (filePath: string) => {
-    // Skip files without governance-relevant extensions
-    if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
-
-    const artifactType = detectArtifactType(filePath, shitenDir);
-
-    if (artifactType === "adr") {
-      bus.publish("adr.created", {
-        adrId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-        title: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-        status: "proposed",
-      });
-    }
-
-    if (artifactType === "skill") {
-      bus.publish("skill.created", {
-        skillId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-        skillName: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-      });
-    }
-
-    // Detect new plan files in governance/plans/
-    const relativePath = filePath.replace(shitenDir, "").replace(/^\//, "");
-    const plansDir = join("governance", "plans");
-    if (
-      relativePath.startsWith(plansDir) &&
-      relativePath.endsWith(".md") &&
-      !relativePath.includes("/done/") &&
-      !relativePath.includes("/reference/") &&
-      !relativePath.includes("/pipeline/") &&
-      !filePath.includes("TEMPLATE") &&
-      !filePath.includes("README")
-    ) {
-      const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
-      bus.publish("plan.created", {
-        planId,
-        path: relativePath,
-        title: planId.replace(/-/g, " "),
-      });
-
-      // Also publish plan.file_changed on ADD so sync subscribers run immediately
-      let fileContent = "";
-      try {
-        fileContent = readFileSync(filePath, "utf-8");
-      } catch {
-        // File might have been deleted between add and read
-      }
-      bus.publish("plan.file_changed", {
-        planId,
-        path: relativePath,
-        content: fileContent,
-      });
-    }
-
-    bus.publish("asset.created", {
-      assetId: filePath,
-      assetType: artifactType,
-      path: filePath,
+  function createWatcher(): FSWatcher {
+    const watcher = watch(watchPaths, {
+      ignoreInitial: true,
+      depth: 3,
+      ignored: [
+        /(^|[\/\\])\../,
+        /node_modules/,
+        /telemetry\/events-/,
+        /docs\/generated\//,
+      ],
     });
-  });
+
+    watcher.on("ready", () => {
+      watcherRestartCount = 0;
+      logger.info("file-watcher", "Watcher ready");
+    });
+
+    watcher.on("error", (err: unknown) => {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error("file-watcher", `Watcher error: ${error.message}`);
+      bus.publish("watcher.error" as never, {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      } as never);
+
+      if (watcherRestartCount < MAX_RESTARTS) {
+        watcherRestartCount++;
+        const delay = getRestartDelay(watcherRestartCount);
+        logger.info("file-watcher", `Restarting watcher in ${delay}ms (attempt ${watcherRestartCount}/${MAX_RESTARTS})`);
+        setTimeout(() => {
+          activeWatcher?.close();
+          activeWatcher = createWatcher();
+        }, delay);
+      } else {
+        logger.error("file-watcher", `Max restart attempts (${MAX_RESTARTS}) reached — watcher stopped`);
+      }
+    });
+
+    watcher.on("change", (filePath: string) => {
+      if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
+      const existing = pendingEvents.get(filePath);
+      if (existing) clearTimeout(existing);
+
+      pendingEvents.set(
+        filePath,
+        setTimeout(() => {
+          pendingEvents.delete(filePath);
+          handleFileChange(filePath, shitenDir, bus, enableDocSync);
+        }, debounceMs)
+      );
+    });
+
+    watcher.on("add", (filePath: string) => {
+      if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
+      const artifactType = detectArtifactType(filePath, shitenDir);
+
+      if (artifactType === "adr") {
+        bus.publish("adr.created", {
+          adrId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
+          title: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
+          status: "proposed",
+        });
+      }
+
+      if (artifactType === "skill") {
+        bus.publish("skill.created", {
+          skillId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
+          skillName: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
+        });
+      }
+
+      const relativePath = filePath.replace(shitenDir, "").replace(/^\//, "");
+      const plansDir = join("governance", "plans");
+      if (
+        relativePath.startsWith(plansDir) &&
+        relativePath.endsWith(".md") &&
+        !relativePath.includes("/done/") &&
+        !relativePath.includes("/reference/") &&
+        !relativePath.includes("/pipeline/") &&
+        !filePath.includes("TEMPLATE") &&
+        !filePath.includes("README")
+      ) {
+        const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
+        bus.publish("plan.created", {
+          planId,
+          path: relativePath,
+          title: planId.replace(/-/g, " "),
+        });
+
+        let fileContent = "";
+        try {
+          fileContent = readFileSync(filePath, "utf-8");
+        } catch {
+          // File might have been deleted between add and read
+        }
+        bus.publish("plan.file_changed", {
+          planId,
+          path: relativePath,
+          content: fileContent,
+        });
+      }
+
+      bus.publish("asset.created", {
+        assetId: filePath,
+        assetType: artifactType,
+        path: filePath,
+      });
+    });
+
+    return watcher;
+  }
+
+  activeWatcher = createWatcher();
 
   return () => {
     for (const timeout of pendingEvents.values()) {
       clearTimeout(timeout);
     }
     pendingEvents.clear();
+    watcherRestartCount = MAX_RESTARTS;
     activeWatcher?.close();
     activeWatcher = null;
   };

@@ -8,6 +8,7 @@
  */
 
 import { basename } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,35 +56,53 @@ export function validatePlanFormat(
     return { valid: true, errors: [], warnings: [] };
   }
 
-  // Rule 1: **Status:** present
-  const hasStatus = lines.some((l) => l.match(/^\*\*Status:\*\*/));
+  // Detect YAML frontmatter block (--- ... ---) at the top of the file
+  const yamlBlockMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  let yamlFields: Record<string, unknown> | null = null;
+  if (yamlBlockMatch && yamlBlockMatch[1]) {
+    try {
+      const parsed = parseYaml(yamlBlockMatch[1]);
+      if (parsed && typeof parsed === "object") yamlFields = parsed as Record<string, unknown>;
+    } catch {
+      // Malformed YAML block — treat as absent, fall through to bold-field rules
+    }
+  }
+
+  // Rule 1: **Status:** present (or YAML status field)
+  const hasStatus = yamlFields ? "status" in yamlFields : lines.some((l) => l.match(/^\*\*Status:\*\*/));
   if (!hasStatus) {
     const titleLine = lines.findIndex((l) => l.startsWith("# "));
     errors.push({
       rule: HEADER_STATUS,
       message: "Campo **Status:** em falta no header do plano",
       line: titleLine !== -1 ? titleLine + 3 : undefined,
-      fix: "Adicionar '**Status:** Pending' após o título",
+      fix: yamlFields !== null
+        ? "Adicionar 'status: Pending' ao bloco YAML no topo do arquivo"
+        : "Adicionar '**Status:** Pending' após o título",
     });
   }
 
-  // Rule 2: **Date:** present
-  const hasDate = lines.some((l) => l.match(/^\*\*Date:\*\*/));
+  // Rule 2: **Date:** present (or YAML date field)
+  const hasDate = yamlFields ? "date" in yamlFields : lines.some((l) => l.match(/^\*\*Date:\*\*/));
   if (!hasDate) {
     errors.push({
       rule: HEADER_DATE,
       message: "Campo **Date:** em falta no header do plano",
-      fix: "Adicionar '**Date:** YYYY-MM-DD' após o campo Status",
+      fix: yamlFields !== null
+        ? "Adicionar 'date: YYYY-MM-DD' ao bloco YAML"
+        : "Adicionar '**Date:** YYYY-MM-DD' após o campo Status",
     });
   }
 
-  // Rule 3: **Updated_at:** present
-  const hasUpdated = lines.some((l) => l.match(/^\*\*Updated_at:\*\*/));
+  // Rule 3: **Updated_at:** present (or YAML updated_at field)
+  const hasUpdated = yamlFields ? "updated_at" in yamlFields : lines.some((l) => l.match(/^\*\*Updated_at:\*\*/));
   if (!hasUpdated) {
     warnings.push({
       rule: HEADER_UPDATED,
       message: "Campo **Updated_at:** em falta no header do plano",
-      fix: "Adicionar '**Updated_at:** YYYY-MM-DDTHH:MM:SS.000Z'",
+      fix: yamlFields !== null
+        ? "Adicionar 'updated_at: YYYY-MM-DDTHH:MM:SS.000Z' ao bloco YAML"
+        : "Adicionar '**Updated_at:** YYYY-MM-DDTHH:MM:SS.000Z'",
     });
   }
 

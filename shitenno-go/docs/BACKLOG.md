@@ -1386,3 +1386,26 @@
 
 #### Passos do Plano
 - [ ] Passo 1 — TBD
+
+### BACKLOG-AUDIT_IMPROVEMENT_PLAN_2026_07_16 — Plano de Melhorias pós-Auditoria Enterprise
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Alto |
+| **Prioridade** | P0 |
+| **Owner** | executor |
+| **Data** | 2026-07-16 |
+| **Fonte** | shiten audit enterprise (score 59/100) |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Plano de melhorias baseado na auditoria enterprise: 35 críticos, 169 avisos, 659 info |
+| **Correcao** | Verificar checklist no plano `governance/plans/2026-07-16-audit-improvement-plan.md` |
+
+#### Passos do Plano
+- [ ] Fase 1: Corrigir path_traversal, circular_dep, xss_risk, sql_injection (6+2+2+1 = 11 críticos)
+- [ ] Fase 2: Decompor high_complexity (49), god_functions (36), deep_nesting (30)
+- [ ] Fase 3: Eliminar empty_catch (55), dead_code (10), unused_exports (399)
+- [ ] Fase 4: Corrigir broken_refs (23), dead_rules (18), system_map_mismatch (8)
+- [ ] Fase 5: Adicionar schema validation para JSON.parse (67)
+- [ ] Fase 6: Adicionar testes para 147 módulos sem cobertura
+- [ ] Score enterprise >80/100

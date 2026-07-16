@@ -141,9 +141,3 @@ completed_tasks:
   - PLANO-CORRECAO-SHITEN (Bug 1-5: feedback-utils, banner, JSON rules, plugins, answers.json)
   - PLANO-ARQUITECTURA-COMPLETO (15 fases)
   - HANDBOOK-LEVEL-2-3 (conteúdo 02-commands/ e 03-architecture/)
-
-impediments:
-  - description: "Retroactive sync failed for migracao-yaml-frontmatter: 1 errors"
-    priority: "high"
-    createdAt: "2026-07-16T03:24:04.945Z"
-    category: "plan_sync"

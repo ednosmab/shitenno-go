@@ -1,0 +1,191 @@
+--- /mnt/user-data/outputs/markdown-plan-engine-ORIGINAL.ts	2026-07-16 03:26:37.392223051 +0000
++++ /home/claude/project/shitenno-go-main/src/markdown-plan-engine.ts	2026-07-16 02:41:58.139731641 +0000
+@@ -12,6 +12,7 @@
+ 
+ import { existsSync, readFileSync, writeFileSync, readdirSync, renameSync, mkdirSync } from "node:fs";
+ import { join } from "node:path";
++import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+ import { getEventBus } from "./event-bus.js";
+ 
+ // ── Types ──────────────────────────────────────────────────────────────────
+@@ -57,6 +58,39 @@
+ // ── Frontmatter Parser ─────────────────────────────────────────────────────
+ 
+ /**
++ * Match a real YAML frontmatter block (--- ... ---) at the very start of
++ * the file — the standard convention (Jekyll/Hugo/Obsidian/etc.), not the
++ * project's bespoke **Field:** text format below.
++ */
++const YAML_BLOCK_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
++
++/**
++ * Parse a YAML frontmatter block if the file has one. Returns null if
++ * there isn't one, or if it fails to parse — callers fall back to the
++ * legacy **Field:** text format, which continues to work unchanged.
++ */
++function parseYamlFrontmatter(content: string): Record<string, string> | null {
++  const match = content.match(YAML_BLOCK_RE);
++  if (!match || !match[1]) return null;
++
++  try {
++    const parsed = parseYaml(match[1]);
++    if (!parsed || typeof parsed !== "object") return null;
++
++    const metadata: Record<string, string> = {};
++    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
++      if (value === null || value === undefined) continue;
++      metadata[key.toLowerCase().replace(/\s+/g, "_")] = String(value);
++    }
++    return metadata;
++  } catch {
++    // Malformed YAML block — treat as if there wasn't one, rather than
++    // crashing plan detection for the whole project.
++    return null;
++  }
++}
++
++/**
+  * Parse frontmatter from markdown content.
+  * Format: **Field:** value (not YAML, per project convention).
+  *
+@@ -66,6 +100,11 @@
+  *   2. `**Field:** value` after `# Title` but before `---`
+  */
+ function parseFrontmatter(content: string): Record<string, string> {
++  // Prefer a real YAML frontmatter block when present — it's unambiguous,
++  // and needs no tolerance hacks for bold markers, colon placement, or case.
++  const yamlMetadata = parseYamlFrontmatter(content);
++  if (yamlMetadata) return yamlMetadata;
++
+   const metadata: Record<string, string> = {};
+   const lines = content.split("\n");
+ 
+@@ -102,20 +141,55 @@
+ }
+ 
+ /**
++ * Normalize a raw status string (e.g. from frontmatter or a loose match)
++ * into the canonical MarkdownPlanStatus.
++ */
++function normalizeStatusValue(raw: string): MarkdownPlanStatus {
++  const lower = raw.toLowerCase();
++  if (lower.includes("done") || lower.includes("conclu")) return "done";
++  if (lower.includes("parado") || lower.includes("paused") || lower.includes("stopped")) return "parado";
++  return "andamento";
++}
++
++/**
+  * Extract status from frontmatter.
++ *
++ * Detection order:
++ *   1. Strict frontmatter field (**Status:** value) — the canonical format
++ *      written by `updateStatus()` / `shiten plan md done`.
++ *   2. Loose status line — tolerates missing/misplaced bold markers and
++ *      case, in case the field was hand-edited (e.g. "Status: Done" or
++ *      "**Status**: Done") instead of set via the CLI.
++ *   3. Checkbox fallback — only meaningful when the plan actually has a
++ *      checklist. A plan with zero checkboxes (a design-style document)
++ *      cannot be inferred as done this way and stays "andamento" until
++ *      the status is set explicitly.
+  */
+ function extractStatus(metadata: Record<string, string>, content: string): MarkdownPlanStatus {
+   const statusField = metadata["status"];
+   if (statusField) {
+-    const lower = statusField.toLowerCase();
+-    if (lower.includes("done") || lower.includes("conclu")) return "done";
+-    if (lower.includes("parado") || lower.includes("paused") || lower.includes("stopped")) return "parado";
+-    return "andamento";
++    return normalizeStatusValue(statusField);
++  }
++
++  // Loose match: tolerates "Status: X", "**Status**: X", any case, extra
++  // bold markers in either position — catches hand-edited headers that
++  // don't match the strict **Status:** pattern parseFrontmatter expects.
++  const looseMatch = content.match(/^\s*\*{0,2}status\*{0,2}\s*:\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/im);
++  if (looseMatch && looseMatch[1]) {
++    return normalizeStatusValue(looseMatch[1]);
+   }
+ 
+   // Fallback: check if all checkboxes are [x] (plan used checklist format)
+   const openBoxes = (content.match(/^- \[ \]/gm) || []).length;
+   const closedBoxes = (content.match(/^- \[x\]/gm) || []).length;
++
++  if (openBoxes === 0 && closedBoxes === 0) {
++    // No checklist present at all — this is a design-style document, not
++    // a checklist-driven plan. There's nothing to infer from; status can
++    // only come from an explicit field (case above) or `shiten plan md done`.
++    return "andamento";
++  }
++
+   if (closedBoxes > 0 && openBoxes === 0) return "done";
+ 
+   return "andamento";
+@@ -254,29 +328,48 @@
+     // Read current content
+     let content = readFileSync(plan.filePath, "utf-8");
+ 
+-    // Update status in frontmatter
+-    const statusRegex = /(\*\*Status:\*\*\s*)(.+)/;
+-    const statusMatch = content.match(statusRegex);
+-
+-    if (statusMatch) {
+-      // Update existing status
+-      const newStatusDisplay = newStatus === "done" ? "Done" : 
+-                               newStatus === "parado" ? "Paused" : "In Progress";
+-      content = content.replace(statusRegex, `$1${newStatusDisplay}`);
+-    } else {
+-      // Add status after title
+-      const lines = content.split("\n");
+-      const titleIndex = lines.findIndex((l) => l.startsWith("# "));
+-      if (titleIndex !== -1) {
+-        lines.splice(titleIndex + 2, 0, "", `**Status:** ${newStatus === "done" ? "Done" : newStatus === "parado" ? "Paused" : "In Progress"}`);
+-        content = lines.join("\n");
++    const yamlMatch = content.match(YAML_BLOCK_RE);
++    let wroteYaml = false;
++
++    if (yamlMatch && yamlMatch[1]) {
++      try {
++        const parsed = (parseYaml(yamlMatch[1]) as Record<string, unknown>) ?? {};
++        parsed.status = newStatus;
++        parsed.updated_at = new Date().toISOString();
++        const newBlock = `---\n${stringifyYaml(parsed).trimEnd()}\n---\n`;
++        content = content.slice(0, yamlMatch.index) + newBlock + content.slice((yamlMatch.index ?? 0) + yamlMatch[0].length);
++        wroteYaml = true;
++      } catch {
++        // Malformed existing YAML block — fall through to the legacy
++        // text-field path below instead of corrupting the file further.
+       }
+     }
+ 
+-    // Update updated_at if exists
+-    const updatedAtRegex = /(\*\*Updated_at:\*\*\s*)(.+)/;
+-    if (content.match(updatedAtRegex)) {
+-      content = content.replace(updatedAtRegex, `$1${new Date().toISOString()}`);
++    if (!wroteYaml) {
++      // Update status in frontmatter
++      const statusRegex = /(\*\*Status:\*\*\s*)(.+)/;
++      const statusMatch = content.match(statusRegex);
++
++      if (statusMatch) {
++        // Update existing status
++        const newStatusDisplay = newStatus === "done" ? "Done" : 
++                                 newStatus === "parado" ? "Paused" : "In Progress";
++        content = content.replace(statusRegex, `$1${newStatusDisplay}`);
++      } else {
++        // Add status after title
++        const lines = content.split("\n");
++        const titleIndex = lines.findIndex((l) => l.startsWith("# "));
++        if (titleIndex !== -1) {
++          lines.splice(titleIndex + 2, 0, "", `**Status:** ${newStatus === "done" ? "Done" : newStatus === "parado" ? "Paused" : "In Progress"}`);
++          content = lines.join("\n");
++        }
++      }
++
++      // Update updated_at if exists
++      const updatedAtRegex = /(\*\*Updated_at:\*\*\s*)(.+)/;
++      if (content.match(updatedAtRegex)) {
++        content = content.replace(updatedAtRegex, `$1${new Date().toISOString()}`);
++      }
+     }
+ 
+     // Write updated content

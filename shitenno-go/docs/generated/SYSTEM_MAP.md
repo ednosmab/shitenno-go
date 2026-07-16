@@ -1,24 +1,25 @@
 # System Map
 
-> Generated: 2026-07-15T04:34:18.889Z
+> Generated: 2026-07-16T03:50:48.563Z
 > Session Score: 99/100
 
 ## Overview
 
-- **Project:** nexus-cli
-- **Root:** /media/edson-ubuntu/Data2/projeto-formação_tech/nexus-cli
+- **Project:** shitenno-cli
+- **Root:** /media/edson-ubuntu/Data2/projeto-formação_tech/shitenno-cli
 - **Stack:** typescript, node, react
 - **Lifecycle:** governed
 
 ## Assets
 
-### Adrs (5)
+### Adrs (6)
 
 - ADR-001: Single Agent Architecture — docs/adrs/ADR-001-single-agent-architecture.md
 - ADR-002: Event-Driven Architecture with Centralized Engineering State — docs/adrs/ADR-002-event-driven-state.md
 - ADR-003: Knowledge Graph as Foundation for Documentation — docs/adrs/ADR-003-knowledge-graph-persistence.md
 - ADR-005: Automated Task Completion Pipeline — docs/adrs/ADR-005-automated-task-completion-pipeline.md
 - ADR-006: Restrict Filesystem Access in CLI Commands — docs/adrs/ADR-006-filesystem-access-restriction.md
+- ADR-007: File Size and Complexity Limits — docs/adrs/ADR-007-file-size-limits.md
 
 ### Skills (17)
 
@@ -63,11 +64,12 @@
 
 - merge — docs/runbooks/merge.md
 
-### Plans (3)
+### Plans (4)
 
-- 2026 07 13 refactor estrutural sa4 sa10 sa11 — governance/plans/2026-07-13-refactor-estrutural-sa4-sa10-sa11.md
 - PLAN monettization implementation — governance/plans/PLAN-monettization-implementation.md
 - README — governance/plans/README.md
+- handoff agente — governance/plans/handoff-agente.md
+- plano daemon kernel — governance/plans/plano-daemon-kernel.md
 
 ### Scripts (6)
 
@@ -78,7 +80,7 @@
 - sync docs — scripts/sync-docs.ts
 - validate session — scripts/validate-session.ts
 
-### Docs (14)
+### Docs (15)
 
 - AGENTS — docs/AGENTS.md
 - BACKLOG — docs/BACKLOG.md
@@ -90,9 +92,9 @@
 - INDEX — docs/INDEX.md
 - KNOWLEDGE LIFECYCLE — docs/KNOWLEDGE_LIFECYCLE.md
 - REGISTRY — docs/REGISTRY.md
-- ... and 4 more
+- ... and 5 more
 
-### Reports (17)
+### Reports (23)
 
 - complexity nexus cli 2026 07 15 session1 — reports/complexity-nexus-cli-2026-07-15-session1.json
 - complexity nexus cli 2026 07 15 session2 — reports/complexity-nexus-cli-2026-07-15-session2.json
@@ -102,9 +104,9 @@
 - complexity shitenno cli 2026 07 13 session1 — reports/complexity-shitenno-cli-2026-07-13-session1.json
 - complexity shitenno cli 2026 07 14 session1 — reports/complexity-shitenno-cli-2026-07-14-session1.json
 - complexity shitenno cli 2026 07 15 session1 — reports/complexity-shitenno-cli-2026-07-15-session1.json
-- doc lifecycle 2026 07 12 — reports/doc-lifecycle-2026-07-12.json
-- doc lifecycle 2026 07 13 — reports/doc-lifecycle-2026-07-13.json
-- ... and 7 more
+- complexity shitenno cli 2026 07 15 session2 — reports/complexity-shitenno-cli-2026-07-15-session2.json
+- complexity shitenno cli 2026 07 16 session1 — reports/complexity-shitenno-cli-2026-07-16-session1.json
+- ... and 13 more
 
 ### Contexts (1)
 

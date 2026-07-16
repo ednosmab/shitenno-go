@@ -40,6 +40,8 @@ import { DaemonCircuitBreaker } from "./daemon-circuit-breaker.js";
 import { outputError } from "./output.js";
 import { logger } from "./logger.js";
 import { SHITEN_DIR_NAME } from "./constants.js";
+import { initializeRuleEngine } from "./rule-engine/engine.js";
+import { initializeProactiveEngine } from "./proactive-engine.js";
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
@@ -263,6 +265,15 @@ export async function runDaemon(shitenDir: string): Promise<void> {
 
   const bus = getEventBus();
   const stopWatcher = startWatching(shitenDir);
+
+  // ── Rule Engine: subscribe to event bus events ──────────────────────────────
+  const projectRoot = join(shitenDir, "..");
+  initializeRuleEngine(projectRoot, shitenDir);
+  daemonLog(logPath, "INFO", "Rule engine initialized — subscribed to event bus");
+
+  // ── Proactive Engine: subscribe to engineering state events ─────────────────
+  const stopProactive = initializeProactiveEngine(projectRoot, shitenDir);
+  daemonLog(logPath, "INFO", "Proactive engine initialized — subscribed to event bus");
 
   // ── Initial Startup Scan ───────────────────────────────────────────────────
   // Execute proactive functions once on daemon startup (ignoreInitial workaround)
@@ -541,6 +552,7 @@ export async function runDaemon(shitenDir: string): Promise<void> {
     clearInterval(auditTimer);
     clearInterval(largeCommitTimer);
     persistState(state, statePath);
+    stopProactive();
     stopWatcher();
     server.close(() => {
       cleanup(pidPath, sockPath);

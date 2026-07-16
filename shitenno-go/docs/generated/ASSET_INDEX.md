@@ -1,7 +1,7 @@
 # Asset Index
 
-> Generated: 2026-07-15T04:34:18.890Z
-> Total Assets: 85
+> Generated: 2026-07-16T03:50:48.563Z
+> Total Assets: 94
 
 | Type | Name | Path | Status |
 |------|------|------|--------|
@@ -10,6 +10,7 @@
 | adr | ADR-003: Knowledge Graph as Foundation for Documentation | docs/adrs/ADR-003-knowledge-graph-persistence.md | active |
 | adr | ADR-005: Automated Task Completion Pipeline | docs/adrs/ADR-005-automated-task-completion-pipeline.md | active |
 | adr | ADR-006: Restrict Filesystem Access in CLI Commands | docs/adrs/ADR-006-filesystem-access-restriction.md | active |
+| adr | ADR-007: File Size and Complexity Limits | docs/adrs/ADR-007-file-size-limits.md | active |
 | skill | architectural integrity | docs/skills/architectural_integrity.md | active |
 | skill | ci cd pipeline | docs/skills/ci_cd_pipeline.md | active |
 | skill | clean code standards | docs/skills/clean_code_standards.md | active |
@@ -46,9 +47,10 @@
 | policy | Session Hygiene — validate session close checklist | governance/rules/RULE-TEMPLATE.json | active |
 | workflow | Main Workflow | governance/WORKFLOW.md | active |
 | runbook | merge | docs/runbooks/merge.md | active |
-| plan | 2026 07 13 refactor estrutural sa4 sa10 sa11 | governance/plans/2026-07-13-refactor-estrutural-sa4-sa10-sa11.md | active |
 | plan | PLAN monettization implementation | governance/plans/PLAN-monettization-implementation.md | active |
 | plan | README | governance/plans/README.md | active |
+| plan | handoff agente | governance/plans/handoff-agente.md | active |
+| plan | plano daemon kernel | governance/plans/plano-daemon-kernel.md | active |
 | script | backlog | scripts/backlog.ts | active |
 | script | close session | scripts/close-session.ts | active |
 | script | generate changelog | scripts/generate-changelog.ts | active |
@@ -65,6 +67,7 @@
 | doc | INDEX | docs/INDEX.md | active |
 | doc | KNOWLEDGE LIFECYCLE | docs/KNOWLEDGE_LIFECYCLE.md | active |
 | doc | REGISTRY | docs/REGISTRY.md | active |
+| doc | REPORT-honest-project-assessment | docs/REPORT-honest-project-assessment.md | active |
 | doc | Shitenno-go GUIDE | docs/Shitenno-go_GUIDE.md | active |
 | doc | capabilities | docs/capabilities.md | active |
 | doc | opencode-context | docs/opencode-context.md | active |
@@ -77,15 +80,21 @@
 | report | complexity shitenno cli 2026 07 13 session1 | reports/complexity-shitenno-cli-2026-07-13-session1.json | active |
 | report | complexity shitenno cli 2026 07 14 session1 | reports/complexity-shitenno-cli-2026-07-14-session1.json | active |
 | report | complexity shitenno cli 2026 07 15 session1 | reports/complexity-shitenno-cli-2026-07-15-session1.json | active |
+| report | complexity shitenno cli 2026 07 15 session2 | reports/complexity-shitenno-cli-2026-07-15-session2.json | active |
+| report | complexity shitenno cli 2026 07 16 session1 | reports/complexity-shitenno-cli-2026-07-16-session1.json | active |
 | report | doc lifecycle 2026 07 12 | reports/doc-lifecycle-2026-07-12.json | active |
 | report | doc lifecycle 2026 07 13 | reports/doc-lifecycle-2026-07-13.json | active |
 | report | doc sync 2026 07 12 | reports/doc-sync-2026-07-12.json | active |
 | report | doc sync 2026 07 13 | reports/doc-sync-2026-07-13.json | active |
 | report | doc sync 2026 07 14 | reports/doc-sync-2026-07-14.json | active |
 | report | doc sync 2026 07 15 | reports/doc-sync-2026-07-15.json | active |
+| report | doc sync 2026 07 16 | reports/doc-sync-2026-07-16.json | active |
+| report | health 2026 07 16 | reports/health-2026-07-16.json | active |
 | report | patterns 2026 07 12 | reports/patterns-2026-07-12.json | active |
 | report | patterns 2026 07 13 | reports/patterns-2026-07-13.json | active |
 | report | patterns 2026 07 14 | reports/patterns-2026-07-14.json | active |
+| report | patterns 2026 07 15 | reports/patterns-2026-07-15.json | active |
+| report | patterns 2026 07 16 | reports/patterns-2026-07-16.json | active |
 | context | Session Context Buffer | governance/context/context_buffer.yaml | active |
 | prompt | executor prompt: README | cognition/prompts/executor/README.md | active |
 | prompt | planner prompt: README | cognition/prompts/planner/README.md | active |

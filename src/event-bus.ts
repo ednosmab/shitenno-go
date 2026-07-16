@@ -64,7 +64,8 @@ export type ShitenEventType =
   | "state.mutated"
   | "workdir.large_uncommitted_drift"
   | "context.p4_loaded"
-  | "context.tier_mismatch";
+  | "context.tier_mismatch"
+  | "watcher.error";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

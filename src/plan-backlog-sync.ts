@@ -15,6 +15,7 @@ import { addImpediment, clearImpediments } from "./context-buffer-writer.js";
 import { acquireScanLock, releaseScanLock } from "./plan-backlog-sync-lock.js";
 import { shouldSkipScan, markScanRun } from "./plan-backlog-sync-cooldown.js";
 import { withSyncWriteGuard, isSyncWriteInProgress } from "./sync-write-guard.js";
+import { MarkdownPlanEngine, type MarkdownPlanStatus } from "./markdown-plan-engine.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,28 +117,25 @@ export function syncBacklogToPlan(
   planId: string,
   backlogStatus: string
 ): void {
-  const planPath = join(shitenDir, "governance", "plans", `${planId}.md`);
-  if (!existsSync(planPath)) return;
-
-  let content = readFileSync(planPath, "utf-8");
-
-  const statusMap: Record<string, string> = {
-    concluído: "Done",
-    "em implementação": "In Progress",
-    pausado: "Paused",
-    planeado: "Pending",
+  const statusMap: Record<string, MarkdownPlanStatus> = {
+    "concluído": "done",
+    "em implementação": "andamento",
+    "pausado": "parado",
+    "planeado": "andamento",
   };
 
-  const planStatus = statusMap[backlogStatus] || "In Progress";
+  const planStatus = statusMap[backlogStatus] || "andamento";
 
-  content = content.replace(/\*\*Status:\*\*\s*.+/, `**Status:** ${planStatus}`);
-  content = content.replace(/\*\*Updated_at:\*\*\s*.+/, `**Updated_at:** ${new Date().toISOString()}`);
-
-  withSyncWriteGuard(() => {
-    markPlanWritten(planId);
-    writeFileSync(planPath, content, "utf-8");
-  });
-  logger.info("plan-backlog-sync", `Updated plan ${planId} status to ${planStatus}`);
+  const engine = new MarkdownPlanEngine(shitenDir);
+  try {
+    withSyncWriteGuard(() => {
+      markPlanWritten(planId);
+      engine.updateStatus(planId, planStatus);
+    });
+    logger.info("plan-backlog-sync", `Updated plan ${planId} status to ${planStatus}`);
+  } catch (error) {
+    logger.warn("plan-backlog-sync", `Failed to sync plan ${planId}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 // ── Cooldown per Plan ─────────────────────────────────────────────────────────

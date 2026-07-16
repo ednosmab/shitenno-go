@@ -122,6 +122,7 @@ const EVENT_VERSIONS: Record<ShitenEventType, EventVersion> = {
   "workdir.large_uncommitted_drift": 1,
   "context.p4_loaded": 1,
   "context.tier_mismatch": 1,
+  "watcher.error": 1,
 };
 
 /** Migrate a payload from one version to another. */

@@ -1,7 +1,12 @@
-# Plano: migrar o formato de status dos planos para frontmatter YAML
+---
+status: done
+date: 2026-07-15
+priority: P1
+owner: executor
+updated_at: 2026-07-16
+---
 
-**Status:** Done
-**Updated_at:** 2026-07-16
+# Plano: migrar o formato de status dos planos para frontmatter YAML
 
 > Correção sobre o que eu disse antes: falei em "11 arquivos" com base num grep amplo por
 > `**Field:**`. Fui ler cada um. A maioria usa essa *sintaxe* pra outro tipo de documento
@@ -14,7 +19,11 @@
 
 ## Checklist
 
-- [ ] Passo 1 — TBD
+- [x] Passo 1 — `markdown-plan-engine.ts` (leitura/escrita YAML)
+- [x] Passo 2 — `plan-format-validator.ts` (reconhecer bloco YAML como válido)
+- [x] Passo 3 — `plan-backlog-sync.ts` (delegar escrita ao engine)
+- [x] Passo 4 — `commands/plan.ts` format_header (não duplicar campos YAML)
+- [x] Passo 5 — `generateTemplate()` (template default → YAML)
 
 ## 1. Escopo real (verificado, não estimado)
 

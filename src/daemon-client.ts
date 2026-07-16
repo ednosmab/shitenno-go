@@ -167,40 +167,9 @@ export function stopDaemon(shitenDir: string): boolean {
  * Send a ping to the daemon via its IPC socket.
  * Returns true if the daemon responds with a pong.
  */
-export function pingDaemon(shitenDir: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socketPath = getSocketPath(shitenDir);
-    if (!existsSync(socketPath)) {
-      resolve(false);
-      return;
-    }
-
-    const client = createConnection(socketPath);
-    const timer = setTimeout(() => {
-      client.destroy();
-      resolve(false);
-    }, 2_000);
-
-    client.once("connect", () => {
-      client.write(JSON.stringify({ type: "ping" }) + "\n");
-    });
-
-    client.once("data", (data) => {
-      clearTimeout(timer);
-      try {
-        const msg = JSON.parse(data.toString().trim()) as { type: string };
-        resolve(msg.type === "pong");
-      } catch {
-        resolve(false);
-      }
-      client.destroy();
-    });
-
-    client.once("error", () => {
-      clearTimeout(timer);
-      resolve(false);
-    });
-  });
+export async function pingDaemon(shitenDir: string): Promise<boolean> {
+  const result = await queryDaemon<{ type: string }>(shitenDir, { type: "ping" }, 2_000);
+  return result?.type === "pong";
 }
 
 // ── Query: Status ────────────────────────────────────────────────────────────
@@ -225,7 +194,41 @@ export interface DaemonStatusResponse {
  * Query the daemon for its full status via IPC.
  * Returns the expanded status response or null on failure.
  */
-export function queryDaemonStatus(shitenDir: string): Promise<DaemonStatusResponse | null> {
+export async function queryDaemonStatus(shitenDir: string): Promise<DaemonStatusResponse | null> {
+  return queryDaemon<DaemonStatusResponse>(shitenDir, { type: "status" }, 2_000);
+}
+
+// ── Query: Health ────────────────────────────────────────────────────────────
+
+export interface DaemonHealthResponse {
+  type: string;
+  score: number | null;
+  checkedAt: string | null;
+  trend: "stable" | "improving" | "degrading" | "unknown";
+}
+
+/**
+ * Query the daemon for health status via IPC.
+ * Lightweight alternative to queryDaemonStatus when only health is needed.
+ */
+export async function queryDaemonHealth(shitenDir: string): Promise<DaemonHealthResponse | null> {
+  return queryDaemon<DaemonHealthResponse>(shitenDir, { type: "query_health" }, 2_000);
+}
+
+// ── Generic IPC Query ────────────────────────────────────────────────────────
+
+const DEFAULT_QUERY_TIMEOUT_MS = 1_500;
+
+/**
+ * Generic IPC query against the running daemon.
+ * Returns null on any failure (daemon down, timeout, malformed response) —
+ * callers must always have a disk-based fallback, never throw here.
+ */
+export function queryDaemon<T extends { type: string }>(
+  shitenDir: string,
+  message: Record<string, unknown> & { type: string },
+  timeoutMs = DEFAULT_QUERY_TIMEOUT_MS,
+): Promise<T | null> {
   return new Promise((resolve) => {
     const socketPath = getSocketPath(shitenDir);
     if (!existsSync(socketPath)) {
@@ -237,17 +240,16 @@ export function queryDaemonStatus(shitenDir: string): Promise<DaemonStatusRespon
     const timer = setTimeout(() => {
       client.destroy();
       resolve(null);
-    }, 2_000);
+    }, timeoutMs);
 
     client.once("connect", () => {
-      client.write(JSON.stringify({ type: "status" }) + "\n");
+      client.write(JSON.stringify(message) + "\n");
     });
 
     client.once("data", (data) => {
       clearTimeout(timer);
       try {
-        const msg = JSON.parse(data.toString().trim()) as DaemonStatusResponse;
-        resolve(msg.type === "status" ? msg : null);
+        resolve(JSON.parse(data.toString().trim()) as T);
       } catch {
         resolve(null);
       }

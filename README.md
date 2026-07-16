@@ -1,8 +1,10 @@
 # Shitenno-go
 
-> AI governance framework that grows with your project — scoring, pattern detection, health auditing.
+> A CLI tool for preserving engineering context across AI-assisted work sessions — scoring, pattern detection, health auditing.
 
-A CLI tool that analyzes your project's complexity, detects patterns in engineering history, and audits governance health. It adapts to your team's level (Junior / Pleno / Senior) and provides actionable suggestions.
+Shiten analyzes your project's complexity, detects patterns in engineering history, and audits governance health, so you (and the AI agents you work with) don't lose context between sessions. It adapts suggestions to a declared experience level (Junior / Pleno / Senior).
+
+**Status:** built and validated for solo use. Team usage (2+ people on the same project) has not been tested with real users yet — see [Known Limitations](docs/KNOWN_LIMITATIONS.md) before relying on it in a shared repository.
 
 ---
 
@@ -141,27 +143,15 @@ That's it. Your project now has governed context for you and your AI agents.
 
 ## Who Is This For
 
-| Team size | Profile | What Shiten solves |
-|-----------|---------|-------------------|
-| **Solo** | Developer working alone who loses context between sessions | Preserves state so you resume without re-reading everything |
-| **2-5 people** | Small team where knowledge lives in one person's head | Makes tacit knowledge explicit and verifiable |
-| **5-15 people** | Growing team where onboarding is painful | New members onboard in hours, not weeks |
-| **AI-assisted teams** | Teams where AI agents operate without governance context | Agents receive governed, hierarchical context |
+Today, Shiten is built and used by a single developer to preserve engineering context across their own AI-assisted sessions. It has not been run by a team yet, so claims about team size or onboarding time would be speculation — this section will be filled in with real numbers once that's actually tested.
+
+If you use AI agents (Claude Code, Cursor, opencode, etc.) and lose context between sessions on solo projects, that's the validated use case today.
 
 ---
 
-## Token Economy — How Shiten Saves You Money
+## Token Economy
 
-> **Note:** The numbers below are projected estimates based on typical session patterns, not measured benchmarks. Actual savings depend on project size, session complexity, and cache hit rates.
-
-Without Shiten, every AI session starts from zero context — the agent must read multiple files to understand the project. Shiten compresses all of that into a cached briefing.
-
-| Scenario | Without Shiten | With Shiten | Savings |
-|----------|---------------|------------|---------|
-| Average session (feature) | ~15-25k tokens | ~2-5k tokens | **60-80%** |
-| Cache hit (stable project) | ~15-25k tokens | ~0-1k tokens | **95-100%** |
-| Trivial task (typo, rename) | ~10-15k tokens | ~3-4k tokens | **70-75%** |
-| Complex refactor | ~20-30k tokens | ~8-10k tokens | **50-65%** |
+Shiten caches a project briefing on disk (`briefing-cache.ts`) and reuses it via a content hash instead of recomputing on every session, which mechanically means fewer tokens spent re-reading project state when the cache is warm. We have not run controlled measurements of how much this saves in practice — no percentage numbers are published until they come from actual measured sessions, not projections.
 
 ---
 
@@ -221,11 +211,13 @@ shitenno-cli/
 
 | Metric | Count |
 |--------|-------|
-| CLI Commands | 38 |
-| Source Files | 148 |
-| Test Files | 127 |
+| CLI Commands | 40 |
+| Source Files | 269 |
+| Test Files | 130 |
 | Audit Detectors | 100+ |
 | Engine Modules | 12 |
+
+*(Counts as of the last README update — likely to drift; run `shiten docs-audit` to check against current code before quoting these elsewhere.)*
 
 ### How It Works
 
@@ -320,7 +312,7 @@ npm run bench
 
 ### Testing
 
-- **1791+ tests** across 111 test files
+- **~2000 tests** across 130 test files (written after implementation, not TDD — see [Known Limitations](docs/KNOWN_LIMITATIONS.md))
 - **24 CLI integration tests** (end-to-end)
 - **Performance benchmarks** for scoring, detection, and audit engines
 

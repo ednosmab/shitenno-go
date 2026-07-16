@@ -60,20 +60,28 @@ export async function runPrepare(
   try {
     let content = readFileSync(plan.filePath, "utf-8");
     let updated = false;
-    if (!content.match(/\*\*Status:\*\*/)) {
-      const titleLine = content.split("\n").findIndex((l) => l.startsWith("# "));
-      if (titleLine !== -1) { const lines = content.split("\n"); lines.splice(titleLine + 2, 0, "", "**Status:** Pending"); content = lines.join("\n"); updated = true; }
+
+    const hasYamlBlock = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.test(content);
+
+    if (!hasYamlBlock) {
+      // Legacy bold-field format — same logic as before, unchanged
+      if (!content.match(/\*\*Status:\*\*/)) {
+        const titleLine = content.split("\n").findIndex((l) => l.startsWith("# "));
+        if (titleLine !== -1) { const lines = content.split("\n"); lines.splice(titleLine + 2, 0, "", "**Status:** Pending"); content = lines.join("\n"); updated = true; }
+      }
+      if (!content.match(/\*\*Date:\*\*/)) {
+        const statusLine = content.split("\n").findIndex((l) => l.match(/\*\*Status:\*\*/));
+        if (statusLine !== -1) { const lines = content.split("\n"); lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`); content = lines.join("\n"); updated = true; }
+      }
+      if (!content.match(/\*\*Updated_at:\*\*/)) {
+        const lastField = content.split("\n").findIndex((l) => l.match(/^\*\*[A-Z]/));
+        if (lastField !== -1) { const lines = content.split("\n"); lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`); content = lines.join("\n"); updated = true; }
+      }
     }
-    if (!content.match(/\*\*Date:\*\*/)) {
-      const statusLine = content.split("\n").findIndex((l) => l.match(/\*\*Status:\*\*/));
-      if (statusLine !== -1) { const lines = content.split("\n"); lines.splice(statusLine + 1, 0, `**Date:** ${new Date().toISOString().slice(0, 10)}`); content = lines.join("\n"); updated = true; }
-    }
-    if (!content.match(/\*\*Updated_at:\*\*/)) {
-      const lastField = content.split("\n").findIndex((l) => l.match(/^\*\*[A-Z]/));
-      if (lastField !== -1) { const lines = content.split("\n"); lines.splice(lastField + 1, 0, `**Updated_at:** ${new Date().toISOString()}`); content = lines.join("\n"); updated = true; }
-    }
+    // if hasYamlBlock === true, fields already live in the YAML block — nothing to insert.
+
     if (updated) { writeFileSync(plan.filePath, content, "utf-8"); results.push({ step: "format_header", status: "done", detail: "Header formatted to shiten standard" }); }
-    else { results.push({ step: "format_header", status: "skip", detail: "Header already conformant" }); }
+    else { results.push({ step: "format_header", status: "skip", detail: hasYamlBlock ? "YAML frontmatter present" : "Header already conformant" }); }
   } catch (error) { results.push({ step: "format_header", status: "error", detail: String(error) }); }
 
   // Step 1.5: Validate plan format
