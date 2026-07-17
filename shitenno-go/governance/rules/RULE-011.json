@@ -12,5 +12,6 @@
   "priority": 1,
   "dependencies": [],
   "enabled": true,
+  "autonomous": false,
   "tags": ["health", "critical", "auto-audit"]
 }

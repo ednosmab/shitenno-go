@@ -57,7 +57,8 @@ export type ActionType =
   | "remove_file"
   | "update_backlog_status"
   | "archive_plan"
-  | "auto_populate_next_p0";
+  | "auto_populate_next_p0"
+  | "apply_autofix";
 
 export interface Rule {
   id: string;
@@ -70,6 +71,8 @@ export interface Rule {
   enabled: boolean;
   tags: string[];
   requiredCapability?: Capability;
+  /** Opt-in for Tier 3 actions to execute autonomously. Default false (Tier 3 requires human confirmation). */
+  autonomous?: boolean;
 }
 
 export interface RuleCondition {
@@ -90,6 +93,12 @@ export interface RuleContext {
   shitenDir: string;
   timestamp: string;
   installedCapabilities?: Capability[];
+  /**
+   * Optional resource-claim checker injected by the daemon.
+   * Returns true if the given resourceId is currently claimed by an active CLI session.
+   * When set, Tier 2 actions targeting a claimed resource are deferred (ADR-008).
+   */
+  isResourceClaimed?: (resourceId: string) => boolean;
 }
 
 export interface RuleResult {

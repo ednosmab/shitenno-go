@@ -11,7 +11,12 @@ import { randomUUID, createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "./logger.js";
-import { ScriptNotAllowedError } from "./errors.js";
+import { checkPolicyGate } from "./decision-core/policy-gate.js";
+import { getResourceId } from "./decision-core/precedence.js";
+import { claimResource, releaseResource } from "./resource-claims.js";
+import { PolicyEngine, FilePolicyRepository } from "./policy-engine.js";
+import type { RuleAction, RuleContext } from "./domain/rules/rule.js";
+import { RunScriptExecutor, CreateReminderExecutor } from "./decision-core/executors/index.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -81,7 +86,10 @@ export interface ActionExecutor {
   /** Executor name (matches action type). */
   name: string;
   /** Execute the action. Returns output data. */
-  execute(params: Record<string, unknown>): Promise<Record<string, unknown>>;
+  execute(
+    params: Record<string, unknown>,
+    context: { projectRoot: string; shitenDir: string }
+  ): Promise<Record<string, unknown>>;
   /** Rollback the action (optional). */
   rollback?(params: Record<string, unknown>, output: Record<string, unknown>): Promise<void>;
 }
@@ -113,46 +121,6 @@ export class NotifyExecutor implements ActionExecutor {
     const level = params.level as string ?? "info";
     logger.info("action-engine", `[${level.toUpperCase()}] ${message}`);
     return { notified: true, message, level };
-  }
-}
-
-/**
- * CreateReminderExecutor — Creates a reminder task.
- */
-export class CreateReminderExecutor implements ActionExecutor {
-  name = "create_reminder";
-
-  async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const message = params.message as string ?? "Reminder";
-    const priority = params.priority as string ?? "medium";
-    logger.info("action-engine", `[Reminder] (${priority}) ${message}`);
-    return { created: true, message, priority };
-  }
-}
-
-/**
- * ScriptExecutor — Runs a whitelisted script (safe scripts only).
- */
-export class ScriptExecutor implements ActionExecutor {
-  name = "run_script";
-  private allowedScripts: Record<string, string>;
-
-  constructor(allowedScripts: Record<string, string> = {}) {
-    this.allowedScripts = {
-      "shiten audit": "shiten audit",
-      "shiten status": "shiten status",
-      "shiten assess": "shiten assess",
-      ...allowedScripts,
-    };
-  }
-
-  async execute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const script = params.script as string;
-    if (!script || !(script in this.allowedScripts)) {
-      throw new ScriptNotAllowedError(script ?? "undefined");
-    }
-    // In real implementation, would exec the script
-    return { executed: true, script };
   }
 }
 
@@ -254,13 +222,15 @@ export class FileExecutionRepository implements ExecutionRepository {
 
 export class ActionEngine {
   private executors = new Map<string, ActionExecutor>();
+  private shitenDir: string;
 
-  constructor(private repo: ExecutionRepository) {
-    // Register built-in executors
+  constructor(private repo: ExecutionRepository, shitenDir?: string) {
+    this.shitenDir = shitenDir ?? "";
+    // Register built-in executors (real implementations from decision-core)
     this.registerExecutor(new LogEventExecutor());
     this.registerExecutor(new NotifyExecutor());
     this.registerExecutor(new CreateReminderExecutor());
-    this.registerExecutor(new ScriptExecutor());
+    this.registerExecutor(new RunScriptExecutor());
   }
 
   /** Register an action executor. */
@@ -282,6 +252,35 @@ export class ActionEngine {
     const hashMatch = this.repo.findByHash(executionHash);
     if (hashMatch && hashMatch.status === "completed") {
       return hashMatch;
+    }
+
+    // Policy gate — check before execution (ADR-009)
+    if (this.shitenDir) {
+      const policyEngine = new PolicyEngine(new FilePolicyRepository(this.shitenDir));
+      const action: RuleAction = { type: request.type as RuleAction["type"], params: request.params as RuleAction["params"] };
+      const context: RuleContext = {
+        trigger: "manual",
+        eventData: {},
+        projectRoot: "",
+        shitenDir: this.shitenDir,
+        timestamp: new Date().toISOString(),
+      };
+      const policyResult = checkPolicyGate(action, context, policyEngine);
+      if (!policyResult.allowed) {
+        const record: ExecutionRecord = {
+          executionId: `EXE-${randomUUID().slice(0, 8).toUpperCase()}`,
+          request,
+          executionHash,
+          status: "failed",
+          result: "failure",
+          error: `Blocked by policy: ${policyResult.reason}`,
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          duration: 0,
+        };
+        this.repo.save(record);
+        return record;
+      }
     }
 
     const executor = this.executors.get(request.type);
@@ -312,9 +311,21 @@ export class ActionEngine {
 
     this.repo.save(record);
 
+    // Claim plan/task resources so the daemon defers conflicting autonomous actions (ADR-008).
+    const resourceId = getResourceId(request.type as RuleAction["type"], request.params);
+    const claimType: "plan" | "task" | undefined = resourceId?.startsWith("plan:")
+      ? "plan"
+      : resourceId?.startsWith("task:")
+      ? "task"
+      : undefined;
+    const claimSessionId = resourceId && claimType ? claimResource(resourceId, claimType) : undefined;
+
     try {
       const startTime = Date.now();
-      const output = await executor.execute(request.params);
+      const output = await executor.execute(request.params, {
+        projectRoot: "",
+        shitenDir: this.shitenDir,
+      });
       const duration = Date.now() - startTime;
 
       record.status = "completed";
@@ -328,6 +339,10 @@ export class ActionEngine {
       record.error = error instanceof Error ? error.message : String(error);
       record.completedAt = new Date().toISOString();
       record.duration = Date.now() - new Date(record.startedAt).getTime();
+    } finally {
+      if (resourceId && claimSessionId) {
+        releaseResource(resourceId, claimSessionId);
+      }
     }
 
     this.repo.save(record);

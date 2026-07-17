@@ -1,0 +1,51 @@
+reminders:
+  - message: "Revisar handbook — AI preencheu dados semânticos. Editar partes filosóficas."
+    priority: "medium"
+    category: "docs"
+    createdAt: "2026-07-16T04:58:10.072Z"
+  - message: "Health status is CRITICAL — immediate action required"
+    priority: "medium"
+    category: "feature"
+    createdAt: "2026-07-15T04:32:10.092Z"
+  - message: "High knowledge debt detected — create ADRs and skills"
+    priority: "medium"
+    category: "feature"
+    createdAt: "2026-07-15T04:32:04.732Z"
+
+session:
+  id: session-2026-07-16-audit
+  status: active
+
+current_task:
+  id: audit-improvement-plan
+  description: "Execute audit improvement plan — Phases 1-4"
+  status: "completed"
+  started_at: "2026-07-16T04:00:00.000Z"
+
+next_p0: "Dogfooding real (item 1 do handoff) — rodar shiten init no próprio repo"
+
+documents_loaded:
+  - docs/BACKLOG.md
+  - governance/WORKFLOW.md
+  - governance/context/context_buffer.yaml
+
+impediments: []
+
+technical_debt:
+  - id: NEW-001
+    description: "Runtime validation shitenno-go/profile — erro cryptico se shiten init nao foi feito"
+    severity: medium
+  - id: NEW-002
+    description: "Feedback pessoal do agente nunca executado automaticamente"
+    severity: medium
+
+completed_tasks:
+  - BACKLOG-001, BACKLOG-002, BACKLOG-003
+  - AUDIT-EXPANSION, QUICK-BOARD-FIX
+  - BACKLOG-0.7, SA3
+  - EVENT-DRIVEN-REACTIVE, ADR-005-PIPELINE
+  - PLANO-CORRECAO-SHITEN (Bug 1-5)
+  - PLANO-ARQUITECTURA-COMPLETO (15 fases)
+  - HANDBOOK-LEVEL-2-3
+  - AUDIT-IMPROVEMENT-PLAN (Phases 1-4: security, empty_catch, broken_refs, context_buffer)
+  - PLAN-AUDIT-EDGE (Sub-planos A, B, C completados: autofix, incremental scan, health card)

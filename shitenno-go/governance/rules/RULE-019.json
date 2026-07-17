@@ -12,5 +12,6 @@
   "priority": 2,
   "dependencies": ["RULE-018"],
   "enabled": true,
+  "autonomous": false,
   "tags": ["buffer", "automation", "plan", "backlog", "next_p0"]
 }

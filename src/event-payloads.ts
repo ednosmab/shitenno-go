@@ -311,6 +311,21 @@ export interface ChallengeGeneratedPayload extends EventMeta {
   description: string;
 }
 
+// ── Resource Arbitration Events ────────────────────────────────────────────
+
+/** Emitted by the CLI when it starts working on a resource (plan/task). */
+export interface ResourceClaimedPayload extends EventMeta {
+  resourceId: string;
+  resourceType: "plan" | "task";
+  sessionId: string;
+}
+
+/** Emitted by the CLI when it finishes working on a resource. */
+export interface ResourceReleasedPayload extends EventMeta {
+  resourceId: string;
+  sessionId: string;
+}
+
 // ── State Mutation Events ──────────────────────────────────────────────────
 
 export interface StateMutatedPayload extends EventMeta {
@@ -398,6 +413,8 @@ export interface EventPayloadMap {
   "plan.format_warning": PlanFormatWarningPayload;
   "backlog.updated": BacklogUpdatedPayload;
   "challenge.generated": ChallengeGeneratedPayload;
+  "resource.claimed": ResourceClaimedPayload;
+  "resource.released": ResourceReleasedPayload;
   "state.mutated": StateMutatedPayload;
   "entropy.calculated": EntropyCalculatedPayload;
   "docs.sync.triggered": DocsSyncTriggeredPayload;

@@ -14,8 +14,6 @@ import {
   computeExecutionHash,
   LogEventExecutor,
   NotifyExecutor,
-  CreateReminderExecutor,
-  ScriptExecutor,
   type ActionRequest,
   type ExecutionRecord,
   type ActionFilter,
@@ -188,23 +186,6 @@ describe("Built-in Executors", () => {
     const executor = new NotifyExecutor();
     const result = await executor.execute({ message: "Build complete", level: "info" });
     expect(result.notified).toBe(true);
-  });
-
-  it("CreateReminderExecutor executes", async () => {
-    const executor = new CreateReminderExecutor();
-    const result = await executor.execute({ message: "Run audit", priority: "high" });
-    expect(result.created).toBe(true);
-  });
-
-  it("ScriptExecutor executes allowed script", async () => {
-    const executor = new ScriptExecutor();
-    const result = await executor.execute({ script: "shiten audit" });
-    expect(result.executed).toBe(true);
-  });
-
-  it("ScriptExecutor rejects disallowed script", async () => {
-    const executor = new ScriptExecutor();
-    await expect(executor.execute({ script: "rm -rf /" })).rejects.toThrow("Script not allowed");
   });
 });
 

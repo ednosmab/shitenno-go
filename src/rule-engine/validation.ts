@@ -17,7 +17,7 @@ export const VALID_ACTION_TYPES: readonly ActionType[] = [
   "send_notification", "trigger_assessment", "trigger_health_check",
   "update_backlog", "run_local_script", "run_script", "run_shiten_command",
   "update_file", "create_file", "remove_file", "update_backlog_status",
-  "archive_plan", "auto_populate_next_p0",
+  "archive_plan", "auto_populate_next_p0", "apply_autofix",
 ];
 
 export function validateRule(rule: unknown): ValidationResult {
@@ -36,6 +36,7 @@ export function validateRule(rule: unknown): ValidationResult {
   if (typeof r.priority !== "number") errors.push("'priority' must be a number");
   if (r.tags !== undefined && !Array.isArray(r.tags)) errors.push("'tags' must be an array");
   if (r.requiredCapability !== undefined && typeof r.requiredCapability !== "string") errors.push("'requiredCapability' must be a string");
+  if (r.autonomous !== undefined && typeof r.autonomous !== "boolean") errors.push("'autonomous' must be a boolean");
 
   if (Array.isArray(r.actions)) {
     for (const action of r.actions) {

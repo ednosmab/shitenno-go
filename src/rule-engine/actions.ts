@@ -6,12 +6,10 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { SHITEN_DIR_NAME } from "../constants.js";
-import { logger } from "../logger.js";
 import { escapeRegex } from "../validation.js";
 import { transitionTask, type BacklogState } from "../backlog-state-machine.js";
 import { replaceSectionField, updateNextP0 } from "../context-buffer-writer.js";
 import type { RuleAction, RuleContext } from "../domain/rules/rule.js";
-import { isScriptAllowed, isShitenCommandAllowed, getAllowedScriptCommand, getAllowedShitenCommand } from "./security.js";
 import { resolveField } from "./conditions.js";
 
 /** Resolve template variables in action params (e.g., "${eventData.planId}" → actual value). */
@@ -63,38 +61,6 @@ export async function executeAction(
         return { success: true, message: `Updated ${field} = ${value}` };
       }
       return { success: false, message: `Field "${field}" not found in buffer` };
-    }
-
-    case "create_reminder": {
-      const bufferPath = ensureContextBuffer(context.shitenDir);
-
-      try {
-        let content = readFileSync(bufferPath, "utf-8");
-        let reminder = String(action.params.message || "Reminder from rule engine");
-        reminder = reminder
-          .replace(/\\/g, "\\\\")
-          .replace(/"/g, '\\"')
-          .replace(/\n/g, "\\n")
-          .substring(0, 200);
-        const priority = String(action.params.priority || "medium");
-        const category = String(action.params.category || "feature");
-
-        const escapedReminder = reminder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const dedupeRegex = new RegExp(`^\\s*- message: "${escapedReminder}"`, "m");
-        if (dedupeRegex.test(content)) {
-          return { success: true, message: `Reminder already exists: ${reminder} — skipped` };
-        }
-
-        const createdAt = new Date().toISOString();
-        content = content.replace(
-          /^reminders:\s*\n/,
-          `reminders:\n  - message: "${reminder}"\n    priority: "${priority}"\n    category: "${category}"\n    createdAt: "${createdAt}"\n`
-        );
-        writeFileSync(bufferPath, content, "utf-8");
-        return { success: true, message: `Created reminder: ${reminder} [${priority}/${category}]` };
-      } catch {
-        return { success: false, message: "Failed to create reminder" };
-      }
     }
 
     case "update_quick_board": {
@@ -231,82 +197,6 @@ export async function executeAction(
         return { success: true, message: `Plan archived: ${planId}` };
       } catch (error) {
         return { success: false, message: `Failed to archive plan: ${error instanceof Error ? error.message : String(error)}` };
-      }
-    }
-
-    case "run_local_script": {
-      const script = String(action.params.script || "");
-      if (!script) return { success: false, message: "No script specified" };
-
-      if (!isScriptAllowed(script)) {
-        return {
-          success: false,
-          message: `Script "${script}" not in allowlist. Allowed: ${Object.keys({ "git-status": "", "git-diff": "", "git-log": "", "list-files": "" }).join(", ")}`,
-        };
-      }
-
-      try {
-        const command = getAllowedScriptCommand(script)!;
-        execSync(command, {
-          cwd: context.projectRoot,
-          timeout: 30000,
-          encoding: "utf-8",
-          stdio: "pipe",
-        });
-        return { success: true, message: `Script executed: ${script}` };
-      } catch (error) {
-        return { success: false, message: `Script failed: ${error instanceof Error ? error.message : String(error)}` };
-      }
-    }
-
-    case "run_script": {
-      logger.warn("rule-engine", "'run_script' is deprecated, use 'run_local_script'");
-      const script = String(action.params.script || "");
-      if (!script) return { success: false, message: "No script specified" };
-
-      if (!isScriptAllowed(script)) {
-        return {
-          success: false,
-          message: `Script "${script}" not in allowlist. Allowed: ${Object.keys({ "git-status": "", "git-diff": "", "git-log": "", "list-files": "" }).join(", ")}`,
-        };
-      }
-
-      try {
-        const command = getAllowedScriptCommand(script)!;
-        execSync(command, {
-          cwd: context.projectRoot,
-          timeout: 30000,
-          encoding: "utf-8",
-          stdio: "pipe",
-        });
-        return { success: true, message: `Script executed: ${script}` };
-      } catch (error) {
-        return { success: false, message: `Script failed: ${error instanceof Error ? error.message : String(error)}` };
-      }
-    }
-
-    case "run_shiten_command": {
-      const command = String(action.params.command || "");
-      if (!command) return { success: false, message: "No shiten command specified" };
-
-      if (!isShitenCommandAllowed(command)) {
-        return {
-          success: false,
-          message: `Shiten command "${command}" not in allowlist. Allowed: ${Object.keys({ "briefing": "", "docs-audit": "", "status": "", "validate": "" }).join(", ")}`,
-        };
-      }
-
-      try {
-        const shitenCommand = getAllowedShitenCommand(command)!;
-        const result = execSync(`SHITEN_CHILD=1 node dist/shiten.js ${shitenCommand}`, {
-          cwd: context.projectRoot,
-          timeout: 30000,
-          encoding: "utf-8",
-          stdio: "pipe",
-        });
-        return { success: true, message: `Shiten command executed: ${command}\n${result.trim()}` };
-      } catch (error) {
-        return { success: false, message: `Shiten command failed: ${error instanceof Error ? error.message : String(error)}` };
       }
     }
 

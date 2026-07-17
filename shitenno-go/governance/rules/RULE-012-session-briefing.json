@@ -14,5 +14,6 @@
   "priority": 1,
   "dependencies": [],
   "enabled": true,
+  "autonomous": false,
   "tags": ["session", "briefing"]
 }

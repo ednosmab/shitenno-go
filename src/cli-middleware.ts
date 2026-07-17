@@ -54,12 +54,26 @@ export async function ensurePluginsLoaded(projectRoot: string): Promise<void> {
  * 4. Publish analysis.complete events
  */
 export function installMiddleware(program: Command, ctx: MiddlewareContext): void {
+  const resolvedSessionId = ctx.sessionId ?? `cli-${Date.now()}`;
+  let sessionStarted = false;
+  let sessionEnded = false;
+  const sessionStartTime = Date.now();
+
   program.hook("preAction", async (thisCommand) => {
     const commandName = thisCommand.name();
 
     // Track command in session
     if (ctx.sessionId) {
       trackCommand(ctx.shitenDir, ctx.sessionId, commandName);
+    }
+
+    // Publish session.start once per CLI invocation
+    if (!sessionStarted) {
+      sessionStarted = true;
+      getEventBus().publish("session.start", {
+        sessionId: resolvedSessionId,
+        projectRoot: ctx.projectRoot,
+      });
     }
 
     // Ensure plugins are loaded
@@ -119,5 +133,17 @@ export function installMiddleware(program: Command, ctx: MiddlewareContext): voi
       timestamp: new Date().toISOString(),
       duration,
     });
+
+    // Publish session.end once for the daemon to track session lifecycle
+    if (!sessionEnded) {
+      sessionEnded = true;
+      const sessionDuration = Date.now() - sessionStartTime;
+      const outcome = process.exitCode && process.exitCode !== 0 ? "failed" : "success";
+      getEventBus().publish("session.end", {
+        sessionId: resolvedSessionId,
+        duration: sessionDuration,
+        outcome,
+      });
+    }
   });
 }

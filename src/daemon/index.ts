@@ -13,6 +13,8 @@ import {
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getEventBus } from "../event-bus.js";
+import { LRUCache } from "../daemon-resources.js";
+import type { ResourceClaimedPayload, ResourceReleasedPayload } from "../event-payloads.js";
 import { startWatching } from "../infrastructure/persistence/file-watcher.js";
 import { checkAndArchiveDonePlans } from "../plan-lifecycle.js";
 import { auditHealth } from "../health-auditor.js";
@@ -205,8 +207,27 @@ export async function runDaemon(shitenDir: string, projectRoot?: string): Promis
   const bus = getEventBus();
   const stopWatcher = startWatching(shitenDir);
 
+  // ── Resource Arbitration: track resources claimed by active CLI sessions ────
+  // TTL is short (5min) so a claim self-expires if the CLI crashes without releasing.
+  const claimedResources = new LRUCache<string, { sessionId: string; claimedAt: string }>(200, 5 * 60_000);
+  const isResourceClaimed = (resourceId: string): boolean => claimedResources.has(resourceId);
+
+  bus.subscribe("resource.claimed", (payload) => {
+    const p = payload as unknown as ResourceClaimedPayload;
+    if (!p?.resourceId) return;
+    claimedResources.set(p.resourceId, { sessionId: p.sessionId, claimedAt: p.timestamp ?? new Date().toISOString() });
+    daemonLog(logPath, "INFO", `Resource claimed by session ${p.sessionId}: ${p.resourceId}`);
+  });
+
+  bus.subscribe("resource.released", (payload) => {
+    const p = payload as unknown as ResourceReleasedPayload;
+    if (!p?.resourceId) return;
+    claimedResources.delete(p.resourceId);
+    daemonLog(logPath, "INFO", `Resource released by session ${p.sessionId}: ${p.resourceId}`);
+  });
+
   // ── Rule Engine: subscribe to event bus events ──────────────────────────────
-  initializeRuleEngine(resolvedProjectRoot, shitenDir);
+  initializeRuleEngine(resolvedProjectRoot, shitenDir, isResourceClaimed);
   daemonLog(logPath, "INFO", "Rule engine initialized — subscribed to event bus");
 
   // ── Proactive Engine: subscribe to engineering state events ─────────────────

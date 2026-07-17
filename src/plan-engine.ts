@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlink
 import { join } from "node:path";
 import { ActionEngine, type ActionRequest } from "./action-engine.js";
 import { logger } from "./logger.js";
+import { claimResource, releaseResource } from "./resource-claims.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,17 @@ export class PlanEngine {
       throw new Error(`Plan cannot be executed in status: ${plan.status}`);
     }
 
+    // Claim the plan so the daemon defers conflicting autonomous actions (ADR-008).
+    const resourceId = `plan:${planId}`;
+    const sessionId = claimResource(resourceId, "plan");
+    try {
+      return await this.executeInternal(plan);
+    } finally {
+      releaseResource(resourceId, sessionId);
+    }
+  }
+
+  private async executeInternal(plan: Plan): Promise<Plan> {
     plan.status = "running";
     plan.updatedAt = new Date().toISOString();
     this.repo.save(plan);

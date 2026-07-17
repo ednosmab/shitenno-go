@@ -378,6 +378,17 @@ export class MarkdownPlanEngine {
     // Write updated content
     writeFileSync(plan.filePath, content, "utf-8");
 
+    // Publish plan.status_changed whenever status actually changes
+    if (plan.status !== newStatus) {
+      const bus = getEventBus();
+      bus.publish("plan.status_changed", {
+        planId: id,
+        oldStatus: plan.status,
+        newStatus,
+        path: plan.relativePath,
+      });
+    }
+
     // If status is done, move to done/ and publish event
     if (newStatus === "done") {
       this.moveToDone(id);

@@ -32,7 +32,7 @@ import { output, outputBlank, outputSection, outputSuccess, outputError } from "
 
 function getEngine(dir: string): ActionEngine {
   const shitenDir = join(dir, SHITEN_DIR_NAME);
-  return new ActionEngine(new FileExecutionRepository(shitenDir));
+  return new ActionEngine(new FileExecutionRepository(shitenDir), shitenDir);
 }
 
 const STATUS_COLORS: Record<ActionStatus, (s: string) => string> = {

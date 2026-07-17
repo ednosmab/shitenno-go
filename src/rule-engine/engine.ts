@@ -14,8 +14,8 @@ import type { Rule, RuleContext, RuleResult, EngineResult, TriggerType } from ".
 import { validateRule } from "./validation.js";
 import { isValidRuleId } from "./security.js";
 import { evaluateCondition } from "./conditions.js";
-import { executeAction } from "./actions.js";
 import { getDefaultRules } from "./defaults.js";
+import { invokeAction } from "../decision-core/invoke.js";
 
 // ── Rule Storage ─────────────────────────────────────────────────────────────
 
@@ -134,8 +134,13 @@ export async function executeRules(
     let allSuccess = true;
 
     for (const action of rule.actions) {
-      const result = await executeAction(action, context);
-      if (result.success) {
+      const invokeResult = await invokeAction({
+        action,
+        context,
+        mode: "autonomous",
+        ruleAutonomousFlag: true,
+      });
+      if (invokeResult.success) {
         actionsExecuted++;
       } else {
         allSuccess = false;
@@ -266,7 +271,8 @@ const EVENT_TO_TRIGGER: Partial<Record<ShitenEventType, TriggerType>> = {
 /** Subscribe to event bus events and execute matching rules. */
 export function initializeRuleEngine(
   projectRoot: string,
-  shitenDir: string
+  shitenDir: string,
+  resourceClaimChecker?: (resourceId: string) => boolean
 ): void {
   const bus = getEventBus();
 
@@ -294,6 +300,7 @@ export function initializeRuleEngine(
         shitenDir,
         timestamp: new Date().toISOString(),
         installedCapabilities: loadMaturityProfile(shitenDir)?.installedCapabilities ?? ["core"],
+        isResourceClaimed: resourceClaimChecker,
       };
 
       await executeRules(rules, context);

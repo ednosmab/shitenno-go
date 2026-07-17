@@ -14,5 +14,6 @@
   "priority": 2,
   "dependencies": [],
   "enabled": true,
+  "autonomous": false,
   "tags": ["docs", "lifecycle", "plans", "adrs"]
 }

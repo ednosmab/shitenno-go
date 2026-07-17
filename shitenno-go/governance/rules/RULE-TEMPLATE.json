@@ -9,5 +9,6 @@
   "priority": 2,
   "dependencies": [],
   "enabled": true,
+  "autonomous": false,
   "tags": ["session", "hygiene"]
 }

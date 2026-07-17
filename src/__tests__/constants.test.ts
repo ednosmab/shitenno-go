@@ -45,8 +45,8 @@ describe("Timeouts", () => {
 });
 
 describe("VALID_ACTION_TYPES", () => {
-  it("contains all 20 action types", () => {
-    expect(VALID_ACTION_TYPES).toHaveLength(20);
+  it("contains all 21 action types", () => {
+    expect(VALID_ACTION_TYPES).toHaveLength(21);
   });
 
   it("includes all required action types", () => {

@@ -61,6 +61,8 @@ export type ShitenEventType =
   | "backlog.updated"
   | "system.updated"
   | "challenge.generated"
+  | "resource.claimed"
+  | "resource.released"
   | "state.mutated"
   | "workdir.large_uncommitted_drift"
   | "context.p4_loaded"

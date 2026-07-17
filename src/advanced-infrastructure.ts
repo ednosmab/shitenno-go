@@ -124,6 +124,8 @@ const EVENT_VERSIONS: Record<ShitenEventType, EventVersion> = {
   "context.tier_mismatch": 1,
   "watcher.error": 1,
   "daemon.ready": 1,
+  "resource.claimed": 1,
+  "resource.released": 1,
 };
 
 /** Migrate a payload from one version to another. */
