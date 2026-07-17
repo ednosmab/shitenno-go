@@ -441,6 +441,8 @@ export function detectDependencyConfusion(projectRoot: string, files: SourceFile
       while ((match = importRegex.exec(file.content)) !== null) {
         const spec = match[1];
         if (!spec) continue;
+        // Skip template literal interpolations (false positive source)
+        if (spec.includes("${")) continue;
         const pkgName = spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0];
         if (pkgName && !NODE_BUILTINS.has(pkgName) && !NODE_BUILTINS.has(spec) && !declaredDeps.has(pkgName)) {
           const nmPath = join(projectRoot, "node_modules", pkgName);

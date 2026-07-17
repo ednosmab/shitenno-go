@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
+import { resolveWithinRoot } from "../../path-safety.js";
 import { SHITEN_DIR_NAME } from "../../constants.js";
 import { logger } from "../../logger.js";
 import { getEventBus } from "../../event-bus.js";
@@ -111,7 +112,7 @@ export function applyMoves(report: DocLifecycleReport, shitenDir: string, dryRun
   for (const move of report.proposedMoves) {
     const sourcePath = join(shitenDir, "..", move.source);
     const destDir = join(shitenDir, "docs", move.destination.replace("shitenno-go/docs/", ""));
-    const destPath = join(destDir, basename(move.source));
+    const destPath = resolveWithinRoot(destDir, basename(move.source));
 
     if (!existsSync(sourcePath)) {
       result.errors.push(`Source not found: ${move.source}`);

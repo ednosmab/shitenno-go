@@ -17,6 +17,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
+import { resolveWithinRoot } from "../path-safety.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { recordOutcome, createFileStorage, getFeedbackRecords, computeFeedbackSummary, type SessionOutcome } from "../session-feedback.js";
 import { printDaemonBanner } from "../daemon-context-banner.js";
@@ -103,7 +104,12 @@ export function feedbackCommand(): Command {
           mkdirSync(feedbackDir, { recursive: true });
         }
 
-        const feedbackPath = join(feedbackDir, `${feedback.date}.md`);
+        let feedbackPath: string;
+        try {
+          feedbackPath = resolveWithinRoot(feedbackDir, `${feedback.date}.md`);
+        } catch {
+          feedbackPath = join(feedbackDir, `${feedback.date}.md`);
+        }
         const { writeFileSync, appendFileSync } = await import("node:fs");
 
         if (existsSync(feedbackPath)) {

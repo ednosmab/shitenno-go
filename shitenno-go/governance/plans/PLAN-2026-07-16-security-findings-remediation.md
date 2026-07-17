@@ -1,6 +1,8 @@
 # Plano de Ação — Remediação de Achados de Segurança
 
-**Status:** In Progress
+**Status:** In-progress
+**Updated_at:** 2026-07-17T07:10:15.445Z
+**Date:** 2026-07-17
 
 **Data:** 2026-07-16
 **Origem:** AUDIT-2026-07-16-end-to-end-execution-report.md (execução real do `shiten audit --level enterprise`)
