@@ -8,6 +8,9 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
+// eslint-disable-next-line no-restricted-imports -- daemon log viewer needs direct fs access
+import { existsSync, statSync, createReadStream, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { guardNotInitialized } from "../shared.js";
 import { isDaemonRunning, startDaemon, stopDaemon, shouldSkipDaemon, getSocketPath, isDaemonApproved, queryDaemonStatus } from "../daemon-client.js";
 import { DaemonCircuitBreaker } from "../daemon-circuit-breaker.js";
@@ -227,5 +230,83 @@ O daemon é um hub de eventos que monitoriza:
       }
     });
 
+  // ── shiten daemon logs ────────────────────────────────────────────────────
+
+  cmd.command("logs")
+    .description("Attach to the running daemon and stream its log in real time")
+    .option("--lines <n>", "Number of historical lines to show before following", "50")
+    .action(async (opts: Record<string, unknown>) => {
+      const ctx = guardNotInitialized(opts, false);
+      if (!ctx) return;
+
+      if (!isDaemonRunning(ctx.shitenDir)) {
+        output(chalk.yellow("  ℹ  Daemon is not running — nothing to attach to."));
+        output(chalk.gray("     Start it with: shiten daemon start"));
+        return;
+      }
+
+      const daemonDir = join(ctx.shitenDir, "daemon");
+      const logPath = process.env["SHITEN_DAEMON_LOG"] ?? join(daemonDir, "daemon.log");
+      if (!existsSync(logPath)) {
+        output(chalk.yellow(`  ℹ  Log file not found yet at ${logPath}`));
+        return;
+      }
+
+      output(chalk.gray(`  Attached to daemon log (${logPath}) — Ctrl+C to detach (daemon keeps running)`));
+      outputBlank();
+
+      // Show the last N lines
+      const numLines = Number(opts.lines) || 50;
+      try {
+        const content = readFileSync(logPath, "utf-8");
+        const lines = content.split("\n").filter(Boolean);
+        const tail = lines.slice(-numLines);
+        for (const line of tail) {
+          output(colorizeLogLine(line));
+        }
+      } catch {
+        // File may have been rotated — continue to follow
+      }
+
+      // Follow the file in real time
+      let lastSize = statSync(logPath).size;
+      const stream = () => {
+        try {
+          const { size } = statSync(logPath);
+          if (size > lastSize) {
+            const rs = createReadStream(logPath, { start: lastSize, end: size });
+            rs.on("data", (chunk) => {
+              const text = chunk.toString();
+              for (const line of text.split("\n").filter(Boolean)) {
+                output(colorizeLogLine(line));
+              }
+            });
+            lastSize = size;
+          } else if (size < lastSize) {
+            // File was rotated — restart from beginning
+            lastSize = 0;
+          }
+        } catch {
+          // Log file may have been removed — keep polling
+        }
+      };
+
+      const { watchFile, unwatchFile } = await import("node:fs");
+      watchFile(logPath, { interval: 300 }, stream);
+
+      process.on("SIGINT", () => {
+        unwatchFile(logPath, stream);
+        output(chalk.gray("\n  Detached (daemon continues running in background)."));
+        process.exit(0);
+      });
+    });
+
   return cmd;
+}
+
+function colorizeLogLine(line: string): string {
+  if (line.includes("[ERROR]")) return chalk.red(line);
+  if (line.includes("[WARN]")) return chalk.yellow(line);
+  if (line.includes("[DEBUG]")) return chalk.gray(line);
+  return line;
 }
