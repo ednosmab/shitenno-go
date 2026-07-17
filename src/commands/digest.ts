@@ -13,6 +13,7 @@ import ora from "ora";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { outputJson } from "../formatting.js";
 import { getEventBus } from "../event-bus.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -225,6 +226,8 @@ export function digestCommand(): Command {
 
       const ctx = guardNotInitialized(options, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       if (!checkLifecycleGate("digest", ctx.projectRoot, ctx.shitenDir, isJson)) {
         return;

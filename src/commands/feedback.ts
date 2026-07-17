@@ -19,6 +19,7 @@ import chalk from "chalk";
 import { join } from "node:path";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { recordOutcome, createFileStorage, getFeedbackRecords, computeFeedbackSummary, type SessionOutcome } from "../session-feedback.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { trackFeedback } from "../session-tracker.js";
 import { getSessionId } from "../session-context.js";
 import { outputJson } from "../formatting.js";
@@ -58,6 +59,8 @@ export function feedbackCommand(): Command {
 
       const ctx = guardNotInitialized(options, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       if (!checkLifecycleGate("feedback", ctx.projectRoot, ctx.shitenDir, isJson)) {
         return;

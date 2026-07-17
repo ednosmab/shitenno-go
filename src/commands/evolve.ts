@@ -20,6 +20,7 @@ import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { formatDualPath, formatDualPathJson, formatGrowthProgress } from "../dual-path-presenter.js";
 import { recordPathChoice } from "../growth-profile.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 
 // ── Command ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,8 @@ export const evolveCommand = new Command("evolve")
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     if (!checkLifecycleGate("evolve", ctx.projectRoot, ctx.shitenDir, isJson)) return;
 

@@ -26,6 +26,7 @@ import { outputJson, healthBar } from "../formatting.js";
 import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, guardInteractive, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { recordFeedback, recordDimensionFeedback, type PerformanceMetric } from "../feedback-loops.js";
 
 function displayDimensionBar(label: string, value: number, prev?: number): void {
@@ -140,6 +141,8 @@ export const assessCommand = new Command("assess")
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     // Complexity mode: show project complexity and active rules
     if (options.complexity) {

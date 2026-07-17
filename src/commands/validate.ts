@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import { outputJson, statusIcon, banner } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { SHITEN_DIR_NAME } from "../constants.js";
 import { output, outputBlank } from "../output.js";
 import { muteLogs } from "../logger.js";
@@ -21,7 +22,7 @@ export const validateCommand = new Command("validate")
   .option("-d, --dir <path>", "Project root directory (default: current)")
   .option("--fix", "Attempt to fix issues automatically")
   .option("--json", "Output results as JSON")
-  .action((options) => {
+  .action(async (options) => {
     const isJson = options.json === true;
     if (isJson) muteLogs();
 
@@ -33,6 +34,8 @@ export const validateCommand = new Command("validate")
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     if (!checkLifecycleGate("validate", ctx.projectRoot, ctx.shitenDir, isJson)) return;
 

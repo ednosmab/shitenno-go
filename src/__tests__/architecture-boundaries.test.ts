@@ -18,6 +18,7 @@ const commandsWithFsAccess = new Set([
   "doctor.ts",
   "handbook.ts",
   "plan.ts",
+  "daemon.ts",  // daemon logs command reads log files
   "hooks.ts",  // Hooks installer legitimately needs fs for reading/writing hook files
 ]);
 

@@ -16,6 +16,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "node:path";
 import { guardNotInitialized } from "../shared.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import {
   DecisionEngine,
   FileDecisionRepository,
@@ -72,6 +73,8 @@ export function decideCommand(): Command {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
 
@@ -135,10 +138,12 @@ export function decideCommand(): Command {
     .option("--recommendation <reco>", "Filter by recommendation")
     .option("--since <date>", "Show decisions since date (ISO)")
     .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
+    .action(async (opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const decisions = engine.list({
@@ -171,10 +176,12 @@ export function decideCommand(): Command {
     .description("Show decision details")
     .argument("<id>", "Decision ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const decision = engine.get(id);
@@ -215,10 +222,12 @@ export function decideCommand(): Command {
     .command("stats")
     .description("Show decision statistics")
     .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
+    .action(async (opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const all = engine.list();

@@ -24,6 +24,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { execFileSync } from "node:child_process";
 import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { output, outputBlank } from "../output.js";
 import { SHITEN_DIR_NAME } from "../constants.js";
 import type { Reminder, ReminderPriority, ReminderCategory } from "../briefing.js";
@@ -142,10 +143,12 @@ export function remindersCommand(): Command {
     .option("--json", "Output as JSON");
 
   // ── Default action: list reminders ──────────────────────────────────────
-  cmd.action((opts: Record<string, unknown>) => {
+  cmd.action(async (opts: Record<string, unknown>) => {
     const isJson = opts.json === true;
     const ctx = guardNotInitialized(opts, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     const reminders = loadReminders(ctx.projectRoot);
 
@@ -187,10 +190,12 @@ export function remindersCommand(): Command {
     .option("--category <type>", "Category: bug, feature, debt, security, docs, infra", "feature")
     .option("--notify", "Send desktop notification")
     .option("--json", "Output as JSON")
-    .action((message: string, opts: Record<string, unknown>) => {
+    .action(async (message: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const priority = String(opts.priority) as ReminderPriority;
       const category = String(opts.category) as ReminderCategory;
@@ -259,10 +264,12 @@ export function remindersCommand(): Command {
     .argument("[index]", "Reminder index (1-based)")
     .option("--message <text>", "Remove by partial message match")
     .option("--json", "Output as JSON")
-    .action((index: string | undefined, opts: Record<string, unknown>) => {
+    .action(async (index: string | undefined, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const reminders = loadReminders(ctx.projectRoot);
 
@@ -328,10 +335,12 @@ export function remindersCommand(): Command {
     .command("clear")
     .description("Remove all reminders")
     .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
+    .action(async (opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const reminders = loadReminders(ctx.projectRoot);
       const count = reminders.length;

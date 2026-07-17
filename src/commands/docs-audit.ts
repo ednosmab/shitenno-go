@@ -15,6 +15,7 @@ import {
 import { outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 
 export const docsAuditCommand = new Command("docs-audit")
   .description("Audit documentation lifecycle (Plans + ADRs) and propose organization")
@@ -34,6 +35,8 @@ export const docsAuditCommand = new Command("docs-audit")
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     if (!checkLifecycleGate("docs-audit", ctx.projectRoot, ctx.shitenDir, isJson)) return;
 

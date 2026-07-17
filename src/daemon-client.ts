@@ -264,6 +264,27 @@ export function queryDaemon<T extends { type: string }>(
   });
 }
 
+// ── Graceful Degradation Helper ──────────────────────────────────────────────
+
+/**
+ * Query the daemon with automatic fallback to a disk-based value.
+ * Returns the daemon response if available, otherwise returns the fallback.
+ * Never throws — callers always get a valid value.
+ */
+export async function queryDaemonWithFallback<T extends { type: string }>(
+  shitenDir: string,
+  message: Record<string, unknown> & { type: string },
+  fallback: () => T | Promise<T>,
+): Promise<T> {
+  try {
+    if (!isDaemonRunning(shitenDir)) return await fallback();
+    const response = await queryDaemon<T>(shitenDir, message);
+    return (response as T) ?? await fallback();
+  } catch {
+    return await fallback();
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

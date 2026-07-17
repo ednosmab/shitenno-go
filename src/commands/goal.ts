@@ -20,6 +20,7 @@ import chalk from "chalk";
 
 import { guardNotInitialized } from "../shared.js";
 import { GoalEngine, type GoalStatus, type GoalPriority, FileGoalRepository } from "../goal-engine.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { outputJson } from "../formatting.js";
 import { SHITEN_DIR_NAME } from "../constants.js";
 import { output, outputBlank, outputSection, outputSuccess, outputError, outputWarning } from "../output.js";
@@ -85,10 +86,12 @@ export function goalCommand(): Command {
     .option("--tag <tags>", "Comma-separated tags")
     .option("--parent <id>", "Parent goal ID")
     .option("--json", "Output as JSON")
-    .action((title: string, opts: Record<string, unknown>) => {
+    .action(async (title: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goal = engine.create({
@@ -120,10 +123,12 @@ export function goalCommand(): Command {
     .option("--target <target>", "Filter by target capability")
     .option("--tag <tag>", "Filter by tag")
     .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
+    .action(async (opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goals = engine.list({
@@ -157,10 +162,12 @@ export function goalCommand(): Command {
     .description("Show goal details")
     .argument("<id>", "Goal ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goal = engine.get(id);
@@ -207,10 +214,12 @@ export function goalCommand(): Command {
     .option("--description <text>", "Update description")
     .option("--priority <level>", "Update priority")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       let goal = engine.get(id);
@@ -255,10 +264,12 @@ export function goalCommand(): Command {
     .description("Activate a goal (draft → active)")
     .argument("<id>", "Goal ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goal = engine.activate(id);
@@ -285,10 +296,12 @@ export function goalCommand(): Command {
     .description("Complete a goal (active → completed)")
     .argument("<id>", "Goal ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goal = engine.complete(id);
@@ -315,10 +328,12 @@ export function goalCommand(): Command {
     .description("Abandon a goal")
     .argument("<id>", "Goal ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const goal = engine.abandon(id);
@@ -344,10 +359,12 @@ export function goalCommand(): Command {
     .command("stats")
     .description("Show goal statistics")
     .option("--json", "Output as JSON")
-    .action((opts: Record<string, unknown>) => {
+    .action(async (opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const stats = engine.stats();
@@ -381,10 +398,12 @@ export function goalCommand(): Command {
     .description("Delete a goal")
     .argument("<id>", "Goal ID")
     .option("--json", "Output as JSON")
-    .action((id: string, opts: Record<string, unknown>) => {
+    .action(async (id: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       const engine = getEngine(ctx.projectRoot);
       const deleted = engine.delete(id);

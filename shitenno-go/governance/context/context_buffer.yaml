@@ -17,10 +17,11 @@ session:
   status: active
 
 current_task:
-  id: audit-tool-hardening
-  description: "Execute audit tool hardening plan — Phases 1-4"
+  id: governance-plans-execution
+  description: "Execute 3 governance plans: Resilience, Log Rotation, Full Integration"
   status: "completed"
   started_at: "2026-07-17T00:00:00.000Z"
+  completed_at: "2026-07-17T05:55:00.000Z"
 
 next_p0: "Dogfooding real (item 1 do handoff) — rodar shiten init no próprio repo"
 
@@ -50,3 +51,6 @@ completed_tasks:
   - AUDIT-IMPROVEMENT-PLAN (Phases 1-4: security, empty_catch, broken_refs, context_buffer)
   - PLAN-AUDIT-EDGE (Sub-planos A, B, C completados: autofix, incremental scan, health card)
   - PLAN-AUDIT-TOOL-HARDENING (Phases 1-4: detector isolation, complexity AST, health-check plugin, confidence population)
+  - PLAN-SYSTEM-RESILIENCE (Fases 0-4: event publishers, daemon module split, status daemon-aware, async startup)
+  - PLAN-LOG-ROTATION (byte counter, rotation config, rotateLogIfNeeded)
+  - PLAN-DAEMON-FULL-INTEGRATION (Fases 6-9: watch removal, daemon logs, command.completed loop, daemon-aware banner)

@@ -211,6 +211,46 @@ export const statusCommand = new Command("status")
       logger.debug("status", "Suppressed error", { error });
     }
 
+    // Display daemon health + challenges (if daemon is running)
+    if (isDaemonRunning(ctx.shitenDir)) {
+      try {
+        const health = await queryDaemon<{
+          type: string;
+          score: number | null;
+          trend: string;
+          uptimeSeconds: number;
+          pid: number;
+          activeSessions: number;
+          lastCommand: string | null;
+        }>(ctx.shitenDir, { type: "query_health" });
+        if (health) {
+          const icon = health.trend === "degrading" ? "🟡" : "🟢";
+          output(chalk.bold("  🔍 Daemon Health:"));
+          output(`    ${icon} Score: ${health.score ?? "N/A"}/100  Trend: ${health.trend}`);
+          output(chalk.gray(`    Uptime: ${Math.round((health.uptimeSeconds ?? 0) / 60)}min | PID: ${health.pid} | Sessions: ${health.activeSessions}`));
+          if (health.lastCommand) {
+            output(chalk.gray(`    Last command: ${health.lastCommand}`));
+          }
+          outputBlank();
+        }
+
+        const challenges = await queryDaemon<{
+          type: string;
+          challenges: Array<{ type: string; severity: string; message: string }>;
+        }>(ctx.shitenDir, { type: "query_challenges" });
+        if (challenges?.challenges?.length) {
+          output(chalk.bold("  🎯 Pending Challenges:"));
+          for (const c of challenges.challenges.slice(0, 5)) {
+            const sev = c.severity === "high" ? "🔴" : c.severity === "medium" ? "🟡" : "🔵";
+            output(`    ${sev} ${c.message}`);
+          }
+          outputBlank();
+        }
+      } catch {
+        // Daemon query failed — skip silently
+      }
+    }
+
     // Display capability engine summary
     try {
       const { evaluateCapabilities } = await import("../capability-engine.js");

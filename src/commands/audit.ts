@@ -9,6 +9,7 @@ import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { getHookBus } from "../plugin-system.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { discoverArtifacts, discoverRelations, analyzeGraph } from "../knowledge-graph.js";
 import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../backlog-writer.js";
 import { loadGrowthProfile } from "../growth-profile.js";
@@ -18,134 +19,10 @@ import { muteLogs } from "../logger.js";
 import { loadSuppressions, addSuppression } from "../audit/suppression.js";
 import { applyAllFixes, type AutofixReport } from "../audit/autofix-engine.js";
 import { getChangedFiles } from "../audit/changed-files.js";
+import { checkPolicyGate } from "../decision-core/policy-gate.js";
+import { PolicyEngine, FilePolicyRepository } from "../policy-engine.js";
 import { dimensionIcon, dimensionLabel, type AuditDimension } from "../audit/dimensions.js";
-
-// ── Helper Functions for Issue Categorization ──────────────────────────────
-
-function categorizeIssues(issues: Array<{ severity: number; type: string; description: string; location: string; recommendation: string }>): {
-  critical: typeof issues;
-  warnings: typeof issues;
-  info: typeof issues;
-} {
-  return {
-    critical: issues.filter((i) => i.severity === 3),
-    warnings: issues.filter((i) => i.severity === 2),
-    info: issues.filter((i) => i.severity === 1),
-  };
-}
-
-function groupByType(issues: Array<{ type: string; description: string }>): Record<string, typeof issues> {
-  const groups: Record<string, typeof issues> = {};
-  for (const issue of issues) {
-    const key = issue.type;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(issue);
-  }
-  return groups;
-}
-
-function formatTypeGroup(type: string, issues: Array<{ description: string; location?: string }>): string {
-  const typeLabels: Record<string, string> = {
-    unused_export: "Unused exports",
-    empty_catch: "Empty catch blocks",
-    orphan_module: "Orphan modules",
-    console_log_outside_cmd: "Console.log usage",
-    high_complexity: "High complexity",
-    dead_code: "Dead code",
-    oversized_file: "Oversized files",
-  };
-  const label = typeLabels[type] || type;
-
-  // For unused exports, group by file
-  if (type === "unused_export" && issues.length > 3) {
-    const byFile: Record<string, number> = {};
-    for (const issue of issues) {
-      const fileMatch = issue.location?.match(/src\/([^:]+)/);
-      const file = fileMatch?.[1] ?? "unknown";
-      byFile[file] = (byFile[file] || 0) + 1;
-    }
-    const fileList = Object.entries(byFile)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([file, count]) => `${file}(${count})`)
-      .join(", ");
-    return `${label}: ${issues.length} total — top files: ${fileList}`;
-  }
-
-  return `${label}: ${issues.length} issue(s)`;
-}
-
-function groupOptimizationsByAction(opts: Array<{ action: string }>): Record<string, typeof opts> {
-  const groups: Record<string, typeof opts> = {};
-  for (const opt of opts) {
-    const key = opt.action;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(opt);
-  }
-  return groups;
-}
-
-interface QuickWin {
-  description: string;
-  effort: string;
-  impact: string;
-}
-
-function identifyQuickWins(issues: Array<{ type: string; severity: number; description: string; location: string }>): QuickWin[] {
-  const quickWins: QuickWin[] = [];
-
-  // Date placeholders - easy to fix
-  const datePlaceholders = issues.filter((i) => i.type === "date_placeholder");
-  if (datePlaceholders.length > 0) {
-    quickWins.push({
-      description: `Update ${datePlaceholders.length} date placeholder(s) to real dates`,
-      effort: "5 min",
-      impact: "Medium",
-    });
-  }
-
-  // Missing .gitignore
-  const missingGitignore = issues.filter((i) => i.type === "missing_gitignore");
-  if (missingGitignore.length > 0) {
-    quickWins.push({
-      description: "Add .gitignore file",
-      effort: "2 min",
-      impact: "High",
-    });
-  }
-
-  // Empty directories
-  const emptyDirs = issues.filter((i) => i.type === "empty_dir");
-  if (emptyDirs.length > 3) {
-    quickWins.push({
-      description: `Remove ${emptyDirs.length} empty directories`,
-      effort: "5 min",
-      impact: "Low",
-    });
-  }
-
-  // Broken references
-  const brokenRefs = issues.filter((i) => i.type === "broken_ref");
-  if (brokenRefs.length > 0) {
-    quickWins.push({
-      description: `Fix ${brokenRefs.length} broken file reference(s)`,
-      effort: "10 min",
-      impact: "Medium",
-    });
-  }
-
-  // Missing package.json
-  const missingPackageJson = issues.filter((i) => i.type === "missing_package_json");
-  if (missingPackageJson.length > 0) {
-    quickWins.push({
-      description: "Add missing package.json",
-      effort: "2 min",
-      impact: "High",
-    });
-  }
-
-  return quickWins;
-}
+import { categorizeIssues, groupByType, formatTypeGroup, groupOptimizationsByAction, identifyQuickWins } from "./audit/reporter.js";
 
 // ── Subcommand: audit suppress ───────────────────────────────────────────────
 
@@ -157,6 +34,8 @@ export const auditSuppressCommand = new Command("suppress")
   .action(async (fingerprint: string, options) => {
     const ctx = guardNotInitialized(options, false);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, false);
 
     const suppressions = loadSuppressions(ctx.shitenDir);
     const existing = suppressions.find((s) => s.fingerprint === fingerprint);
@@ -247,6 +126,8 @@ export const auditCommand = new Command("audit")
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
+
+    void printDaemonBanner(ctx.shitenDir, isJson);
 
     if (!checkLifecycleGate("audit", ctx.projectRoot, ctx.shitenDir, isJson)) return;
 
@@ -355,9 +236,17 @@ export const auditCommand = new Command("audit")
           const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
           const prioritized = prioritizeSuggestions(suggestions);
           if (prioritized.length > 0) {
-            autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, {
-              dryRun: options.dryRun === true,
-            });
+            const policyEngineJson = new PolicyEngine(new FilePolicyRepository(ctx.shitenDir));
+            const policyCheckJson = checkPolicyGate(
+              { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+              { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitenDir: ctx.shitenDir, timestamp: new Date().toISOString() },
+              policyEngineJson
+            );
+            if (policyCheckJson.allowed) {
+              autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, {
+                dryRun: options.dryRun === true,
+              });
+            }
           }
         }
         outputJson({
@@ -601,24 +490,36 @@ export const auditCommand = new Command("audit")
           if (options.apply && prioritized.length > 0) {
             output(chalk.bold("  🔧 Applying high-confidence fixes..."));
             outputBlank();
-            const autofixReport: AutofixReport = applyAllFixes(prioritized, ctx.projectRoot, {
-              dryRun: options.dryRun === true,
-            });
-            output(chalk.gray(`    Total: ${autofixReport.total} | Applied: ${autofixReport.applied} | Reverted: ${autofixReport.reverted} | Skipped: ${autofixReport.skipped}`));
-            outputBlank();
-            for (const result of autofixReport.results) {
-              const icon = result.status === "applied" ? "✔" : result.status === "reverted" ? "✘" : "⊘";
-              const color = result.status === "applied" ? chalk.green : result.status === "reverted" ? chalk.red : chalk.gray;
-              output(color(`    ${icon} ${result.suggestion.description} (${result.status})`));
-              if (result.reason) {
-                output(chalk.gray(`       Reason: ${result.reason}`));
-              }
-            }
-            outputBlank();
-            if (autofixReport.reverted > 0) {
-              output(chalk.yellow("  ⚠ Some fixes were reverted due to verification failure."));
-              output(chalk.gray("    Files were restored to their original state."));
+
+            const policyEngine = new PolicyEngine(new FilePolicyRepository(ctx.shitenDir));
+            const policyCheck = checkPolicyGate(
+              { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+              { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitenDir: ctx.shitenDir, timestamp: new Date().toISOString() },
+              policyEngine
+            );
+            if (!policyCheck.allowed) {
+              output(chalk.red(`  ✘ Blocked by policy: ${policyCheck.reason}`));
               outputBlank();
+            } else {
+              const autofixReport: AutofixReport = applyAllFixes(prioritized, ctx.projectRoot, {
+                dryRun: options.dryRun === true,
+              });
+              output(chalk.gray(`    Total: ${autofixReport.total} | Applied: ${autofixReport.applied} | Reverted: ${autofixReport.reverted} | Skipped: ${autofixReport.skipped}`));
+              outputBlank();
+              for (const result of autofixReport.results) {
+                const icon = result.status === "applied" ? "✔" : result.status === "reverted" ? "✘" : "⊘";
+                const color = result.status === "applied" ? chalk.green : result.status === "reverted" ? chalk.red : chalk.gray;
+                output(color(`    ${icon} ${result.suggestion.description} (${result.status})`));
+                if (result.reason) {
+                  output(chalk.gray(`       Reason: ${result.reason}`));
+                }
+              }
+              outputBlank();
+              if (autofixReport.reverted > 0) {
+                output(chalk.yellow("  ⚠ Some fixes were reverted due to verification failure."));
+                output(chalk.gray("    Files were restored to their original state."));
+                outputBlank();
+              }
             }
           }
         }

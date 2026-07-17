@@ -21,6 +21,7 @@ import {
 import { healthBar, outputJson } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
+import { printDaemonBanner } from "../daemon-context-banner.js";
 import { METRIC_LABELS, type PerformanceMetric } from "../feedback-loops.js";
 import { output, outputBlank, outputSection } from "../output.js";
 import { logger } from "../logger.js";
@@ -141,6 +142,8 @@ export function reportCommand(): Command {
 
       const ctx = guardNotInitialized(options, isJson);
       if (!ctx) return;
+
+      void printDaemonBanner(ctx.shitenDir, isJson);
 
       if (!checkLifecycleGate("report", ctx.projectRoot, ctx.shitenDir, isJson)) {
         return;
