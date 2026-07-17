@@ -11,7 +11,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "./logger.js";
-import { safeJsonParse } from "./safe-json.js";
+import { safeJsonParseValidated } from "./validation.js";
 import { checkPolicyGate } from "./decision-core/policy-gate.js";
 import { getResourceId } from "./decision-core/precedence.js";
 import { claimResource, releaseResource } from "./resource-claims.js";
@@ -171,7 +171,7 @@ export class FileExecutionRepository implements ExecutionRepository {
     if (!existsSync(filepath)) return undefined;
     try {
       const raw = readFileSync(filepath, "utf-8");
-      return safeJsonParse(
+      return safeJsonParseValidated(
         raw,
         (v: unknown): v is ExecutionRecord => typeof v === "object" && v !== null && "executionId" in v && "request" in v && "status" in v,
         "action-engine:findById"
@@ -200,7 +200,7 @@ export class FileExecutionRepository implements ExecutionRepository {
     for (const file of files) {
       try {
         const raw = readFileSync(join(this.dir, file), "utf-8");
-        const record = safeJsonParse(
+        const record = safeJsonParseValidated(
           raw,
           (v: unknown): v is ExecutionRecord => typeof v === "object" && v !== null && "executionId" in v && "request" in v && "status" in v,
           `action-engine:findAll:${file}`

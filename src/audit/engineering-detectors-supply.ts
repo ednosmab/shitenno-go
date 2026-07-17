@@ -8,7 +8,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { logger } from "../logger.js";
-import { safeJsonParse, isRecord } from "../safe-json.js";
+import { safeJsonParseValidated, isRecord } from "../validation.js";
 import { BLOCKED_LICENSES } from "./constants.js";
 import type { HealthIssue, SourceFileInfo } from "./types.js";
 
@@ -20,7 +20,7 @@ export function detectUnpinnedVersions(projectRoot: string): HealthIssue[] {
   if (!existsSync(pkgPath)) return issues;
 
   try {
-    const pkg = safeJsonParse(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectUnpinnedVersions");
+    const pkg = safeJsonParseValidated(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectUnpinnedVersions");
     if (!pkg) return issues;
     const allDeps: Record<string, string> = {
       ...((pkg as Record<string, unknown>).dependencies as Record<string, string> ?? {}),
@@ -113,7 +113,7 @@ export function detectPhantomDependencies(projectRoot: string, files: SourceFile
   if (!existsSync(pkgPath)) return issues;
 
   try {
-    const pkg = safeJsonParse(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectPhantomDependencies");
+    const pkg = safeJsonParseValidated(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectPhantomDependencies");
     if (!pkg) return issues;
     const declaredDeps = new Set([
       ...Object.keys((pkg as Record<string, unknown>).dependencies ?? {}),
@@ -179,7 +179,7 @@ export function detectDeprecatedPackages(projectRoot: string): HealthIssue[] {
   if (!existsSync(pkgPath)) return issues;
 
   try {
-    const pkg = safeJsonParse(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectDeprecatedPackages");
+    const pkg = safeJsonParseValidated(readFileSync(pkgPath, "utf-8"), isRecord, "supply:detectDeprecatedPackages");
     if (!pkg) return issues;
     const allDeps = {
       ...((pkg as Record<string, unknown>).dependencies as Record<string, unknown> ?? {}),
@@ -313,7 +313,7 @@ export function detectIncompatibleLicenses(projectRoot: string): HealthIssue[] {
       const pkgJsonPath = join(nodeModules, entry.name, "package.json");
       if (!existsSync(pkgJsonPath)) continue;
       try {
-        const pkgRaw = safeJsonParse(readFileSync(pkgJsonPath, "utf-8"), isRecord, `supply:license:${entry.name}`);
+        const pkgRaw = safeJsonParseValidated(readFileSync(pkgJsonPath, "utf-8"), isRecord, `supply:license:${entry.name}`);
         if (!pkgRaw) continue;
         const pkg = pkgRaw as Record<string, unknown>;
         const licenseField = pkg.license;
