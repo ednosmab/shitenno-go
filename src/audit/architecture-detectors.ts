@@ -29,6 +29,7 @@ export function detectCleanArchitectureLayers(_projectRoot: string, files: Sourc
           description: `Lógica de domínio "${file.basename}" em commands/ — deve ficar em domain/ ou infrastructure/`,
           location: file.relPath,
           recommendation: "Mover lógica de domínio para camada separada (Clean Architecture).",
+          confidence: 0.65,
         });
         break;
       }
@@ -94,6 +95,8 @@ export function detectSRPViolations(_projectRoot: string, files: SourceFileInfo[
         description: `"${file.basename}" — ${parts.join(", ")} — módulo multifuncional`,
         location: file.relPath,
         recommendation: "Dividir módulo em módulos menores com responsabilidade única.",
+        confidence: 0.65,
+        skillRef: "solid-principles",
       });
     }
   }
@@ -134,6 +137,7 @@ export function detectDependencyInversion(_projectRoot: string, files: SourceFil
         description: `"${file.basename}" tem ${violations} imports de implementações concretas — DIP violado`,
         location: file.relPath,
         recommendation: "Depender de abstrações (interfaces/types) em vez de implementações concretas.",
+        confidence: 0.65,
       });
     }
   }
@@ -165,6 +169,7 @@ export function detectBarrelFileCycles(_projectRoot: string, files: SourceFileIn
           description: `Barrel file "${indexFile.relPath}" re-exporta ${reExportsFromSameDir.length} módulos — potencial cycle risk`,
           location: indexFile.relPath,
           recommendation: "Limitar barrel files a <5 exports. Usar imports directos quando possível.",
+          confidence: 0.65,
         });
       }
     }
@@ -225,6 +230,7 @@ export function detectModuleCoupling(_projectRoot: string, files: SourceFileInfo
       description: `${hubs.length} módulo(s) com acoplamento elevado: ${hubList}`,
       location: "src/",
       recommendation: "Reduzir acoplamento: extrair interfaces, usar DI, limitar imports a ≤5 por módulo.",
+      confidence: 0.65,
     });
   }
 
@@ -273,6 +279,7 @@ export function detectImportConsistency(_projectRoot: string, files: SourceFileI
         description: `"${file.basename}" tem ${violations} imports fora da ordem conveniente (builtins → external → internal)`,
         location: file.relPath,
         recommendation: "Ordem: 1) node:* 2) packages externos 3) módulos internos (./).",
+        confidence: 0.65,
       });
     }
   }
@@ -307,6 +314,7 @@ export function detectTestStructure(projectRoot: string): HealthIssue[] {
         description: `${flatTestCount} test(es) em __tests__/ flat que testam módulos em subdirectorios — considerar espelhar estrutura`,
         location: "src/__tests__/",
         recommendation: "Reorganizar: src/__tests__/commands/, src/__tests__/audit/, etc.",
+        confidence: 0.95,
       });
     }
   } catch {

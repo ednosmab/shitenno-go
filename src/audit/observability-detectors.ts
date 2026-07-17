@@ -33,6 +33,7 @@ export function detectMissingTracing(_projectRoot: string, files: SourceFileInfo
       description: "Nenhum padrão de distributed tracing detectado no código",
       location: "project root",
       recommendation: "Implementar OpenTelemetry ou sistema de tracing equivalente para observabilidade em produção.",
+      confidence: 0.65,
     });
   }
 
@@ -69,6 +70,7 @@ export function detectLogStructure(_projectRoot: string, files: SourceFileInfo[]
       description: `${consoleLogCount} chamadas a console.log detectadas sem logger estruturado`,
       location: "source files",
       recommendation: "Substituir console.log por logger estruturado (winston, pino, bunyan) com levels, timestamps e contexto.",
+      confidence: 0.65,
     });
   }
 
@@ -97,6 +99,7 @@ export function detectAlertCoverage(projectRoot: string, _files: SourceFileInfo[
       description: "Nenhuma configuração de alertas encontrada",
       location: "project root",
       recommendation: "Configurar alertas para métricas críticas (CPU, memória, latência, erro rate).",
+      confidence: 0.95,
     });
   }
 
@@ -124,6 +127,7 @@ export function detectMetricEndpoints(_projectRoot: string, files: SourceFileInf
       description: "Nenhum endpoint de métricas detectado",
       location: "project root",
       recommendation: "Expor métricas via /metrics endpoint usando prom-client ou biblioteca equivalente.",
+      confidence: 0.65,
     });
   }
 
@@ -150,6 +154,7 @@ export function detectMissingDashboard(projectRoot: string, _files: SourceFileIn
       description: "Nenhum dashboard de monitoramento encontrado",
       location: "project root",
       recommendation: "Criar dashboards para visualização de métricas de negócio e operacionais.",
+      confidence: 0.95,
     });
   }
 
@@ -181,6 +186,7 @@ export function detectLogRetention(_projectRoot: string, files: SourceFileInfo[]
       description: "Nenhuma política de retenção de logs configurada",
       location: "config files",
       recommendation: "Definir política de retenção de logs para compliance e gestão de espaço.",
+      confidence: 0.65,
     });
   }
 
@@ -209,6 +215,7 @@ export function detectDistributedLogging(_projectRoot: string, files: SourceFile
       description: "Nenhum padrão de correlation ID detectado nos logs",
       location: "source files",
       recommendation: "Implementar correlation IDs para rastreamento de requisições entre serviços.",
+      confidence: 0.65,
     });
   }
 
@@ -237,6 +244,7 @@ export function detectSLODefinitions(projectRoot: string, _files: SourceFileInfo
       description: "Nenhum SLO/SLI documentado encontrado",
       location: "project root",
       recommendation: "Definir Service Level Objectives e Indicadores para serviços críticos.",
+      confidence: 0.95,
     });
   }
 

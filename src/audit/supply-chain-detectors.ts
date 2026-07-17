@@ -31,6 +31,7 @@ export function detectSBOMExists(projectRoot: string, _files: SourceFileInfo[]):
       description: "Nenhum SBOM (Software Bill of Materials) encontrado",
       location: "project root",
       recommendation: "Gerar SBOM usando CycloneDX ou SPDX para compliance e segurança.",
+      confidence: 0.95,
     });
   }
 
@@ -61,6 +62,7 @@ export function detectSBOMCompleteness(projectRoot: string, _files: SourceFileIn
       description: `SBOM incompleto: ${missingInSBOM.length} dependências não listadas`,
       location: "sbom.json",
       recommendation: `Adicionar ao SBOM: ${missingInSBOM.slice(0, 5).join(", ")}`,
+      confidence: 0.9,
     });
   }
 
@@ -92,6 +94,7 @@ export function detectOutdatedDeps(projectRoot: string, _files: SourceFileInfo[]
       description: `${depsWithRanges.length} dependências com versões range (não fixas)`,
       location: "package.json",
       recommendation: "Considerar fixar versões para reprodutibilidade, ou usar lock file confiável.",
+      confidence: 0.9,
     });
   }
 
@@ -134,6 +137,7 @@ export function detectUnusedDeps(projectRoot: string, files: SourceFileInfo[]): 
       description: `${unusedDeps.length} dependências não utilizadas detectadas`,
       location: "package.json",
       recommendation: `Remover dependências não usadas: ${unusedDeps.slice(0, 5).join(", ")}`,
+      confidence: 0.75,
     });
   }
 
@@ -159,6 +163,7 @@ export function detectLockFileSync(projectRoot: string, _files: SourceFileInfo[]
       description: "pnpm-lock.yaml está desatualizado em relação ao package.json",
       location: "pnpm-lock.yaml",
       recommendation: "Executar pnpm install para sincronizar lock file.",
+      confidence: 0.95,
     });
   }
 
@@ -186,6 +191,7 @@ export function detectDuplicateDeps(projectRoot: string, _files: SourceFileInfo[
       description: `${duplicates.length} dependências duplicadas em dependencies e devDependencies`,
       location: "package.json",
       recommendation: `Remover de devDependencies: ${duplicates.join(", ")}`,
+      confidence: 0.9,
     });
   }
 
@@ -211,6 +217,7 @@ export function detectDepAuditStatus(projectRoot: string, _files: SourceFileInfo
       description: "Nenhum relatório de auditoria de dependências encontrado",
       location: "project root",
       recommendation: "Executar pnpm audit e salvar resultado para rastreabilidade.",
+      confidence: 0.95,
     });
   }
 

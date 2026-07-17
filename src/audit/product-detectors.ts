@@ -30,6 +30,7 @@ export function detectVisionAlignment(projectRoot: string): HealthIssue[] {
       description: "Nenhum BRIEFING.md nem README.md encontrado — visão do produto não documentada",
       location: "project root",
       recommendation: "Criar BRIEFING.md com visão, objectivos e proposta de valor do produto.",
+      confidence: 0.95,
     });
     return issues;
   }
@@ -45,6 +46,7 @@ export function detectVisionAlignment(projectRoot: string): HealthIssue[] {
       description: `Documentação de visão fraca — apenas ${found.length} keyword(s) de visão encontrada(s)`,
       location: "BRIEFING.md / README.md",
       recommendation: "Documentar visão, objectivos e proposta de valor de forma explícita.",
+      confidence: 0.7,
     });
   }
 
@@ -57,6 +59,7 @@ export function detectVisionAlignment(projectRoot: string): HealthIssue[] {
         description: "BACKLOG.md não tem itens P0/P1 — roadmap pode estar desalinhado com visão",
         location: "shitenno-go/docs/BACKLOG.md",
         recommendation: "Adicionar itens P0/P1 ao BACKLOG alinhados com a visão do produto.",
+        confidence: 0.7,
       });
     }
   }
@@ -83,6 +86,7 @@ export function detectRoadmapConsistency(projectRoot: string): HealthIssue[] {
       description: "Nenhum roadmap.md encontrado — planeamento de produto não documentado",
       location: "docs/ ou shitenno-go/docs/",
       recommendation: "Criar roadmap.md com milestones e timeline.",
+      confidence: 0.95,
     });
     return issues;
   }
@@ -98,6 +102,7 @@ export function detectRoadmapConsistency(projectRoot: string): HealthIssue[] {
       description: "Roadmap não contém datas — impossível verificar consistência temporal",
       location: roadmapPath.replace(projectRoot + "/", ""),
       recommendation: "Adicionar datas/milestones ao roadmap.",
+      confidence: 0.75,
     });
   }
 
@@ -108,6 +113,7 @@ export function detectRoadmapConsistency(projectRoot: string): HealthIssue[] {
       description: "Roadmap não contém campos de status — progresso não rastreável",
       location: roadmapPath.replace(projectRoot + "/", ""),
       recommendation: "Adicionar status (concluído/em progresso/pendente) a cada item do roadmap.",
+      confidence: 0.75,
     });
   }
 
@@ -143,6 +149,7 @@ export function detectKPICoverage(projectRoot: string): HealthIssue[] {
       description: "Nenhuma referência a KPIs ou métricas encontrada na documentação",
       location: "BRIEFING.md, README.md, BACKLOG.md",
       recommendation: "Definir KPIs mensuráveis para o produto (ex: test coverage, health score, velocity).",
+      confidence: 0.75,
     });
   }
 
@@ -205,6 +212,7 @@ export function detectOrphanRequirements(projectRoot: string, files: SourceFileI
       description: `${orphanCount} feature(s) documentada(s) sem correspondência óbvia no código exportado`,
       location: "docs/BACKLOG.md, docs/BRIEFING.md",
       recommendation: "Verificar se requisitos documentados foram implementados ou estão pendentes.",
+      confidence: 0.8,
     });
   }
 
@@ -229,6 +237,7 @@ export function detectRequirementTraceability(projectRoot: string, _files: Sourc
       description: "BACKLOG.md não contém links de rastreabilidade para código ou tickets",
       location: "shitenno-go/docs/BACKLOG.md",
       recommendation: "Adicionar links para commits, PRs ou tickets em cada item do backlog.",
+      confidence: 0.75,
     });
   }
 
@@ -273,6 +282,7 @@ export function detectAmbiguityPatterns(projectRoot: string): HealthIssue[] {
       description: `${ambiguityCount} expressão(ões) ambígua(s) encontrada(s) na documentação`,
       location: "docs/BACKLOG.md, BRIEFING.md, README.md",
       recommendation: "Substituir linguagem ambígua por especificações concretas e mensuráveis.",
+      confidence: 0.75,
     });
   }
 

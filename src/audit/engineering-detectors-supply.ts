@@ -39,6 +39,7 @@ export function detectUnpinnedVersions(projectRoot: string): HealthIssue[] {
         description: `${unpinned.length} dependência(s) com versão não fixada: ${unpinned.slice(0, 5).join(", ")}${unpinned.length > 5 ? ` (+${unpinned.length - 5})` : ""}`,
         location: "package.json",
         recommendation: "Fixar versões em package.json para evitar actualizações inesperadas",
+        confidence: 0.9,
       });
     }
   } catch (err) { logger.debug("engineering-detectors", "Error in detectUnpinnedVersions:", err); }
@@ -65,6 +66,7 @@ export function detectMissingLockFile(projectRoot: string): HealthIssue[] {
       description: "Nenhum lock file encontrado (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lockb)",
       location: "package.json",
       recommendation: "Executar 'npm install' ou 'pnpm install' para gerar o lock file — garante builds reproduzíveis",
+      confidence: 0.95,
     });
   }
   return issues;
@@ -94,6 +96,7 @@ export function detectLockFileDrift(projectRoot: string): HealthIssue[] {
             description: `${lock} está desactualizado — package.json foi modificado depois do último 'install'`,
             location: lock,
             recommendation: `Executar 'npm install' ou 'pnpm install' para actualizar o lock file`,
+            confidence: 0.95,
           });
         }
       }
@@ -160,6 +163,7 @@ export function detectPhantomDependencies(projectRoot: string, files: SourceFile
         description: `${usedPackages.size} dependência(s) usada(s) mas não declarada(s): ${phantomList.slice(0, 5).join(", ")}${phantomList.length > 5 ? ` (+${phantomList.length - 5})` : ""}`,
         location: "package.json",
         recommendation: `Adicionar ao package.json: ${Array.from(usedPackages.keys()).slice(0, 3).join(", ")}`,
+        confidence: 0.75,
       });
     }
   } catch (err) { logger.debug("engineering-detectors", "Error in detectPhantomDependencies:", err); }
@@ -203,6 +207,7 @@ export function detectDeprecatedPackages(projectRoot: string): HealthIssue[] {
         description: `${deprecated.length} dependência(s) deprecated: ${deprecated.slice(0, 3).join(", ")}${deprecated.length > 3 ? ` (+${deprecated.length - 3})` : ""}`,
         location: "package.json",
         recommendation: `Substituir dependências deprecated: ${deprecated.slice(0, 2).join("; ")}`,
+        confidence: 0.9,
       });
     }
   } catch (err) { logger.debug("engineering-detectors", "Error in detectDeprecatedPackages:", err); }
@@ -230,6 +235,7 @@ function parseNpmAuditOutput(output: string): HealthIssue[] {
         description: `Dependência "${name}" possui vulnerabilidade (${v.severity}): ${via}`,
         location: "package-lock.json",
         recommendation: `Rodar "npm audit fix" ou atualizar ${name} para versão segura`,
+        confidence: 0.9,
       });
     }
   } catch {
@@ -252,6 +258,7 @@ function parseNpmAuditOutput(output: string): HealthIssue[] {
             description: `Dependência "${name}" possui vulnerabilidade (${adv.severity}): ${adv.title ?? ""}`,
             location: "yarn.lock",
             recommendation: `Rodar "yarn audit fix" ou atualizar ${name} para versão segura`,
+            confidence: 0.9,
           });
         }
       } catch { /* skip malformed lines */ }
@@ -312,6 +319,7 @@ export function detectIncompatibleLicenses(projectRoot: string): HealthIssue[] {
             description: `Dependência "${entry.name}" usa licença ${license} — potencialmente incompatível com uso comercial`,
             location: `node_modules/${entry.name}/package.json`,
             recommendation: `Verificar compatibilidade da licença ${license} ou buscar alternativa`,
+            confidence: 0.9,
           });
         }
       } catch (parseErr) { logger.debug("engineering-detectors", "Error reading package.json for license:", parseErr); }
@@ -354,6 +362,7 @@ export function detectConfigSecrets(projectRoot: string): HealthIssue[] {
               description: `Possível ${name} em "${fileName}:${i + 1}" — arquivo de config versionado contém segredo`,
               location: `${fileName}:${i + 1}`,
               recommendation: `Mover segredo para variável de ambiente ou .env gitignored; adicionar ${fileName} ao .gitignore`,
+              confidence: 0.75,
             });
             break;
           }

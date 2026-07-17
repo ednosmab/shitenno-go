@@ -56,6 +56,7 @@ export function detectJSDocCoverage(_projectRoot: string, files: SourceFileInfo[
       description: `${missingJSDoc}/${totalExports} exports sem JSDoc (${pct}% cobertura) — DESDO §4 requer JSDoc em todas as funções exportadas`,
       location: missingFiles.join(", "),
       recommendation: "Adicionar JSDoc com @param e @returns em todas as funções exportadas.",
+      confidence: 0.7,
     });
   }
 
@@ -104,6 +105,7 @@ export function detectUnsafeTypeAssertions(_projectRoot: string, files: SourceFi
       description: `${unsafeCount} afirmação(ões) de tipo insegura(s): ${unsafeFiles.join(", ")}`,
       location: "src/",
       recommendation: "Substituir 'as unknown as X' por type guards. Remover @ts-ignore e corrigir o problema de tipo.",
+      confidence: 0.75,
     });
   }
 
@@ -160,6 +162,7 @@ export function detectUnreachableCode(_projectRoot: string, files: SourceFileInf
       description: `${unreachableCount} linha(s) inalcançável(s) detectada(s): ${unreachableLocations.join(", ")}`,
       location: unreachableLocations.join(", "),
       recommendation: "Remover código inalcançável após return/throw/break/continue.",
+      confidence: 0.7,
     });
   }
 
@@ -220,6 +223,7 @@ export function detectUnusedImports(_projectRoot: string, files: SourceFileInfo[
       description: `${unusedCount} import(s) não utilizado(s) em ${unusedFiles.join(", ")}`,
       location: unusedFiles.join(", "),
       recommendation: "Remover imports não utilizados para reduzir acoplamento e melhorar legibilidade.",
+      confidence: 0.7,
     });
   }
 
@@ -304,6 +308,7 @@ export function detectLongParams(_projectRoot: string, files: SourceFileInfo[]):
           description: `Função com ${paramCount} parâmetros em "${file.relPath}:${lineNum}" — Interface Segregation violada`,
           location: `${file.relPath}:${lineNum}`,
           recommendation: "Reduzir parâmetros para ≤4. Usar objeto de opções ou interface para parâmetros relacionados.",
+          confidence: 0.75,
         });
       }
     }
@@ -404,6 +409,7 @@ export function detectDuplicateCode(_projectRoot: string, files: SourceFileInfo[
       description: `${duplicateBlocks} bloco(s) de código duplicado(s) entre módulos`,
       location: duplicateLocations.join("; "),
       recommendation: "Extrair código duplicado para função partilhada (princípio DRY).",
+      confidence: 0.65,
     });
   }
 
@@ -457,6 +463,7 @@ export function detectGodFunctions(_projectRoot: string, files: SourceFileInfo[]
             description: `Função "${funcName}" em "${file.relPath}:${funcStart + 1}" tem ${funcLines} linhas — considerar dividir`,
             location: `${file.relPath}:${funcStart + 1}`,
             recommendation: `Dividir "${funcName}" em funções menores (<80 linhas cada).`,
+            confidence: 0.7,
           });
         }
         funcName = "";
@@ -489,6 +496,7 @@ export function detectCoverageThreshold(projectRoot: string): HealthIssue[] {
           description: `Threshold de coverage de linhas em ${linesThreshold}% — mínimo recomendado: 70%`,
           location: "vitest.config.ts",
           recommendation: "Aumentar threshold para ≥70% para garantir cobertura mínima.",
+          confidence: 0.85,
         });
       }
     }
@@ -502,6 +510,7 @@ export function detectCoverageThreshold(projectRoot: string): HealthIssue[] {
           description: `Threshold de coverage de funções em ${functionsThreshold}% — mínimo recomendado: 80%`,
           location: "vitest.config.ts",
           recommendation: "Aumentar threshold para ≥80% para garantir cobertura de funções.",
+          confidence: 0.85,
         });
       }
     }

@@ -86,6 +86,7 @@ export function detectMisclassifiedTier(shitenDir: string): HealthIssue[] {
           description: `"${doc}" foi carregado sob demanda ${count}x — candidato a promoção de P4 para P2.`,
           location: `governance/context/${doc}`,
           recommendation: `Revisar classificação em CONTEXT_HIERARCHY.md e mover "${doc}" para o tier P2.`,
+          confidence: 0.8,
         });
       }
     }
@@ -127,6 +128,7 @@ export function detectTierMismatches(shitenDir: string): HealthIssue[] {
           description: `Tier mismatch para "${payload.docPath}": declarado como ${payload.declaredTier}, mas comportamento indica ${payload.actualTier}.`,
           location: `governance/context/${payload.docPath}`,
           recommendation: `Actualizar tier declarado de ${payload.declaredTier} para ${payload.actualTier}.`,
+          confidence: 0.8,
         });
       }
     }

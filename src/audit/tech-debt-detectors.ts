@@ -45,6 +45,7 @@ export function detectTechDebtCost(
       description: `Custo estimado de dívida técnica: $${totalCost.toLocaleString()} (${totalHours}h × $${DEFAULT_DEVELOPER_COST_PER_HOUR}/h)`,
       location: "project-wide",
       recommendation: "Priorizar correção dos issues de maior severidade para reduzir custo.",
+      confidence: 0.85,
     });
   }
 
@@ -80,6 +81,7 @@ export function detectTDR(
       description: `Technical Debt Ratio elevado: ${tdr.toFixed(1)}% (custo correção / valor projeto)`,
       location: "project-wide",
       recommendation: "TDR > 10% indica dívida técnica significativa. Priorizar redução.",
+      confidence: 0.85,
     });
   }
 
@@ -112,6 +114,7 @@ export function detectRemediationEffort(
       description: `Esforço de remediação estimado: ${totalHours}h (low: ${effortBySeverity.low}h, med: ${effortBySeverity.medium}h, high: ${effortBySeverity.high}h)`,
       location: "project-wide",
       recommendation: "Considerar sprint dedicado para redução de dívida técnica.",
+      confidence: 0.85,
     });
   }
 
@@ -150,6 +153,7 @@ export function detectDebtTrend(projectRoot: string, _files: SourceFileInfo[]): 
       description: `Dívida técnica crescendo: ${prevCount} → ${currCount} issues (+${Math.round(((currCount - prevCount) / prevCount) * 100)}%)`,
       location: "audit-history",
       recommendation: "Investigar causas raiz do crescimento da dívida técnica.",
+      confidence: 0.9,
     });
   }
 
@@ -185,6 +189,7 @@ export function detectHotspotFiles(
         description: `Hotspot de dívida técnica: ${file} com ${count} issues`,
         location: file,
         recommendation: `Priorizar refatoração de ${file} — alto acumulo de issues.`,
+        confidence: 0.85,
       });
     }
   }
@@ -223,6 +228,7 @@ export function detectDebtByDomain(
       description: `Dívida técnica concentrada em "${dominantDomain}" (${maxPercentage.toFixed(0)}% do total)`,
       location: "project-wide",
       recommendation: `Balancear esforço de correção — "${dominantDomain}" concentra maioria dos issues.`,
+      confidence: 0.85,
     });
   }
 
@@ -253,6 +259,7 @@ export function detectROIRefactoring(
       description: `ROI de refatoração baixo: ${roi.toFixed(0)}% (custo: $${refactoringCost}, economia: $${maintenanceReduction})`,
       location: "project-wide",
       recommendation: "Considerar refatoração incremental em vez de grande refactor.",
+      confidence: 0.85,
     });
   }
 
@@ -294,6 +301,7 @@ export function detectDebtAccumulationRate(projectRoot: string, _files: SourceFi
         description: `Taxa de acumulação de dívida acelerando: +${growthRate.toFixed(0)}% entre auditorias`,
         location: "audit-history",
         recommendation: "Implementar gates de qualidade no CI/CD para frear acumulação.",
+        confidence: 0.9,
       });
     }
   }

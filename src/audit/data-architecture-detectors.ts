@@ -54,6 +54,7 @@ export function detectSchemaConsistency(_projectRoot: string, files: SourceFileI
       description: `${mismatchCount} schema(s) definido(s) sem type/interface correspondente no código`,
       location: "schema files",
       recommendation: "Garantir que cada schema tem type/interface correspondente no código TypeScript.",
+      confidence: 0.65,
     });
   }
 
@@ -80,6 +81,7 @@ export function detectDataOwnership(projectRoot: string): HealthIssue[] {
         description: `"${file}" não contém campos de ownership — dados sem responsável definido`,
         location: `shitenno-go/docs/${file}`,
         recommendation: "Adicionar campos owner/team a cada entidade de dados documentada.",
+        confidence: 0.75,
       });
     }
   }
@@ -105,6 +107,7 @@ export function detectMissingMigrations(_projectRoot: string, files: SourceFileI
       description: "Ferramenta de schema detectada mas nenhum ficheiro de migration encontrado",
       location: "project root",
       recommendation: "Configurar migrations para rastrear alterações de schema (prisma migrate, typeorm, etc).",
+      confidence: 0.8,
     });
   }
 
@@ -134,6 +137,7 @@ export function detectIndexCoverage(_projectRoot: string, files: SourceFileInfo[
       description: `${queryFiles.length} ficheiro(s) com queries mas nenhuma definição de índice encontrada`,
       location: "src/",
       recommendation: "Verificar se queries frequentes colunam sobre colunas indexadas.",
+      confidence: 0.8,
     });
   }
 

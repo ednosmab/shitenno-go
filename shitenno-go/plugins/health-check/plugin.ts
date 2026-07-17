@@ -23,6 +23,26 @@ interface PluginRecommendation {
   command?: string;
 }
 
+/** Recursively find test files in a directory. */
+function findTestFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  const entries = readdirSync(dir, { withFileTypes: true });
+  let results: string[] = [];
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== "dist") {
+      results = results.concat(findTestFiles(full));
+    } else if (
+      entry.isFile() &&
+      (entry.name.endsWith(".test.ts") || entry.name.endsWith(".test.js") ||
+       entry.name.endsWith(".spec.ts") || entry.name.endsWith(".spec.js"))
+    ) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 const plugin = {
   name: "health-check",
   version: "1.0.0",
@@ -60,11 +80,9 @@ const plugin = {
         }
       }
 
-      // Check 2: No tests directory
-      const testsDir = join(projectRoot, "tests");
-      const testFiles = existsSync(testsDir)
-        ? readdirSync(testsDir).filter((f) => f.endsWith(".test.ts") || f.endsWith(".test.js"))
-        : [];
+      // Check 2: No test files found across common directories
+      const candidateDirs = ["tests", "test", "src/__tests__", "src"];
+      const testFiles = candidateDirs.flatMap((d) => findTestFiles(join(projectRoot, d)));
       if (testFiles.length === 0) {
         issues.push("No test files found — consider adding tests");
       }

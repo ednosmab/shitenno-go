@@ -41,6 +41,7 @@ export function detectCircuitBreaker(_projectRoot: string, files: SourceFileInfo
       description: `${externalCalls} chamada(s) externa(s) detectada(s) mas nenhum circuit breaker configurado`,
       location: "src/",
       recommendation: "Implementar circuit breaker para chamadas externas (opossum, cockatiel, ou padrão próprio).",
+      confidence: 0.65,
     });
   }
 
@@ -77,6 +78,7 @@ export function detectRetryPolicy(_projectRoot: string, files: SourceFileInfo[])
       description: `${httpCalls} chamada(s) HTTP detectada(s) mas nenhum mecanismo de retry configurado`,
       location: "src/",
       recommendation: "Adicionar retry com backoff exponencial para chamadas HTTP (async-retry, p-retry).",
+      confidence: 0.65,
     });
   }
 
@@ -113,6 +115,7 @@ export function detectTimeoutConfig(_projectRoot: string, files: SourceFileInfo[
       description: `${fetchCalls} chamada(s) fetch() detectada(s) mas nenhum timeout configurado`,
       location: "src/",
       recommendation: "Adicionar timeout via AbortController/AbortSignal em todas as chamadas fetch().",
+      confidence: 0.65,
     });
   }
 
@@ -141,6 +144,7 @@ export function detectHealthChecks(projectRoot: string): HealthIssue[] {
       description: "Nenhum endpoint de health check detectado entre os comandos",
       location: "src/commands/",
       recommendation: "Adicionar endpoint /health ou /status para verificação de disponibilidade.",
+      confidence: 0.95,
     });
   }
 
@@ -177,6 +181,7 @@ export function detectGracefulDegradation(_projectRoot: string, files: SourceFil
       description: `${emptyCatchCount} catch block(s) vazio(s) sem mecanismo de fallback`,
       location: "src/",
       recommendation: "Adicionar fallback ou default value em catch blocks para degradação graciosa.",
+      confidence: 0.65,
     });
   }
 
@@ -211,6 +216,7 @@ export function detectRaceConditions(_projectRoot: string, files: SourceFileInfo
       description: `${sharedStateCount} variável(veis) global(is) detectada(s) sem mecanismo de sincronização`,
       location: "src/",
       recommendation: "Avaliar se variáveis partilhadas precisam de sincronização (Mutex, Semaphore).",
+      confidence: 0.65,
     });
   }
 
@@ -242,6 +248,7 @@ export function detectDeadlockRisk(_projectRoot: string, files: SourceFileInfo[]
       description: `${nestedLockCount} operação(ões) de lock detectada(s) — risco de deadlock se aninhadas`,
       location: "src/",
       recommendation: "Verificar se locks são adquiridos sempre na mesma ordem para evitar deadlock.",
+      confidence: 0.65,
     });
   }
 

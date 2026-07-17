@@ -66,6 +66,7 @@ export function detectSBOMCoverage(projectRoot: string, _files: SourceFileInfo[]
       description: "Nenhum SBOM (Software Bill of Materials) encontrado",
       location: "project root",
       recommendation: "Gerar SBOM usando CycloneDX ou SPDX para rastreamento de dependências.",
+      confidence: 0.8,
     });
   }
 
@@ -95,6 +96,7 @@ export function detectDependencyProvenance(projectRoot: string, _files: SourceFi
       description: `${unverifiedCount} dependências sem verificação de proveniência`,
       location: "package.json",
       recommendation: "Habilitar npm provenance ou usar sigstore para verificar assinaturas de pacotes.",
+      confidence: 0.9,
     });
   }
 
@@ -166,6 +168,7 @@ export function detectTyposquatting(projectRoot: string, _files: SourceFileInfo[
       description: `${suspiciousPackages.length} pacotes potencialmente suspeitos (typosquatting)`,
       location: "package.json",
       recommendation: `Verificar pacotes: ${suspiciousPackages.join(", ")}`,
+      confidence: 0.9,
     });
   }
 
@@ -194,6 +197,7 @@ export function detectLicenseConflicts(projectRoot: string, _files: SourceFileIn
         description: `Projeto usa licença restritiva: ${projectLicense}`,
         location: "package.json",
         recommendation: "Rever implications de licença restritiva para dependências e distribuição.",
+        confidence: 0.9,
       });
     }
   }
@@ -225,6 +229,7 @@ export function detectTransitiveVulns(projectRoot: string, _files: SourceFileInf
       description: `${oldVersions.length} dependências com versões 0.x detectadas (possivelmente instáveis)`,
       location: "pnpm-lock.yaml",
       recommendation: "Rever dependências 0.x para estabilidade e possíveis vulnerabilidades.",
+      confidence: 0.9,
     });
   }
 
@@ -256,6 +261,7 @@ export function detectMalwarePatterns(projectRoot: string, _files: SourceFileInf
       description: `${suspiciousPackages.length} pacotes correspondem a padrões maliciosos conhecidos`,
       location: "package.json",
       recommendation: `Verificar imediatamente: ${suspiciousPackages.join(", ")}`,
+      confidence: 0.9,
     });
   }
 

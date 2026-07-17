@@ -17,10 +17,10 @@ session:
   status: active
 
 current_task:
-  id: audit-improvement-plan
-  description: "Execute audit improvement plan — Phases 1-4"
+  id: audit-tool-hardening
+  description: "Execute audit tool hardening plan — Phases 1-4"
   status: "completed"
-  started_at: "2026-07-16T04:00:00.000Z"
+  started_at: "2026-07-17T00:00:00.000Z"
 
 next_p0: "Dogfooding real (item 1 do handoff) — rodar shiten init no próprio repo"
 
@@ -49,3 +49,4 @@ completed_tasks:
   - HANDBOOK-LEVEL-2-3
   - AUDIT-IMPROVEMENT-PLAN (Phases 1-4: security, empty_catch, broken_refs, context_buffer)
   - PLAN-AUDIT-EDGE (Sub-planos A, B, C completados: autofix, incremental scan, health card)
+  - PLAN-AUDIT-TOOL-HARDENING (Phases 1-4: detector isolation, complexity AST, health-check plugin, confidence population)

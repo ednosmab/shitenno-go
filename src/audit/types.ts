@@ -223,7 +223,10 @@ export type HealthIssueType =
   | "duplicate_dependencies"
   | "unaudited_dependencies"
   // Context Tier Promotion
-  | "tier_promotion_candidate";
+  | "tier_promotion_candidate"
+  // Detector failure
+  | "detector_failure"
+  | "orphan_skill";
 
 /** Problema de saúde detectado no sistema. */
 export interface HealthIssue {
@@ -234,6 +237,8 @@ export interface HealthIssue {
   recommendation: string;
   /** 0–1. Confiança do detector no achado. Ausente = tratar como 1.0 (detectors legados). */
   confidence?: number;
+  /** Nome da skill em docs/skills/ que documenta a prática relacionada a este achado, se houver. */
+  skillRef?: string;
 }
 
 /** Sugestão de optimização de governança. */
@@ -316,4 +321,6 @@ export interface HealthAuditReport {
   changedFilesOnly?: boolean;
   /** Total files in project (when changedFilesOnly is true). */
   totalFiles?: number;
+  /** Detectors that threw exceptions during execution. */
+  detectorErrors?: Array<{ name: string; error: string }>;
 }

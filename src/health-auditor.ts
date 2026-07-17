@@ -7,6 +7,7 @@
 
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "./logger.js";
 
 export type { AuditLevel, HealthIssue, GovernanceOptimization, HealthAuditReport, SourceFileInfo } from "./audit/types.js";
 export { collectSourceFiles, issueFingerprint } from "./audit/shared.js";
@@ -55,14 +56,32 @@ export function auditHealth(
   const detectorMap = buildDetectorMap(projectRoot, shitenDir, sourceFiles, rules, history);
 
   const issues: HealthIssue[] = [];
+  const detectorErrors: Array<{ name: string; error: string }> = [];
+
   for (const [name, fn] of Object.entries(detectorMap)) {
-    if (activeDetectors.has(name)) {
-      // Skip cross-file detectors in --changed mode (they need full project)
-      if (changedFiles && changedFiles.length > 0 && CROSS_FILE_ONLY_DETECTORS.has(name)) {
-        continue;
-      }
+    if (!activeDetectors.has(name)) continue;
+    // Skip cross-file detectors in --changed mode (they need full project)
+    if (changedFiles && changedFiles.length > 0 && CROSS_FILE_ONLY_DETECTORS.has(name)) continue;
+
+    try {
       issues.push(...fn());
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      detectorErrors.push({ name, error: errorMsg });
+      logger.warn("health-auditor", `Detector "${name}" failed: ${errorMsg}`);
     }
+  }
+
+  // Convert detector failures into low-severity issues so they're visible in the report
+  for (const { name, error } of detectorErrors) {
+    issues.push({
+      type: "detector_failure",
+      severity: 2,
+      description: `Detector "${name}" failed to run: ${error}`,
+      location: `src/audit/ (detector: ${name})`,
+      recommendation: `Investigate and fix detector "${name}" — results for this category may be incomplete in this run`,
+      confidence: 1.0,
+    });
   }
 
   const deduped = deduplicateIssues(issues);
@@ -103,6 +122,7 @@ export function auditHealth(
     durationMs,
     filesScanned: sourceFiles.length,
     detectorsRun: Array.from(activeDetectors),
+    ...(detectorErrors.length > 0 ? { detectorErrors } : {}),
     ...(changedFiles && changedFiles.length > 0 ? { changedFilesOnly: true, totalFiles: allSourceFiles.length } : {}),
   };
 }

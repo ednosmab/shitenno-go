@@ -58,6 +58,7 @@ export function detectCommitFormat(projectRoot: string): HealthIssue[] {
       description: `${invalidCommits.length} commit(s) não seguem Conventional Commits: ${invalidCommits.slice(0, 3).join("; ")}${invalidCommits.length > 3 ? ` (+${invalidCommits.length - 3})` : ""}`,
       location: "git log",
       recommendation: "Formato correcto: type(scope): description (ex: feat: add user auth). Usar commitlint no CI.",
+      confidence: 0.9,
     });
   }
 
@@ -91,6 +92,7 @@ export function detectBranchNaming(projectRoot: string): HealthIssue[] {
       description: `${invalidBranches.length} branch(es) não seguem convenção de nomenclatura: ${invalidBranches.slice(0, 5).join(", ")}`,
       location: "git branches",
       recommendation: "Usar formato: feat/<scope>, fix/<scope>, chore/<scope>, docs/<scope>, refactor/<scope>",
+      confidence: 0.9,
     });
   }
 
@@ -118,6 +120,7 @@ export function detectDirectMainCommits(projectRoot: string): HealthIssue[] {
       description: `${directCommits} commits directos em main (não merges) — viola BRANCH-POLICY`,
       location: "git log main",
       recommendation: "Usar pull requests para alterações em main. Merger apenas via release de develop.",
+      confidence: 0.9,
     });
   }
 
@@ -139,6 +142,7 @@ export function detectForcePushes(projectRoot: string): HealthIssue[] {
       description: `${forcePushes.length} force push(es) detectado(s) no reflog — usar --force-with-lease`,
       location: "git reflog",
       recommendation: "Substituir 'git push --force' por 'git push --force-with-lease' para segurança.",
+      confidence: 0.9,
     });
   }
 
@@ -164,6 +168,7 @@ export function detectOrphanBranches(projectRoot: string): HealthIssue[] {
       description: `${mergedBranches.length} branches merged mas não deletadas: ${mergedBranches.slice(0, 5).join(", ")}`,
       location: "git branches",
       recommendation: "Deletar branches após merge: git branch -d <branch> ou git branch -D <branch> (remote).",
+      confidence: 0.9,
     });
   }
 
@@ -202,6 +207,7 @@ export function detectCommitLanguage(projectRoot: string): HealthIssue[] {
       description: `${nonEnglish.length} commit(s) com mensagens não-inglesas: ${nonEnglish.slice(0, 3).join("; ")}`,
       location: "git log",
       recommendation: "Mensagens de commit devem ser em inglês (regra AGENTS.md #2).",
+      confidence: 0.9,
     });
   }
 
@@ -249,6 +255,7 @@ export function detectSecretsInGitHistory(projectRoot: string): HealthIssue[] {
       description: `${secretsFound} possível(is) segredo(s) no histórico git: ${locations.join("; ")}`,
       location: "git log -p",
       recommendation: "Remover segredos do histórico com 'git filter-branch' ou BFG. Adicionar ao .gitignore.",
+      confidence: 0.9,
     });
   }
 
@@ -275,6 +282,7 @@ export function detectCommitWithoutGating(projectRoot: string): HealthIssue[] {
       description: "Nenhum CI/CD nem configuração de lint detectada — commits não têm quality gates",
       location: "project root",
       recommendation: "Adicionar .github/workflows/ci.yml com test + lint + typecheck antes de merge.",
+      confidence: 0.95,
     });
   }
 

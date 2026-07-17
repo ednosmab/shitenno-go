@@ -18,6 +18,8 @@ import {
 } from "./constants.js";
 import type { HealthIssue, SourceFileInfo } from "./types.js";
 import { logger } from "../logger.js";
+import { getOrCreateProgram } from "./ts-program-cache.js";
+import { analyzeComplexity } from "./complexity/analyzer.js";
 
 // ── Engineering Audit Detectors (Dimensions 1-7) ─────────────────────────────
 
@@ -45,6 +47,7 @@ export function detectTestHealth(projectRoot: string): HealthIssue[] {
         description: `${failed} teste(s) falharam (vitest)`,
         location: "src/__tests__/",
         recommendation: "Corrigir testes falhados antes de commitar",
+        confidence: 0.95,
       });
     }
   }
@@ -110,6 +113,7 @@ export function detectOrphanModules(_projectRoot: string, files: SourceFileInfo[
           description: `Modulo orfao: "${file.relPath}" (${file.lineCount} linhas${exportList}) — nenhum import nem export usado por outro modulo`,
           location: file.relPath,
           recommendation: `Verificar se "${file.basename}" e necessario — remover se morto, ou adicionar imports para os exports usados`,
+          confidence: 0.6,
         });
       }
     }
@@ -132,6 +136,7 @@ export function detectComplexityHotspots(_projectRoot: string, files: SourceFile
       recommendation: file.lineCount > OVERSIZED_WARNING_THRESHOLD
         ? `Dividir "${file.relPath}" em modulos menores (<${OVERSIZED_INFO_THRESHOLD} linhas cada)`
         : `Monitorar tamanho de "${file.relPath}" — considerar refatorar se crescer`,
+      confidence: 0.9,
     });
   }
   return issues;
@@ -162,6 +167,7 @@ export function detectTestCoverageGaps(projectRoot: string, files: SourceFileInf
         description: `${missingTests.length} modulo(s) source sem teste correspondente`,
         location: "src/",
         recommendation: `Adicionar testes para: ${missingTests.slice(0, 5).map((f) => f.relPath).join(", ")}${missingTests.length > 5 ? ` (+${missingTests.length - 5} mais)` : ""}`,
+        confidence: 0.85,
       });
     }
   } catch (err) { logger.debug("engineering-detectors", "Error in detectTestCoverageGaps:", err); }
@@ -191,6 +197,7 @@ export function detectLintIssues(projectRoot: string): HealthIssue[] {
           description: `ESLint encontrou ${totalWarnings} warning(s) (0 erros)`,
           location: "src/",
           recommendation: "Rever warnings ESLint — execute 'npx eslint src/' para detalhes",
+          confidence: 0.95,
         });
       }
     } catch (parseErr) { logger.debug("engineering-detectors", "ESLint output not JSON:", parseErr); }
@@ -212,6 +219,7 @@ export function detectLintIssues(projectRoot: string): HealthIssue[] {
           description: `ESLint encontrou ${totalErrors} erro(s) e ${totalWarnings} warning(s)`,
           location: "src/",
           recommendation: "Corrigir erros ESLint — execute 'npx eslint src/ --fix' para correcoes automaticas",
+          confidence: 0.95,
         });
       } else if (totalWarnings > 0) {
         issues.push({
@@ -220,6 +228,7 @@ export function detectLintIssues(projectRoot: string): HealthIssue[] {
           description: `ESLint encontrou ${totalWarnings} warning(s) (0 erros)`,
           location: "src/",
           recommendation: "Rever warnings ESLint — execute 'npx eslint src/' para detalhes",
+          confidence: 0.95,
         });
       }
     } catch (parseErr) { logger.debug("engineering-detectors", "ESLint error output not JSON:", parseErr); }
@@ -248,6 +257,7 @@ export function detectTypeSafetyIssues(projectRoot: string, files: SourceFileInf
       description: `${anyCount} uso(s) de \`any\` em ${anyFiles.length} arquivo(s) source`,
       location: anyFiles.slice(0, 3).join(", ") + (anyFiles.length > 3 ? ` (+${anyFiles.length - 3})` : ""),
       recommendation: "Substituir \`any\` por tipos adequados para melhorar type safety",
+      confidence: 0.8,
     });
   }
 
@@ -272,6 +282,7 @@ export function detectTypeSafetyIssues(projectRoot: string, files: SourceFileInf
         description: `TypeScript compilador encontrou ${errorCount} erro(s) de tipo`,
         location: "src/",
         recommendation: "Corrigir erros de tipo TypeScript — execute 'npx tsc --noEmit' para detalhes",
+        confidence: 0.8,
       });
     }
   }
@@ -301,6 +312,7 @@ export function detectConsoleUsage(_projectRoot: string, files: SourceFileInfo[]
       description: `${consoleCount} console.log/warn/error/debug/trace fora de commands/ — usar logger em vez de console`,
       location: consoleFiles.slice(0, 3).join(", ") + (consoleFiles.length > 3 ? ` (+${consoleFiles.length - 3})` : ""),
       recommendation: "Substituir console.log por logger do modulo logger.ts",
+      confidence: 0.7,
     });
   }
 
@@ -321,91 +333,41 @@ export function detectEmptyCatchBlocks(_projectRoot: string, files: SourceFileIn
         description: `Catch vazio em "${file.relPath}:${lineNum}" — erros estão silenciados`,
         location: `${file.relPath}:${lineNum}`,
         recommendation: `Adicionar tratamento de erro ou logger.debug no catch em ${file.relPath}:${lineNum}`,
+        confidence: 0.75,
       });
     }
   }
   return issues;
 }
 
-export function detectHighComplexity(_projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
+export function detectHighComplexity(projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
   const issues: HealthIssue[] = [];
-  const branchRegex = /\b(if|else if|switch|case|for|while|do|catch|\?|&&|\|\|)\b/g;
 
-  for (const file of files) {
-    const lines = file.content.split("\n");
+  try {
+    const program = getOrCreateProgram(projectRoot);
 
-    let braceDepth = 0;
-    let funcStart = -1;
-    let funcName = "";
-    let inFunction = false;
+    for (const file of files) {
+      if (file.relPath.includes("__tests__")) continue;
+      const sourceFile = program.getSourceFile(file.fullPath);
+      if (!sourceFile) continue;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]!;
-      const trimmed = line.trim();
-
-      if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
-        continue;
-      }
-
-      if (!inFunction) {
-        const funcMatch = line.match(/\b(?:export\s+)?(?:async\s+)?function\s+(\w+)/);
-        const arrowMatch = line.match(/(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\(/);
-        const methodMatch = line.match(/^\s*(?:public|private|protected|static)?\s*(?:async\s+)?(\w+)\s*\(/);
-        const getterSetterMatch = line.match(/^\s*(?:get|set)\s+(\w+)\s*\(/);
-        const constructorMatch = line.match(/^\s*constructor\s*\(/);
-        if (funcMatch) {
-          funcName = funcMatch[1]!;
-          funcStart = i;
-          inFunction = true;
-        } else if (arrowMatch) {
-          funcName = arrowMatch[1]!;
-          funcStart = i;
-          inFunction = true;
-        } else if (getterSetterMatch) {
-          funcName = getterSetterMatch[1]!;
-          funcStart = i;
-          inFunction = true;
-        } else if (constructorMatch) {
-          funcName = "constructor";
-          funcStart = i;
-          inFunction = true;
-        } else if (methodMatch) {
-          funcName = methodMatch[1]!;
-          funcStart = i;
-          inFunction = true;
-        }
-      }
-
-      for (const ch of line) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") braceDepth--;
-      }
-
-      if (inFunction && braceDepth <= 0) {
-        inFunction = false;
-        const funcLines = lines.slice(funcStart, i + 1);
-        let branches = 0;
-        for (const fl of funcLines) {
-          const flTrimmed = fl.trim();
-          if (flTrimmed.startsWith("//") || flTrimmed.startsWith("/*") || flTrimmed.startsWith("*")) continue;
-          const matches = fl.match(branchRegex);
-          if (matches) branches += matches.length;
-        }
-        const complexity = 1 + branches;
-        if (complexity > COMPLEXITY_WARNING_THRESHOLD) {
+      for (const result of analyzeComplexity(program, sourceFile)) {
+        if (result.complexity > COMPLEXITY_WARNING_THRESHOLD) {
           issues.push({
             type: "high_complexity",
-            severity: complexity > COMPLEXITY_CRITICAL_THRESHOLD ? 3 : 2,
-            description: `Alta complexidade ciclomática em "${file.relPath}:${funcStart + 1}" (${funcName}): complexidade ${complexity} (máx: ${COMPLEXITY_WARNING_THRESHOLD})`,
-            location: `${file.relPath}:${funcStart + 1}`,
-            recommendation: `Dividir "${funcName}" em lógica mais simples — complexidade ${complexity} > ${COMPLEXITY_WARNING_THRESHOLD}`,
+            severity: result.complexity > COMPLEXITY_CRITICAL_THRESHOLD ? 3 : 2,
+            description: `Alta complexidade ciclomática em "${file.relPath}:${result.line}" (${result.functionName}): complexidade ${result.complexity} (máx: ${COMPLEXITY_WARNING_THRESHOLD})`,
+            location: `${file.relPath}:${result.line}`,
+            recommendation: `Considerar dividir "${result.functionName}" em funções menores`,
+            confidence: 1.0,
           });
         }
-        funcName = "";
-        funcStart = -1;
       }
     }
+  } catch (err) {
+    logger.debug("engineering-detectors", "Error in detectHighComplexity:", err);
   }
+
   return issues;
 }
 
@@ -483,6 +445,7 @@ export function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]
       description: `Dependência circular detectada: ${cyclePath}`,
       location: cycle.join(", "),
       recommendation: `Extrair interface comum ou usar injeção de dependência para quebrar o ciclo entre ${cycle.join(", ")}`,
+      confidence: 0.8,
     });
   }
 
@@ -518,6 +481,7 @@ export function detectUnusedExports(_projectRoot: string, files: SourceFileInfo[
           description: `Export não usado: "${symbol}" em "${file.relPath}" — nunca é importado por outro módulo`,
           location: file.relPath,
           recommendation: `Remover export "${symbol}" de "${file.relPath}" ou adicionar import no módulo que o utiliza`,
+          confidence: 0.65,
         });
       }
     }
@@ -542,6 +506,7 @@ export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileIn
           description: `Type safety bypass em "${file.relPath}:${i + 1}" — ${trimmed.split(" ").slice(0, 3).join(" ")}`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: `Remover "${trimmed.split(" ").slice(0, 2).join(" ")}" e corrigir o problema de tipo subjacente`,
+          confidence: 0.6,
         });
       }
     }
@@ -556,6 +521,7 @@ export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileIn
         description: `Função vazia em "${file.relPath}:${lineNum}" — corpo sem implementação`,
         location: `${file.relPath}:${lineNum}`,
         recommendation: `Implementar a função em ${file.relPath}:${lineNum} ou removê-la se desnecessária`,
+        confidence: 0.6,
       });
     }
     let methodMatch;
@@ -569,6 +535,7 @@ export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileIn
         description: `Método vazio em "${file.relPath}:${lineNum}" — corpo sem implementação`,
         location: `${file.relPath}:${lineNum}`,
         recommendation: `Implementar o método em ${file.relPath}:${lineNum} ou removê-lo se desnecessário`,
+        confidence: 0.6,
       });
     }
 
@@ -585,6 +552,7 @@ export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileIn
           description: `Código pendente em "${file.relPath}:${i + 1}" — ${todoMatch[0].slice(0, 60)}`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: `Resolver o TODO/FIXME em ${file.relPath}:${i + 1} ou removê-lo se já resolvido`,
+          confidence: 0.6,
         });
         todoCount++;
       }

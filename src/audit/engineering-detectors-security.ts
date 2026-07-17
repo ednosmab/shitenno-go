@@ -104,6 +104,7 @@ export function detectSQLInjection(_projectRoot: string, files: SourceFileInfo[]
           description: `Possível SQL injection em "${file.relPath}:${i + 1}" — query construída com concatenação/template literal`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Usar prepared statements ou parameterized queries em vez de concatenação",
+          confidence: 0.65,
         });
       }
     }
@@ -137,6 +138,8 @@ export function detectXSS(_projectRoot: string, files: SourceFileInfo[]): Health
           description: `Possível XSS em "${file.relPath}:${i + 1}" — inserção directa de HTML`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Sanitizar input antes de inserir HTML, ou usar framework com escaping automático",
+          confidence: 0.65,
+          skillRef: "security_xss_prevention",
         });
       }
     }
@@ -164,6 +167,7 @@ export function detectUnsafeEval(_projectRoot: string, files: SourceFileInfo[]):
           description: `eval/Function dinâmico em "${file.relPath}:${i + 1}" — risco de code injection`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Evitar eval/Function dinâmicos — usar alternativas seguras como JSON.parse()",
+          confidence: 0.7,
         });
       }
     }
@@ -219,6 +223,7 @@ export function detectWeakCrypto(_projectRoot: string, files: SourceFileInfo[]):
           description: `Criptografia fraca em "${file.relPath}:${i + 1}" — MD5/SHA1 ou createCipher`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Usar algoritmos modernos: SHA-256+, AES-256-GCM em vez de MD5/SHA1",
+          confidence: 0.65,
         });
       }
     }
@@ -247,6 +252,7 @@ export function detectInsecureHTTP(_projectRoot: string, files: SourceFileInfo[]
               description: `URL HTTP insegura em "${file.relPath}:${i + 1}": ${url}`,
               location: `${file.relPath}:${i + 1}`,
               recommendation: "Usar HTTPS em vez de HTTP para URLs de produção",
+              confidence: 0.7,
             });
           }
         }
@@ -278,6 +284,7 @@ export function detectPrototypePollution(_projectRoot: string, files: SourceFile
           description: `Possível prototype pollution em "${file.relPath}:${i + 1}"`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Validar/chavear input antes de Object.assign — nunca usar input directo em merge",
+          confidence: 0.6,
         });
       } else if (genericPollPattern.test(line)) {
         issues.push({
@@ -286,6 +293,7 @@ export function detectPrototypePollution(_projectRoot: string, files: SourceFile
           description: `Atribuição por chave dinâmica em "${file.relPath}:${i + 1}" — for...in sem verificar __proto__/constructor`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Verificar se a chave não é __proto__ ou constructor antes de atribuir",
+          confidence: 0.6,
         });
       }
     }
@@ -319,6 +327,7 @@ export function detectPathTraversal(_projectRoot: string, files: SourceFileInfo[
           description: `Possível path traversal em "${file.relPath}:${i + 1}" — caminho dinâmico sem validação`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Validar e sanitizar caminhos — usar path.resolve com prefixo seguro",
+          confidence: 0.65,
         });
       }
     }
@@ -393,6 +402,7 @@ export function detectUnsafeDeserialization(_projectRoot: string, files: SourceF
           description: `Unsafe deserialization em "${file.relPath}:${i + 1}" — risco de RCE`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Usar yaml.safeLoad(), vm.runInNewContext com sandbox, ou evitar deserialização de input não confiável",
+          confidence: 0.65,
         });
       } else if (unvalidatedJsonPatterns.some((p) => p.test(line))) {
         issues.push({
@@ -401,6 +411,7 @@ export function detectUnsafeDeserialization(_projectRoot: string, files: SourceF
           description: `JSON.parse com input não validado em "${file.relPath}:${i + 1}" — sem schema validation`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Validar JSON com schema (zod/joi) antes de processar",
+          confidence: 0.65,
         });
       }
     }
@@ -440,6 +451,7 @@ export function detectDependencyConfusion(projectRoot: string, files: SourceFile
               description: `Dependência "${pkgName}" importada em "${file.relPath}" mas não existe em node_modules nem em package.json`,
               location: file.relPath,
               recommendation: `Adicionar "${pkgName}" ao package.json ou verificar se o nome está correcto`,
+              confidence: 0.7,
             });
           }
         }
@@ -471,6 +483,7 @@ export function detectInsecureCORS(_projectRoot: string, files: SourceFileInfo[]
           description: `CORS wildcard em "${file.relPath}:${i + 1}" — Access-Control-Allow-Origin: * permite qualquer origem`,
           location: `${file.relPath}:${i + 1}`,
           recommendation: "Especificar origens permitidas em vez de usar wildcard *",
+          confidence: 0.65,
         });
       }
     }
@@ -508,6 +521,7 @@ export function detectInsecureCookies(_projectRoot: string, files: SourceFileInf
             description: `Cookie sem flags de segurança em "${file.relPath}:${i + 1}" — falta: ${missing.join(", ")}`,
             location: `${file.relPath}:${i + 1}`,
             recommendation: `Adicionar flags: ${missing.map(f => `{${f}: true}`).join(", ")}`,
+            confidence: 0.65,
           });
         }
       } else if (setCookieRegex.test(line)) {
@@ -525,6 +539,7 @@ export function detectInsecureCookies(_projectRoot: string, files: SourceFileInf
             description: `Set-Cookie header sem flags em "${file.relPath}:${i + 1}" — falta: ${missing.join(", ")}`,
             location: `${file.relPath}:${i + 1}`,
             recommendation: `Adicionar flags: ${missing.join(", ")}`,
+            confidence: 0.65,
           });
         }
       }

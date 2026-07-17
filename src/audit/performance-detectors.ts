@@ -26,6 +26,7 @@ export function detectNPlusOne(_projectRoot: string, files: SourceFileInfo[]): H
         description: `${matches.length} padrão(ões) N+1 detectado(s) em "${file.basename}" — query dentro de loop`,
         location: file.relPath,
         recommendation: "Usar batch loading (Promise.all, IN clause) em vez de queries individuais em loops.",
+        confidence: 0.65,
       });
     }
   }
@@ -63,6 +64,7 @@ export function detectMissingCaching(_projectRoot: string, files: SourceFileInfo
       description: `${endpointCount} endpoint(s) detectado(s) mas nenhuma estratégia de cache encontrada`,
       location: "src/",
       recommendation: "Avaliar uso de cache (Redis, LRU, memoize) para endpoints pesados.",
+      confidence: 0.65,
     });
   }
 
@@ -99,6 +101,7 @@ export function detectStatefulServices(_projectRoot: string, files: SourceFileIn
       description: `${statefulCount} variável(veis) de estado em memória detectada(s) — pode impedir scaling horizontal`,
       location: "src/",
       recommendation: "Avaliar se estado pode ser externalizado (Redis, DB) para permitir scaling horizontal.",
+      confidence: 0.65,
     });
   }
 
@@ -135,6 +138,7 @@ export function detectMissingRateLimiting(_projectRoot: string, files: SourceFil
       description: `${endpointCount} endpoint(s) detectado(s) mas nenhum rate limiting configurado`,
       location: "src/",
       recommendation: "Adicionar rate limiting em endpoints públicos (express-rate-limit, rate-limiter-flexible).",
+      confidence: 0.65,
     });
   }
 
@@ -171,6 +175,7 @@ export function detectMissingTimeouts(_projectRoot: string, files: SourceFileInf
       description: `${httpCalls} chamada(s) HTTP detectada(s) mas nenhum timeout configurado`,
       location: "src/",
       recommendation: "Configurar timeout em todas as chamadas HTTP para evitar requests pendurados.",
+      confidence: 0.65,
     });
   }
 

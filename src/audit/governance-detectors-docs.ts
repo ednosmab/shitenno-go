@@ -38,6 +38,7 @@ export function detectDeadRules(rules: string[], history: HistoryEntry[]): Healt
         description: `Regra "${rule}" nunca mencionada em ${history.length} sessões — candidata a remover ou simplificar`,
         location: "docs/AGENTS.md",
         recommendation: `Considerar remover "${rule}" ou convertê-la em recomendação não vinculante`,
+        confidence: 0.7,
       });
     }
   }
@@ -68,6 +69,7 @@ export function detectViolationHotspots(history: HistoryEntry[]): HealthIssue[] 
       description: `Alta taxa de violações: ${violationCount}/${history.length} sessões com erros — governança pode precisar de reforço`,
       location: "docs/AGENTS.md",
       recommendation: "Revisar regras — considerar adicionar validações automáticas (lint) para regras críticas",
+      confidence: 0.7,
     });
   }
 
@@ -98,6 +100,7 @@ export function detectMissingDocs(shitenDir: string): HealthIssue[] {
         description: `Documento "${doc.path}" não encontrado`,
         location: `shitenno-go/${doc.path}`,
         recommendation: `Criar "${doc.path}" — ${doc.critical ? "crítico" : "recomendado"}`,
+        confidence: 0.95,
       });
     }
   }
@@ -133,6 +136,7 @@ export function detectOrphanDirs(shitenDir: string): HealthIssue[] {
           description: `Directório "${dir.name}" contém apenas README — possivelmente órfão`,
           location: `shitenno-go/${dir.name}/`,
           recommendation: `Adicionar conteúdo a "${dir.name}" ou removê-lo se desnecessário`,
+          confidence: 0.95,
         });
       }
     }
@@ -164,6 +168,7 @@ export function detectStaleBuffer(shitenDir: string): HealthIssue[] {
         description: `context_buffer.yaml tem ${activeLines} linhas activas (máx recomendado: 50)`,
         location: "governance/context/context_buffer.yaml",
         recommendation: "Podar o buffer — remover secções obsoletas e consolidar estado",
+        confidence: 0.7,
       });
     }
 
@@ -174,6 +179,7 @@ export function detectStaleBuffer(shitenDir: string): HealthIssue[] {
         description: "context_buffer.yaml indica sessão em curso não fechada",
         location: "governance/context/context_buffer.yaml",
         recommendation: "Executar close-session ou actualizar o status",
+        confidence: 0.7,
       });
     }
   } catch (err) {
@@ -206,6 +212,7 @@ export function detectDatePlaceholders(shitenDir: string): HealthIssue[] {
           description: `"${doc}" contém datas placeholder (YYYY-MM-DD ou [DATE])`,
           location: `shitenno-go/${doc}`,
           recommendation: `Actualizar datas placeholder em "${doc}" para data real`,
+          confidence: 0.7,
         });
       }
     } catch (err) {
@@ -258,6 +265,7 @@ export function detectEmptyDirs(shitenDir: string): HealthIssue[] {
         description: `Directório "${relative}" existe mas está vazio ou contém apenas templates`,
         location: `shitenno-go/${relative}`,
         recommendation: `Adicionar conteúdo a "${relative}" ou remover se desnecessário`,
+        confidence: 0.95,
       });
     }
   } catch (err) {
@@ -305,6 +313,7 @@ export function detectBrokenRefs(shitenDir: string): HealthIssue[] {
             description: `Referência quebrada em "${doc}": "${ref}" não existe`,
             location: `shitenno-go/${doc}`,
             recommendation: `Corrigir referência "${ref}" em "${doc}" ou criar o ficheiro`,
+            confidence: 0.75,
           });
         }
       }
@@ -354,6 +363,7 @@ export function detectBrokenDirRefs(shitenDir: string): HealthIssue[] {
             description: `Referência quebrada em "${doc}": directório "${ref}" não existe`,
             location: `shitenno-go/${doc}`,
             recommendation: `Criar directório "${ref}" ou corrigir referência em "${doc}"`,
+            confidence: 0.75,
           });
         }
       }
@@ -413,6 +423,7 @@ export function detectNonBacktickFileRefs(shitenDir: string): HealthIssue[] {
             description: `Referência quebrada em "${doc}": "${ref}" não existe`,
             location: `shitenno-go/${doc}`,
             recommendation: `Corrigir referência "${ref}" em "${doc}" ou criar o ficheiro`,
+            confidence: 0.75,
           });
         }
       }
@@ -435,6 +446,7 @@ export function detectMissingGitignore(shitenDir: string): HealthIssue[] {
       description: ".gitignore não existe em shitenno-go/ — arquivos privados podem ser versionados",
       location: "shitenno-go/.gitignore",
       recommendation: "Criar shitenno-go/.gitignore para excluir ficheiros privados (feedback/, session-feedback/)",
+      confidence: 0.95,
     });
   }
 
@@ -460,6 +472,7 @@ export function detectMissingPackageJson(shitenDir: string): HealthIssue[] {
             location: "shitenno-go/package.json",
             recommendation:
               "Criar shitenno-go/package.json com scripts para executar os TypeScript files",
+            confidence: 0.75,
           });
         }
       } catch (_err) {
@@ -518,6 +531,7 @@ export function detectMaturityInconsistency(shitenDir: string): HealthIssue[] {
         description: `Scores de maturidade inconsistentes: ${scoreList}`,
         location: "shitenno-go/",
         recommendation: "Reconciliar scores — todos os ficheiros devem reflectir o mesmo valor",
+        confidence: 0.9,
       });
     }
   }

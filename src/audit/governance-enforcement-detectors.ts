@@ -40,6 +40,7 @@ export function detectIncompleteSessionClose(shitenDir: string): HealthIssue[] {
         description: "context_buffer.yaml indica sessão em curso não fechada — ritual de fim de sessão não executado",
         location: "governance/context/context_buffer.yaml",
         recommendation: "Executar 'pnpm run close:session' antes de iniciar nova sessão (AGENTS.md #12).",
+        confidence: 0.7,
       });
     }
 
@@ -50,6 +51,7 @@ export function detectIncompleteSessionClose(shitenDir: string): HealthIssue[] {
         description: `context_buffer.yaml tem ${activeLines} linhas activas (máx: 50) — buffer não foi podado no fim de sessão`,
         location: "governance/context/context_buffer.yaml",
         recommendation: "Podar buffer no ritual de fim de sessão: remover secções obsoletas, consolidar estado.",
+        confidence: 0.7,
       });
     }
   } catch {
@@ -71,6 +73,7 @@ export function detectMissingFeedback(shitenDir: string): HealthIssue[] {
       description: "Directório feedback/records/ não existe — feedback de sessão não está a ser registado",
       location: "shitenno-go/feedback/records/",
       recommendation: "Criar directório e executar 'shiten feedback --outcome success' após cada sessão.",
+      confidence: 0.95,
     });
     return issues;
   }
@@ -84,6 +87,7 @@ export function detectMissingFeedback(shitenDir: string): HealthIssue[] {
         description: "Directório feedback/records/ está vazio — nenhum registo de feedback encontrado",
         location: "shitenno-go/feedback/records/",
         recommendation: "Executar 'shiten feedback --outcome success' ou 'shiten feedback --outcome failure' após sessões.",
+        confidence: 0.95,
       });
     }
   } catch {
@@ -126,6 +130,7 @@ export function detectInvalidBacklogStates(shitenDir: string): HealthIssue[] {
         description: `${invalidStates.length} estado(s) inválido(s) no BACKLOG.md: ${[...new Set(invalidStates)].join(", ")}`,
         location: "shitenno-go/docs/BACKLOG.md",
         recommendation: `Estados válidos: ${[...VALID_BACKLOG_STATES].join(", ")}. Actualizar para um dos estados permitidos.`,
+        confidence: 0.65,
       });
     }
   } catch {
@@ -157,6 +162,7 @@ export function detectPlanFormat(shitenDir: string): HealthIssue[] {
           description: `Plano "${file}" usa checkboxes em vez de campo "Status:" —.Workflow.md requer campo Status`,
           location: `shitenno-go/governance/plans/${file}`,
           recommendation: "Substituir checkboxes por '**Status:** [em execução|concluído|pendente]'.",
+          confidence: 0.65,
         });
       }
     }
@@ -189,6 +195,7 @@ export function detectRuleExecutionCompliance(shitenDir: string): HealthIssue[] 
             description: `Regra "${file}" tem estrutura inválida — campos obrigatórios em falta (id, trigger, action/actions)`,
             location: `shitenno-go/governance/rules/${file}`,
             recommendation: "Cada regra JSON deve ter: id, trigger, action (ou actions), requiredCapability.",
+            confidence: 0.9,
           });
         }
       } catch {
@@ -198,6 +205,7 @@ export function detectRuleExecutionCompliance(shitenDir: string): HealthIssue[] 
           description: `Regra "${file}" não é JSON válido`,
           location: `shitenno-go/governance/rules/${file}`,
           recommendation: "Corrigir sintaxe JSON da regra.",
+          confidence: 0.9,
         });
       }
     }
@@ -220,6 +228,7 @@ export function detectPolicyStructure(shitenDir: string): HealthIssue[] {
       description: "Directório governance/policies/ não existe — políticas de commit/branch/review não documentadas",
       location: "shitenno-go/governance/policies/",
       recommendation: "Criar directório com COMMIT-POLICY.md, BRANCH-POLICY.md, REVIEW-POLICY.md.",
+      confidence: 0.95,
     });
     return issues;
   }
@@ -235,6 +244,7 @@ export function detectPolicyStructure(shitenDir: string): HealthIssue[] {
           description: `Política "${policy}" não encontrada em governance/policies/`,
           location: `shitenno-go/governance/policies/${policy}`,
           recommendation: `Criar "${policy}" com regras de governança.`,
+          confidence: 0.95,
         });
       }
     }
@@ -265,6 +275,7 @@ export function detectMissingPremortem(shitenDir: string): HealthIssue[] {
           description: "Tarefa complexa detectada mas nenhum premortem encontrado — WORKFLOW.md requer premortem antes de features complexas",
           location: "shitenno-go/docs/premortems/",
           recommendation: "Executar 'pnpm run premortem:check' antes de iniciar tarefa complexa.",
+          confidence: 0.7,
         });
       }
     }
@@ -291,6 +302,7 @@ export function detectMissingAdrForChanges(shitenDir: string): HealthIssue[] {
         description: "Nenhum ADR encontrado em docs/adrs/ — decisões arquiteturais não rastreadas",
         location: "shitenno-go/docs/adrs/",
         recommendation: "Criar ADRs para decisões arquiteturais significativas (DESDO §4).",
+        confidence: 0.95,
       });
     }
   } catch {

@@ -48,6 +48,7 @@ export function detectScriptWiring(projectRoot: string, shitenDir: string): Heal
       description: `${missing.length} script(s) referenciado(s) em docs não existem no root package.json: ${missing.join(", ")}`,
       location: "package.json",
       recommendation: `Adicionar scripts ao root package.json: ${missing.map((s) => `"${s}": "tsx shitenno-go/scripts/..."`).join(", ")}`,
+      confidence: 0.9,
     });
   }
   return issues;
@@ -83,6 +84,7 @@ export function detectAgentContractRefs(shitenDir: string): HealthIssue[] {
             description: `Referência quebrada em "${file}": "${ref}" não existe`,
             location: `shitenno-go/governance/agents/${file}`,
             recommendation: `Corrigir referência "${ref}" em "${file}" ou criar o ficheiro`,
+            confidence: 0.75,
           });
         }
       }
@@ -104,6 +106,7 @@ export function detectAgentContractRefs(shitenDir: string): HealthIssue[] {
             description: `Referência quebrada em "${file}": directório "${ref}" não existe`,
             location: `shitenno-go/governance/agents/${file}`,
             recommendation: `Criar directório "${ref}" ou corrigir referência em "${file}"`,
+            confidence: 0.75,
           });
         }
       }
@@ -133,6 +136,7 @@ export function detectBufferSchemaMismatch(shitenDir: string): HealthIssue[] {
           description: `AGENTS.md referencia secção "${section}" mas context_buffer.yaml não a contém`,
           location: "shitenno-go/governance/context/context_buffer.yaml",
           recommendation: `Adicionar secção "${section}" ao context_buffer.yaml`,
+          confidence: 0.7,
         });
       }
     }
@@ -161,6 +165,7 @@ export function detectRuleTypo(shitenDir: string): HealthIssue[] {
           description: `Typo detectado em "${typo.file}": "${typo.pattern.source}" → "${typo.fix}"`,
           location: `shitenno-go/${typo.file}`,
           recommendation: `Corrigir "${typo.pattern.source}" para "${typo.fix}" em "${typo.file}"`,
+          confidence: 0.65,
         });
       }
     } catch (err) { logger.debug("governance-detectors", "Error in detectRuleTypo:", err); }
@@ -185,6 +190,7 @@ export function detectNumberingGap(shitenDir: string): HealthIssue[] {
             description: `Gap na numeração em FORBIDDEN_OPERATIONS.md: F-${uniqueF[i - 1]} → F-${uniqueF[i]} (F-${uniqueF[i - 1]! + 1} ausente)`,
             location: "shitenno-go/docs/FORBIDDEN_OPERATIONS.md",
             recommendation: `Verificar se F-${uniqueF[i - 1]! + 1} foi removido ou renumerado`,
+            confidence: 0.65,
           });
         }
       }
@@ -208,6 +214,7 @@ export function detectNumberingGap(shitenDir: string): HealthIssue[] {
               description: `Gap na lettering em AGENTS.md: ${from}→${to} (letra ${String.fromCharCode(letters[i - 1]! + 1)} ausente)`,
               location: "shitenno-go/docs/AGENTS.md",
               recommendation: `Verificar se a letra ${String.fromCharCode(letters[i - 1]! + 1)} foi removida ou renumerada`,
+              confidence: 0.65,
             });
           }
         }
@@ -266,6 +273,7 @@ export function detectPhantomRuleRefs(shitenDir: string): HealthIssue[] {
         description: `Referência a regra inexistente: "${ruleId}" não está definida em FORBIDDEN_OPERATIONS.md`,
         location: locations[0] ?? "docs/AGENTS.md",
         recommendation: `Criar a regra "${ruleId}" em FORBIDDEN_OPERATIONS.md ou corrigir a referência em ${locations.join(", ")}`,
+        confidence: 0.65,
       });
     }
   } catch (err) { logger.debug("governance-detectors", "Error in detectPhantomRuleRefs:", err); }
@@ -294,6 +302,7 @@ export function detectDocCountMismatch(shitenDir: string): HealthIssue[] {
             description: `GUIDE diz "${claimed} relatórios" mas existem ${actual} ficheiros complexity-*.json`,
             location: "shitenno-go/docs/Shitenno-go_GUIDE.md",
             recommendation: `Actualizar contagem de relatórios para ${actual}`,
+            confidence: 0.75,
           });
         }
       }
@@ -312,6 +321,7 @@ export function detectDocCountMismatch(shitenDir: string): HealthIssue[] {
             description: `GUIDE diz "${claimed} registos de feedback" mas existem ${actual}`,
             location: "shitenno-go/docs/Shitenno-go_GUIDE.md",
             recommendation: `Actualizar contagem de registos para ${actual}`,
+            confidence: 0.75,
           });
         }
       }
@@ -375,6 +385,7 @@ export function detectCrossDocP0Contradiction(shitenDir: string): HealthIssue[] 
           description: `Hierarquia P0 inconsistente entre docs: ${parts.join("; ")}`,
           location: `shitenno-go/${fileA}`,
           recommendation: "Reconciliar listas P0 em todos os documentos",
+          confidence: 0.65,
         });
       }
     }
@@ -407,6 +418,7 @@ export function detectEmptyDataFiles(shitenDir: string): HealthIssue[] {
               description: `Ficheiro vazio (0 bytes): ${dir}/${file}`,
               location: `shitenno-go/${dir}/${file}`,
               recommendation: `Verificar se ${file} deveria ter conteúdo ou removê-lo`,
+              confidence: 0.95,
             });
           }
         } catch (statErr) { logger.debug("governance-detectors", "Error checking file stat:", statErr); }

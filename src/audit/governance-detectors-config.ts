@@ -20,6 +20,7 @@ export function detectAdrCoverage(shitenDir: string): HealthIssue[] {
       description: "Directório docs/adrs/ não existe — decisões arquiteturais não rastreadas",
       location: "shitenno-go/docs/adrs/",
       recommendation: "Criar directório docs/adrs/ e adicionar ADRs para decisões existentes",
+      confidence: 0.95,
     });
     return issues;
   }
@@ -35,6 +36,7 @@ export function detectAdrCoverage(shitenDir: string): HealthIssue[] {
         description: "Nenhum ADR encontrado em docs/adrs/ — decisões não documentadas",
         location: "shitenno-go/docs/adrs/",
         recommendation: "Criar ADRs para decisões arquiteturais significativas",
+        confidence: 0.95,
       });
     }
   } catch (err) {
@@ -78,6 +80,7 @@ export function detectUnreferencedDirs(shitenDir: string): HealthIssue[] {
           description: `Directório "docs/${entry.name}" existe mas não é referenciado em nenhum documento governance`,
           location: `shitenno-go/docs/${entry.name}/`,
           recommendation: `Adicionar referência a "docs/${entry.name}" em SYSTEM_MAP.md ou remover o directório`,
+          confidence: 0.75,
         });
       }
     }
@@ -105,6 +108,7 @@ export function detectReportNaming(shitenDir: string): HealthIssue[] {
           description: `Report "${file}" não segue a convenção de nomenclatura (<tipo>-YYYY-MM-DD.json)`,
           location: `shitenno-go/reports/${file}`,
           recommendation: `Renomear "${file}" para seguir o padrão <tipo>-YYYY-MM-DD.json`,
+          confidence: 0.75,
         });
       }
     }
@@ -140,6 +144,7 @@ export function detectBareWordRefs(shitenDir: string): HealthIssue[] {
               description: `Referência P0 obrigatória "${file}" não existe em nenhuma localização`,
               location: "shitenno-go/docs/AGENTS.md",
               recommendation: `Criar "${file}" ou remover da lista P0 em AGENTS.md`,
+              confidence: 0.7,
             });
           }
         }
@@ -180,6 +185,7 @@ export function detectTemplateDirRefs(shitenDir: string): HealthIssue[] {
               description: `Directório "${dirPart}" referenciado por template "${ref}" não existe`,
               location: `shitenno-go/${doc}`,
               recommendation: `Criar directório "${dirPart}" ou corrigir referência em "${doc}"`,
+              confidence: 0.75,
             });
           }
         }
@@ -239,6 +245,7 @@ export function detectExtensionMismatch(shitenDir: string): HealthIssue[] {
               description: `Referência "${wrongName}" usa extensão errada — ficheiro real é "${correctName}"`,
               location: `shitenno-go/${doc}`,
               recommendation: `Corrigir "${wrongName}" para "${correctName}" em "${doc}"`,
+              confidence: 0.7,
             });
           }
         }
@@ -273,6 +280,7 @@ export function detectExtensionMismatch(shitenDir: string): HealthIssue[] {
             description: `Referência "${fullName}" usa extensão errada — ficheiro real é "${swappedName}"`,
             location: `shitenno-go/${doc}`,
             recommendation: `Corrigir "${fullName}" para "${swappedName}" em "${doc}"`,
+            confidence: 0.75,
           });
         }
       }
@@ -306,6 +314,7 @@ export function detectSystemMapMismatch(shitenDir: string): HealthIssue[] {
             description: `Directório "docs/${entry.name}" existe mas não está listado no SYSTEM_MAP.md`,
             location: "shitenno-go/governance/SYSTEM_MAP.md",
             recommendation: `Adicionar "docs/${entry.name}" à árvore em SYSTEM_MAP.md`,
+            confidence: 0.75,
           });
         }
       }
@@ -342,6 +351,7 @@ export function detectBrokenCommands(shitenDir: string): HealthIssue[] {
       description: `${brokenCommands.size} comando(s) pnpm run não executável(s) sem package.json: ${Array.from(brokenCommands).join(", ")}`,
       location: "shitenno-go/",
       recommendation: "Criar shitenno-go/package.json com os scripts definidos",
+      confidence: 0.95,
     });
   }
   return issues;
@@ -380,6 +390,7 @@ export function detectP0Inconsistency(shitenDir: string): HealthIssue[] {
           description: `"${file}" está na lista P0 de AGENTS.md mas não na de CONTEXT_HIERARCHY.md`,
           location: "shitenno-go/docs/AGENTS.md",
           recommendation: `Verificar se "${file}" deve ser P0 em ambos os documentos`,
+          confidence: 0.7,
         });
       }
     }
@@ -391,6 +402,7 @@ export function detectP0Inconsistency(shitenDir: string): HealthIssue[] {
           description: `"${file}" está na lista P0 de CONTEXT_HIERARCHY.md mas não na de AGENTS.md`,
           location: "shitenno-go/cognition/context/CONTEXT_HIERARCHY.md",
           recommendation: `Verificar se "${file}" deve ser P0 em ambos os documentos`,
+          confidence: 0.7,
         });
       }
     }
@@ -438,6 +450,7 @@ export function detectTripleMaturityScore(shitenDir: string): HealthIssue[] {
         description: `Scores de maturidade inconsistentes: ${details}`,
         location: "shitenno-go/",
         recommendation: "Reconciliar — todos os ficheiros devem reflectir o mesmo valor",
+        confidence: 0.9,
       });
     }
   }
@@ -458,6 +471,7 @@ export function detectEmptyStack(shitenDir: string): HealthIssue[] {
         description: "fingerprint.json tem stack: [] vazio — projecto TypeScript não detectado",
         location: "shitenno-go/fingerprint.json",
         recommendation: 'Actualizar stack para ["typescript"] ou re-executar fingerprint',
+        confidence: 0.9,
       });
     }
   } catch (err) { logger.debug("governance-detectors", "Error in detectEmptyStack:", err); }
@@ -465,3 +479,34 @@ export function detectEmptyStack(shitenDir: string): HealthIssue[] {
 }
 
 
+
+// ── Orphan Skills Detector ────────────────────────────────────────────────
+import { listSkills } from "../knowledge-loader.js";
+import { ISSUE_TYPE_TO_SKILL } from "./skill-refs.js";
+
+/**
+ * Detect skills that have no associated detector — they exist only as prose,
+ * with no automated checking. This gives visibility into how much of the
+ * skill documentation still lacks corresponding code checks.
+ */
+export function detectOrphanSkills(shitenDir: string): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  try {
+    const skills = listSkills(shitenDir);
+    const referencedSkills = new Set(Object.values(ISSUE_TYPE_TO_SKILL));
+
+    for (const skill of skills) {
+      if (!referencedSkills.has(skill.name)) {
+        issues.push({
+          type: "orphan_skill",
+          severity: 1,
+          description: `Skill "${skill.name}" não tem nenhum detector associado — só existe como prosa, sem checagem automática`,
+          location: `docs/skills/${skill.filename}`,
+          recommendation: `Se a skill documenta uma prática checável por código, considerar criar um detector e registrar em ISSUE_TYPE_TO_SKILL`,
+          confidence: 0.7, // heuristic — not every skill needs a detector (e.g. tdd_workflow.md is process, not code pattern)
+        });
+      }
+    }
+  } catch (err) { logger.debug("governance-detectors", "Error in detectOrphanSkills:", err); }
+  return issues;
+}

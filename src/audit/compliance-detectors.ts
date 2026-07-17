@@ -88,6 +88,7 @@ export function detectOWASPTop10(
         description: `OWASP ${category} com cobertura insuficiente (${Math.round(coverage * 100)}%)`,
         location: "compliance mapping",
         recommendation: `Rever controles de segurança para ${category}: ${requiredTypes.join(", ")}`,
+        confidence: 0.85,
       });
     }
   }
@@ -132,6 +133,7 @@ export function detectCWEMapping(
       description: `${unmappedTypes.length} tipos de issue sem mapeamento CWE`,
       location: "compliance mapping",
       recommendation: `Adicionar mapeamento CWE para: ${unmappedTypes.join(", ")}`,
+      confidence: 0.85,
     });
   }
 
@@ -164,6 +166,7 @@ export function detectSOC2Controls(projectRoot: string, _files: SourceFileInfo[]
       description: `SOC2: ${missingControls.length} documentos de controle em falta`,
       location: "compliance docs",
       recommendation: `Criar documentos de controle: ${missingControls.join(", ")}`,
+      confidence: 0.95,
     });
   }
 
@@ -187,6 +190,7 @@ export function detectNISTAlignment(projectRoot: string, _files: SourceFileInfo[
       description: "NIST: Estrutura de governança incompleta",
       location: "shitenno-go/governance",
       recommendation: "Implementar estrutura completa de governança conforme NIST SP 800-53",
+      confidence: 0.95,
     });
   }
 
@@ -217,6 +221,7 @@ export function detectLGPDCompliance(_projectRoot: string, files: SourceFileInfo
       description: "Nenhuma referência a LGPD/GDPR detectada no projeto",
       location: "project root",
       recommendation: "Documentar conformidade com LGPD: consentimento, retenção, direitos do titular, DPO.",
+      confidence: 0.65,
     });
   }
 
@@ -244,6 +249,7 @@ export function detectDataRetention(_projectRoot: string, files: SourceFileInfo[
       description: "Nenhuma política de retenção de dados detectada",
       location: "project root",
       recommendation: "Definir e documentar políticas de retenção de dados conforme LGPD/GDPR.",
+      confidence: 0.65,
     });
   }
 
@@ -271,6 +277,7 @@ export function detectConsentTracking(_projectRoot: string, files: SourceFileInf
       description: "Nenhum mecanismo de rastreamento de consentimento detectado",
       location: "project root",
       recommendation: "Implementar consent management para dados pessoais conforme LGPD/GDPR.",
+      confidence: 0.65,
     });
   }
 
@@ -311,6 +318,7 @@ export function detectSecretsInConfig(projectRoot: string, _files: SourceFileInf
         description: `Possível segredo detectado em ${configFile}`,
         location: configFile,
         recommendation: "Mover segredos para variáveis de ambiente ou vault. Nunca committar segredos em config files.",
+        confidence: 0.75,
       });
     }
   }
@@ -348,6 +356,7 @@ export function detectEncryptionAtRest(_projectRoot: string, files: SourceFileIn
       description: "Dados sensíveis detectados sem padrões de criptografia",
       location: "source files",
       recommendation: "Implementar criptografia para dados sensíveis em repouso e trânsito.",
+      confidence: 0.65,
     });
   }
 
@@ -386,6 +395,7 @@ export function detectAccessControls(_projectRoot: string, files: SourceFileInfo
       description: "Rotas detectadas sem middleware de autORIZAÇÃO/autENTICAÇÃO",
       location: "source files",
       recommendation: "Implementar middleware de auth para todas as rotas sensíveis.",
+      confidence: 0.65,
     });
   }
 
@@ -414,6 +424,7 @@ export function detectAuditLogging(_projectRoot: string, files: SourceFileInfo[]
       description: "Nenhum padrão de audit logging detectado",
       location: "source files",
       recommendation: "Implementar audit logging para ações sensíveis: create, update, delete, login.",
+      confidence: 0.65,
     });
   }
 
@@ -440,6 +451,7 @@ export function detectComplianceReport(projectRoot: string, _files: SourceFileIn
       description: "Nenhum relatório de compliance encontrado",
       location: "project root",
       recommendation: "Criar relatório de compliance mapeando controles para frameworks (OWASP, SOC2, NIST).",
+      confidence: 0.95,
     });
   }
 

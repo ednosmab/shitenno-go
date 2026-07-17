@@ -34,6 +34,7 @@ export function detectPipelineGaps(projectRoot: string, _files: SourceFileInfo[]
       description: "Nenhum pipeline de CI/CD encontrado",
       location: "project root",
       recommendation: "Configurar pipeline de CI/CD para build, teste e deploy automatizados.",
+      confidence: 0.95,
     });
   }
 
@@ -70,6 +71,7 @@ export function detectRollbackCapability(projectRoot: string, files: SourceFileI
       description: "Nenhum mecanismo de rollback detectado",
       location: "project root",
       recommendation: "Implementar scripts de rollback e strategy de deploy (blue-green, canary).",
+      confidence: 0.8,
     });
   }
 
@@ -96,6 +98,7 @@ export function detectMissingRunbooks(projectRoot: string, _files: SourceFileInf
       description: "Nenhum runbook operacional encontrado",
       location: "project root",
       recommendation: "Criar runbooks para operações comuns: deploy, rollback, incident response, scaling.",
+      confidence: 0.95,
     });
   }
 
@@ -123,6 +126,7 @@ export function detectMonitoringGaps(_projectRoot: string, files: SourceFileInfo
       description: "Nenhuma ferramenta de monitoring detectada",
       location: "project root",
       recommendation: "Configurar monitoring para serviços críticos (Datadog, New Relic, Prometheus/Grafana).",
+      confidence: 0.65,
     });
   }
 
@@ -149,6 +153,7 @@ export function detectIncidentResponse(projectRoot: string, _files: SourceFileIn
       description: "Nenhum plano de resposta a incidentes encontrado",
       location: "project root",
       recommendation: "Documentar processo de resposta a incidentes: detecção, contenção, resolução, post-mortem.",
+      confidence: 0.95,
     });
   }
 
@@ -175,6 +180,7 @@ export function detectDisasterRecovery(projectRoot: string, _files: SourceFileIn
       description: "Nenhuma documentação de disaster recovery encontrada",
       location: "project root",
       recommendation: "Documentar plano de DR: RPO, RTO, procedimentos de recuperação, backups.",
+      confidence: 0.95,
     });
   }
 
@@ -200,6 +206,7 @@ export function detectCapacityPlanning(projectRoot: string, _files: SourceFileIn
       description: "Nenhum documento de capacity planning encontrado",
       location: "project root",
       recommendation: "Documentar plano de capacidade: thresholds, scaling triggers, recursos necessários.",
+      confidence: 0.95,
     });
   }
 
@@ -226,6 +233,7 @@ export function detectChangeManagement(projectRoot: string, _files: SourceFileIn
       description: "Nenhum processo de change management documentado",
       location: "project root",
       recommendation: "Documentar processo de gestão de mudanças: aprovação, testing, rollback, comunicação.",
+      confidence: 0.95,
     });
   }
 
