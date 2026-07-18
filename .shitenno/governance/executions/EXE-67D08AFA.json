@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-67D08AFA",
+  "request": {
+    "id": "invoke-mrpxp5ax",
+    "type": "log_event",
+    "params": {
+      "event": "session_end_plans",
+      "message": "Session ended — run 'shugo plan md lifecycle' to archive active plans"
+    }
+  },
+  "executionHash": "1214e1a6ed2c274a",
+  "status": "completed",
+  "startedAt": "2026-07-18T05:36:28.185Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Logged event: session_end_plans"
+  },
+  "completedAt": "2026-07-18T05:36:28.216Z",
+  "duration": 31
+}

@@ -16,7 +16,7 @@ import { calculateComplexityScore } from "../scorer.js";
 import { detectPatterns } from "../pattern-detector.js";
 import { auditHealth } from "../health-auditor.js";
 import { analyseProject } from "../analyser.js";
-import { getEngineeringState, clearEngineeringStateCache } from "../engineering-state-access.js";
+import { getEngineeringState, clearEngineeringStateCache } from "../engineering-state/access.js";
 import type { UserAnswers } from "../prompts.js";
 import type { Capability } from "../maturity-profile.js";
 

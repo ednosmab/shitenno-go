@@ -2,412 +2,414 @@
   "drift": null,
   "sessions": [],
   "health": {
-    "score": 2,
-    "checkedAt": "2026-07-17T13:20:02.754Z"
+    "score": 17,
+    "checkedAt": "2026-07-18T13:21:24.864Z"
   },
   "challenges": [],
   "debt": null,
   "events": [
     {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:20:26.711Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.711Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:26.715Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:20:26.716Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.716Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:26.716Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.716Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:26.748Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:20:26.748Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.748Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:26.748Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:20:26.748Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.749Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:26.749Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:20:26.749Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:26.749Z"
+    },
+    {
       "type": "plan.created",
-      "timestamp": "2026-07-17T07:36:24.621Z"
+      "timestamp": "2026-07-18T13:20:28.115Z"
     },
     {
       "type": "plan.file_changed",
-      "timestamp": "2026-07-17T07:36:24.621Z"
+      "timestamp": "2026-07-18T13:20:28.115Z"
     },
     {
       "type": "health.checked",
-      "timestamp": "2026-07-17T07:36:24.825Z"
+      "timestamp": "2026-07-18T13:20:28.403Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:24.826Z"
+      "timestamp": "2026-07-18T13:20:28.404Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:24.851Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:24.852Z"
+      "timestamp": "2026-07-18T13:20:28.411Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T07:36:25.085Z"
+      "timestamp": "2026-07-18T13:20:29.618Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:36:25.085Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:36:25.086Z"
-    },
-    {
-      "type": "health.checked",
-      "timestamp": "2026-07-17T07:36:25.209Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:36:25.209Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:25.223Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:25.242Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:36:29.157Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:36:29.158Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:36:29.160Z"
-    },
-    {
-      "type": "health.checked",
-      "timestamp": "2026-07-17T07:36:29.264Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:36:29.264Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:29.277Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:36:29.285Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:38:39.072Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:38:39.073Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:38:39.073Z"
-    },
-    {
-      "type": "health.checked",
-      "timestamp": "2026-07-17T07:38:39.185Z"
-    },
-    {
-      "type": "backlog.updated",
-      "timestamp": "2026-07-17T07:38:39.186Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:38:39.198Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T07:38:39.199Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:38:45.238Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:38:45.238Z"
+      "timestamp": "2026-07-18T13:20:29.618Z"
     },
     {
       "type": "plan.file_changed",
-      "timestamp": "2026-07-17T07:38:45.239Z"
+      "timestamp": "2026-07-18T13:20:29.618Z"
     },
     {
       "type": "health.checked",
-      "timestamp": "2026-07-17T07:38:45.360Z"
+      "timestamp": "2026-07-18T13:20:29.803Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T07:38:45.378Z"
+      "timestamp": "2026-07-18T13:20:29.814Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T07:38:45.380Z"
+      "timestamp": "2026-07-18T13:20:29.819Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T07:38:45.381Z"
+      "timestamp": "2026-07-18T13:20:29.820Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:29.823Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:29.832Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:29.836Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T07:38:45.867Z"
+      "timestamp": "2026-07-18T13:20:30.309Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T07:38:45.868Z"
+      "timestamp": "2026-07-18T13:20:30.309Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:38:45.868Z"
+      "timestamp": "2026-07-18T13:20:30.310Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T07:38:45.870Z"
+      "timestamp": "2026-07-18T13:20:30.310Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:38:45.871Z"
+      "timestamp": "2026-07-18T13:20:30.311Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T07:40:14.238Z"
+      "timestamp": "2026-07-18T13:20:38.853Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:40:14.239Z"
+      "timestamp": "2026-07-18T13:20:38.853Z"
     },
     {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:48:41.157Z"
-    },
-    {
-      "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T07:48:41.157Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:48:41.157Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:48:41.157Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:48:41.158Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T07:48:41.182Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T07:48:41.183Z"
-    },
-    {
-      "type": "health.checked",
-      "timestamp": "2026-07-17T08:07:33.124Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T08:07:33.128Z"
-    },
-    {
-      "type": "health.checked",
-      "timestamp": "2026-07-17T12:07:33.131Z"
-    },
-    {
-      "type": "asset.created",
-      "timestamp": "2026-07-17T12:07:33.134Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T13:20:02.700Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T13:20:02.700Z"
+      "type": "plan.created",
+      "timestamp": "2026-07-18T13:20:41.999Z"
     },
     {
       "type": "plan.file_changed",
-      "timestamp": "2026-07-17T13:20:02.700Z"
+      "timestamp": "2026-07-18T13:20:42.000Z"
     },
     {
       "type": "health.checked",
-      "timestamp": "2026-07-17T13:20:02.754Z"
+      "timestamp": "2026-07-18T13:20:42.151Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T13:20:02.762Z"
+      "timestamp": "2026-07-18T13:20:42.151Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T13:20:02.763Z"
+      "timestamp": "2026-07-18T13:20:42.157Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:20:50.997Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:20:50.997Z"
+    },
+    {
+      "type": "plan.file_changed",
+      "timestamp": "2026-07-18T13:20:50.998Z"
+    },
+    {
+      "type": "health.checked",
+      "timestamp": "2026-07-18T13:20:51.111Z"
     },
     {
       "type": "asset.created",
-      "timestamp": "2026-07-17T13:20:02.763Z"
+      "timestamp": "2026-07-18T13:20:51.122Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:51.123Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:51.125Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:51.129Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:51.133Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:20:51.134Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T13:20:03.256Z"
+      "timestamp": "2026-07-18T13:20:51.616Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T13:20:03.257Z"
+      "timestamp": "2026-07-18T13:20:51.616Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T13:20:03.257Z"
+      "timestamp": "2026-07-18T13:20:51.617Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T13:20:03.257Z"
+      "timestamp": "2026-07-18T13:20:51.617Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T13:20:03.257Z"
+      "timestamp": "2026-07-18T13:20:51.617Z"
+    },
+    {
+      "type": "plan.created",
+      "timestamp": "2026-07-18T13:21:07.669Z"
+    },
+    {
+      "type": "plan.file_changed",
+      "timestamp": "2026-07-18T13:21:07.670Z"
+    },
+    {
+      "type": "health.checked",
+      "timestamp": "2026-07-18T13:21:07.836Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:21:07.837Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:21:07.842Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:55.461Z"
+      "timestamp": "2026-07-18T13:21:24.756Z"
+    },
+    {
+      "type": "docs.sync.triggered",
+      "timestamp": "2026-07-18T13:21:24.756Z"
+    },
+    {
+      "type": "plan.file_changed",
+      "timestamp": "2026-07-18T13:21:24.757Z"
+    },
+    {
+      "type": "health.checked",
+      "timestamp": "2026-07-18T13:21:24.864Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:21:24.869Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.169Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.201Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.211Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.233Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.427Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.445Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.451Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.457Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.457Z"
+    },
+    {
+      "type": "asset.created",
+      "timestamp": "2026-07-18T13:22:36.467Z"
+    },
+    {
+      "type": "asset.updated",
+      "timestamp": "2026-07-18T13:22:36.688Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T14:01:55.461Z"
+      "timestamp": "2026-07-18T13:22:36.689Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:55.462Z"
+      "timestamp": "2026-07-18T13:22:36.689Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:55.467Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:55.468Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:55.553Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:55.553Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:56.677Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:56.678Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:59.178Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:59.178Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:59.621Z"
+      "timestamp": "2026-07-18T13:22:36.730Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T14:01:59.622Z"
+      "timestamp": "2026-07-18T13:22:36.731Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:59.623Z"
+      "timestamp": "2026-07-18T13:22:36.731Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:59.630Z"
+      "timestamp": "2026-07-18T13:22:36.922Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:59.634Z"
+      "timestamp": "2026-07-18T13:22:36.922Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:01:59.728Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:01:59.729Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:03:08.634Z"
+      "timestamp": "2026-07-18T13:22:36.923Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T14:03:08.634Z"
+      "timestamp": "2026-07-18T13:22:36.923Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:03:08.635Z"
+      "timestamp": "2026-07-18T13:22:36.923Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:03:08.636Z"
+      "timestamp": "2026-07-18T13:22:36.924Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:03:08.637Z"
+      "timestamp": "2026-07-18T13:22:36.924Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:03:08.674Z"
-    },
-    {
-      "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:03:08.675Z"
-    },
-    {
-      "type": "asset.updated",
-      "timestamp": "2026-07-17T14:21:42.169Z"
+      "timestamp": "2026-07-18T13:22:36.960Z"
     },
     {
       "type": "engineering_state.updated",
-      "timestamp": "2026-07-17T14:21:42.170Z"
+      "timestamp": "2026-07-18T13:22:36.960Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:21:42.170Z"
+      "timestamp": "2026-07-18T13:22:36.960Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:21:42.171Z"
+      "timestamp": "2026-07-18T13:22:36.961Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:22:36.961Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:21:42.171Z"
+      "timestamp": "2026-07-18T13:22:36.962Z"
     },
     {
       "type": "asset.updated",
-      "timestamp": "2026-07-17T14:21:42.210Z"
+      "timestamp": "2026-07-18T13:22:36.962Z"
+    },
+    {
+      "type": "engineering_state.updated",
+      "timestamp": "2026-07-18T13:22:36.962Z"
     },
     {
       "type": "docs.sync.triggered",
-      "timestamp": "2026-07-17T14:21:42.211Z"
-    },
-    {
-      "type": "startup_scan.archive_plans",
-      "timestamp": "2026-07-18T05:24:16.864Z"
-    },
-    {
-      "type": "startup_scan.check_inconsistencies",
-      "timestamp": "2026-07-18T05:24:16.864Z"
-    },
-    {
-      "type": "startup_scan.validate_reminders",
-      "timestamp": "2026-07-18T05:24:16.865Z"
-    },
-    {
-      "type": "startup_scan.move_backlog",
-      "timestamp": "2026-07-18T05:24:16.866Z"
+      "timestamp": "2026-07-18T13:22:36.963Z"
     }
   ],
-  "startedAt": "2026-07-18T05:24:16.854Z"
+  "startedAt": "2026-07-18T13:20:13.093Z",
+  "briefingCache": null,
+  "riskMapCache": null
 }

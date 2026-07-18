@@ -21,7 +21,7 @@ import {
   type DecisionFilter,
   type DecisionRequest,
   type EvaluatorScore,
-} from "../decision-engine.js";
+} from "../prioritization/evaluators.js";
 
 // ── In-Memory Repository ───────────────────────────────────────────────────
 

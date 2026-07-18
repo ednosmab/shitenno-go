@@ -10,7 +10,7 @@ import {
   getSnapshotAt,
   listSnapshots,
   diffSnapshots,
-} from "../engineering-state-history.js";
+} from "../engineering-state/history.js";
 import type { EngineeringState } from "../engineering-state.js";
 
 function createTmpDir(): string {

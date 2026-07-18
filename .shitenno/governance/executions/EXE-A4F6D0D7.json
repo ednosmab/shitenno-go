@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-A4F6D0D7",
+  "request": {
+    "id": "invoke-mrpz3x4c",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T06:15:57.036Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T06:15:57.065Z",
+  "duration": 28
+}

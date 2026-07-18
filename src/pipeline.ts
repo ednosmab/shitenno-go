@@ -17,7 +17,7 @@ import type { PatternDetectionReport } from "./pattern-detector.js";
 import type { KnowledgeDebtReport } from "./knowledge-debt.js";
 import type { CapabilityEngineResult } from "./capability-engine.js";
 import type { EngineeringState } from "./engineering-state.js";
-import type { RecommendationEngineResult } from "./recommendation-engine.js";
+import type { RecommendationEngineResult } from "./prioritization/recommend.js";
 import type { EvolutionReport } from "./auto-evolution.js";
 import type { HealthAuditReport } from "./health-auditor.js";
 
@@ -214,7 +214,7 @@ export async function createDefaultPipeline(): Promise<Pipeline> {
   const { detectKnowledgeDebt } = await import("./knowledge-debt.js");
   const { evaluateCapabilities } = await import("./capability-engine.js");
   const { consolidateEngineeringState } = await import("./engineering-state.js");
-  const { runRecommendationEngine } = await import("./recommendation-engine.js");
+  const { runRecommendationEngine } = await import("./prioritization/recommend.js");
   const { analyzeEvolution } = await import("./auto-evolution.js");
 
   const pipeline = new Pipeline();

@@ -8,7 +8,7 @@ import {
 } from "./briefing.js";
 import { loadRules } from "./rule-engine.js";
 import { generateDynamicRules } from "./dynamic-rules.js";
-import { getEngineeringState } from "./engineering-state-access.js";
+import { getEngineeringState } from "./engineering-state/access.js";
 import { parseBacklog } from "./backlog-parser.js";
 import { readCache } from "./briefing-cache.js";
 import { recordOutcome, createFileStorage } from "./session-feedback.js";

@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { getEngineeringState, clearEngineeringStateCache } from "../engineering-state-access.js";
+import { getEngineeringState, clearEngineeringStateCache } from "../engineering-state/access.js";
 import { saveEngineeringState, type EngineeringState } from "../engineering-state.js";
 
 describe("engineering-state-access", () => {

@@ -1,0 +1,20 @@
+{
+  "executionId": "EXE-DEA1A5CD",
+  "request": {
+    "id": "invoke-mrpz5u27",
+    "type": "send_notification",
+    "params": {
+      "message": "📚 Handbook template detected — load skill handbook-fill and populate SEMANTIC blocks"
+    }
+  },
+  "executionHash": "994af64920229b75",
+  "status": "completed",
+  "startedAt": "2026-07-18T06:17:26.383Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Unknown action type: send_notification"
+  },
+  "completedAt": "2026-07-18T06:17:26.384Z",
+  "duration": 1
+}

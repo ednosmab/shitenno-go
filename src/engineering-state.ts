@@ -33,20 +33,20 @@ export type { AssetType, EngineeringAsset, EngineeringState } from "./domain/ent
 
 // ── Re-exports from split modules ───────────────────────────────────────────
 
-export { discoverAssets } from "./engineering-state-discovery.js";
+export { discoverAssets } from "./engineering-state/discovery.js";
 export {
   saveEngineeringState,
   loadEngineeringState,
   engineeringStateToText,
-} from "./engineering-state-io.js";
+} from "./engineering-state/io.js";
 
 // ── Import from split modules ───────────────────────────────────────────────
 
-import { discoverAssets } from "./engineering-state-discovery.js";
+import { discoverAssets } from "./engineering-state/discovery.js";
 import {
   saveEngineeringState,
   loadEngineeringState,
-} from "./engineering-state-io.js";
+} from "./engineering-state/io.js";
 
 // ── Entropy Calculation ────────────────────────────────────────────────────
 

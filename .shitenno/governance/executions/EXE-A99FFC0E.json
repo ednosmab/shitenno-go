@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-A99FFC0E",
+  "request": {
+    "id": "invoke-mrqdek3u",
+    "type": "log_event",
+    "params": {
+      "event": "session_close",
+      "message": "Session ended — run close-session to validate hygiene"
+    }
+  },
+  "executionHash": "956195e691807488",
+  "status": "completed",
+  "startedAt": "2026-07-18T12:56:08.010Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Logged event: session_close"
+  },
+  "completedAt": "2026-07-18T12:56:08.044Z",
+  "duration": 34
+}

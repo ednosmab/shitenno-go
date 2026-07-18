@@ -254,7 +254,7 @@ export const statusCommand = new Command("status")
     // Display capability engine summary
     try {
       const { evaluateCapabilities } = await import("../capability-engine.js");
-      const { subscribeToEngineeringState } = await import("../engineering-state-subscription.js");
+      const { subscribeToEngineeringState } = await import("../engineering-state/subscription.js");
       const { getState, unsubscribe } = subscribeToEngineeringState(ctx.projectRoot, ctx.shitennoDir);
       const state = getState();
       unsubscribe();

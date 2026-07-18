@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getEventBus, resetEventBus } from "../event-bus.js";
-import { subscribeToEngineeringState } from "../engineering-state-subscription.js";
+import { subscribeToEngineeringState } from "../engineering-state/subscription.js";
 
 describe("subscribeToEngineeringState", () => {
   beforeEach(() => {

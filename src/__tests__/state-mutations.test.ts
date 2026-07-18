@@ -12,7 +12,7 @@ import {
   clearMutationLog,
   type StateMutation,
   type MutationSource,
-} from "../engineering-state-mutations.js";
+} from "../engineering-state/mutations.js";
 import { resetEventBus, getEventBus } from "../event-bus.js";
 import type { EngineeringState } from "../engineering-state.js";
 

@@ -50,6 +50,10 @@ shitenno/feedback/records/
 # Shitenno — daemon runtime state (process-specific, never version)
 shitenno/daemon/
 
+# Shitenno — checkpoints de sessão (estado local, não deve ser compartilhado entre devs)
+.shitenno/governance/context/checkpoints/
+.shitenno/governance/context/context_buffer.yaml
+
 # Shitenno — derived/computable state (rebuilt from code, not human-editable)
 shitenno/engineering-state.json
 shitenno/fingerprint.json

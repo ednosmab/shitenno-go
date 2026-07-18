@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-060614E4",
+  "request": {
+    "id": "invoke-mrpz4284",
+    "type": "log_event",
+    "params": {
+      "event": "session_end_plans",
+      "message": "Session ended — run 'shugo plan md lifecycle' to archive active plans"
+    }
+  },
+  "executionHash": "1214e1a6ed2c274a",
+  "status": "completed",
+  "startedAt": "2026-07-18T06:16:03.652Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Logged event: session_end_plans"
+  },
+  "completedAt": "2026-07-18T06:16:03.653Z",
+  "duration": 0
+}

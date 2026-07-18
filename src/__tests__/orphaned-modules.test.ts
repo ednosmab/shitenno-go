@@ -35,8 +35,8 @@ describe("Orphaned Modules Activation (Phase E)", () => {
     expect(typeof mod.ShitennoError).toBe("function");
   });
 
-  it("engineering-state-access.ts exports getEngineeringState", async () => {
-    const mod = await import("../engineering-state-access.js");
+  it("engineering-state/access.ts exports getEngineeringState", async () => {
+    const mod = await import("../engineering-state/access.js");
     expect(typeof mod.getEngineeringState).toBe("function");
     expect(typeof mod.clearEngineeringStateCache).toBe("function");
   });

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getEventBus, resetEventBus } from "../event-bus.js";
-import { initializeProactiveEngine } from "../proactive-engine.js";
+import { initializeProactiveEngine } from "../prioritization/triggers.js";
 
 describe("initializeProactiveEngine", () => {
   beforeEach(() => {

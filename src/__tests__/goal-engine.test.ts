@@ -15,7 +15,7 @@ import {
   type Goal,
   type GoalRepository,
   type GoalFilter,
-} from "../goal-engine.js";
+} from "../prioritization/goals.js";
 
 // ── In-Memory Repository (for fast unit tests) ─────────────────────────────
 

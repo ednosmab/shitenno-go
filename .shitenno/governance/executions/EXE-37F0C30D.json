@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-37F0C30D",
+  "request": {
+    "id": "invoke-mrqdnjc1",
+    "type": "update_context_buffer",
+    "params": {
+      "field": "session.status",
+      "value": "completed"
+    }
+  },
+  "executionHash": "4ef0c4818d21492b",
+  "status": "completed",
+  "startedAt": "2026-07-18T13:03:06.913Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Updated session.status = completed"
+  },
+  "completedAt": "2026-07-18T13:03:06.913Z",
+  "duration": 0
+}

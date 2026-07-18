@@ -10,7 +10,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { guardNotInitialized } from "../shared.js";
 import { outputJson } from "../formatting.js";
-import { listSnapshots, getSnapshotAt, diffSnapshots } from "../engineering-state-history.js";
+import { listSnapshots, getSnapshotAt, diffSnapshots } from "../engineering-state/history.js";
 import { output, outputBlank } from "../output.js";
 import { join } from "node:path";
 import { SHITENNO_DIR_NAME } from "../constants.js";

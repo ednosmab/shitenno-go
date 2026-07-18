@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] — 2026-07-18
+
+### Added
+
+- **PUBLIC_API.md:** Formal documentation of public stable surface — CLI commands, MCP tools, schemas (`docs/PUBLIC_API.md`)
+- **FRZ-01 rule:** Engine creation freeze rule in FORBIDDEN_OPERATIONS until Phase 2 of consolidation complete
+
+### Changed
+
+- **Architecture consolidation:** Merge 4 prioritization engines (goal, decision, recommendation, proactive) into `src/prioritization/` module
+- **Engineering state consolidation:** Merge 8 engineering-state fragment files into `src/engineering-state/` directory (core, access, discovery, evolved, history, io, mutations, subscription)
+- **Plan engine deprecation:** Remove legacy JSON plan-engine and 8 bare CLI commands (`plan create/execute/rollback/cancel/list/show/stats/delete`). Markdown plan engine is now the sole plan system
+
+### Removed
+
+- **plan-engine.ts:** Legacy JSON plan system (superseded by markdown-plan-engine)
+- **plan CLI commands:** `plan create`, `plan execute`, `plan rollback`, `plan cancel`, `plan list`, `plan show`, `plan stats`, `plan delete` (use `plan md *` instead)
+- **4 top-level engine files:** `goal-engine.ts`, `decision-engine.ts`, `recommendation-engine.ts`, `proactive-engine.ts` (moved to `src/prioritization/`)
+- **7 engineering-state fragments:** `-access`, `-discovery`, `-evolved`, `-history`, `-io`, `-mutations`, `-subscription` (moved to `src/engineering-state/`)
+
 ## [1.1.0] — 2026-07-18
 
 ### Added

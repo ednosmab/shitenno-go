@@ -62,6 +62,16 @@
 | **DT-01** | Nenhuma pausa sem data `[REVISIT: YYYY-MM-DD]` | Itens pausados devem ter data de reavaliação | Reabrir item |
 | **DT-02** | Nenhuma branch órfãs com 0 commits únicos | Branches devem ser recriadas quando necessário | Recriar branch |
 
+### FRZ — Freeze de Engines (PLAN-2026-07-17)
+
+| # | Regra | Descrição | Consequência |
+|---|---|---|---|
+| **FRZ-01** | Nenhum `*-engine.ts` / `*-detector.ts` / `*-analyser.ts` novo até Fase 2 da consolidação | Congelar criação de novas engines. Qualquer necessidade nova deve tentar encaixar em engine existente ou justificar por escrito por que não cabe | Revert + documentar no plano de consolidação |
+
+> **Escopo:** Aplica-se a todos os arquivos `src/` que sigam o padrão `*-engine.ts`, `*-detector.ts` ou `*-analyser.ts`.
+> **Duração:** Até conclusão da Fase 2 de `PLAN-2026-07-17-consolidacao-produtizacao-multi-projeto`.
+> **Verificação:** Revisão de PR — regra social, não técnica.
+
 ---
 
 ## Referências

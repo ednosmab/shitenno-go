@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-9B8ED7D3",
+  "request": {
+    "id": "invoke-mrq00j5n",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T06:41:18.587Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T06:41:18.590Z",
+  "duration": 3
+}

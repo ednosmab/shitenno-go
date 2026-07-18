@@ -54,3 +54,9 @@ completed_tasks:
   - PLAN-SYSTEM-RESILIENCE (Fases 0-4: event publishers, daemon module split, status daemon-aware, async startup)
   - PLAN-LOG-ROTATION (byte counter, rotation config, rotateLogIfNeeded)
   - PLAN-DAEMON-FULL-INTEGRATION (Fases 6-9: watch removal, daemon logs, command.completed loop, daemon-aware banner)
+
+impediments:
+  - description: "Retroactive sync failed for TEST-FILE-WATCHER-001: 2 errors"
+    priority: "high"
+    createdAt: "2026-07-18T12:56:07.978Z"
+    category: "plan_sync"

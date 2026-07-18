@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { scaffoldShitenno } from "../scaffolder.js";
-import { getEngineeringState } from "../engineering-state-access.js";
+import { getEngineeringState } from "../engineering-state/access.js";
 import type { UserAnswers } from "../prompts.js";
 import type { Capability } from "../maturity-profile.js";
 

@@ -13,7 +13,7 @@ import {
   EventSourcedState,
   IncrementalConsolidator,
   type StateDelta,
-} from "../engineering-state-evolved.js";
+} from "../engineering-state/evolved.js";
 import type { EngineeringState, EngineeringAsset, AssetType } from "../engineering-state.js";
 import type { ShitennoLifecycleState } from "../shitenno-state-machine.js";
 import { resetEventBus } from "../event-bus.js";

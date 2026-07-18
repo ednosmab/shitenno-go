@@ -7,7 +7,7 @@
  * PRINCIPLE: One command, complete context.
  */
 
-import { getEngineeringState } from "../engineering-state-access.js";
+import { getEngineeringState } from "../engineering-state/access.js";
 import { generateForecast } from "../trend-engine.js";
 import { logger } from "../logger.js";
 import { join } from "node:path";

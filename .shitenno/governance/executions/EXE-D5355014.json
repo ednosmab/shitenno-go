@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-D5355014",
+  "request": {
+    "id": "invoke-mrpxinxq",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T05:31:25.742Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T05:31:25.755Z",
+  "duration": 13
+}

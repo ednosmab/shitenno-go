@@ -3,7 +3,7 @@ import {
   runRecommendationEngine,
   recommendationEngineToText,
   type RecommendationEngineResult,
-} from "../recommendation-engine.js";
+} from "../prioritization/recommend.js";
 import type { EngineeringState } from "../engineering-state.js";
 import type { CapabilityEngineResult } from "../capability-engine.js";
 import { tmpdir } from "node:os";

@@ -19,7 +19,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 
 import { guardNotInitialized } from "../shared.js";
-import { GoalEngine, type GoalStatus, type GoalPriority, FileGoalRepository } from "../goal-engine.js";
+import { GoalEngine, type GoalStatus, type GoalPriority, FileGoalRepository } from "../prioritization/goals.js";
 import { printDaemonBanner } from "../daemon-context-banner.js";
 import { outputJson } from "../formatting.js";
 import { SHITENNO_DIR_NAME } from "../constants.js";

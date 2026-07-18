@@ -1672,3 +1672,39 @@
 - [ ] Passo 1 — Criar schema do manifesto
 - [ ] Passo 2 — Implementar o resolvedor
 - [ ] Passo 3 — Integrar ao ponto de montagem de prompt existente
+
+
+### BACKLOG-PLAN_2026_07_17_CONSOLIDACAO_PRODUTIZACAO_MULTI_PROJETO_COMPLEMENTAR_HIGIENE_GIT — PLAN-2026-07-17 — Consolidação Arquitetural para Produtização Multi-Projeto (Complementar: Higiene de Git para Instâncias Solo Assíncronas)
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-18 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | PLAN-2026-07-17 — Consolidação Arquitetural para Produtização Multi-Projeto (Complementar: Higiene de Git para Instâncias Solo Assíncronas) |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-17-consolidacao-produtizacao-multi-projeto-complementar-higiene-git.md` |
+
+#### Passos do Plano
+- [ ] Passo 1 — Ignorar checkpoints de sessão
+- [ ] Passo 2 — Converter `relations.json` e `artifacts.json` para arquivo-por-entrada
+- [ ] Passo 3 — Aplicar o mesmo tratamento a `audit-suppressions.json`
+- [ ] Passo 4 — Documentar o modelo de uso
+
+
+### BACKLOG-TEST_FILE_WATCHER_001 — Untitled Plan
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-18 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | Untitled Plan |
+| **Correcao** | Verificar checklist no plano `governance/plans/TEST-FILE-WATCHER-001.md` |

@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-2846D3B0",
+  "request": {
+    "id": "invoke-mrqe53le",
+    "type": "update_context_buffer",
+    "params": {
+      "field": "session.status",
+      "value": "completed"
+    }
+  },
+  "executionHash": "4ef0c4818d21492b",
+  "status": "completed",
+  "startedAt": "2026-07-18T13:16:46.322Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Updated session.status = completed"
+  },
+  "completedAt": "2026-07-18T13:16:46.322Z",
+  "duration": 0
+}

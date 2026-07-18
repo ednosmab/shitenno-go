@@ -22,7 +22,7 @@ import {
   FileDecisionRepository,
   type DecisionRecommendation,
   type RiskLevel,
-} from "../decision-engine.js";
+} from "../prioritization/evaluators.js";
 import { outputJson } from "../formatting.js";
 import { SHITENNO_DIR_NAME } from "../constants.js";
 import { output, outputBlank, outputSection, outputError } from "../output.js";

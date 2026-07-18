@@ -14,7 +14,7 @@ import {
   clearMutationLog,
   type StateMutation,
   type MutationSource,
-} from "../engineering-state-mutations.js";
+} from "../engineering-state/mutations.js";
 import { type EngineeringState } from "../engineering-state.js";
 
 function makeValidState(): EngineeringState {

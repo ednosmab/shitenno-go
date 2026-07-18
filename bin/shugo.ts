@@ -59,7 +59,7 @@ import { initializeFromAnswers } from "../src/model-config.js";
 import { registerDocSyncHook } from "../src/doc-sync-hook.js";
 import { DocEngine } from "../src/doc-engine.js";
 import { consolidateEngineeringState } from "../src/engineering-state.js";
-import { initializeProactiveEngine } from "../src/proactive-engine.js";
+import { initializeProactiveEngine } from "../src/prioritization/triggers.js";
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 import { SHITENNO_DIR_NAME } from "../src/constants.js";
 import { daemonCommand } from "../src/commands/daemon.js";

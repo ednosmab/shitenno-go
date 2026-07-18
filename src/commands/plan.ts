@@ -15,14 +15,6 @@ import { getEventBus } from "../event-bus.js";
 
 // ── Sub-command imports ────────────────────────────────────────────────────
 
-import { registerCreate } from "./plan/create.js";
-import { registerExecute } from "./plan/execute.js";
-import { registerRollback } from "./plan/rollback.js";
-import { registerCancel } from "./plan/cancel.js";
-import { registerList } from "./plan/list.js";
-import { registerShow } from "./plan/show.js";
-import { registerStats } from "./plan/stats.js";
-import { registerDelete } from "./plan/delete.js";
 import { registerMdList } from "./plan/md-list.js";
 import { registerMdShow } from "./plan/md-show.js";
 import { registerMdStatus } from "./plan/md-status.js";
@@ -207,23 +199,13 @@ export function planCommand(): Command {
     .description("Manage coordinated action sequences (plans)")
     .option("-d, --dir <path>", "Project directory");
 
-  registerCreate(cmd);
-  registerExecute(cmd);
-  registerRollback(cmd);
-  registerCancel(cmd);
-  registerList(cmd);
-  registerShow(cmd);
-  registerStats(cmd);
-  registerDelete(cmd);
-
-  const mdCmd = cmd.command("md").description("Manage markdown execution plans");
-  registerMdList(mdCmd);
-  registerMdShow(mdCmd);
-  registerMdStatus(mdCmd);
-  registerMdDone(mdCmd);
-  registerMdCreate(mdCmd);
-  registerMdPrepare(mdCmd);
-  registerMdLifecycle(mdCmd);
+  registerMdList(cmd);
+  registerMdShow(cmd);
+  registerMdStatus(cmd);
+  registerMdDone(cmd);
+  registerMdCreate(cmd);
+  registerMdPrepare(cmd);
+  registerMdLifecycle(cmd);
 
   return cmd;
 }
