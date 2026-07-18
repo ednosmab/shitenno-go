@@ -68,7 +68,8 @@ export type ShitennoEventType =
   | "context.p4_loaded"
   | "context.tier_mismatch"
   | "watcher.error"
-  | "daemon.ready";
+  | "daemon.ready"
+  | "action.pre_sensitive";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

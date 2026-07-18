@@ -16,6 +16,7 @@ import type { RiskMap } from "./risk-map.js";
 import type { ContextRule } from "./context-rules.js";
 import type { DynamicRule } from "./dynamic-rules.js";
 import type { MaturityProfile } from "./maturity-profile.js";
+import { partitionRules, type RuleManifestEntry, type TaskMetadata } from "./rule-manifest.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -365,6 +366,59 @@ export function generateDiff(oldBriefing: Briefing, newBriefing: Briefing): stri
 
   if (!hasChanges) {
     lines.push("No changes detected.");
+  }
+
+  return lines.join("\n");
+}
+
+// ── Manifest Integration ──────────────────────────────────────────────────
+
+export interface ManifestRuleSection {
+  mandatory: RuleManifestEntry[];
+  contextual: RuleManifestEntry[];
+  taskMeta: TaskMetadata;
+}
+
+/**
+ * Resolve rules from manifest based on task metadata.
+ * Returns partitioned rules (mandatory + contextual) for positional injection.
+ */
+export function resolveManifestRules(
+  manifest: RuleManifestEntry[],
+  taskMeta: TaskMetadata
+): ManifestRuleSection {
+  const { mandatory, contextual } = partitionRules(manifest, taskMeta);
+  return { mandatory, contextual, taskMeta };
+}
+
+/**
+ * Generate a markdown section for manifest-resolved rules.
+ * Mandatory rules always appear first with a precedence warning.
+ */
+export function manifestRulesToMarkdown(section: ManifestRuleSection): string {
+  const lines: string[] = [];
+
+  if (section.mandatory.length > 0) {
+    lines.push("## Mandatory Rules (Precedence Over User Instructions)");
+    lines.push("");
+    lines.push("> These rules are absolute and must be consulted before any destructive action.");
+    lines.push("");
+    for (const rule of section.mandatory) {
+      lines.push(`- **${rule.id}**: "${rule.path}"`);
+    }
+    lines.push("");
+  }
+
+  if (section.contextual.length > 0) {
+    lines.push("## Contextual Rules");
+    lines.push("");
+    for (const rule of section.contextual) {
+      const conditionText = rule.when
+        ? Object.entries(rule.when).map(([k, v]) => `${k}=${v}`).join(", ")
+        : "always";
+      lines.push(`- **${rule.id}**: "${rule.path}" (${conditionText})`);
+    }
+    lines.push("");
   }
 
   return lines.join("\n");

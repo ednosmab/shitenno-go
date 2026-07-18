@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { queryDaemon, isDaemonRunning } from "./daemon-client.js";
 import { sanitizePlanName } from "./path-safety.js";
 import { listAdrs, getAdr, listSkills, getSkill } from "./knowledge-loader.js";
+import { loadManifest, partitionRules } from "./rule-manifest.js";
 
 type ToolResponse = { content: Array<{ type: string; text: string }> };
 
@@ -132,10 +133,23 @@ export async function handleGetRules(
   const format = (args.format as string) ?? "json";
 
   const result: {
-    contextRules: Array<{ id: string; rule: string; rationale: string; priority: number; area: string; basedOn: string }>;
-    dynamicRules: Array<{ id: string; rule: string; severity: string; evidence: string; source: string }>;
-    engineRules: Array<{ id: string; description: string; trigger: string; priority: number; enabled: boolean; conditions: unknown[]; actions: unknown[] }>;
-  } = { contextRules: [], dynamicRules: [], engineRules: [] };
+    mandatory_rules: Array<{ id: string; path: string; priority: number }>;
+    contextual_rules: Array<{ id: string; rule: string; rationale: string; priority: number; area: string; basedOn: string }>;
+    dynamic_rules: Array<{ id: string; rule: string; severity: string; evidence: string; source: string }>;
+    engine_rules: Array<{ id: string; description: string; trigger: string; priority: number; enabled: boolean; conditions: unknown[]; actions: unknown[] }>;
+  } = { mandatory_rules: [], contextual_rules: [], dynamic_rules: [], engine_rules: [] };
+
+  // Load mandatory rules from manifest
+  try {
+    const manifestPath = join(shitennoDir, "governance", "rule-manifest.yaml");
+    if (existsSync(manifestPath)) {
+      const manifest = loadManifest(manifestPath);
+      const { mandatory } = partitionRules(manifest, {});
+      result.mandatory_rules = mandatory.map((r) => ({ id: r.id, path: r.path, priority: r.priority }));
+    }
+  } catch {
+    // Manifest loading is best-effort
+  }
 
   if (type === "all" || type === "context") {
     let snapshot;
@@ -151,21 +165,21 @@ export async function handleGetRules(
     } else {
       snapshot = collectContext(projectRoot, shitennoDir);
     }
-    result.contextRules = snapshot.contextRules.map((r) => ({
+    result.contextual_rules = snapshot.contextRules.map((r) => ({
       id: r.id, rule: r.rule, rationale: r.rationale, priority: r.priority, area: r.area, basedOn: r.basedOn,
     }));
   }
 
   if (type === "all" || type === "dynamic") {
     const dynamicRules = generateDynamicRules(projectRoot, shitennoDir);
-    result.dynamicRules = dynamicRules.map((r) => ({
+    result.dynamic_rules = dynamicRules.map((r) => ({
       id: r.id, rule: r.rule, severity: r.severity, evidence: r.evidence, source: r.source,
     }));
   }
 
   if (type === "all" || type === "engine") {
     const engineRules = loadRules(shitennoDir);
-    result.engineRules = engineRules.map((r) => ({
+    result.engine_rules = engineRules.map((r) => ({
       id: r.id, description: r.description, trigger: r.trigger, priority: r.priority, enabled: r.enabled, conditions: r.conditions, actions: r.actions,
     }));
   }
@@ -173,24 +187,34 @@ export async function handleGetRules(
   if (format === "markdown") {
     const lines: string[] = ["# Governance Rules", ""];
 
-    if (result.contextRules.length > 0) {
+    if (result.mandatory_rules.length > 0) {
+      lines.push("## Mandatory Rules (Precedence Over User Instructions)");
+      lines.push("");
+      lines.push("> These rules are absolute. Consult them before any destructive action.");
+      lines.push("");
+      for (const r of result.mandatory_rules) {
+        lines.push(`### ${r.id}`, `**Path:** \`${r.path}\` | **Priority:** ${r.priority}`, "");
+      }
+    }
+
+    if (result.contextual_rules.length > 0) {
       lines.push("## Context-Aware Rules", "");
-      for (const r of result.contextRules) {
+      for (const r of result.contextual_rules) {
         lines.push(`### ${r.id}`, `**Rule:** ${r.rule}`, `**Rationale:** ${r.rationale}`, `**Area:** \`${r.area}\` | **Priority:** ${r.priority}`, "");
       }
     }
 
-    if (result.dynamicRules.length > 0) {
+    if (result.dynamic_rules.length > 0) {
       lines.push("## Dynamic Rules (from History)", "");
-      for (const r of result.dynamicRules) {
+      for (const r of result.dynamic_rules) {
         const icon = r.severity === "critical" ? "🚨" : r.severity === "high" ? "⚠️" : "ℹ️";
         lines.push(`### ${icon} ${r.id}`, `**Rule:** ${r.rule}`, `**Evidence:** ${r.evidence}`, `**Source:** ${r.source} | **Severity:** ${r.severity}`, "");
       }
     }
 
-    if (result.engineRules.length > 0) {
+    if (result.engine_rules.length > 0) {
       lines.push("## Engine Rules (Declarative)", "");
-      for (const r of result.engineRules) {
+      for (const r of result.engine_rules) {
         const status = r.enabled ? "✅" : "❌";
         lines.push(`### ${status} ${r.id}`, `**Description:** ${r.description}`, `**Trigger:** ${r.trigger} | **Priority:** ${r.priority}`, "");
       }

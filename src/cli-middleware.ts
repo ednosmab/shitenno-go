@@ -25,6 +25,21 @@ export interface MiddlewareContext {
   sessionId: string | null;
 }
 
+// ── Sensitive Command Detection ────────────────────────────────────────────
+
+const SENSITIVE_COMMAND_PATTERNS = [
+  /commit/i,
+  /push/i,
+  /delete/i,
+  /rm\b/i,
+  /force/i,
+];
+
+function isSensitiveCommand(commandName: string, args?: string[]): boolean {
+  const full = `${commandName} ${(args ?? []).join(" ")}`;
+  return SENSITIVE_COMMAND_PATTERNS.some((pattern) => pattern.test(full));
+}
+
 // ── Plugin Loader ────────────────────────────────────────────────────────────
 
 let pluginsLoaded = false;
@@ -78,6 +93,16 @@ export function installMiddleware(program: Command, ctx: MiddlewareContext): voi
 
     // Ensure plugins are loaded
     await ensurePluginsLoaded(ctx.projectRoot);
+
+    // Sensitive command warning — emit reminder before commit/push/delete/force
+    if (isSensitiveCommand(commandName, thisCommand.args)) {
+      const eventBus = getEventBus();
+      eventBus.publish("action.pre_sensitive", {
+        command: commandName,
+        args: thisCommand.args,
+        reminder: "MANDATORY RULES: Consult FORBIDDEN_OPERATIONS.md before proceeding. G-01: No commit without explicit authorization.",
+      });
+    }
 
     // Daemon auto-start: only if approved by user and circuit not tripped
     // Fire-and-forget — never blocks or throws into CLI flow

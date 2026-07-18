@@ -124,6 +124,7 @@ const EVENT_VERSIONS: Record<ShitennoEventType, EventVersion> = {
   "context.tier_mismatch": 1,
   "watcher.error": 1,
   "daemon.ready": 1,
+  "action.pre_sensitive": 1,
   "resource.claimed": 1,
   "resource.released": 1,
 };
