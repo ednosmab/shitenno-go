@@ -42,7 +42,7 @@ export const profile: ProjectProfile = {
   },
 
   /** Caminho para o histórico de sessões. */
-  historyPath: "shitenno/docs/history",
+  historyPath: ".shitenno/docs/history",
 
   /** Vocabulário de incidente específico do domínio. */
   violationKeywords: [
@@ -56,17 +56,17 @@ export const profile: ProjectProfile = {
   // --- Campos opcionais (preenchidos se o projecto adotar governance completa) ---
 
   /** Caminho para regras proibidas. */
-  // forbiddenOperationsPath: "shitenno/docs/FORBIDDEN_OPERATIONS.md",
+  // forbiddenOperationsPath: ".shitenno/docs/FORBIDDEN_OPERATIONS.md",
 
   /** Caminho para handoffs. */
-  // handoffsPath: "shitenno/governance/handoffs",
+  // handoffsPath: ".shitenno/governance/handoffs",
 
   /** Score a partir do qual PREMORTEM é obrigatório. */
   // highComplexityThreshold: 7,
 
   /** Caminho para SDRs. */
-  // sdrPath: "shitenno/docs/sdr",
+  // sdrPath: ".shitenno/docs/sdr",
 
   /** Caminho para feedback diário. */
-  // feedbackPath: "shitenno/docs/feedback",
+  // feedbackPath: ".shitenno/docs/feedback",
 };

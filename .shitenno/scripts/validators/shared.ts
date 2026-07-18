@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export const ROOT = resolve(__dirname, "..", "..", "..");
-export const SHUGO = resolve(ROOT, "shitenno");
+export const SHUGO = resolve(ROOT, ".shitenno");
 export const DOCS = resolve(SHUGO, "docs");
 export const SRC = resolve(ROOT, "src", "commands");
 export const SRC_TS = resolve(ROOT, "src");

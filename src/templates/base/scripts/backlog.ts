@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..', '..');
-const BACKLOG = resolve(ROOT, 'shitenno', 'docs', 'BACKLOG.md');
+const BACKLOG = resolve(ROOT, '.shitenno', 'docs', 'BACKLOG.md');
 
 // CLI Flags
 

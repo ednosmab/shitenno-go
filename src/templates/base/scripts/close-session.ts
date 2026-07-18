@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..', '..');
-const GOV = resolve(ROOT, 'shitenno', 'governance');
+const GOV = resolve(ROOT, '.shitenno', 'governance');
 
 let exitCode = 0;
 let warnings: string[] = [];
@@ -71,7 +71,7 @@ function checkBuffer() {
 
 // ── 4. Backlog updated? ───────────────────────────────────────────────────
 function checkBacklog() {
-  const backlogPath = resolve(ROOT, 'shitenno', 'docs', 'BACKLOG.md');
+  const backlogPath = resolve(ROOT, '.shitenno', 'docs', 'BACKLOG.md');
   if (!existsSync(backlogPath)) {
     warn('BACKLOG', 'BACKLOG.md not found');
     return;
