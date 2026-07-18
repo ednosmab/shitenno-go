@@ -22,8 +22,8 @@ export function checkScriptReferences(ctx: ValidatorContext) {
   const workflowContent = readFileSync(workflowPath, "utf-8");
   const pkg = JSON.parse(readFileSync(PACKAGE_JSON, "utf-8"));
   const registeredScripts = Object.keys(pkg.scripts || {});
-  const scriptRefs = workflowContent.match(/pnpm run (\S+)/g) || [];
-  const uniqueScripts = [...new Set(scriptRefs)].map((r) => r.replace("pnpm run ", ""));
+  const scriptRefs = workflowContent.match(/`pnpm run (\S+?)`/g) || [];
+  const uniqueScripts = [...new Set(scriptRefs)].map((r) => r.replace(/`?pnpm run /, "").replace(/`$/, ""));
   let brokenCount = 0;
 
   for (const script of uniqueScripts) {

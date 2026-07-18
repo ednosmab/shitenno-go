@@ -34,6 +34,9 @@
     "validate:docs": "tsx .shitenno/scripts/sync-docs.ts",
     "validate:architecture": "tsx scripts/validate-architecture.ts",
     "backlog": "tsx .shitenno/scripts/backlog.ts",
+    "validate:session": "tsx .shitenno/scripts/validate-session.ts",
+    "close:session": "tsx .shitenno/scripts/close-session.ts",
+    "premortem:check": "tsx .shitenno/scripts/premortem-check.ts",
     "shugo": "node ./dist/bin/shugo.js"
   },
   "keywords": [
