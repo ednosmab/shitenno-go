@@ -1,0 +1,14 @@
+{
+  "id": "RULE-014",
+  "description": "Create reminder when validation fails",
+  "trigger": "validation_fail",
+  "conditions": [],
+  "actions": [
+    { "type": "create_reminder", "params": { "message": "Validation failed — review issues and fix" } },
+    { "type": "update_quick_board", "params": { "item": "Fix validation failures", "section": "parado" } }
+  ],
+  "priority": 2,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["validation", "reminder", "fix"]
+}

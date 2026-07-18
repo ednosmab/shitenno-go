@@ -1,0 +1,19 @@
+{
+  "id": "RULE-011",
+  "description": "Doc Lifecycle — check Plans + ADRs for staleness at session start",
+  "trigger": "session_start",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "run_shugo_command",
+      "params": {
+        "command": "docs-audit"
+      }
+    }
+  ],
+  "priority": 2,
+  "dependencies": [],
+  "enabled": true,
+  "autonomous": false,
+  "tags": ["docs", "lifecycle", "plans", "adrs"]
+}

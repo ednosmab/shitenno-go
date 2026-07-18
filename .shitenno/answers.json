@@ -1,0 +1,26 @@
+{
+  "principalModel": "opencode/mimo-v2.5-free",
+  "executorModel": "opencode/mimo-v2.5-free",
+  "stack": ["typescript", "node"],
+  "database": "postgresql",
+  "styling": "tailwind",
+  "maturity": {
+    "usedShitennoBefore": true,
+    "isFirstProject": false,
+    "projectAge": "established",
+    "teamSize": "solo",
+    "hasDedicatedTeam": false,
+    "hasArchitectureDocs": true,
+    "hasADRs": true,
+    "hasTechnicalReviews": true,
+    "hasCICD": false,
+    "hasAutomatedTests": true,
+    "hasValidationPipeline": false,
+    "intendsToUseAI": true,
+    "aiWillImplement": true,
+    "requiresHumanReview": true,
+    "hasDefinedPatterns": true,
+    "hasReviewProcess": true,
+    "hasDecisionControl": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "RULE-HB-001",
+  "description": "Handbook Semantic Sync — notify AI and user at session start",
+  "trigger": "session_start",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "send_notification",
+      "params": {
+        "message": "📚 Handbook template detected — load skill handbook-fill and populate SEMANTIC blocks"
+      }
+    },
+    {
+      "type": "create_reminder",
+      "params": {
+        "message": "Revisar handbook — AI preencheu dados semânticos. Editar partes filosóficas.",
+        "priority": "medium",
+        "category": "docs"
+      }
+    }
+  ],
+  "priority": 3,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["handbook", "docs", "semantic", "sync"]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "RULE-019",
+  "description": "Auto-populate next_p0 from BACKLOG.md when a plan is archived",
+  "trigger": "plan_archived",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "auto_populate_next_p0",
+      "params": {}
+    }
+  ],
+  "priority": 2,
+  "dependencies": ["RULE-018"],
+  "enabled": true,
+  "autonomous": false,
+  "tags": ["buffer", "automation", "plan", "backlog", "next_p0"]
+}

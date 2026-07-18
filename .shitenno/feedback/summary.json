@@ -1,0 +1,17 @@
+{
+  "rule-RULE-001": {
+    "recommendationId": "rule-RULE-001",
+    "acceptCount": 0,
+    "rejectCount": 0,
+    "deferCount": 43,
+    "totalInteractions": 43,
+    "acceptanceRate": 0,
+    "lastAction": "deferred",
+    "lastTimestamp": "2026-07-17T14:21:41.662Z",
+    "pathChoiceStats": {
+      "comfortableCount": 0,
+      "challengingCount": 0,
+      "lastPathChoice": null
+    }
+  }
+}

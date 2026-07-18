@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] — 2026-07-18
+
+### Added
+
+- **Rule manifest + positional injection:** Governance rule manifest with positional injection and F-06 enforcement (`e4e0e78`)
+- **Decision core unification:** Unified execution core across 4 engines (planner, executor, reviewer, orchestrator) (`8523427`)
+- **Knowledge bridge:** ADR/skill runtime access via MCP + governance briefing (`855585d`)
+- **System resilience:** Complete resilience plans including log rotation and daemon CLI integration (`25ca494`)
+- **Audit engine hardening:** Detector isolation, AST complexity analysis, confidence calibration (`ba03da5`)
+- **Audit edge features:** Verified autofix, incremental scan, health card (`ad9d711`)
+- **Event-driven architecture gaps:** Integration of missing event-driven patterns (`f278b0b`)
+- **Markdown plan engine:** YAML frontmatter support with legacy fallback (`2af6591`)
+- **Daemon optimization:** Audit intervals optimized with event-driven triggers (`62d772e`)
+- **Context mechanism P0-P4:** Context index builder, tier detectors, buffer checkpoints (`3e5cb2d`)
+- **Daemon proactive scan:** Startup scan and adaptive periodic audit (`eaa7b29`)
+- **Daemon CLI expansion:** IPC queries and PT help text (`e2ba213`)
+
+### Changed
+
+- **Rebranding completo:** shitenno-go → shitenno across entire codebase (`fa1b5e0`)
+- **Structural refactoring:** SA4/SA10/SA11 completed — file size limits enforced, monolithic scripts split (`92da896`, `7c73fb5`)
+- **CI/CD:** Upgraded actions/checkout and actions/setup-node to v7.0.0 (`614ca75`)
+
+### Fixed
+
+- **Test failures:** Resolve 4 pre-existing test failures and cleanup stale governance files (`28adeec`)
+- **Security:** Consolidate safeJsonParse into validation.ts (`6e5a3fc`)
+- **Security:** Remediate security findings per PLAN-2026-07-16 (`bcf0c22`)
+- **Lint:** Suppress no-restricted-imports for daemon log viewer (`2f740ab`)
+- **Audit bugs:** Resolve 7 bugs in file scanning and reporting infrastructure (`5cf35d3`)
+- **Audit security:** Apply Phase 1-4 security and governance fixes (`edf2eeb`)
+- **Logger pollution:** Redirect logger.info/debug to stderr to prevent JSON stdout pollution (`de39dee`)
+
+### Tests
+
+- **Audit regression:** Add regression tests for collectSourceFiles Bug #1-4 fixes (`9f2f3b9`)
+
+### Documentation
+
+- **Knowledge bridge:** Mark knowledge-bridge plan as Done in BACKLOG (`4f15616`)
+- **Project assessment:** Revise project assessment with event-driven architecture understanding (`6c90157`, `e59d388`)
+- **Honest assessment:** Add honest project assessment report + archive completed plans (`896d980`)
+
+### Removed
+
+- **Watch command:** Remove watch command and file-watcher (superseded by daemon daemon-aware banner) (`dcced33`)
+
 ## [1.0.0] — 2026-07-15
 
 ### Added

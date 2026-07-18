@@ -1,0 +1,17 @@
+{
+  "id": "RULE-011",
+  "description": "Auto-audit when health status is critical",
+  "trigger": "health_check",
+  "conditions": [
+    { "field": "eventData.status", "operator": "equals", "value": "critical" }
+  ],
+  "actions": [
+    { "type": "run_shugo_command", "params": { "command": "validate" } },
+    { "type": "create_reminder", "params": { "message": "Health status is CRITICAL — immediate action required" } }
+  ],
+  "priority": 1,
+  "dependencies": [],
+  "enabled": true,
+  "autonomous": false,
+  "tags": ["health", "critical", "auto-audit"]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "DOC-4F59B272",
+    "type": "system-map",
+    "path": "docs/generated/SYSTEM_MAP.md",
+    "generatedAt": "2026-07-18T05:28:32.865Z",
+    "stateHash": "4b9f9da6e168",
+    "stale": false
+  },
+  {
+    "id": "DOC-B7676276",
+    "type": "asset-index",
+    "path": "docs/generated/ASSET_INDEX.md",
+    "generatedAt": "2026-07-18T05:28:32.866Z",
+    "stateHash": "4b9f9da6e168",
+    "stale": false
+  },
+  {
+    "id": "DOC-95F03D69",
+    "type": "capability-report",
+    "path": "docs/generated/CAPABILITY_REPORT.md",
+    "generatedAt": "2026-07-18T05:28:32.866Z",
+    "stateHash": "4b9f9da6e168",
+    "stale": false
+  },
+  {
+    "id": "DOC-B8A7BACD",
+    "type": "health-report",
+    "path": "docs/generated/HEALTH_REPORT.md",
+    "generatedAt": "2026-07-18T05:28:32.866Z",
+    "stateHash": "4b9f9da6e168",
+    "stale": false
+  },
+  {
+    "id": "DOC-0928426C",
+    "type": "architecture-overview",
+    "path": "docs/generated/ARCHITECTURE.md",
+    "generatedAt": "2026-07-18T05:28:32.866Z",
+    "stateHash": "4b9f9da6e168",
+    "stale": false
+  }
+]

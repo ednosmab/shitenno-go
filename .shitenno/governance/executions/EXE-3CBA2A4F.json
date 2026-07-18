@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-3CBA2A4F",
+  "request": {
+    "id": "invoke-mrpxelwt",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T05:28:16.493Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T05:28:16.510Z",
+  "duration": 16
+}

@@ -1,0 +1,38 @@
+# rule-manifest.yaml — Declarative rule selection by task metadata.
+# No inference, no embeddings, no AI. Just field matching.
+# Same input -> same rule set, always (deterministic).
+
+rules:
+  - id: forbidden-operations
+    path: docs/FORBIDDEN_OPERATIONS.md
+    mandatory: true
+    priority: 0
+
+  - id: architecture
+    path: docs/architecture.md
+    mandatory: true
+    priority: 1
+
+  - id: typescript
+    path: rules/typescript.md
+    when:
+      language: typescript
+    priority: 2
+
+  - id: react
+    path: rules/react.md
+    when:
+      framework: react
+    priority: 2
+
+  - id: audit-protocol
+    path: rules/audit.md
+    when:
+      task: audit
+    priority: 1
+
+  - id: implementation-protocol
+    path: rules/implementation.md
+    when:
+      task: implementation
+    priority: 1

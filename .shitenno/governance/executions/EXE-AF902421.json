@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-AF902421",
+  "request": {
+    "id": "invoke-mrpxeyln",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T05:28:32.939Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T05:28:32.943Z",
+  "duration": 4
+}

@@ -1,0 +1,33 @@
+{
+  "id": "RULE-018",
+  "description": "Update context buffer when a plan is archived (moved to done/)",
+  "trigger": "plan_archived",
+  "conditions": [],
+  "actions": [
+    {
+      "type": "update_context_buffer",
+      "params": {
+        "field": "current_task.status",
+        "value": "completed"
+      }
+    },
+    {
+      "type": "update_context_buffer",
+      "params": {
+        "field": "session.status",
+        "value": "completed"
+      }
+    },
+    {
+      "type": "log_event",
+      "params": {
+        "event": "plan_archived",
+        "message": "Plan archived via plan.md done — buffer updated automatically"
+      }
+    }
+  ],
+  "priority": 1,
+  "dependencies": [],
+  "enabled": true,
+  "tags": ["buffer", "automation", "plan", "completion"]
+}

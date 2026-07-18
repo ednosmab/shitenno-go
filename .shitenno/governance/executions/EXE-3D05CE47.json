@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-3D05CE47",
+  "request": {
+    "id": "invoke-mrpxendp",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-18T05:28:18.397Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-18T05:28:18.404Z",
+  "duration": 7
+}

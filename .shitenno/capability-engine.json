@@ -1,0 +1,536 @@
+{
+  "evaluatedAt": "2026-07-15T04:34:04.436Z",
+  "capabilities": [
+    {
+      "id": "core",
+      "name": "Core",
+      "description": "Núcleo essencial — configuração base, opencode.json, workspace",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {},
+      "dependencies": [],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 2,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.431Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": true,
+      "isInstalled": true,
+      "files": [
+        "docs/BACKLOG.md",
+        "docs/AGENTS.md"
+      ]
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge",
+      "description": "Skills de engenharia, AGENTS.md, guias de referência",
+      "maturity": "optimized",
+      "maturityScore": 90,
+      "dimensions": {
+        "documentation": 0.4,
+        "quality": 0.1
+      },
+      "dependencies": [
+        "core"
+      ],
+      "activePolicies": [
+        "RULE-013"
+      ],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 18,
+        "ruleCount": 1,
+        "policyCount": 1,
+        "healthScore": 90,
+        "lastUpdated": "2026-07-15T04:34:04.432Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "docs/skills/",
+        "docs/AGENTS.md"
+      ]
+    },
+    {
+      "id": "architecture",
+      "name": "Architecture",
+      "description": "ADRs, SDRs, planos de tarefa, documentação arquitetural",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "architecture": 0.4,
+        "documentation": 0.2
+      },
+      "dependencies": [
+        "core"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 8,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.433Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "docs/adrs/",
+        "governance/plans/"
+      ]
+    },
+    {
+      "id": "governance",
+      "name": "Governance",
+      "description": "Workflows, SYSTEM_MAP, context buffer, handoffs",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "governance": 0.5,
+        "documentation": 0.1
+      },
+      "dependencies": [
+        "core"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 2,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.433Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "governance/WORKFLOW.md",
+        "governance/context/"
+      ]
+    },
+    {
+      "id": "ai",
+      "name": "AI",
+      "description": "Contratos de agentes IA, prompts, orquestração, cognição",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "ai": 0.5,
+        "governance": 0.2
+      },
+      "dependencies": [
+        "governance"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 7,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.434Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "governance/agents/",
+        "cognition/"
+      ]
+    },
+    {
+      "id": "quality",
+      "name": "Quality",
+      "description": "Validação de sessão, health checks, sessões estruturadas",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "quality": 0.4,
+        "automation": 0.1
+      },
+      "dependencies": [
+        "core"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 1,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.435Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "scripts/validate-session.ts"
+      ]
+    },
+    {
+      "id": "metrics",
+      "name": "Metrics",
+      "description": "Relatórios de complexidade, scoring, telemetria de maturidade",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "observability": 0.4,
+        "quality": 0.1
+      },
+      "dependencies": [
+        "quality"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 17,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.435Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "reports/"
+      ]
+    },
+    {
+      "id": "operations",
+      "name": "Operations",
+      "description": "Scripts de sessão, runbooks, close-session, premortem",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "automation": 0.4,
+        "governance": 0.1
+      },
+      "dependencies": [
+        "core"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 2,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.436Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "scripts/close-session.ts",
+        "docs/runbooks/"
+      ]
+    },
+    {
+      "id": "compliance",
+      "name": "Compliance",
+      "description": "FORBIDDEN_OPERATIONS, DESDO, reviews obrigatórias, premortem",
+      "maturity": "active",
+      "maturityScore": 70,
+      "dimensions": {
+        "governance": 0.3,
+        "quality": 0.2
+      },
+      "dependencies": [
+        "governance"
+      ],
+      "activePolicies": [],
+      "activeSkills": [
+        "architectural_integrity",
+        "ci_cd_pipeline",
+        "clean_code_standards",
+        "codebase_hygiene_git",
+        "design_patterns",
+        "domain_driven_design_(ddd)",
+        "error_handling_observability",
+        "handbook-fill",
+        "operacao_no_shitenno",
+        "optimistic_ui",
+        "pnpm_management",
+        "quick-board-enforcement",
+        "senior-engineer",
+        "solid_principles",
+        "system-first",
+        "tdd-agent",
+        "tdd_workflow"
+      ],
+      "templates": [],
+      "recommendations": [],
+      "metrics": {
+        "assetCount": 2,
+        "ruleCount": 0,
+        "policyCount": 0,
+        "healthScore": 70,
+        "lastUpdated": "2026-07-15T04:34:04.436Z",
+        "referenceCount": 0
+      },
+      "alwaysInstalled": false,
+      "isInstalled": true,
+      "files": [
+        "docs/FORBIDDEN_OPERATIONS.md",
+        "docs/DESDO.md"
+      ]
+    }
+  ],
+  "byMaturity": {
+    "dormant": [],
+    "installed": [],
+    "configured": [],
+    "active": [
+      "core",
+      "architecture",
+      "governance",
+      "ai",
+      "quality",
+      "metrics",
+      "operations",
+      "compliance"
+    ],
+    "optimized": [
+      "knowledge"
+    ]
+  },
+  "overallScore": 72,
+  "recommendations": [
+    {
+      "capability": "core",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Core can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "architecture",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Architecture can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "governance",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Governance can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "ai",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "AI can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "quality",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Quality can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "metrics",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Metrics can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "operations",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Operations can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    },
+    {
+      "capability": "compliance",
+      "action": "optimize",
+      "priority": "low",
+      "reason": "Compliance can be further optimized",
+      "expectedImpact": "Maximizes capability value",
+      "dependencies": []
+    }
+  ],
+  "summary": "9 capabilities evaluated. 9 active/optimized. Score: 72/100. 8 recommendation(s)."
+}
