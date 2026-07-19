@@ -17,6 +17,7 @@ import { LRUCache } from "../daemon-resources.js";
 import type { ResourceClaimedPayload, ResourceReleasedPayload } from "../event-payloads.js";
 import { startWatching } from "../infrastructure/persistence/file-watcher.js";
 import { checkAndArchiveDonePlans, runAutoVerification } from "../plan-lifecycle.js";
+import { acquireVerificationLock, releaseVerificationLock } from "../verification-lock.js";
 import { MarkdownPlanEngine } from "../markdown-plan-engine.js";
 import { auditHealth } from "../health-auditor.js";
 import { DaemonCircuitBreaker } from "../daemon-circuit-breaker.js";
@@ -307,6 +308,19 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
     daemonLog(logPath, "ERROR", `Startup scan: moveCompletedBacklogToDone failed: ${err}`);
   }
 
+  // 5. Verify orphaned plans stuck in 'check' (K.2)
+  try {
+    const engine = new MarkdownPlanEngine(shitennoDir);
+    const orphanedCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
+    if (orphanedCheck.length > 0) {
+      daemonLog(logPath, "WARN", `Startup scan: ${orphanedCheck.length} orphaned plan(s) in 'check' — running verification now`);
+      verifyAllPendingPlans();
+    }
+    recordEvent(state, "startup_scan.verify_orphaned_check");
+  } catch (err) {
+    daemonLog(logPath, "ERROR", `Startup scan: orphaned plan verification failed: ${err}`);
+  }
+
   const scanDuration = Date.now() - scanStartTime;
   daemonLog(logPath, "INFO", `Initial startup scan completed in ${scanDuration}ms`);
   bus.publish("daemon.ready", { pid: process.pid, uptimeMs: scanDuration });
@@ -319,6 +333,59 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
   // (e.g. autosave, format-on-save) — tests can legitimately take minutes.
   const verificationDebounce = new Map<string, NodeJS.Timeout>();
   const VERIFICATION_DEBOUNCE_MS = 3000;
+
+  // ── Verification lock (K.1) — prevent concurrent verification between processes ──
+  let verificationInFlight: Promise<void> | null = null;
+  let pendingReVerification = false;
+
+  async function verifyAllPendingPlans(): Promise<void> {
+    if (verificationInFlight) {
+      pendingReVerification = true;
+      return verificationInFlight;
+    }
+
+    verificationInFlight = (async () => {
+      if (!acquireVerificationLock(shitennoDir)) {
+        daemonLog(logPath, "INFO", "Verification already in progress in another process (e.g. close-session) — skipping this round");
+        return;
+      }
+
+      try {
+        do {
+          pendingReVerification = false;
+          try {
+            const engine = new MarkdownPlanEngine(shitennoDir);
+            const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
+
+            for (const plan of pendingCheck) {
+              try {
+                const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
+                daemonLog(
+                  logPath,
+                  record.passed ? "INFO" : "WARN",
+                  `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "FAILED → blocked"}`
+                );
+              } catch (err) {
+                daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
+              }
+            }
+
+            const archiveResult = checkAndArchiveDonePlans(shitennoDir);
+            if (archiveResult.archived > 0) {
+              daemonLog(logPath, "INFO", `Auto-archived ${archiveResult.archived} plan(s)`);
+            }
+          } catch (err) {
+            daemonLog(logPath, "ERROR", `Verification loop failed: ${err}`);
+          }
+        } while (pendingReVerification);
+      } finally {
+        releaseVerificationLock(shitennoDir);
+      }
+    })();
+
+    await verificationInFlight;
+    verificationInFlight = null;
+  }
 
   bus.subscribe("plan.file_changed", () => {
     recordEvent(state, "plan.file_changed");
@@ -336,16 +403,7 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
           setTimeout(() => {
             verificationDebounce.delete(plan.id);
             try {
-              const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
-              daemonLog(
-                logPath,
-                record.passed ? "INFO" : "WARN",
-                `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "FAILED → blocked"}`
-              );
-              const archiveResult = checkAndArchiveDonePlans(shitennoDir);
-              if (archiveResult.archived > 0) {
-                daemonLog(logPath, "INFO", `Auto-archived ${archiveResult.archived} plan(s)`);
-              }
+              verifyAllPendingPlans();
             } catch (err) {
               daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
             }

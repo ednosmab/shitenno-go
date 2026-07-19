@@ -142,21 +142,33 @@ function checkBuildLocal() {
 async function checkPlanLifecycle() {
   try {
     const { detectActivePlans, runAutoVerification } = await import(resolve(ROOT, 'dist', 'plan-lifecycle.js'));
+    const { acquireVerificationLock, releaseVerificationLock } = await import(resolve(ROOT, 'dist', 'verification-lock.js'));
     const shitennoDir = resolve(ROOT, '.shitenno');
-    // CORREÇÃO: detectActivePlans espera shitennoDir, não o dir de planos.
-    const plans = detectActivePlans(shitennoDir);
-    const pendingCheck = plans.filter((p: { status: string }) => p.status === 'check');
+    
+    // K.1: Acquire verification lock to prevent concurrent verification with daemon
+    if (!acquireVerificationLock(shitennoDir)) {
+      warn('PLAN_LIFECYCLE', 'Verification already in progress by daemon — skipping, daemon will complete it');
+      return;
+    }
+    
+    try {
+      // CORREÇÃO: detectActivePlans espera shitennoDir, não o dir de planos.
+      const plans = detectActivePlans(shitennoDir);
+      const pendingCheck = plans.filter((p: { status: string }) => p.status === 'check');
 
-    if (pendingCheck.length > 0) {
-      warn('PLAN_LIFECYCLE', `${pendingCheck.length} plan(s) em 'check' ao fechar sessão — rodando verificação agora`);
-      for (const p of pendingCheck) {
-        const record = runAutoVerification(shitennoDir, ROOT, p.id);
-        if (record.passed) {
-          pass('PLAN_LIFECYCLE', `${p.id} → verificado e movido para done/`);
-        } else {
-          fail('PLAN_LIFECYCLE', `${p.id} → bloqueado (${record.checks.filter((c: { passed: boolean }) => !c.passed).map((c: { name: string }) => c.name).join(', ')})`);
+      if (pendingCheck.length > 0) {
+        warn('PLAN_LIFECYCLE', `${pendingCheck.length} plan(s) em 'check' ao fechar sessão — rodando verificação agora`);
+        for (const p of pendingCheck) {
+          const record = runAutoVerification(shitennoDir, ROOT, p.id);
+          if (record.passed) {
+            pass('PLAN_LIFECYCLE', `${p.id} → verificado e movido para done/`);
+          } else {
+            fail('PLAN_LIFECYCLE', `${p.id} → bloqueado (${record.checks.filter((c: { passed: boolean }) => !c.passed).map((c: { name: string }) => c.name).join(', ')})`);
+          }
         }
       }
+    } finally {
+      releaseVerificationLock(shitennoDir);
     }
 
     // Create nag reminder for plans stuck in 'check' across session boundaries
