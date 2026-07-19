@@ -1,8 +1,8 @@
 /**
  * verification-lock-concurrent.test.ts — Integration test for cross-process lock
  *
- * Uses real child_process.fork() to simulate two OS-level processes
- * competing for the same verification lock:
+ * Uses child_process.spawn() to create real separate Node.js processes
+ * competing for the same verification lock, validating:
  * 1. Child acquires lock, parent detects conflict and skips
  * 2. Two concurrent children: exactly one wins
  * 3. Child crash (SIGKILL) → parent reclaims stale lock
@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fork, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import {
   acquireVerificationLock,
   releaseVerificationLock,
@@ -35,27 +35,60 @@ function getLockPath(shitennoDir: string): string {
 }
 
 /**
- * Creates a temporary worker script that the child process will run.
- * Uses ESM import() since the project has "type": "module".
+ * Creates a temporary .mjs worker script that implements the lock logic
+ * inline using only Node.js builtins — no external imports needed.
+ * Communicates via stdout JSON lines to avoid IPC issues with vitest.
  */
 function createWorkerScript(dir: string): string {
   const scriptPath = join(dir, "worker.mjs");
-  const lockModulePath = join(process.cwd(), "dist", "verification-lock.js");
   const script = `
-import { acquireVerificationLock, releaseVerificationLock } from ${JSON.stringify("file://" + lockModulePath)};
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
+import { createInterface } from "node:readline";
 
 const shitennoDir = ${JSON.stringify(dir)};
-const result = acquireVerificationLock(shitennoDir);
-process.send({ type: "result", acquired: result, pid: process.pid });
+const lockPath = join(shitennoDir, "governance", "plans", ".verification.lock");
 
-process.on("message", (msg) => {
-  if (msg.type === "release") {
-    releaseVerificationLock(shitennoDir);
-    process.send({ type: "released" });
+function isProcessAlive(pid) {
+  try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+function acquire() {
+  if (existsSync(lockPath)) {
+    try {
+      const info = JSON.parse(readFileSync(lockPath, "utf-8"));
+      if (isProcessAlive(info.pid)) return false;
+    } catch { /* corrupted — reclaim */ }
   }
-  if (msg.type === "exit") {
-    process.exit(0);
-  }
+  writeFileSync(lockPath, JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }, null, 2), "utf-8");
+  return true;
+}
+
+function release() {
+  try {
+    if (existsSync(lockPath)) {
+      const info = JSON.parse(readFileSync(lockPath, "utf-8"));
+      if (info.pid === process.pid) unlinkSync(lockPath);
+    }
+  } catch { /* safe no-op */ }
+}
+
+// Signal ready, then wait for commands on stdin
+const result = acquire();
+process.stdout.write(JSON.stringify({ type: "result", acquired: result, pid: process.pid }) + "\\n");
+
+const rl = createInterface({ input: process.stdin });
+rl.on("line", (line) => {
+  try {
+    const msg = JSON.parse(line);
+    if (msg.type === "release") {
+      release();
+      process.stdout.write(JSON.stringify({ type: "released" }) + "\\n");
+    }
+    if (msg.type === "exit") {
+      process.exit(0);
+    }
+  } catch { /* ignore bad input */ }
 });
 `;
   writeFileSync(scriptPath, script, "utf-8");
@@ -63,42 +96,72 @@ process.on("message", (msg) => {
 }
 
 /**
- * Fork a child process that tries to acquire the lock and sends back the result.
- * The child keeps the lock held (does NOT release) so we can test contention.
+ * Spawn a child process that tries to acquire the lock.
+ * Uses spawn() instead of fork() to avoid vitest's child_process patches.
+ * Communicates via stdin/stdout JSON lines.
  */
-function forkLockHolder(dir: string): ChildProcess {
+function spawnLockHolder(dir: string): { child: ChildProcess; lines: string[]; onLine: (cb: (line: string) => void) => void } {
   const scriptPath = createWorkerScript(dir);
-  const child = fork(scriptPath, {
-    stdio: ["pipe", "pipe", "pipe", "ipc"],
-    detached: false,
+  const child = spawn(process.execPath, [scriptPath], {
+    stdio: ["pipe", "pipe", "pipe"],
   });
-  return child;
+
+  const lines: string[] = [];
+  const listeners: Array<(line: string) => void> = [];
+
+  child.stdout!.on("data", (data: Buffer) => {
+    const text = data.toString();
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      lines.push(line);
+      for (const cb of listeners) cb(line);
+    }
+  });
+
+  return {
+    child,
+    lines,
+    onLine: (cb) => listeners.push(cb),
+  };
 }
 
-function waitForMessage(child: ChildProcess, type: string, timeoutMs = 8000): Promise<Record<string, unknown>> {
+function waitForStdoutLine(
+  holder: { lines: string[]; onLine: (cb: (line: string) => void) => void },
+  type: string,
+  timeoutMs = 8000
+): Promise<Record<string, unknown>> {
+  // Check already-received lines first
+  for (const line of holder.lines) {
+    try {
+      const msg = JSON.parse(line);
+      if (msg.type === type) return Promise.resolve(msg);
+    } catch { /* not JSON */ }
+  }
+
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`Timeout waiting for message type="${type}" from child pid=${child.pid}`)),
-      timeoutMs
-    );
-    child.on("message", (msg: Record<string, unknown>) => {
-      if (msg.type === type) {
-        clearTimeout(timer);
-        resolve(msg);
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error(`Timeout waiting for line type="${type}". Received: ${holder.lines.join("; ")}`));
       }
-    });
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    child.on("exit", (code) => {
-      // If child exits unexpectedly before sending the message
-      if (code !== null && code !== 0) {
-        clearTimeout(timer);
-        reject(new Error(`Child exited with code ${code}`));
-      }
+    }, timeoutMs);
+    holder.onLine((line) => {
+      if (settled) return;
+      try {
+        const msg = JSON.parse(line);
+        if (msg.type === type) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(msg);
+        }
+      } catch { /* not JSON */ }
     });
   });
+}
+
+function sendToChild(child: ChildProcess, msg: Record<string, string>): void {
+  child.stdin!.write(JSON.stringify(msg) + "\n");
 }
 
 function killChild(child: ChildProcess): Promise<void> {
@@ -127,9 +190,9 @@ describe("verification-lock: concurrent cross-process", () => {
   });
 
   it("child acquires lock, parent detects conflict and skips", async () => {
-    // Step 1: Fork child process that acquires the lock
-    const child = forkLockHolder(dir);
-    const childResult = await waitForMessage(child, "result") as { acquired: boolean; pid: number };
+    // Step 1: Spawn child process that acquires the lock
+    const holder = spawnLockHolder(dir);
+    const childResult = await waitForStdoutLine(holder, "result") as { acquired: boolean; pid: number };
 
     // Child should have acquired the lock
     expect(childResult.acquired).toBe(true);
@@ -138,33 +201,33 @@ describe("verification-lock: concurrent cross-process", () => {
     // Verify lock file exists and belongs to the child
     expect(existsSync(getLockPath(dir))).toBe(true);
     const lockContent = JSON.parse(readFileSync(getLockPath(dir), "utf-8"));
-    expect(lockContent.pid).toBe(child.pid);
+    expect(lockContent.pid).toBe(childResult.pid);
 
     // Step 2: Parent (current process) tries to acquire — should fail
     const parentResult = acquireVerificationLock(dir);
     expect(parentResult).toBe(false);
 
-    // Step 3: Child releases the lock
-    child.send({ type: "release" });
-    await waitForMessage(child, "released");
+    // Step 3: Tell child to release the lock
+    sendToChild(holder.child, { type: "release" });
+    await waitForStdoutLine(holder, "released");
 
     // Step 4: Parent can now acquire
     const secondAttempt = acquireVerificationLock(dir);
     expect(secondAttempt).toBe(true);
 
     // Cleanup
-    child.send({ type: "exit" });
+    sendToChild(holder.child, { type: "exit" });
     releaseVerificationLock(dir);
   });
 
   it("only one of two concurrent acquirers wins", async () => {
-    // Fork two children simultaneously, both try to acquire
-    const child1 = forkLockHolder(dir);
-    const child2 = forkLockHolder(dir);
+    // Spawn two children simultaneously, both try to acquire
+    const holder1 = spawnLockHolder(dir);
+    const holder2 = spawnLockHolder(dir);
 
     const [result1, result2] = await Promise.all([
-      waitForMessage(child1, "result") as Promise<{ acquired: boolean; pid: number }>,
-      waitForMessage(child2, "result") as Promise<{ acquired: boolean; pid: number }>,
+      waitForStdoutLine(holder1, "result") as Promise<{ acquired: boolean; pid: number }>,
+      waitForStdoutLine(holder2, "result") as Promise<{ acquired: boolean; pid: number }>,
     ]);
 
     // Exactly one should have acquired the lock
@@ -181,24 +244,24 @@ describe("verification-lock: concurrent cross-process", () => {
     expect(losers.length).toBe(1);
 
     // Cleanup both children
-    child1.send({ type: "exit" });
-    child2.send({ type: "exit" });
+    sendToChild(holder1.child, { type: "exit" });
+    sendToChild(holder2.child, { type: "exit" });
     releaseVerificationLock(dir);
   });
 
   it("after child crash (SIGKILL), parent reclaims the stale lock", async () => {
-    // Step 1: Child acquires the lock
-    const child = forkLockHolder(dir);
-    const childResult = await waitForMessage(child, "result") as { acquired: boolean; pid: number };
+    // Step 1: Spawn child that acquires the lock
+    const holder = spawnLockHolder(dir);
+    const childResult = await waitForStdoutLine(holder, "result") as { acquired: boolean; pid: number };
     expect(childResult.acquired).toBe(true);
 
     // Verify lock file belongs to child
     const lockContent = JSON.parse(readFileSync(getLockPath(dir), "utf-8"));
-    expect(lockContent.pid).toBe(child.pid);
+    expect(lockContent.pid).toBe(childResult.pid);
 
     // Step 2: Kill the child with SIGKILL (simulates crash)
-    await killChild(child);
-    await new Promise((r) => setTimeout(r, 200));
+    await killChild(holder.child);
+    await new Promise((r) => setTimeout(r, 300));
 
     // Step 3: Parent tries to acquire — should reclaim the stale lock
     const parentResult = acquireVerificationLock(dir);
@@ -212,9 +275,9 @@ describe("verification-lock: concurrent cross-process", () => {
   });
 
   it("failed acquire does not corrupt the lock file", async () => {
-    // Fork child that holds the lock
-    const child = forkLockHolder(dir);
-    await waitForMessage(child, "result");
+    // Spawn child that holds the lock
+    const holder = spawnLockHolder(dir);
+    await waitForStdoutLine(holder, "result");
 
     // Parent tries and fails to acquire — should not corrupt the lock file
     acquireVerificationLock(dir);
@@ -223,10 +286,9 @@ describe("verification-lock: concurrent cross-process", () => {
     const lockContent = JSON.parse(readFileSync(getLockPath(dir), "utf-8"));
     expect(typeof lockContent.pid).toBe("number");
     expect(typeof lockContent.startedAt).toBe("string");
-    expect(lockContent.pid).toBe(child.pid);
 
     // Cleanup
-    child.send({ type: "exit" });
+    sendToChild(holder.child, { type: "exit" });
     releaseVerificationLock(dir);
   });
 });

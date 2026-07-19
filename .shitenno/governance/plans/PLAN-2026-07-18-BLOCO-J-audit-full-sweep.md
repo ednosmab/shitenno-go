@@ -1,6 +1,6 @@
 # PLAN-2026-07-18 — Bloco J: `shugo audit --full-sweep` + gate leve no daemon
 
-**Status:** Check
+**Status:** In Progress
 
 **Depende de:** Bloco F v2 (`runAutoVerification`, `checkBuild`/`checkTests`/`checkLint` exportadas de `plan-lifecycle.ts`) e Bloco G (`.verification.json`/`last-verify.json` como artefato de referência).
 
