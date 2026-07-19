@@ -62,7 +62,7 @@ const auditStage: PipelineStage = {
   name: "audit",
   description: "Audit governance health",
   execute: async (ctx: PipelineContext) => {
-    const report = auditHealth(ctx.projectRoot, ctx.shitennoDir);
+    const report = await auditHealth(ctx.projectRoot, ctx.shitennoDir);
     writeHealthReport(ctx.shitennoDir, report);
     ctx.healthReport = report;
     return ctx;

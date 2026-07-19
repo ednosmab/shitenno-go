@@ -35,13 +35,14 @@ import { calculateHealthScore, calculateDimensionScores } from "./audit/health-s
 import { proposeOptimizations } from "./audit/optimization-proposer.js";
 import { buildDetectorMap } from "./audit/detector-map.js";
 import { loadSuppressions, applySuppressions } from "./audit/suppression.js";
+import { FRONTEND_DETECTOR_SCOPE } from "./audit/frontend-detector-scope.js";
 
-export function auditHealth(
+export async function auditHealth(
   projectRoot: string,
   shitennoDir: string,
   level: AuditLevel = "standard",
   changedFiles?: string[]
-): HealthAuditReport {
+): Promise<HealthAuditReport> {
   const startTime = Date.now();
   const history = readHistory(shitennoDir);
   const rules = readRules(shitennoDir);
@@ -58,18 +59,35 @@ export function auditHealth(
   const issues: HealthIssue[] = [];
   const detectorErrors: Array<{ name: string; error: string }> = [];
 
+  // Heuristic: check if we're auditing Shitenno itself (more robust than path check)
+  const isAuditingShitennoItself = projectRoot.includes("shitenno-go");
+
+  // Collect detector results (some may be async)
+  const detectorResults: Array<HealthIssue[] | Promise<HealthIssue[]>> = [];
+  const activeDetectorNames: string[] = [];
+
   for (const [name, fn] of Object.entries(detectorMap)) {
     if (!activeDetectors.has(name)) continue;
     // Skip cross-file detectors in --changed mode (they need full project)
     if (changedFiles && changedFiles.length > 0 && CROSS_FILE_ONLY_DETECTORS.has(name)) continue;
+    // Skip shitenno-self-only detectors when not auditing Shitenno itself
+    const scope = FRONTEND_DETECTOR_SCOPE[name];
+    if (scope === "shitenno-self-only" && !isAuditingShitennoItself) continue;
 
+    activeDetectorNames.push(name);
     try {
-      issues.push(...fn());
+      detectorResults.push(fn());
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       detectorErrors.push({ name, error: errorMsg });
       logger.warn("health-auditor", `Detector "${name}" failed: ${errorMsg}`);
     }
+  }
+
+  // Await all results (handles both sync and async detectors)
+  const resolvedResults = await Promise.all(detectorResults);
+  for (const result of resolvedResults) {
+    issues.push(...result);
   }
 
   // Convert detector failures into low-severity issues so they're visible in the report

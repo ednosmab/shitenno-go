@@ -178,12 +178,12 @@ export const auditCommand = new Command("audit")
           report = cached;
           cacheHit = true;
         } else {
-          report = auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
+          report = await auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
           setCache(ctx.projectRoot, ctx.shitennoDir, "health", report,
             computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
         }
       } else {
-        report = auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
+        report = await auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
       }
 
       if (options.minConfidence !== undefined && options.minConfidence >= 0 && options.minConfidence <= 1) {

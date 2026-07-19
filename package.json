@@ -74,6 +74,10 @@
     "react": "^19.2.0",
     "yaml": "^2.9.0"
   },
+  "optionalDependencies": {
+    "eslint": "^10.6.0",
+    "eslint-plugin-jsx-a11y": "^6.10.0"
+  },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.10",

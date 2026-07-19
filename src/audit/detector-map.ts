@@ -228,13 +228,15 @@ import {
   detectDepAuditStatus,
 } from "../audit/supply-chain-detectors.js";
 
+import { detectAccessibilityGaps } from "../audit/a11y-engine.js";
+
 export function buildDetectorMap(
   projectRoot: string,
   shitennoDir: string,
   sourceFiles: SourceFileInfo[],
   rules: string[],
   history: HistoryEntry[]
-): Record<string, () => HealthIssue[]> {
+): Record<string, () => HealthIssue[] | Promise<HealthIssue[]>> {
   return {
     detectDeadRules: () => detectDeadRules(rules, history),
     detectViolationHotspots: () => detectViolationHotspots(history),
@@ -433,5 +435,6 @@ export function buildDetectorMap(
     detectLockFileSync: () => detectLockFileSync(projectRoot, sourceFiles),
     detectDuplicateDeps: () => detectDuplicateDeps(projectRoot, sourceFiles),
     detectDepAuditStatus: () => detectDepAuditStatus(projectRoot, sourceFiles),
+    detectAccessibilityGaps: () => detectAccessibilityGaps(projectRoot, sourceFiles),
   };
 }

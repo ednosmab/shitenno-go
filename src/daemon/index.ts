@@ -506,10 +506,10 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
     return "code-review";
   }
 
-  function runPeriodicAudit(): void {
+  async function runPeriodicAudit(): Promise<void> {
     try {
       const level = getAuditLevel();
-      const report = auditHealth(shitennoDir, shitennoDir, level);
+      const report = await auditHealth(shitennoDir, shitennoDir, level);
 
       // Update state with new health score
       state.health = {

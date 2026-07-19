@@ -103,6 +103,7 @@ export const DETECTORS_BY_LEVEL: Record<AuditLevel, string[]> = {
     "detectInsecureCORS",
     "detectInsecureCookies",
     "detectWeakRandomness",
+    "detectAccessibilityGaps",
   ],
   "code-review": [
     // All full-level detectors
@@ -210,6 +211,7 @@ export const DETECTORS_BY_LEVEL: Record<AuditLevel, string[]> = {
     "detectModuleCoupling",
     "detectImportConsistency",
     "detectTestStructure",
+    "detectAccessibilityGaps",
   ],
   enterprise: [
     // All code-review level detectors (99)
@@ -313,6 +315,7 @@ export const DETECTORS_BY_LEVEL: Record<AuditLevel, string[]> = {
     "detectModuleCoupling",
     "detectImportConsistency",
     "detectTestStructure",
+    "detectAccessibilityGaps",
     // Enterprise: Product Strategy & Requirements (ENT-*)
     "detectVisionAlignment",
     "detectRoadmapConsistency",

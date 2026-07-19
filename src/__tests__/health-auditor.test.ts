@@ -23,15 +23,15 @@ afterEach(() => {
 });
 
 describe("auditHealth", () => {
-  it("returns health score 100 for empty project", () => {
+  it("returns health score 100 for empty project", async () => {
     // No docs, no history → missing_docs issues only
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     expect(report.healthScore).toBeLessThan(100);
     expect(report.totalRules).toBe(0);
     expect(report.historyEntries).toBe(0);
   });
 
-  it("returns high health score when all docs exist and no issues", () => {
+  it("returns high health score when all docs exist and no issues", async () => {
     // Create all expected docs
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(
@@ -74,7 +74,7 @@ describe("auditHealth", () => {
     // capabilities.md (scanned by detectBrokenDirRefs)
     writeFileSync(join(shitennoDir, "docs", "capabilities.md"), "# Capabilities");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     expect(report.healthScore).toBeGreaterThan(0);
     expect(report.healthScore).toBeLessThanOrEqual(100);
     expect(report.totalRules).toBe(3);
@@ -83,8 +83,8 @@ describe("auditHealth", () => {
     expect(criticals.length).toBe(0);
   });
 
-  it("detects missing critical docs", () => {
-    const report = auditHealth(tempDir, shitennoDir);
+  it("detects missing critical docs", async () => {
+    const report = await auditHealth(tempDir, shitennoDir);
     const missingDocs = report.issues.filter((i) => i.type === "missing_docs");
     expect(missingDocs.length).toBeGreaterThanOrEqual(4);
 
@@ -92,7 +92,7 @@ describe("auditHealth", () => {
     expect(criticalMissing.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("detects stale buffer with too many lines", () => {
+  it("detects stale buffer with too many lines", async () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     const longBuffer = Array.from({ length: 60 }, (_, i) => `line-${i}: value`).join("\n");
     writeFileSync(
@@ -100,27 +100,27 @@ describe("auditHealth", () => {
       longBuffer
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const staleBuffer = report.issues.find((i) => i.type === "stale_buffer");
     expect(staleBuffer).toBeDefined();
     expect(staleBuffer!.severity).toBe(2);
   });
 
-  it("detects unclosed session in buffer", () => {
+  it("detects unclosed session in buffer", async () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "governance", "context", "context_buffer.yaml"),
       "current_task:\n  status: in_progress\n"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const stale = report.issues.find(
       (i) => i.type === "stale_buffer" && i.description.includes("curso")
     );
     expect(stale).toBeDefined();
   });
 
-  it("detects violation hotspots with 50%+ violation rate", () => {
+  it("detects violation hotspots with 50%+ violation rate", async () => {
     mkdirSync(join(shitennoDir, "docs", "history"), { recursive: true });
     for (let i = 0; i < 5; i++) {
       writeFileSync(
@@ -129,17 +129,17 @@ describe("auditHealth", () => {
       );
     }
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const hotspot = report.issues.find((i) => i.type === "violation_hotspot");
     expect(hotspot).toBeDefined();
   });
 
-  it("proposes optimizations for each issue type", () => {
+  it("proposes optimizations for each issue type", async () => {
     // Create conditions for orphan_dir
     mkdirSync(join(shitennoDir, "mystery"), { recursive: true });
     writeFileSync(join(shitennoDir, "mystery", "README.md"), "# Mystery");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const orphanOpt = report.optimizations.find(
       (o) => o.action === "add_docs"
     );
@@ -151,14 +151,14 @@ describe("auditHealth", () => {
 // ── New Detector Tests (Phase 5) ─────────────────────────────────────────────
 
 describe("detectDatePlaceholders", () => {
-  it("detects YYYY-MM-DD placeholder in FORBIDDEN_OPERATIONS.md", () => {
+  it("detects YYYY-MM-DD placeholder in FORBIDDEN_OPERATIONS.md", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"),
       "# Forbidden\n> **Data:** YYYY-MM-DD"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dateIssue = report.issues.find(
       (i) => i.type === "date_placeholder" && i.location.includes("FORBIDDEN_OPERATIONS")
     );
@@ -166,28 +166,28 @@ describe("detectDatePlaceholders", () => {
     expect(dateIssue!.severity).toBe(2);
   });
 
-  it("detects [DATE] placeholder in CONTEXT_HIERARCHY.md", () => {
+  it("detects [DATE] placeholder in CONTEXT_HIERARCHY.md", async () => {
     mkdirSync(join(shitennoDir, "cognition", "context"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "cognition", "context", "CONTEXT_HIERARCHY.md"),
       "# Context\n> **Data:** [DATE]"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dateIssue = report.issues.find(
       (i) => i.type === "date_placeholder" && i.location.includes("CONTEXT_HIERARCHY")
     );
     expect(dateIssue).toBeDefined();
   });
 
-  it("does not flag documents with real dates", () => {
+  it("does not flag documents with real dates", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"),
       "# Forbidden\n> **Data:** 2026-07-02"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dateIssue = report.issues.find(
       (i) => i.type === "date_placeholder" && i.location.includes("FORBIDDEN_OPERATIONS")
     );
@@ -196,10 +196,10 @@ describe("detectDatePlaceholders", () => {
 });
 
 describe("detectEmptyDirs", () => {
-  it("detects empty directories", () => {
+  it("detects empty directories", async () => {
     mkdirSync(join(shitennoDir, "empty-dir"), { recursive: true });
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const emptyIssue = report.issues.find(
       (i) => i.type === "empty_dir" && i.location.includes("empty-dir")
     );
@@ -207,46 +207,46 @@ describe("detectEmptyDirs", () => {
     expect(emptyIssue!.severity).toBe(1);
   });
 
-  it("does not flag directories with content", () => {
+  it("does not flag directories with content", async () => {
     mkdirSync(join(shitennoDir, "has-content"), { recursive: true });
     writeFileSync(join(shitennoDir, "has-content", "file.md"), "# Content");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const emptyIssue = report.issues.find(
       (i) => i.type === "empty_dir" && i.location.includes("has-content")
     );
     expect(emptyIssue).toBeUndefined();
   });
 
-  it("does not flag scripts or reports directories", () => {
+  it("does not flag scripts or reports directories", async () => {
     mkdirSync(join(shitennoDir, "scripts"), { recursive: true });
     mkdirSync(join(shitennoDir, "reports"), { recursive: true });
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const emptyIssues = report.issues.filter((i) => i.type === "empty_dir");
     expect(emptyIssues.length).toBe(0);
   });
 });
 
 describe("detectMissingGitignore", () => {
-  it("detects missing .gitignore in shitenno", () => {
-    const report = auditHealth(tempDir, shitennoDir);
+  it("detects missing .gitignore in shitenno", async () => {
+    const report = await auditHealth(tempDir, shitennoDir);
     const gitignoreIssue = report.issues.find((i) => i.type === "missing_gitignore");
     expect(gitignoreIssue).toBeDefined();
     expect(gitignoreIssue!.severity).toBe(2);
   });
 
-  it("does not flag when .gitignore exists", () => {
+  it("does not flag when .gitignore exists", async () => {
     writeFileSync(join(shitennoDir, ".gitignore"), "node_modules/\n");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const gitignoreIssue = report.issues.find((i) => i.type === "missing_gitignore");
     expect(gitignoreIssue).toBeUndefined();
   });
 });
 
 describe("detectMaturityInconsistency", () => {
-  it("detects inconsistent maturity scores", () => {
+  it("detects inconsistent maturity scores", async () => {
     writeFileSync(
       join(shitennoDir, "fingerprint.json"),
       JSON.stringify({ maturityScore: 49 })
@@ -256,7 +256,7 @@ describe("detectMaturityInconsistency", () => {
       JSON.stringify({ overallScore: 59 })
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const inconsistency = report.issues.find((i) => i.type === "maturity_inconsistency");
     expect(inconsistency).toBeDefined();
     expect(inconsistency!.severity).toBe(2);
@@ -264,7 +264,7 @@ describe("detectMaturityInconsistency", () => {
     expect(inconsistency!.description).toContain("59");
   });
 
-  it("does not flag when scores are consistent", () => {
+  it("does not flag when scores are consistent", async () => {
     writeFileSync(
       join(shitennoDir, "fingerprint.json"),
       JSON.stringify({ maturityScore: 59 })
@@ -274,60 +274,60 @@ describe("detectMaturityInconsistency", () => {
       JSON.stringify({ overallScore: 59 })
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const inconsistency = report.issues.find((i) => i.type === "maturity_inconsistency");
     expect(inconsistency).toBeUndefined();
   });
 });
 
 describe("detectAdrCoverage", () => {
-  it("detects missing adrs directory", () => {
-    const report = auditHealth(tempDir, shitennoDir);
+  it("detects missing adrs directory", async () => {
+    const report = await auditHealth(tempDir, shitennoDir);
     const adrIssue = report.issues.find((i) => i.type === "adr_coverage_gap");
     expect(adrIssue).toBeDefined();
     expect(adrIssue!.severity).toBe(1);
   });
 
-  it("detects empty adrs directory", () => {
+  it("detects empty adrs directory", async () => {
     mkdirSync(join(shitennoDir, "docs", "adrs"), { recursive: true });
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const adrIssue = report.issues.find((i) => i.type === "adr_coverage_gap");
     expect(adrIssue).toBeDefined();
     expect(adrIssue!.description).toContain("Nenhum ADR");
   });
 
-  it("does not flag when ADRs exist", () => {
+  it("does not flag when ADRs exist", async () => {
     mkdirSync(join(shitennoDir, "docs", "adrs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "adrs", "ADR-001-test.md"), "# ADR");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const adrIssue = report.issues.find((i) => i.type === "adr_coverage_gap");
     expect(adrIssue).toBeUndefined();
   });
 });
 
 describe("proposeOptimizations for new types", () => {
-  it("proposes fix_dates for date_placeholder issues", () => {
+  it("proposes fix_dates for date_placeholder issues", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "docs", "DESDO.md"),
       "# DESDO\n> **Data:** YYYY-MM-DD"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const fixDatesOpt = report.optimizations.find((o) => o.action === "fix_dates");
     expect(fixDatesOpt).toBeDefined();
     expect(fixDatesOpt!.id).toMatch(/^OPT-\d{3}$/);
   });
 
-  it("proposes add_gitignore for missing_gitignore issues", () => {
-    const report = auditHealth(tempDir, shitennoDir);
+  it("proposes add_gitignore for missing_gitignore issues", async () => {
+    const report = await auditHealth(tempDir, shitennoDir);
     const gitignoreOpt = report.optimizations.find((o) => o.action === "add_gitignore");
     expect(gitignoreOpt).toBeDefined();
   });
 
-  it("proposes reconcile_scores for maturity_inconsistency issues", () => {
+  it("proposes reconcile_scores for maturity_inconsistency issues", async () => {
     writeFileSync(
       join(shitennoDir, "fingerprint.json"),
       JSON.stringify({ maturityScore: 49 })
@@ -337,64 +337,64 @@ describe("proposeOptimizations for new types", () => {
       JSON.stringify({ overallScore: 59 })
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const reconcileOpt = report.optimizations.find((o) => o.action === "reconcile_scores");
     expect(reconcileOpt).toBeDefined();
   });
 });
 
 describe("writeHealthReport", () => {
-  it("returns null when reports/ doesn't exist", () => {
-    const report = auditHealth(tempDir, shitennoDir);
+  it("returns null when reports/ doesn't exist", async () => {
+    const report = await auditHealth(tempDir, shitennoDir);
     const result = writeHealthReport(shitennoDir, report);
     expect(result).toBeNull();
   });
 
-  it("writes health report when reports/ exists", () => {
+  it("writes health report when reports/ exists", async () => {
     mkdirSync(join(shitennoDir, "reports"), { recursive: true });
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const filename = writeHealthReport(shitennoDir, report);
     expect(filename).toMatch(/^health-\d{4}-\d{2}-\d{2}\.json$/);
   });
 });
 
 describe("detectBrokenRefs - template filtering", () => {
-  it("does not flag template patterns like YYYY-MM-DD-<slug>.md as broken", () => {
+  it("does not flag template patterns like YYYY-MM-DD-<slug>.md as broken", async () => {
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "governance", "WORKFLOW.md"),
       "# Workflow\nSee `governance/plans/YYYY-MM-DD-<slug>.md`"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const brokenRefs = report.issues.filter(
       (i) => i.type === "broken_ref" && i.description.includes("YYYY-MM-DD"),
     );
     expect(brokenRefs.length).toBe(0);
   });
 
-  it("does not flag template patterns like <task>.md as broken", () => {
+  it("does not flag template patterns like <task>.md as broken", async () => {
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "governance", "WORKFLOW.md"),
       "# Workflow\nSee `governance/plans/YYYY-MM-DD-<task>.md`"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const brokenRefs = report.issues.filter(
       (i) => i.type === "broken_ref" && i.description.includes("<task>"),
     );
     expect(brokenRefs.length).toBe(0);
   });
 
-  it("still flags real broken references", () => {
+  it("still flags real broken references", async () => {
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "governance", "WORKFLOW.md"),
       "# Workflow\nSee `docs/real-missing-file.md`"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const brokenRefs = report.issues.filter(
       (i) => i.type === "broken_ref" && i.description.includes("real-missing-file.md"),
     );
@@ -403,11 +403,11 @@ describe("detectBrokenRefs - template filtering", () => {
 });
 
 describe("detectEmptyDirs - recursive detection", () => {
-  it("detects empty sub-directories inside governance/", () => {
+  it("detects empty sub-directories inside governance/", async () => {
     mkdirSync(join(shitennoDir, "governance", "handoffs"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance", "rules"), { recursive: true });
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const emptyHandoffs = report.issues.find(
       (i) => i.type === "empty_dir" && i.location.includes("governance/handoffs"),
     );
@@ -418,22 +418,22 @@ describe("detectEmptyDirs - recursive detection", () => {
     expect(emptyRules).toBeDefined();
   });
 
-  it("does not flag directories with real files", () => {
+  it("does not flag directories with real files", async () => {
     mkdirSync(join(shitennoDir, "governance", "agents"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "agents", "contract.yaml"), "# contract");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const agentsIssue = report.issues.find(
       (i) => i.type === "empty_dir" && i.location.includes("governance/agents"),
     );
     expect(agentsIssue).toBeUndefined();
   });
 
-  it("does not flag directories with only placeholder files", () => {
+  it("does not flag directories with only placeholder files", async () => {
     mkdirSync(join(shitennoDir, "governance", "handoffs"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "handoffs", "TEMPLATE.md"), "# template");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const handoffsIssue = report.issues.find(
       (i) => i.type === "empty_dir" && i.location.includes("governance/handoffs"),
     );
@@ -442,14 +442,14 @@ describe("detectEmptyDirs - recursive detection", () => {
 });
 
 describe("detectBrokenDirRefs", () => {
-  it("detects broken directory references", () => {
+  it("detects broken directory references", async () => {
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(
       join(shitennoDir, "governance", "WORKFLOW.md"),
       "# Workflow\nSee `docs/history/`"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dirRefIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("directório"),
     );
@@ -457,7 +457,7 @@ describe("detectBrokenDirRefs", () => {
     expect(dirRefIssue!.description).toContain("docs/history/");
   });
 
-  it("does not flag existing directories", () => {
+  it("does not flag existing directories", async () => {
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(
@@ -465,7 +465,7 @@ describe("detectBrokenDirRefs", () => {
       "# Workflow\nSee `docs/`"
     );
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dirRefIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("directório") && i.description.includes("docs/"),
     );
@@ -474,36 +474,36 @@ describe("detectBrokenDirRefs", () => {
 });
 
 describe("detectMissingPackageJson", () => {
-  it("detects missing package.json when scripts exist", () => {
+  it("detects missing package.json when scripts exist", async () => {
     mkdirSync(join(shitennoDir, "scripts"), { recursive: true });
     writeFileSync(join(shitennoDir, "scripts", "check.ts"), "# script");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const pkgIssue = report.issues.find((i) => i.type === "missing_package_json");
     expect(pkgIssue).toBeDefined();
   });
 
-  it("does not flag when package.json exists", () => {
+  it("does not flag when package.json exists", async () => {
     mkdirSync(join(shitennoDir, "scripts"), { recursive: true });
     writeFileSync(join(shitennoDir, "scripts", "check.ts"), "# script");
     writeFileSync(join(shitennoDir, "package.json"), "{}");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const pkgIssue = report.issues.find((i) => i.type === "missing_package_json");
     expect(pkgIssue).toBeUndefined();
   });
 
-  it("does not flag when scripts directory is empty", () => {
+  it("does not flag when scripts directory is empty", async () => {
     mkdirSync(join(shitennoDir, "scripts"), { recursive: true });
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const pkgIssue = report.issues.find((i) => i.type === "missing_package_json");
     expect(pkgIssue).toBeUndefined();
   });
 });
 
 describe("detectBrokenDirRefs - expanded scan", () => {
-  it("detects broken directory reference in DESDO.md", () => {
+  it("detects broken directory reference in DESDO.md", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "DESDO.md"), "# DESDO\n- SDRs em `docs/sdr/`");
@@ -511,14 +511,14 @@ describe("detectBrokenDirRefs - expanded scan", () => {
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dirRefIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("docs/sdr/"),
     );
     expect(dirRefIssue).toBeDefined();
   });
 
-  it("detects broken directory reference in capabilities.md", () => {
+  it("detects broken directory reference in capabilities.md", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "capabilities.md"), "# Capabilities\n- Planos em `governance/plans/`");
@@ -526,7 +526,7 @@ describe("detectBrokenDirRefs - expanded scan", () => {
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const dirRefIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("governance/plans/"),
     );
@@ -535,21 +535,21 @@ describe("detectBrokenDirRefs - expanded scan", () => {
 });
 
 describe("detectNonBacktickFileRefs", () => {
-  it("detects non-backtick file reference that does not exist", () => {
+  it("detects non-backtick file reference that does not exist", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\n- Leia Requisitos_plataforma.md");
     writeFileSync(join(shitennoDir, "governance", "WORKFLOW.md"), "# Workflow");
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const nonBacktickIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("Requisitos_plataforma.md"),
     );
     expect(nonBacktickIssue).toBeDefined();
   });
 
-  it("does not flag backtick references (already caught by detectBrokenRefs)", () => {
+  it("does not flag backtick references (already caught by detectBrokenRefs)", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\n- Leia `existing-file.md`");
@@ -557,7 +557,7 @@ describe("detectNonBacktickFileRefs", () => {
     writeFileSync(join(shitennoDir, "governance", "WORKFLOW.md"), "# Workflow");
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const nonBacktickIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("existing-file.md"),
     );
@@ -566,28 +566,28 @@ describe("detectNonBacktickFileRefs", () => {
 });
 
 describe("detectUnreferencedDirs", () => {
-  it("detects docs/ directory not referenced in governance", () => {
+  it("detects docs/ directory not referenced in governance", async () => {
     mkdirSync(join(shitennoDir, "docs", "audits"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "WORKFLOW.md"), "# Workflow");
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const unreferencedIssue = report.issues.find(
       (i) => i.type === "orphan_dir" && i.description.includes("docs/audits"),
     );
     expect(unreferencedIssue).toBeDefined();
   });
 
-  it("does not flag docs/ directory that is referenced", () => {
+  it("does not flag docs/ directory that is referenced", async () => {
     mkdirSync(join(shitennoDir, "docs", "skills"), { recursive: true });
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "WORKFLOW.md"), "# Workflow");
     writeFileSync(join(shitennoDir, "governance", "SYSTEM_MAP.md"), "# Map");
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const unreferencedIssue = report.issues.find(
       (i) => i.type === "orphan_dir" && i.description.includes("docs/skills"),
     );
@@ -596,33 +596,33 @@ describe("detectUnreferencedDirs", () => {
 });
 
 describe("detectReportNaming", () => {
-  it("detects report with malformed name", () => {
+  it("detects report with malformed name", async () => {
     mkdirSync(join(shitennoDir, "reports"), { recursive: true });
     writeFileSync(join(shitennoDir, "reports", "complexity---2026-06-30.json"), "{}");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const namingIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("complexity---2026-06-30.json"),
     );
     expect(namingIssue).toBeDefined();
   });
 
-  it("does not flag report with valid name", () => {
+  it("does not flag report with valid name", async () => {
     mkdirSync(join(shitennoDir, "reports"), { recursive: true });
     writeFileSync(join(shitennoDir, "reports", "health-2026-07-03.json"), "{}");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const namingIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("health-2026-07-03.json"),
     );
     expect(namingIssue).toBeUndefined();
   });
 
-  it("does not flag report with project name suffix", () => {
+  it("does not flag report with project name suffix", async () => {
     mkdirSync(join(shitennoDir, "reports"), { recursive: true });
     writeFileSync(join(shitennoDir, "reports", "health-shitenno-cli-2026-07-03.json"), "{}");
 
-    const report = auditHealth(tempDir, shitennoDir);
+    const report = await auditHealth(tempDir, shitennoDir);
     const namingIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("health-shitenno-cli-2026-07-03.json"),
     );
@@ -631,7 +631,7 @@ describe("detectReportNaming", () => {
 });
 
 describe("AuditLevel filtering", () => {
-  it("quick level returns only 6 detector types", () => {
+  it("quick level returns only 6 detector types", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\n> **Data:** 2026-07-02");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\n> **Data:** 2026-07-02");
@@ -641,14 +641,14 @@ describe("AuditLevel filtering", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "quick");
+    const report = await auditHealth(tempDir, shitennoDir, "quick");
     expect(report.level).toBe("quick");
     // Quick should NOT detect template_dir_refs, broken_ref, orphan_dir, etc.
     const hasTemplateDir = report.issues.some((i) => i.type === "template_dir_ref");
     expect(hasTemplateDir).toBe(false);
   });
 
-  it("full level returns more issues than standard", () => {
+  it("full level returns more issues than standard", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\n> **Data:** 2026-07-02");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\n> **Data:** 2026-07-02");
@@ -658,15 +658,15 @@ describe("AuditLevel filtering", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const quickReport = auditHealth(tempDir, shitennoDir, "quick");
-    const codeReviewReport = auditHealth(tempDir, shitennoDir, "code-review");
+    const quickReport = await auditHealth(tempDir, shitennoDir, "quick");
+    const codeReviewReport = await auditHealth(tempDir, shitennoDir, "code-review");
     expect(codeReviewReport.level).toBe("code-review");
     expect(codeReviewReport.issues.length).toBeGreaterThanOrEqual(quickReport.issues.length);
   }, 40_000);
 });
 
 describe("Code-review level detectors", () => {
-  it("detects triple maturity score mismatch", () => {
+  it("detects triple maturity score mismatch", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
@@ -680,12 +680,12 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "BRIEFING.md"), "# Briefing\n- **Maturity:** 55/100");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const tripleIssue = report.issues.find((i) => i.type === "triple_maturity_score");
     expect(tripleIssue).toBeDefined();
   });
 
-  it("detects empty stack in fingerprint.json", () => {
+  it("detects empty stack in fingerprint.json", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
@@ -695,12 +695,12 @@ describe("Code-review level detectors", () => {
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
     writeFileSync(join(shitennoDir, "fingerprint.json"), JSON.stringify({ maturityScore: 49, stack: [] }));
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const emptyStackIssue = report.issues.find((i) => i.type === "empty_stack");
     expect(emptyStackIssue).toBeDefined();
   });
 
-  it("detects missing script wiring", () => {
+  it("detects missing script wiring", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\nObrigatório: `pnpm run validate:session`");
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
@@ -711,14 +711,14 @@ describe("Code-review level detectors", () => {
     // root package.json with no validate:session script
     writeFileSync(join(tempDir, "package.json"), JSON.stringify({ scripts: { build: "tsc" } }));
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const scriptIssue = report.issues.find(
       (i) => i.type === "script_wiring" && i.description.includes("validate:session"),
     );
     expect(scriptIssue).toBeDefined();
   });
 
-  it("detects rule typos in session-template", () => {
+  it("detects rule typos in session-template", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     writeFileSync(join(shitennoDir, "docs", "session-template.md"), "# Template\n- ejecutar tarefas\n- alterarhistóricos");
@@ -728,12 +728,12 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const typoIssues = report.issues.filter((i) => i.type === "rule_typo");
     expect(typoIssues.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("detects numbering gap in FORBIDDEN_OPERATIONS", () => {
+  it("detects numbering gap in FORBIDDEN_OPERATIONS", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\n> **Data:** 2026-07-02\n## F-01 Rule\n## F-02 Rule\n## F-04 Rule");
@@ -743,14 +743,14 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const gapIssue = report.issues.find(
       (i) => i.type === "numbering_gap" && i.description.includes("F-3"),
     );
     expect(gapIssue).toBeDefined();
   });
 
-  it("detects empty knowledge graph data files", () => {
+  it("detects empty knowledge graph data files", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     mkdirSync(join(shitennoDir, "governance", "knowledge-graph"), { recursive: true });
@@ -761,12 +761,12 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const emptyIssue = report.issues.find((i) => i.type === "empty_data_file");
     expect(emptyIssue).toBeDefined();
   });
 
-  it("detects phantom rule references (G-05 not defined)", () => {
+  it("detects phantom rule references (G-05 not defined)", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\nRule 16.f references G-05 in FORBIDDEN_OPERATIONS.md");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\n## **G-01** Rule one\n## **G-02** Rule two");
@@ -776,7 +776,7 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const phantomIssue = report.issues.find(
       (i) => i.type === "phantom_rule_ref" && i.description.includes("G-05"),
     );
@@ -784,7 +784,7 @@ describe("Code-review level detectors", () => {
     expect(phantomIssue!.severity).toBe(3);
   });
 
-  it("does not flag defined rules as phantom refs", () => {
+  it("does not flag defined rules as phantom refs", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\nRule references G-01 and G-02");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\n## **G-01** Rule one\n## **G-02** Rule two");
@@ -794,12 +794,12 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const phantomIssues = report.issues.filter((i) => i.type === "phantom_rule_ref");
     expect(phantomIssues.length).toBe(0);
   });
 
-  it("detects generic extension mismatch (.ts when real is .json)", () => {
+  it("detects generic extension mismatch (.ts when real is .json)", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents\nSee `maturity-profile.ts` for details");
     writeFileSync(join(shitennoDir, "docs", "maturity-profile.json"), "{}");
@@ -809,7 +809,7 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const extIssue = report.issues.find(
       (i) => i.type === "extension_mismatch" && i.description.includes("maturity-profile"),
     );
@@ -818,7 +818,7 @@ describe("Code-review level detectors", () => {
     expect(extIssue!.description).toContain("maturity-profile.json");
   });
 
-  it("detects broken refs in CONCEPTUAL_MODEL.md (expanded scan list)", () => {
+  it("detects broken refs in CONCEPTUAL_MODEL.md (expanded scan list)", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     writeFileSync(join(shitennoDir, "docs", "CONCEPTUAL_MODEL.md"), "# Model\nSee `capability-mapping.ts` for capabilities");
@@ -828,14 +828,14 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const brokenIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("capability-mapping.ts"),
     );
     expect(brokenIssue).toBeDefined();
   });
 
-  it("detects broken directory refs in FORBIDDEN_OPERATIONS (expanded scan list)", () => {
+  it("detects broken directory refs in FORBIDDEN_OPERATIONS (expanded scan list)", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     writeFileSync(join(shitennoDir, "docs", "FORBIDDEN_OPERATIONS.md"), "# Forbidden\nUse `packages/types/` for types");
@@ -845,14 +845,14 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const dirIssue = report.issues.find(
       (i) => i.type === "broken_ref" && i.description.includes("packages/types/"),
     );
     expect(dirIssue).toBeDefined();
   });
 
-  it("detects directory refs in YAML agent contracts", () => {
+  it("detects directory refs in YAML agent contracts", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     mkdirSync(join(shitennoDir, "governance", "agents"), { recursive: true });
@@ -866,14 +866,14 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const contractIssue = report.issues.find(
       (i) => i.type === "agent_contract_ref" && i.description.includes("audit/executions/"),
     );
     expect(contractIssue).toBeDefined();
   });
 
-  it("detects P0 contradiction in diagram format", () => {
+  it("detects P0 contradiction in diagram format", async () => {
     mkdirSync(join(shitennoDir, "docs"), { recursive: true });
     writeFileSync(join(shitennoDir, "docs", "AGENTS.md"), "# Agents");
     mkdirSync(join(shitennoDir, "governance"), { recursive: true });
@@ -887,7 +887,7 @@ describe("Code-review level detectors", () => {
     mkdirSync(join(shitennoDir, "governance", "context"), { recursive: true });
     writeFileSync(join(shitennoDir, "governance", "context", "context_buffer.yaml"), "current_task:\n  status: done\n");
 
-    const report = auditHealth(tempDir, shitennoDir, "code-review");
+    const report = await auditHealth(tempDir, shitennoDir, "code-review");
     const p0Issue = report.issues.find((i) => i.type === "cross_doc_p0_contradiction");
     expect(p0Issue).toBeDefined();
   });
@@ -896,7 +896,7 @@ describe("Code-review level detectors", () => {
 // ── Phase 3 Detector Tests ───────────────────────────────────────────────────
 
 describe("detectEmptyCatchBlocks", () => {
-  it("detects empty catch blocks in source files", () => {
+  it("detects empty catch blocks in source files", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -910,7 +910,7 @@ describe("detectEmptyCatchBlocks", () => {
 }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const emptyCatch = report.issues.find(
       (i) => i.type === "empty_catch" && i.description.includes("utils.ts")
     );
@@ -918,7 +918,7 @@ describe("detectEmptyCatchBlocks", () => {
     expect(emptyCatch!.severity).toBe(2);
   });
 
-  it("does not flag catch blocks with error handling", () => {
+  it("does not flag catch blocks with error handling", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -932,7 +932,7 @@ describe("detectEmptyCatchBlocks", () => {
 }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const emptyCatch = report.issues.find(
       (i) => i.type === "empty_catch" && i.description.includes("utils.ts")
     );
@@ -941,7 +941,7 @@ describe("detectEmptyCatchBlocks", () => {
 });
 
 describe("detectHighComplexity", () => {
-  it("detects functions with high cyclomatic complexity", () => {
+  it("detects functions with high cyclomatic complexity", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -969,7 +969,7 @@ describe("detectHighComplexity", () => {
 }`;
     writeFileSync(join(tempDir, "src", "complex.ts"), complexCode);
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const highComplexity = report.issues.find(
       (i) => i.type === "high_complexity" && i.description.includes("complex.ts")
     );
@@ -977,7 +977,7 @@ describe("detectHighComplexity", () => {
     expect(highComplexity!.severity).toBe(2);
   });
 
-  it("does not flag simple functions", () => {
+  it("does not flag simple functions", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -990,14 +990,14 @@ describe("detectHighComplexity", () => {
 }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const highComplexity = report.issues.find(
       (i) => i.type === "high_complexity" && i.description.includes("simple.ts")
     );
     expect(highComplexity).toBeUndefined();
   });
 
-  it("detects complexity in getters/setters/constructors", () => {
+  it("detects complexity in getters/setters/constructors", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1027,7 +1027,7 @@ describe("detectHighComplexity", () => {
 }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const highComplexity = report.issues.find(
       (i) => i.type === "high_complexity" && i.description.includes("class.ts")
     );
@@ -1036,7 +1036,7 @@ describe("detectHighComplexity", () => {
 });
 
 describe("detectCircularDeps", () => {
-  it("detects circular dependencies between modules", () => {
+  it("detects circular dependencies between modules", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1061,7 +1061,7 @@ export const b = bar();`
     expect(circularDep!.description).toContain("circular");
   });
 
-  it("does not flag acyclic imports", () => {
+  it("does not flag acyclic imports", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1084,7 +1084,7 @@ export const a = foo();`
 });
 
 describe("detectUnusedExports", () => {
-  it("detects exported symbols never imported by other modules", () => {
+  it("detects exported symbols never imported by other modules", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1100,14 +1100,14 @@ export const usedConst = 2;`
 console.log(usedConst);`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const unusedExport = report.issues.find(
       (i) => i.type === "unused_export" && i.description.includes("unusedFunc")
     );
     expect(unusedExport).toBeDefined();
   });
 
-  it("does not flag exports that are imported elsewhere", () => {
+  it("does not flag exports that are imported elsewhere", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1122,7 +1122,7 @@ console.log(usedConst);`
 usedFunc();`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const unusedExport = report.issues.find(
       (i) => i.type === "unused_export" && i.description.includes("usedFunc")
     );
@@ -1131,7 +1131,7 @@ usedFunc();`
 });
 
 describe("detectDeadCodePatterns", () => {
-  it("detects @ts-ignore comments", () => {
+  it("detects @ts-ignore comments", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1142,14 +1142,14 @@ describe("detectDeadCodePatterns", () => {
 const x: string = 123;`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const deadCode = report.issues.find(
       (i) => i.type === "dead_code" && i.description.includes("@ts-ignore") && i.location.includes("unsafe.ts")
     );
     expect(deadCode).toBeDefined();
   });
 
-  it("detects empty function bodies", () => {
+  it("detects empty function bodies", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1161,14 +1161,14 @@ const x: string = 123;`
 const emptyArrow = () => {}`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const deadCode = report.issues.filter(
       (i) => i.type === "dead_code" && i.location.includes("empty.ts") && i.description.includes("vazi")
     );
     expect(deadCode.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("does not flag if/for/while blocks as dead code", () => {
+  it("does not flag if/for/while blocks as dead code", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1181,14 +1181,14 @@ const emptyArrow = () => {}`
 }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const deadCode = report.issues.filter(
       (i) => i.type === "dead_code" && i.location.includes("valid.ts") && i.description.includes("vazi")
     );
     expect(deadCode.length).toBe(0);
   });
 
-  it("detects TODO comments", () => {
+  it("detects TODO comments", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1199,14 +1199,14 @@ const emptyArrow = () => {}`
 function todoFunc() { return 1; }`
     );
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const todoIssue = report.issues.find(
       (i) => i.type === "dead_code" && i.location.includes("todo.ts") && i.description.includes("TODO")
     );
     expect(todoIssue).toBeDefined();
   });
 
-  it("limits TODO output to 5 per file", () => {
+  it("limits TODO output to 5 per file", async () => {
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
     writeFileSync(join(tempDir, "src", "commands", "test.ts"), "# Commands");
     mkdirSync(join(tempDir, "src", "commands"), { recursive: true });
@@ -1214,7 +1214,7 @@ function todoFunc() { return 1; }`
     const manyTodos = Array.from({ length: 10 }, (_, i) => `// TODO item ${i}`).join("\n");
     writeFileSync(join(tempDir, "src", "many-todos.ts"), manyTodos);
 
-    const report = auditHealth(tempDir, shitennoDir, "standard");
+    const report = await auditHealth(tempDir, shitennoDir, "standard");
     const todoIssues = report.issues.filter(
       (i) => i.type === "dead_code" && i.location.includes("many-todos.ts") && i.description.includes("TODO")
     );
@@ -1240,7 +1240,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     rmSync(projectRoot, { recursive: true, force: true });
   });
 
-  it("SEC-01: detectHardcodedSecrets detects password hardcoded", () => {
+  it("SEC-01: detectHardcodedSecrets detects password hardcoded", async () => {
     writeFileSync(join(projectRoot, "src", "config.ts"),
       `const DB_PASSWORD = "supersecret123";\n` +
       `export const apiKey = "sk-1234567890abcdef1234";\n`
@@ -1250,7 +1250,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(secrets.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-01: detectHardcodedSecrets ignores comments", () => {
+  it("SEC-01: detectHardcodedSecrets ignores comments", async () => {
     writeFileSync(join(projectRoot, "src", "safe.ts"),
       `// password = "notreal"\n` +
       `// This is just a comment\n`
@@ -1260,7 +1260,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(secrets.length).toBe(0);
   });
 
-  it("SEC-02: detectSQLInjection detects query concatenation", () => {
+  it("SEC-02: detectSQLInjection detects query concatenation", async () => {
     writeFileSync(join(projectRoot, "src", "db.ts"),
       `db.query("SELECT * FROM users WHERE id = " + userId);\n` +
       `db.execute(\`SELECT * FROM orders WHERE name = \${name}\`);\n`
@@ -1270,7 +1270,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(sqli.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-03: detectXSS detects innerHTML usage", () => {
+  it("SEC-03: detectXSS detects innerHTML usage", async () => {
     writeFileSync(join(projectRoot, "src", "render.ts"),
       `element.innerHTML = userInput;\n` +
       `document.write(unsafeContent);\n`
@@ -1280,7 +1280,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(xss.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-04: detectUnsafeEval detects eval()", () => {
+  it("SEC-04: detectUnsafeEval detects eval()", async () => {
     writeFileSync(join(projectRoot, "src", "dynamic.ts"),
       `eval(userCode);\n` +
       `new Function(params, body);\n`
@@ -1290,7 +1290,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(evalIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-05: detectConsoleSecrets detects sensitive data in console", () => {
+  it("SEC-05: detectConsoleSecrets detects sensitive data in console", async () => {
     writeFileSync(join(projectRoot, "src", "debug.ts"),
       `console.log("password:", req.body.password);\n` +
       `console.log("token:", req.headers.authorization);\n`
@@ -1300,7 +1300,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(consoleIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-06: detectWeakCrypto detects MD5 usage", () => {
+  it("SEC-06: detectWeakCrypto detects MD5 usage", async () => {
     writeFileSync(join(projectRoot, "src", "crypto.ts"),
       `crypto.createHash("md5");\n` +
       `crypto.createHash("sha1");\n`
@@ -1310,7 +1310,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(cryptoIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-06: detectWeakCrypto ignores createCipheriv (safe)", () => {
+  it("SEC-06: detectWeakCrypto ignores createCipheriv (safe)", async () => {
     writeFileSync(join(projectRoot, "src", "safe-crypto.ts"),
       `crypto.createCipheriv("aes-256-gcm", key, iv);\n`
     );
@@ -1319,7 +1319,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(cryptoIssues.length).toBe(0);
   });
 
-  it("SEC-07: detectInsecureHTTP detects http URLs", () => {
+  it("SEC-07: detectInsecureHTTP detects http URLs", async () => {
     writeFileSync(join(projectRoot, "src", "api.ts"),
       `const url = "http://api.example.com/data";\n`
     );
@@ -1328,7 +1328,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(httpIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-07: detectInsecureHTTP ignores localhost", () => {
+  it("SEC-07: detectInsecureHTTP ignores localhost", async () => {
     writeFileSync(join(projectRoot, "src", "dev.ts"),
       `const url = "http://localhost:3000/api";\n`
     );
@@ -1337,7 +1337,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(httpIssues.length).toBe(0);
   });
 
-  it("SEC-08: detectPrototypePollution detects Object.assign with req", () => {
+  it("SEC-08: detectPrototypePollution detects Object.assign with req", async () => {
     writeFileSync(join(projectRoot, "src", "merge.ts"),
       `Object.assign(target, req.body);\n`
     );
@@ -1346,7 +1346,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(protoIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-09: detectPathTraversal detects dynamic file paths", () => {
+  it("SEC-09: detectPathTraversal detects dynamic file paths", async () => {
     writeFileSync(join(projectRoot, "src", "files.ts"),
       `readFile(req.query.path);\n` +
       `writeFileSync(req.body.filename, data);\n`
@@ -1356,7 +1356,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(pathIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-11: detectUnsafeDeserialization detects JSON.parse with req", () => {
+  it("SEC-11: detectUnsafeDeserialization detects JSON.parse with req", async () => {
     writeFileSync(join(projectRoot, "src", "parse.ts"),
       `JSON.parse(req.body.data);\n`
     );
@@ -1365,7 +1365,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(deserIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("All SEC-* detectors return 0 issues for clean code", () => {
+  it("All SEC-* detectors return 0 issues for clean code", async () => {
     writeFileSync(join(projectRoot, "src", "clean.ts"),
       `export const x = 42;\n` +
       `export function add(a: number, b: number) { return a + b; }\n`
@@ -1388,7 +1388,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(allSecIssues.length).toBe(0);
   });
 
-  it("SEC-10: detectRegexDos detects ReDoS patterns", () => {
+  it("SEC-10: detectRegexDos detects ReDoS patterns", async () => {
     writeFileSync(join(projectRoot, "src", "regex.ts"),
       `const bad = new RegExp("(a+)+$");\n` +
       `const also = new RegExp("\\w+\\s*=\\s*\\w+");\n`
@@ -1398,7 +1398,7 @@ describe("SEC-* Security Pattern Detectors", () => {
     expect(regexIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("SEC-12: detectDependencyConfusion detects phantom imports", () => {
+  it("SEC-12: detectDependencyConfusion detects phantom imports", async () => {
     writeFileSync(join(projectRoot, "src", "import.ts"),
       `import { something } from "nonexistent-package-xyz";\n`
     );

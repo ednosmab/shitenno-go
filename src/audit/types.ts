@@ -226,6 +226,8 @@ export type HealthIssueType =
   | "tier_promotion_candidate"
   // Detector failure
   | "detector_failure"
+  // Accessibility (A11y)
+  | "accessibility_gap"
   | "orphan_skill";
 
 /** Problema de saúde detectado no sistema. */
