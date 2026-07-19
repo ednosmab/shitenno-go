@@ -80,9 +80,10 @@ describe("getCapabilityFiles", () => {
     expect(files.some((f) => f.dest.includes("AGENTS.md"))).toBe(true);
   });
 
-  it("core files include BACKLOG.md", () => {
+  it("core files include backlog modular (ACTIVE.md + DONE.md)", () => {
     const files = getCapabilityFiles("core");
-    expect(files.some((f) => f.dest.includes("BACKLOG.md"))).toBe(true);
+    expect(files.some((f) => f.dest.includes("backlog/ACTIVE.md"))).toBe(true);
+    expect(files.some((f) => f.dest.includes("backlog/DONE.md"))).toBe(true);
   });
 
   it("knowledge files are empty (skills copied separately)", () => {

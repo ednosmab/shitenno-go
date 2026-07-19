@@ -23,6 +23,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: npx tsc --noEmit
+      - name: Check file size (F-06, report-only until backlog de refactor é resolvido)
+        run: bash scripts/check-file-size.sh --report-only
 
   security:
     name: Security Audit

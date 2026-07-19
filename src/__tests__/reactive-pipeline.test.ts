@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { getEventBus, resetEventBus, enableEventPersistence, readPersistedEvents } from "../event-bus.js";
@@ -285,7 +285,8 @@ describe("reactive-pipeline", () => {
     });
 
     it("BACKLOG.md is updated by update_backlog action", async () => {
-      const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
+      const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
+      mkdirSync(dirname(backlogPath), { recursive: true });
       writeFileSync(backlogPath, "# BACKLOG\n\nExisting items\n", "utf-8");
 
       const rule = createRule({
@@ -312,6 +313,7 @@ describe("reactive-pipeline", () => {
 
     it("task.completed event triggers RULE-016 (update_backlog_status)", async () => {
       const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
+      mkdirSync(dirname(backlogPath), { recursive: true });
       writeFileSync(
         backlogPath,
         "# BACKLOG\n\n| ID | Title | Priority | Status |\n|---|---|---|---|\n| TASK-001 | Test task | High | em implementação |\n",

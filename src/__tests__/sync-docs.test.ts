@@ -3,14 +3,15 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SHITENNO_DIR_NAME } from "../constants.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT = join(__dirname, "..", "..");
-const SYNC_SCRIPT = join(ROOT, "shitenno", "scripts", "sync-docs.ts");
+const SYNC_SCRIPT = join(ROOT, SHITENNO_DIR_NAME, "scripts", "sync-docs.ts");
 const README = join(ROOT, "README.md");
-const SYSTEM_MAP = join(ROOT, "shitenno", "governance", "SYSTEM_MAP.md");
-const REPORTS_DIR = join(ROOT, "shitenno", "reports");
+const SYSTEM_MAP = join(ROOT, SHITENNO_DIR_NAME, "governance", "SYSTEM_MAP.md");
+const REPORTS_DIR = join(ROOT, SHITENNO_DIR_NAME, "reports");
 
 function runSync(flags = ""): { stdout: string; exitCode: number } {
   try {

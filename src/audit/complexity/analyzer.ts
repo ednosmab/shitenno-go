@@ -39,7 +39,7 @@ function getFunctionName(node: ts.FunctionLikeDeclaration, sourceFile: ts.Source
     if (ts.isArrowFunction(node) && node.parent && ts.isVariableDeclaration(node.parent) && node.parent.name && ts.isIdentifier(node.parent.name)) {
       return node.parent.name.text;
     }
-    return `<anonymous@${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1}>`;
+    return `<anonymous@${sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1}>`;
   } catch {
     return "<unknown>";
   }
@@ -65,7 +65,7 @@ export function analyzeComplexity(_program: ts.Program, sourceFile: ts.SourceFil
 
     let line = 0;
     try {
-      line = sourceFile.getLineAndCharacterOfPosition(fnNode.getStart()).line;
+      line = sourceFile.getLineAndCharacterOfPosition(fnNode.getStart(sourceFile)).line;
     } catch {
       // getStart() may fail for standalone source files (ts.createSourceFile fallback)
     }

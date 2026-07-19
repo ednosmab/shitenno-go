@@ -15,7 +15,7 @@ interface BacklogItem {
   description: string;
 }
 
-const SOURCE = "docs/BACKLOG.md";
+const SOURCE = ".shitenno/docs/BACKLOG.md";
 const ACTIVE_DEST = "docs/backlog/ACTIVE.md";
 const DONE_DEST = "docs/backlog/DONE.md";
 const README_DEST = "docs/backlog/README.md";
@@ -33,10 +33,10 @@ function parseBacklogManually(content: string): BacklogItem[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
 
-    // Detect sections (P0, P1, P2, P3, Done)
-    const sectionMatch = line.match(/^## (P[0-9]+|Done)\s/);
+    // Detect sections (P0, P1, P2, P3, Done, Completed Items)
+    const sectionMatch = line.match(/^## (P[0-9]+|Done|Completed Items)\s?/);
     if (sectionMatch) {
-      currentSection = sectionMatch[1]!;
+      currentSection = sectionMatch[1] === "Completed Items" ? "Done" : sectionMatch[1]!;
       inDoneTable = currentSection === "Done";
       
       // Save previous item

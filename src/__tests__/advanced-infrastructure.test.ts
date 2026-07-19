@@ -82,7 +82,8 @@ describe("DeadLetterQueue", () => {
   });
 
   it("retry returns false for non-existent event", () => {
-    expect(queue.retry("non-existent-id")).toBe(false);
+    const bus = getEventBus();
+    expect(queue.retry("non-existent-id", bus)).toBe(false);
   });
 
   it("clear empties the queue", () => {

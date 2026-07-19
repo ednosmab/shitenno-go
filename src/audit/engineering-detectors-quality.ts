@@ -383,8 +383,12 @@ export function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]
 
   for (const file of files) {
     const deps = new Set<string>();
+    const contentWithoutTypeImports = file.content
+      .split("\n")
+      .filter((line) => !/^\s*import\s+type\s+/.test(line))
+      .join("\n");
     let match;
-    while ((match = importRegex.exec(file.content)) !== null) {
+    while ((match = importRegex.exec(contentWithoutTypeImports)) !== null) {
       const spec = match[1];
       if (!spec) continue;
       if (spec.startsWith(".") || spec.startsWith("/")) {

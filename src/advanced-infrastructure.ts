@@ -12,7 +12,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEventBus, type ShitennoEventType, type EventBus } from "./event-bus.js";
+import type { ShitennoEventType, EventBus } from "./event-bus.js";
 import { logger } from "./logger.js";
 import { BoundedQueue, LRUCache } from "./daemon-resources.js";
 
@@ -188,16 +188,15 @@ export class DeadLetterQueue {
   }
 
   /** Retry a dead-letter event (re-publish to bus). */
-  retry(deadLetterId: string, bus?: EventBus): boolean {
+  retry(deadLetterId: string, bus: EventBus): boolean {
     const index = this.queue.toArray().findIndex((dl) => dl.event.id === deadLetterId);
     if (index === -1) return false;
 
     const all = this.queue.toArray();
     const dl = all[index]!;
-    const eventBus = bus ?? getEventBus();
 
     try {
-      eventBus.publish(dl.event.type as ShitennoEventType, dl.event.payload as Record<string, unknown>, {
+      bus.publish(dl.event.type as ShitennoEventType, dl.event.payload as Record<string, unknown>, {
         correlationId: dl.event.correlationId,
         traceId: dl.event.traceId,
       });

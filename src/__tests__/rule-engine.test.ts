@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
@@ -270,8 +270,8 @@ describe("rule-engine", () => {
     });
 
     it("executes update_backlog action", async () => {
-      const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
-      mkdirSync(join(shitennoDir, "docs"), { recursive: true });
+      const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
+      mkdirSync(dirname(backlogPath), { recursive: true });
       writeFileSync(backlogPath, "# BACKLOG\n\nExisting items\n", "utf-8");
 
       const rule = createMockRule({

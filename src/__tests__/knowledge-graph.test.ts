@@ -84,9 +84,9 @@ describe("knowledge-graph", () => {
     });
 
     it("loads artifacts from file", () => {
-      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.json");
+      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.jsonl");
       const artifacts = [createMockArtifact(), createMockArtifact({ id: "adr-002" })];
-      writeFileSync(artifactsPath, JSON.stringify(artifacts), "utf-8");
+      writeFileSync(artifactsPath, artifacts.map((a) => JSON.stringify(a)).join("\n") + "\n", "utf-8");
 
       const loaded = loadArtifacts(shitennoDir);
       expect(loaded).toHaveLength(2);
@@ -94,7 +94,7 @@ describe("knowledge-graph", () => {
     });
 
     it("returns empty array on invalid JSON", () => {
-      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.json");
+      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.jsonl");
       writeFileSync(artifactsPath, "invalid json", "utf-8");
 
       const artifacts = loadArtifacts(shitennoDir);
@@ -109,9 +109,9 @@ describe("knowledge-graph", () => {
     });
 
     it("loads relations from file", () => {
-      const relationsPath = join(shitennoDir, "governance", "knowledge-graph", "relations.json");
+      const relationsPath = join(shitennoDir, "governance", "knowledge-graph", "relations.jsonl");
       const relations = [createMockRelation(), createMockRelation({ source: "adr-002" })];
-      writeFileSync(relationsPath, JSON.stringify(relations), "utf-8");
+      writeFileSync(relationsPath, relations.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf-8");
 
       const loaded = loadRelations(shitennoDir);
       expect(loaded).toHaveLength(2);
@@ -123,10 +123,10 @@ describe("knowledge-graph", () => {
       const artifacts = [createMockArtifact(), createMockArtifact({ id: "adr-002" })];
       saveArtifacts(shitennoDir, artifacts);
 
-      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.json");
+      const artifactsPath = join(shitennoDir, "governance", "knowledge-graph", "artifacts.jsonl");
       expect(existsSync(artifactsPath)).toBe(true);
 
-      const loaded = JSON.parse(require("node:fs").readFileSync(artifactsPath, "utf-8"));
+      const loaded = require("node:fs").readFileSync(artifactsPath, "utf-8").trim().split("\n").map((line: string) => JSON.parse(line));
       expect(loaded).toHaveLength(2);
     });
 
@@ -142,10 +142,10 @@ describe("knowledge-graph", () => {
       const relations = [createMockRelation()];
       saveRelations(shitennoDir, relations);
 
-      const relationsPath = join(shitennoDir, "governance", "knowledge-graph", "relations.json");
+      const relationsPath = join(shitennoDir, "governance", "knowledge-graph", "relations.jsonl");
       expect(existsSync(relationsPath)).toBe(true);
 
-      const loaded = JSON.parse(require("node:fs").readFileSync(relationsPath, "utf-8"));
+      const loaded = require("node:fs").readFileSync(relationsPath, "utf-8").trim().split("\n").map((line: string) => JSON.parse(line));
       expect(loaded).toHaveLength(1);
     });
   });
