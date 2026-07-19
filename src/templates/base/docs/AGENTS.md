@@ -56,6 +56,23 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 - Execute o ritual de fim de sessão conforme regra #12: `pnpm run close:session`, buffer podado (≤ 50 linhas activas), backlog actualizado, testes verdes.
 - Termine sua resposta exibindo o estado atual resumido do buffer e o consumo estimado da sessão.
 
+### 🔒 PASSO 4.1 — Contrato de conclusão de plano (Status: check → done)
+
+> ⚠️ **REGRA ABSOLUTA:** você NUNCA escreve `**Status:** done` diretamente no
+> frontmatter de um plano. Isso é proibido, independente de quão confiante
+> você esteja de que a implementação está correta.
+
+- Ao terminar a implementação de um plano, marque `**Status:** check` (não `done`).
+- O sistema (daemon, ou o checkpoint de fim de sessão) roda build + testes de forma
+  automatizada e decide: se passar, promove para `done` sozinho; se falhar, marca
+  `blocked` com o motivo.
+- Se você escrever `done` manualmente mesmo assim, o commit será bloqueado no
+  pre-commit por falta de `.verification.json` correspondente — não tente
+  contornar criando esse arquivo manualmente, ele é assinado pelo hash do
+  commit no momento da verificação real.
+- Se um plano ficar em `blocked`, leia o motivo registrado e corrija — não
+  edite o status de volta para `check` sem corrigir o problema apontado.
+
 ### 📜 Protocolo de Registro Histórico de Longo Prazo
 1. **Imutabilidade:** Os arquivos dentro de `docs/history/` são registros históricos. Você está PROIBIDO de alterar arquivos de sessões passadas.
 2. **Geração de Saída:** Quando o usuário solicitar o encerramento ou resumo de uma sessão para transição de chat, sintetize os pontos em um formato denso contendo: Data, Objetivos Alcançados, Decisões Técnicas de Arquitetura e Estado do Repositório.
@@ -371,6 +388,23 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 - Limpe a seção de `imported-tools` do buffer inserindo: "*Nenhum erro ativo.*"
 - Execute o ritual de fim de sessão conforme regra #12: `pnpm run close:session`, buffer podado (≤ 50 linhas activas), backlog actualizado, testes verdes.
 - Termine sua resposta exibindo o estado atual resumido do buffer e o consumo estimado da sessão.
+
+### 🔒 PASSO 4.1 — Contrato de conclusão de plano (Status: check → done)
+
+> ⚠️ **REGRA ABSOLUTA:** você NUNCA escreve `**Status:** done` diretamente no
+> frontmatter de um plano. Isso é proibido, independente de quão confiante
+> você esteja de que a implementação está correta.
+
+- Ao terminar a implementação de um plano, marque `**Status:** check` (não `done`).
+- O sistema (daemon, ou o checkpoint de fim de sessão) roda build + testes de forma
+  automatizada e decide: se passar, promove para `done` sozinho; se falhar, marca
+  `blocked` com o motivo.
+- Se você escrever `done` manualmente mesmo assim, o commit será bloqueado no
+  pre-commit por falta de `.verification.json` correspondente — não tente
+  contornar criando esse arquivo manualmente, ele é assinado pelo hash do
+  commit no momento da verificação real.
+- Se um plano ficar em `blocked`, leia o motivo registrado e corrija — não
+  edite o status de volta para `check` sem corrigir o problema apontado.
 
 ### 📜 Protocolo de Registro Histórico de Longo Prazo
 1. **Imutabilidade:** Os arquivos dentro de `docs/history/` são registros históricos. Você está PROIBIDO de alterar arquivos de sessões passadas.

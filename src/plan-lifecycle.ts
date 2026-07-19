@@ -10,7 +10,8 @@
 import { execSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { analyseProject } from "./analyser.js";
 import chalk from "chalk";
 import ora from "ora";
 import { SHITENNO_DIR_NAME } from "./constants.js";
@@ -86,9 +87,50 @@ async function runValidationWithProgress(
   return { valid, checks };
 }
 
-export function checkBuild(projectRoot: string): CompletionCheck {
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+interface PackageJson {
+  scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+function readPackageJsonSafe(projectRoot: string): PackageJson | null {
+  const pkgPath = join(projectRoot, "package.json");
+  if (!existsSync(pkgPath)) return null;
   try {
-    execSync("pnpm run build 2>/dev/null", {
+    return JSON.parse(readFileSync(pkgPath, "utf-8")) as PackageJson;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect package-manager runner from project signals.
+ * Reuses analyser.ts detection that already runs at `shugo init`.
+ */
+function resolveRunner(projectRoot: string): { run: (script: string) => string } {
+  const analysis = analyseProject(projectRoot);
+  const pm = analysis.packageManager === "unknown" ? "npm" : analysis.packageManager;
+  return {
+    run: (script: string) => {
+      if (pm === "npm") return `npm run ${script}`;
+      if (pm === "yarn") return `yarn run ${script}`;
+      return `${pm} run ${script}`;
+    },
+  };
+}
+
+// ── Completion Checks ────────────────────────────────────────────────────────
+
+export function checkBuild(projectRoot: string): CompletionCheck {
+  const pkg = readPackageJsonSafe(projectRoot);
+  if (!pkg?.scripts?.build) {
+    return { name: "BUILD", passed: true, message: "No build script — skipped (non-blocking)" };
+  }
+  const { run } = resolveRunner(projectRoot);
+  try {
+    execSync(`${run("build")} 2>/dev/null`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 120000,
@@ -101,8 +143,15 @@ export function checkBuild(projectRoot: string): CompletionCheck {
 }
 
 export function checkTests(projectRoot: string): CompletionCheck {
+  const pkg = readPackageJsonSafe(projectRoot);
+  if (!pkg?.scripts?.test) {
+    // No test script — blocking. "done" without any runnable test suite defeats the
+    // whole purpose of the Bloco F verification gate.
+    return { name: "TESTS", passed: false, message: "No 'test' script in package.json — cannot verify" };
+  }
+  const { run } = resolveRunner(projectRoot);
   try {
-    execSync("npx vitest run 2>/dev/null", {
+    execSync(`${run("test")} 2>/dev/null`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 180000,
@@ -110,13 +159,20 @@ export function checkTests(projectRoot: string): CompletionCheck {
     });
     return { name: "TESTS", passed: true, message: "Tests passed" };
   } catch {
-    return { name: "TESTS", passed: false, message: "Tests failed or not found" };
+    return { name: "TESTS", passed: false, message: "Tests failed" };
   }
 }
 
 export function checkLint(projectRoot: string): CompletionCheck {
+  const pkg = readPackageJsonSafe(projectRoot);
+  if (!pkg?.scripts?.lint) {
+    // No lint script — skip. Third-party projects without a linter should not be
+    // blocked forever by the auto-verification gate.
+    return { name: "LINT", passed: true, message: "No lint script — skipped (non-blocking)" };
+  }
+  const { run } = resolveRunner(projectRoot);
   try {
-    execSync("pnpm run lint 2>/dev/null", {
+    execSync(`${run("lint")} 2>/dev/null`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 60000,
@@ -124,7 +180,7 @@ export function checkLint(projectRoot: string): CompletionCheck {
     });
     return { name: "LINT", passed: true, message: "Lint passed" };
   } catch {
-    return { name: "LINT", passed: false, message: "Lint failed or not configured" };
+    return { name: "LINT", passed: false, message: "Lint failed" };
   }
 }
 

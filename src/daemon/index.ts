@@ -315,26 +315,42 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
   // ── Event Subscriptions ─────────────────────────────────────────────────────
 
   // TIER 1: plan.file_changed — verify 'check' plans, archive done, + audit
+  // Debounce per plan to avoid re-running the full verification suite on rapid saves
+  // (e.g. autosave, format-on-save) — tests can legitimately take minutes.
+  const verificationDebounce = new Map<string, NodeJS.Timeout>();
+  const VERIFICATION_DEBOUNCE_MS = 3000;
+
   bus.subscribe("plan.file_changed", () => {
     recordEvent(state, "plan.file_changed");
     state.briefingCache = null;
     state.riskMapCache = null;
     try {
-      // Run auto-verification for any plan in 'check' status BEFORE archiving
       const engine = new MarkdownPlanEngine(shitennoDir);
       const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
-      for (const plan of pendingCheck) {
-        const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
-        daemonLog(
-          logPath,
-          record.passed ? "INFO" : "WARN",
-          `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "FAILED → blocked"}`
-        );
-      }
 
-      const result = checkAndArchiveDonePlans(shitennoDir);
-      if (result.archived > 0) {
-        daemonLog(logPath, "INFO", `Auto-archived ${result.archived} plan(s): ${result.archivedIds.join(", ")}`);
+      for (const plan of pendingCheck) {
+        const existing = verificationDebounce.get(plan.id);
+        if (existing) clearTimeout(existing);
+        verificationDebounce.set(
+          plan.id,
+          setTimeout(() => {
+            verificationDebounce.delete(plan.id);
+            try {
+              const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
+              daemonLog(
+                logPath,
+                record.passed ? "INFO" : "WARN",
+                `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "FAILED → blocked"}`
+              );
+              const archiveResult = checkAndArchiveDonePlans(shitennoDir);
+              if (archiveResult.archived > 0) {
+                daemonLog(logPath, "INFO", `Auto-archived ${archiveResult.archived} plan(s)`);
+              }
+            } catch (err) {
+              daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
+            }
+          }, VERIFICATION_DEBOUNCE_MS)
+        );
       }
     } catch (err) {
       daemonLog(logPath, "ERROR", `checkAndArchiveDonePlans failed: ${err}`);

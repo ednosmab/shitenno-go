@@ -41,16 +41,32 @@ function checkWorkingTree() {
 }
 
 // ── 2. Tests executed? ────────────────────────────────────────────────────
-function checkTests() {
+function checkTestsLocal() {
   try {
-    execSync('pnpm run test --recursive --if-present --filter=core 2>/dev/null | tail -1', {
+    const pkgPath = resolve(ROOT, 'package.json');
+    if (!existsSync(pkgPath)) {
+      warn('TESTS', 'No package.json found — cannot run tests');
+      return;
+    }
+    let testScript = '';
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      testScript = pkg.scripts?.test ?? '';
+    } catch { /* no-op */ }
+
+    if (!testScript) {
+      warn('TESTS', 'No test script in package.json — cannot verify');
+      return;
+    }
+
+    execSync('npm run test 2>/dev/null | tail -1', {
       encoding: 'utf-8',
       cwd: ROOT,
-      timeout: 60000,
+      timeout: 120000,
     });
-    pass('TESTS', 'Core tests passed');
+    pass('TESTS', 'Tests passed');
   } catch {
-    warn('TESTS', 'Tests not executed or failed — run pnpm run test');
+    warn('TESTS', 'Tests not executed or failed — run your project test command');
   }
 }
 
@@ -95,16 +111,30 @@ function checkCommit() {
 }
 
 // ── 6. Build verification ───────────────────────────────────────────────
-function checkBuild() {
+function checkBuildLocal() {
   try {
-    execSync('pnpm run build:verify 2>/dev/null | tail -5', {
+    const pkgPath = resolve(ROOT, 'package.json');
+    let buildScript = '';
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        buildScript = pkg.scripts?.build ?? '';
+      } catch { /* no-op */ }
+    }
+
+    if (!buildScript) {
+      pass('BUILD', 'No build script — skipped');
+      return;
+    }
+
+    execSync('npm run build 2>/dev/null | tail -5', {
       encoding: 'utf-8',
       cwd: ROOT,
       timeout: 180000,
     });
     pass('BUILD', 'Build verification passed');
   } catch {
-    warn('BUILD', 'Build failed — run pnpm run build:verify');
+    warn('BUILD', 'Build failed — run your project build command');
   }
 }
 
@@ -178,11 +208,11 @@ async function checkPlanLifecycle() {
 console.log('\n🔒 CLOSE SESSION — Closing session checklist\n');
 
 checkWorkingTree();
-checkTests();
+checkTestsLocal();
 checkBuffer();
 checkBacklog();
 checkCommit();
-checkBuild();
+checkBuildLocal();
 await checkPlanLifecycle();
 
 console.log(`\n${exitCode === 0 ? '✅ Session ready to close' : '❌ Session has issues to resolve'}`);

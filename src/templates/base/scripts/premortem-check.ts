@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,8 +41,15 @@ warn('CONTEXT', 'Verifique se o plano cobre todos os cenários e se há ambiguid
 warn('CONTEXT', 'Consulte context_buffer.yaml e o plano activo em shitenno/governance/plans/');
 
 // ── 4. Regression risk? ───────────────────────────────────────────────────
-warn('REGRESSION', 'Identifique testes existentes que podem falhar');
-warn('REGRESSION', 'Execute pnpm run test antes de começar para confirmar baseline verde');
+function checkBaseline() {
+  try {
+    execSync('git diff --quiet && git diff --cached --quiet', { cwd: ROOT });
+    pass('REGRESSION', 'Working tree limpo — baseline seguro para rodar testes antes de codar');
+  } catch {
+    warn('REGRESSION', 'Há mudanças não commitadas — rode os testes agora para capturar o baseline antes de codar mais');
+  }
+}
+checkBaseline();
 
 // ── 5. External dependency? ───────────────────────────────────────────────
 warn('DEPENDENCY', 'Verifique se há dependências de API, migration, configuração, deploy ou permissões');
