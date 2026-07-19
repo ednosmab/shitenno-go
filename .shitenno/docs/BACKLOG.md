@@ -8,7 +8,7 @@
 >
 > **Owner:** Agente que assume o item. Itens sem owner sao `unassigned`.
 >
-> **Ultima atualizacao:** 2026-07-11 — adição de 7 items Shugo Living (LIVING-001 a LIVING-006 + BUG-001)
+> **Ultima atualizacao:** 2026-07-19 — adição de NEW-003 (corrigir sistema de feedback)
 
 ---
 
@@ -259,6 +259,20 @@
 | **Modulos** | opencode.json, docs/rules/feedback-protocol.md, docs/skills/quick-board-enforcement.md |
 | **Descricao** | O protocolo de feedback em AGENTS.md (regra #17) exige que o agente gere e apresente feedback pessoal ao utilizador no fim de sessao. No entanto, este feedback nunca e executado automaticamente. Investigar: (1) e a skill `quick-board-enforcement.md` que bloqueia? (2) e o `loading_profile` lite que nao carrega a regra #17? (3) e o `opencode.json` que nao activa o modo review no fim de sessao? |
 | **Correcao** | Documentar causa raiz e corrigir. Possivelmente: adicionar regra #17 ao loading profile lite, ou criar skill especifica para feedback de sessao. |
+
+### NEW-003 Corrigir sistema de feedback
+
+| Campo | Valor |
+|---|---|
+| **Status** | Backlog |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | unassigned |
+| **Data** | 2026-07-19 |
+| **Fonte** | Analise manual do sistema de feedback |
+| **Modulos** | src/feedback-loops.ts, src/session-feedback.ts, src/commands/feedback.ts |
+| **Descricao** | Sistema de feedback tem dois subsistemas independentes com problemas: (A) Feedback de recomendacoes (68 registros em `.shitenno/feedback/records/`) — todos sao `deferred` automaticos para `rule-RULE-001` com contexto vazio (maturity 0, capabilities vazias). Sao gerados pelo motor, nao refletem feedback real do utilizador. (B) Feedback de sessao (`shugo feedback --outcome`) — nunca foi executado. Directorio `.shitenno/session-feedback/` nao existe no disco. (C) Feedback personalizado — nenhum relatorio gerado em `.shitenno/docs/feedback/`. |
+| **Correcao** | (1) Investigar por que `recordFeedback()` gera registros identicos com contexto vazio. (2) Garantir que `shugo feedback --outcome` e chamado no fim de sessao (integrar com workflow). (3) Criar directorio `.shitenno/session-feedback/` se nao existir. (4) Testar fluxo completo: gravar feedback → ler feedback → gerar relatorio personalizado. |
 
 ### G1 Landing page
 
