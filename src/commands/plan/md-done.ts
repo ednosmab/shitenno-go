@@ -13,7 +13,7 @@ import { output } from "../../output.js";
 export function registerMdDone(cmd: import("commander").Command) {
   cmd
     .command("done")
-    .description("Mark markdown plan as done and move to done/")
+    .description("Run verification (build+test+lint) and, if it passes, mark plan as done")
     .argument("<id>", "Plan ID")
     .option("--json", "Output as JSON")
     .action((id: string, opts: Record<string, unknown>) => {

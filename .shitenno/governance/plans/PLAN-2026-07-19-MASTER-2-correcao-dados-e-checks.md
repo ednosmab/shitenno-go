@@ -1,6 +1,8 @@
 # PLAN-2026-07-19 — MASTER 2/3: Correção de Dados e Checks Genéricos
 
 **Status:** In Progress
+**Updated_at:** 2026-07-20T04:11:00.384Z
+**Date:** 2026-07-20
 
 **Continuação de `PLAN-2026-07-19-MASTER-1-integridade-gate.md`. Cobre M.8, M.9, M.10.**
 

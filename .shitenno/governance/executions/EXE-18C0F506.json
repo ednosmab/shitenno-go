@@ -1,0 +1,13 @@
+{
+  "executionId": "EXE-18C0F506",
+  "request": {
+    "id": "invoke-mrspixyi",
+    "type": "send_notification",
+    "params": {
+      "message": "📚 Handbook template detected — load skill handbook-fill and populate SEMANTIC blocks"
+    }
+  },
+  "executionHash": "994af64920229b75",
+  "status": "running",
+  "startedAt": "2026-07-20T04:11:00.330Z"
+}

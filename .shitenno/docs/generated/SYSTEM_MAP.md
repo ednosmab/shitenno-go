@@ -1,6 +1,6 @@
 # System Map
 
-> Generated: 2026-07-18T13:57:59.233Z
+> Generated: 2026-07-20T04:26:23.115Z
 > Session Score: 99/100
 
 ## Overview
@@ -8,7 +8,7 @@
 - **Project:** shitenno
 - **Root:** /media/edson-ubuntu/Data2/projeto-formação_tech/shitenno
 - **Stack:** typescript, node, react
-- **Lifecycle:** governed
+- **Lifecycle:** evolved
 
 ## Assets
 
@@ -66,10 +66,11 @@
 
 - merge — docs/runbooks/merge.md
 
-### Plans (3)
+### Plans (4)
 
-- PLAN 2026 07 17 A cli lazy bootstrap — governance/plans/PLAN-2026-07-17-A-cli-lazy-bootstrap.md
-- PLAN 2026 07 17 B backlog modular — governance/plans/PLAN-2026-07-17-B-backlog-modular.md
+- PLAN 2026 07 19 MASTER 1 integridade gate — governance/plans/PLAN-2026-07-19-MASTER-1-integridade-gate.md
+- PLAN 2026 07 19 MASTER 2 correcao dados e checks — governance/plans/PLAN-2026-07-19-MASTER-2-correcao-dados-e-checks.md
+- PLAN 2026 07 19 MASTER 3 estrutura e cobertura — governance/plans/PLAN-2026-07-19-MASTER-3-estrutura-e-cobertura.md
 - README — governance/plans/README.md
 
 ### Scripts (6)
@@ -95,7 +96,7 @@
 - Shitenno GUIDE — docs/Shitenno_GUIDE.md
 - ... and 3 more
 
-### Reports (44)
+### Reports (53)
 
 - complexity nexus cli 2026 07 15 session1 — reports/complexity-nexus-cli-2026-07-15-session1.json
 - complexity nexus cli 2026 07 15 session2 — reports/complexity-nexus-cli-2026-07-15-session2.json
@@ -103,11 +104,11 @@
 - complexity nexus cli 2026 07 15 session4 — reports/complexity-nexus-cli-2026-07-15-session4.json
 - complexity shitenno 2026 07 18 session1 — reports/complexity-shitenno-2026-07-18-session1.json
 - complexity shitenno 2026 07 18 session10 — reports/complexity-shitenno-2026-07-18-session10.json
+- complexity shitenno 2026 07 18 session11 — reports/complexity-shitenno-2026-07-18-session11.json
+- complexity shitenno 2026 07 18 session12 — reports/complexity-shitenno-2026-07-18-session12.json
 - complexity shitenno 2026 07 18 session2 — reports/complexity-shitenno-2026-07-18-session2.json
 - complexity shitenno 2026 07 18 session3 — reports/complexity-shitenno-2026-07-18-session3.json
-- complexity shitenno 2026 07 18 session4 — reports/complexity-shitenno-2026-07-18-session4.json
-- complexity shitenno 2026 07 18 session5 — reports/complexity-shitenno-2026-07-18-session5.json
-- ... and 34 more
+- ... and 43 more
 
 ### Contexts (1)
 

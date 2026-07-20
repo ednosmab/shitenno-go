@@ -1,7 +1,7 @@
 # Asset Index
 
-> Generated: 2026-07-18T13:57:59.233Z
-> Total Assets: 115
+> Generated: 2026-07-20T04:26:23.115Z
+> Total Assets: 125
 
 | Type | Name | Path | Status |
 |------|------|------|--------|
@@ -50,8 +50,9 @@
 | policy | Session Hygiene — validate session close checklist | governance/rules/RULE-TEMPLATE.json | active |
 | workflow | Main Workflow | governance/WORKFLOW.md | active |
 | runbook | merge | docs/runbooks/merge.md | active |
-| plan | PLAN 2026 07 17 A cli lazy bootstrap | governance/plans/PLAN-2026-07-17-A-cli-lazy-bootstrap.md | active |
-| plan | PLAN 2026 07 17 B backlog modular | governance/plans/PLAN-2026-07-17-B-backlog-modular.md | active |
+| plan | PLAN 2026 07 19 MASTER 1 integridade gate | governance/plans/PLAN-2026-07-19-MASTER-1-integridade-gate.md | active |
+| plan | PLAN 2026 07 19 MASTER 2 correcao dados e checks | governance/plans/PLAN-2026-07-19-MASTER-2-correcao-dados-e-checks.md | active |
+| plan | PLAN 2026 07 19 MASTER 3 estrutura e cobertura | governance/plans/PLAN-2026-07-19-MASTER-3-estrutura-e-cobertura.md | active |
 | plan | README | governance/plans/README.md | active |
 | script | backlog | scripts/backlog.ts | active |
 | script | close session | scripts/close-session.ts | active |
@@ -78,6 +79,8 @@
 | report | complexity nexus cli 2026 07 15 session4 | reports/complexity-nexus-cli-2026-07-15-session4.json | active |
 | report | complexity shitenno 2026 07 18 session1 | reports/complexity-shitenno-2026-07-18-session1.json | active |
 | report | complexity shitenno 2026 07 18 session10 | reports/complexity-shitenno-2026-07-18-session10.json | active |
+| report | complexity shitenno 2026 07 18 session11 | reports/complexity-shitenno-2026-07-18-session11.json | active |
+| report | complexity shitenno 2026 07 18 session12 | reports/complexity-shitenno-2026-07-18-session12.json | active |
 | report | complexity shitenno 2026 07 18 session2 | reports/complexity-shitenno-2026-07-18-session2.json | active |
 | report | complexity shitenno 2026 07 18 session3 | reports/complexity-shitenno-2026-07-18-session3.json | active |
 | report | complexity shitenno 2026 07 18 session4 | reports/complexity-shitenno-2026-07-18-session4.json | active |
@@ -86,6 +89,7 @@
 | report | complexity shitenno 2026 07 18 session7 | reports/complexity-shitenno-2026-07-18-session7.json | active |
 | report | complexity shitenno 2026 07 18 session8 | reports/complexity-shitenno-2026-07-18-session8.json | active |
 | report | complexity shitenno 2026 07 18 session9 | reports/complexity-shitenno-2026-07-18-session9.json | active |
+| report | complexity shitenno 2026 07 20 session1 | reports/complexity-shitenno-2026-07-20-session1.json | active |
 | report | complexity shitenno cli 2026 07 12 session1 | reports/complexity-shitenno-cli-2026-07-12-session1.json | active |
 | report | complexity shitenno cli 2026 07 13 session1 | reports/complexity-shitenno-cli-2026-07-13-session1.json | active |
 | report | complexity shitenno cli 2026 07 14 session1 | reports/complexity-shitenno-cli-2026-07-14-session1.json | active |
@@ -107,8 +111,12 @@
 | report | doc sync 2026 07 16 | reports/doc-sync-2026-07-16.json | active |
 | report | doc sync 2026 07 17 | reports/doc-sync-2026-07-17.json | active |
 | report | doc sync 2026 07 18 | reports/doc-sync-2026-07-18.json | active |
+| report | doc sync 2026 07 19 | reports/doc-sync-2026-07-19.json | active |
+| report | doc sync 2026 07 20 | reports/doc-sync-2026-07-20.json | active |
+| report | evolution 2026 07 18 | reports/evolution-2026-07-18.json | active |
 | report | health 2026 07 16 | reports/health-2026-07-16.json | active |
 | report | health 2026 07 18 | reports/health-2026-07-18.json | active |
+| report | health 2026 07 20 | reports/health-2026-07-20.json | active |
 | report | patterns 2026 07 12 | reports/patterns-2026-07-12.json | active |
 | report | patterns 2026 07 13 | reports/patterns-2026-07-13.json | active |
 | report | patterns 2026 07 14 | reports/patterns-2026-07-14.json | active |
@@ -116,6 +124,8 @@
 | report | patterns 2026 07 16 | reports/patterns-2026-07-16.json | active |
 | report | patterns 2026 07 17 | reports/patterns-2026-07-17.json | active |
 | report | patterns 2026 07 18 | reports/patterns-2026-07-18.json | active |
+| report | patterns 2026 07 19 | reports/patterns-2026-07-19.json | active |
+| report | patterns 2026 07 20 | reports/patterns-2026-07-20.json | active |
 | context | Session Context Buffer | governance/context/context_buffer.yaml | active |
 | prompt | executor prompt: README | cognition/prompts/executor/README.md | active |
 | prompt | planner prompt: README | cognition/prompts/planner/README.md | active |

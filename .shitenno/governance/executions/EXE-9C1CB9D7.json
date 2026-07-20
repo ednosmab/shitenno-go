@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-9C1CB9D7",
+  "request": {
+    "id": "invoke-mrspxnr2",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-20T04:22:26.942Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-20T04:22:26.963Z",
+  "duration": 20
+}

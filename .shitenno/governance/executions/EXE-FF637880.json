@@ -1,0 +1,21 @@
+{
+  "executionId": "EXE-FF637880",
+  "request": {
+    "id": "invoke-mrsq2q1x",
+    "type": "log_event",
+    "params": {
+      "event": "session_close",
+      "message": "Session ended — run close-session to validate hygiene"
+    }
+  },
+  "executionHash": "956195e691807488",
+  "status": "completed",
+  "startedAt": "2026-07-20T04:26:23.205Z",
+  "result": "success",
+  "output": {
+    "success": true,
+    "message": "Logged event: session_close"
+  },
+  "completedAt": "2026-07-20T04:26:23.241Z",
+  "duration": 36
+}

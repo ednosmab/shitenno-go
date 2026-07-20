@@ -1795,3 +1795,33 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | PLAN-2026-07-19 — MASTER 3/3: Estrutura e Cobertura de Teste |
 | **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-19-MASTER-3-estrutura-e-cobertura.md` |
+
+
+### BACKLOG-PLAN_2026_07_19_MASTER_1_INTEGRIDADE_GATE — PLAN-2026-07-19 — MASTER 1/3: Status Geral + Integridade do Gate
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-20 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | PLAN-2026-07-19 — MASTER 1/3: Status Geral + Integridade do Gate |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-19-MASTER-1-integridade-gate.md` |
+
+
+### BACKLOG-PLAN_2026_07_19_MASTER_2_CORRECAO_DADOS_E_CHECKS — PLAN-2026-07-19 — MASTER 2/3: Correção de Dados e Checks Genéricos
+
+| Campo | Valor |
+|---|---|
+| **Status** | em implementação |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-20 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | PLAN-2026-07-19 — MASTER 2/3: Correção de Dados e Checks Genéricos |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-19-MASTER-2-correcao-dados-e-checks.md` |

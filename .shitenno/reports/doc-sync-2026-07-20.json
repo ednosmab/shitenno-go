@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-07-20T02:20:38.625Z",
-  "mode": "fix",
-  "total_discrepancies": 12,
-  "errors": 0,
+  "generated_at": "2026-07-20T12:57:20.736Z",
+  "mode": "validate",
+  "total_discrepancies": 15,
+  "errors": 3,
   "warnings": 12,
-  "fixable": 0,
-  "fix_actions_applied": 2,
+  "fixable": 3,
+  "fix_actions_applied": 0,
   "discrepancies": [
     {
       "type": "validation",
@@ -72,6 +72,27 @@
       "severity": "warning",
       "message": "Command implemented but not documented: shugo scheduled-check",
       "fixable": false
+    },
+    {
+      "type": "validation",
+      "severity": "error",
+      "message": "README command count mismatch: 38 stated, 37 actual",
+      "file": "README.md",
+      "fixable": true
+    },
+    {
+      "type": "validation",
+      "severity": "error",
+      "message": "SYSTEM_MAP.md directory tree is outdated",
+      "file": "shitenno/governance/SYSTEM_MAP.md",
+      "fixable": true
+    },
+    {
+      "type": "validation",
+      "severity": "error",
+      "message": "README statistics outdated: commands 40→37, tests 130→137",
+      "file": "README.md",
+      "fixable": true
     },
     {
       "type": "validation",

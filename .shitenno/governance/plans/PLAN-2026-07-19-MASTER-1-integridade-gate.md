@@ -1,6 +1,8 @@
 # PLAN-2026-07-19 — MASTER 1/3: Status Geral + Integridade do Gate
 
 **Status:** In Progress
+**Updated_at:** 2026-07-20T04:11:00.333Z
+**Date:** 2026-07-20
 
 **Consolida e substitui:** todos os blocos anteriores (correcoes-cirurgicas A-D, F v1/v2, G, H, I, J, L). Esta é a versão de referência única daqui pra frente — os arquivos antigos podem ser arquivados depois que este for repassado ao agente.
 

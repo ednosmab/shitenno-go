@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
   ActionEngine,
@@ -365,5 +365,45 @@ describe("ActionEngine", () => {
     // Record is failed, not completed
     const result = await engine.rollback(record.executionId);
     expect(result).toBeUndefined();
+  });
+
+  it("policy-blocked action produces status: failed with Blocked by policy message", async () => {
+    const policyDir = join(tmpdir(), `shitenno-policy-test-${Date.now()}`);
+    try {
+      mkdirSync(join(policyDir, ".shitenno", "governance", "policies"), { recursive: true });
+
+      writeFileSync(
+        join(policyDir, ".shitenno", "governance", "policies", "POL-BLOCK001.json"),
+        JSON.stringify({
+          id: "POL-BLOCK001",
+          name: "block-log-event",
+          description: "Block log_event actions",
+          mode: "enforce",
+          effect: "deny",
+          conditions: [
+            { field: "actionType", operator: "equals", value: "log_event" },
+          ],
+          actions: [],
+          enabled: true,
+          priority: 1,
+        }, null, 2)
+      );
+
+      const policyRepo = new FileExecutionRepository(join(policyDir, ".shitenno"));
+      const restrictedEngine = new ActionEngine(policyRepo, join(policyDir, ".shitenno"));
+
+      const request: ActionRequest = {
+        id: "act-policy-blocked",
+        type: "log_event",
+        params: { event: "test" },
+      };
+
+      const record = await restrictedEngine.execute(request);
+      expect(record.status).toBe("failed");
+      expect(record.result).toBe("failure");
+      expect(record.error).toContain("Blocked by policy");
+    } finally {
+      rmSync(policyDir, { recursive: true, force: true });
+    }
   });
 });

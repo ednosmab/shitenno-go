@@ -1,0 +1,22 @@
+{
+  "executionId": "EXE-F5CCCC4A",
+  "request": {
+    "id": "invoke-mrsollaq",
+    "type": "update_backlog_status",
+    "params": {
+      "taskId": "${eventData.taskId}",
+      "fromState": "em implementação",
+      "toState": "em validação"
+    }
+  },
+  "executionHash": "357e8c46e9a331c3",
+  "status": "completed",
+  "startedAt": "2026-07-20T03:45:04.274Z",
+  "result": "success",
+  "output": {
+    "success": false,
+    "message": "Task ${eventData.taskId} not found in BACKLOG.md"
+  },
+  "completedAt": "2026-07-20T03:45:04.282Z",
+  "duration": 8
+}
