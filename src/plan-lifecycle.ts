@@ -240,14 +240,36 @@ export function runAutoVerification(
 
 // ── Archive / Remove Plan ──────────────────────────────────────────────────
 
-export function archivePlan(shitennoDir: string, planId: string): void {
-  const engine = new MarkdownPlanEngine(shitennoDir);
-  engine.updateStatus(planId, "done");
+export function archivePlan(shitennoDir: string, planId: string, validation?: ValidationResult): boolean {
+  try {
+    const engine = new MarkdownPlanEngine(shitennoDir);
+
+    if (validation) {
+      const plansDir = join(shitennoDir, "governance", "plans");
+      let commitHash = "unknown";
+      try {
+        commitHash = execSync("git rev-parse HEAD", { cwd: shitennoDir, encoding: "utf-8", timeout: 5000 }).trim();
+      } catch { /* not a git repo */ }
+
+      writeFileSync(
+        join(plansDir, `${planId}.verification.json`),
+        JSON.stringify(
+          { planId, commitHash, checks: validation.checks, passed: validation.valid, timestamp: new Date().toISOString() },
+          null, 2
+        ),
+        "utf-8"
+      );
+    }
+
+    engine.updateStatus(planId, "done");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function removePlan(shitennoDir: string, planId: string): void {
-  const engine = new MarkdownPlanEngine(shitennoDir);
-  engine.updateStatus(planId, "done");
+export function removePlan(shitennoDir: string, planId: string, validation?: ValidationResult): boolean {
+  return archivePlan(shitennoDir, planId, validation);
 }
 
 // ── Interactive Review ─────────────────────────────────────────────────────
@@ -352,7 +374,7 @@ export async function runLifecycleReview(
           continue;
         }
         try {
-          archivePlan(shitennoDir, inf.id);
+          archivePlan(shitennoDir, inf.id, validation);
           output(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
           outputBlank();
           if (action === "archive") result.archived++;
@@ -382,7 +404,7 @@ export async function runLifecycleReview(
           break;
         }
         try {
-          archivePlan(shitennoDir, inf.id);
+          archivePlan(shitennoDir, inf.id, validation);
           output(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
           result.archived++;
         } catch (error) {
@@ -397,7 +419,7 @@ export async function runLifecycleReview(
           break;
         }
         try {
-          removePlan(shitennoDir, inf.id);
+          removePlan(shitennoDir, inf.id, validation);
           output(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
           result.removed++;
         } catch (error) {

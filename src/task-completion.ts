@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { SHITENNO_DIR_NAME } from "./constants.js";
+import { checkTests, checkLint } from "./plan-lifecycle.js";
 
 export interface CompletionGate {
   name: string;
@@ -30,8 +31,8 @@ export function validateCompletionGate(
   const execFn = options.execFn ?? execSync;
   const gates: CompletionGate[] = [];
 
-  gates.push(checkTestPass(options.projectRoot, execFn));
-  gates.push(checkLintPass(options.projectRoot, execFn));
+  gates.push(checkTestPass(options.projectRoot));
+  gates.push(checkLintPass(options.projectRoot));
   gates.push(checkDocumentationUpdated(options.projectRoot, options.shitennoDir, execFn, options.affectedFiles));
   gates.push(checkBacklogUpdated(options.shitennoDir, options.taskId));
   gates.push(checkPlanStatus(options.shitennoDir, options.taskId));
@@ -45,30 +46,14 @@ export function validateCompletionGate(
   };
 }
 
-function checkTestPass(projectRoot: string, execFn: typeof execSync): CompletionGate {
-  try {
-    execFn("pnpm run test --recursive --if-present --filter=core 2>/dev/null | tail -1", {
-      cwd: projectRoot,
-      timeout: 120000,
-      stdio: "pipe",
-    });
-    return { name: "tests", passed: true, message: "All tests pass" };
-  } catch {
-    return { name: "tests", passed: false, message: "Tests failed or not executed" };
-  }
+function checkTestPass(projectRoot: string): CompletionGate {
+  const result = checkTests(projectRoot);
+  return { name: "tests", passed: result.passed, message: result.message };
 }
 
-function checkLintPass(projectRoot: string, execFn: typeof execSync): CompletionGate {
-  try {
-    execFn("pnpm run lint 2>/dev/null", {
-      cwd: projectRoot,
-      timeout: 60000,
-      stdio: "pipe",
-    });
-    return { name: "lint", passed: true, message: "Lint passes" };
-  } catch {
-    return { name: "lint", passed: false, message: "Lint failed or not run" };
-  }
+function checkLintPass(projectRoot: string): CompletionGate {
+  const result = checkLint(projectRoot);
+  return { name: "lint", passed: result.passed, message: result.message };
 }
 
 function checkDocumentationUpdated(

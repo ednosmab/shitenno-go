@@ -6,7 +6,7 @@ import chalk from "chalk";
 import { join } from "node:path";
 import { guardNotInitialized } from "../../shared.js";
 import { SHITENNO_DIR_NAME } from "../../constants.js";
-import { MarkdownPlanEngine } from "../../markdown-plan-engine.js";
+import { archivePlan } from "../../plan-lifecycle.js";
 import { outputJson } from "../../formatting.js";
 import { output } from "../../output.js";
 
@@ -21,13 +21,17 @@ export function registerMdDone(cmd: import("commander").Command) {
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
 
-      const engine = new MarkdownPlanEngine(join(ctx.projectRoot, SHITENNO_DIR_NAME));
+      const shitennoDir = join(ctx.projectRoot, SHITENNO_DIR_NAME);
       try {
-        const updated = engine.updateStatus(id, "done");
-        if (isJson) outputJson(updated as unknown as Record<string, unknown>);
+        const success = archivePlan(shitennoDir, id);
+        if (isJson) outputJson({ success, planId: id });
         else {
-          output(chalk.green(`  ✓ Plan marked as done: ${id}`));
-          output(chalk.dim(`    Moved to done/ directory`));
+          if (success) {
+            output(chalk.green(`  ✓ Plan marked as done: ${id}`));
+            output(chalk.dim(`    Moved to done/ directory`));
+          } else {
+            output(chalk.red(`  Failed to archive plan: ${id}`));
+          }
         }
       } catch (error) {
         if (isJson) outputJson({ error: error instanceof Error ? error.message : String(error) });

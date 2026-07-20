@@ -1,0 +1,12 @@
+{
+  "planId": "PLAN-2026-07-19-BLOCO-L-reforco-gate",
+  "commitHash": "ded8c730da2c71d9482ab3b6f64981192cbb26bc",
+  "checks": [
+    { "name": "L.1", "passed": true, "message": "task-completion.ts unificado para usar checkTests/checkLint de plan-lifecycle.ts" },
+    { "name": "L.2", "passed": true, "message": "archivePlan/removePlan gravam .verification.json com ValidationResult" },
+    { "name": "L.3", "passed": true, "message": "task-completion-pipeline.ts usa archivePlan de plan-lifecycle.ts" },
+    { "name": "L.4", "passed": true, "message": "checkForDirectDoneWrites em verify-done-plans.ts" }
+  ],
+  "passed": true,
+  "timestamp": "2026-07-19T23:09:00.000Z"
+}

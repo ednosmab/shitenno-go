@@ -11,9 +11,9 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { logger } from "./logger.js";
 import { validateCompletionGate, type CompletionResult } from "./task-completion.js";
+import { archivePlan, type ValidationResult } from "./plan-lifecycle.js";
 import { completeTask } from "./backlog-state-machine.js";
 import { getEventBus } from "./event-bus.js";
 
@@ -77,26 +77,6 @@ function findActivePlanForTask(shitennoDir: string, taskId: string): string | nu
     return null;
   } catch {
     return null;
-  }
-}
-
-/**
- * Archive a plan by running `shugo plan md done`.
- */
-function archivePlan(projectRoot: string, planId: string): boolean {
-  try {
-    execFileSync("node", ["dist/shugo.js", "plan", "md", "done", planId], {
-      cwd: projectRoot,
-      timeout: 30000,
-      encoding: "utf-8",
-      stdio: "pipe",
-      env: { ...process.env, SHITENNO_CHILD: "1" },
-    });
-    logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
-    return true;
-  } catch (error) {
-    logger.warn("task-completion-pipeline", `Failed to archive plan ${planId}: ${error instanceof Error ? error.message : String(error)}`);
-    return false;
   }
 }
 
@@ -188,7 +168,11 @@ export function runCompletionPipeline(options: PipelineOptions): PipelineResult 
   if (!options.skipArchive) {
     const planId = findActivePlanForTask(shitennoDir, taskId);
     if (planId) {
-      planArchived = archivePlan(projectRoot, planId);
+      const validationResult: ValidationResult = {
+        valid: gates.passed,
+        checks: gates.gates.map((g) => ({ name: g.name.toUpperCase(), passed: g.passed, message: g.message })),
+      };
+      planArchived = archivePlan(shitennoDir, planId, validationResult);
       if (planArchived) {
         logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
       } else {

@@ -1,20 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validateCompletionGate } from "../task-completion.js";
-import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 
-function mockExecSuccess(): typeof execSync {
-  return ((() => "") as unknown) as typeof execSync;
-}
+const mockCheckTests = vi.fn();
+const mockCheckLint = vi.fn();
 
-function mockExecFailure(): typeof execSync {
-  return (() => {
-    throw new Error("Command failed");
-  }) as unknown as typeof execSync;
-}
+vi.mock("../plan-lifecycle.js", () => ({
+  checkTests: (...args: unknown[]) => mockCheckTests(...args),
+  checkLint: (...args: unknown[]) => mockCheckLint(...args),
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCheckTests.mockReturnValue({ name: "TESTS", passed: true, message: "Tests passed" });
+  mockCheckLint.mockReturnValue({ name: "LINT", passed: true, message: "Lint passed" });
+});
 
 describe("task-completion", () => {
   describe("validateCompletionGate", () => {
@@ -23,7 +26,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: process.cwd(),
         taskId: "TEST-001",
-        execFn: mockExecSuccess(),
       });
       expect(result.taskId).toBe("TEST-001");
       expect(result.gates).toHaveLength(5);
@@ -34,7 +36,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: process.cwd(),
         taskId: "TEST-002",
-        execFn: mockExecSuccess(),
       });
       expect(result.gates[0]?.name).toBe("tests");
       expect(result.gates[1]?.name).toBe("lint");
@@ -43,22 +44,21 @@ describe("task-completion", () => {
       expect(result.gates[4]?.name).toBe("plan_status");
     });
 
-    it("returns all gates passed when exec succeeds", () => {
+    it("returns all gates passed when checkTests/checkLint succeed", () => {
       const result = validateCompletionGate({
         projectRoot: process.cwd(),
         shitennoDir: process.cwd(),
         taskId: "TEST-005",
-        execFn: mockExecSuccess(),
       });
       expect(result.passed).toBe(true);
     });
 
-    it("reports failed gates when exec fails", () => {
+    it("reports failed gates when checkTests fails", () => {
+      mockCheckTests.mockReturnValue({ name: "TESTS", passed: false, message: "Tests failed" });
       const result = validateCompletionGate({
         projectRoot: process.cwd(),
         shitennoDir: process.cwd(),
         taskId: "TEST-006",
-        execFn: mockExecFailure(),
       });
       const testGate = result.gates[0]!;
       expect(testGate.name).toBe("tests");
@@ -70,7 +70,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: process.cwd(),
         taskId: "TEST-004",
-        execFn: mockExecSuccess(),
       });
       const docGate = result.gates[2]!;
       expect(docGate.name).toBe("documentation");
@@ -83,7 +82,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: "/nonexistent-shitenno",
         taskId: "NONEXISTENT",
-        execFn: mockExecSuccess(),
       });
       const backlogGate = result.gates[3]!;
       expect(backlogGate.name).toBe("backlog");
@@ -101,7 +99,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: dir,
         taskId: "TASK-010",
-        execFn: mockExecSuccess(),
       });
       const backlogGate = result.gates[3]!;
       expect(backlogGate.name).toBe("backlog");
@@ -121,7 +118,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: dir,
         taskId: "TASK-020",
-        execFn: mockExecSuccess(),
       });
       const backlogGate = result.gates[3]!;
       expect(backlogGate.name).toBe("backlog");
@@ -136,7 +132,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: "/nonexistent-shitenno",
         taskId: "TEST-PLAN",
-        execFn: mockExecSuccess(),
       });
       const planGate = result.gates[4]!;
       expect(planGate.name).toBe("plan_status");
@@ -152,7 +147,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: dir,
         taskId: "NONEXISTENT-PLAN",
-        execFn: mockExecSuccess(),
       });
       const planGate = result.gates[4]!;
       expect(planGate.name).toBe("plan_status");
@@ -172,7 +166,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: dir,
         taskId: "test-plan",
-        execFn: mockExecSuccess(),
       });
       const planGate = result.gates[4]!;
       expect(planGate.name).toBe("plan_status");
@@ -192,7 +185,6 @@ describe("task-completion", () => {
         projectRoot: process.cwd(),
         shitennoDir: dir,
         taskId: "test-plan",
-        execFn: mockExecSuccess(),
       });
       const planGate = result.gates[4]!;
       expect(planGate.name).toBe("plan_status");
