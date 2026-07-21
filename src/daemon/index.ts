@@ -166,9 +166,24 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
     }
   }
 
-  // ── Write PID ──────────────────────────────────────────────────────────────
+  // ── Write PID (atomic via tmpfile + rename) ────────────────────────────────
 
-  writeFileSync(pidPath, String(process.pid), "utf-8");
+  const tmpPath = `${pidPath}.${process.pid}.tmp`;
+  writeFileSync(tmpPath, String(process.pid), "utf-8");
+  try {
+    renameSync(tmpPath, pidPath);
+  } catch {
+    // If rename fails (race), check who won
+    try {
+      const writtenPid = parseInt(readFileSync(pidPath, "utf-8").trim(), 10);
+      if (writtenPid !== process.pid) {
+        daemonLog(logPath, "WARN", `Another daemon (pid ${writtenPid}) took over. Exiting.`);
+        process.exit(0);
+      }
+    } catch {
+      // PID file corrupted — proceed
+    }
+  }
   daemonLog(logPath, "INFO", `PID ${process.pid} written to ${pidPath}`);
 
   // ── Mark as approved (first successful start) ──────────────────────────────

@@ -81,13 +81,19 @@ function handlePreAction(ctx: MiddlewareContext, resolvedSessionId: string, sess
     if (isSensitiveCommand(commandName, thisCommand.args)) {
       getEventBus().publish("action.pre_sensitive", { command: commandName, args: thisCommand.args, reminder: "MANDATORY RULES: Consult FORBIDDEN_OPERATIONS.md before proceeding. G-01: No commit without explicit authorization." });
     }
-    tryAutoStartDaemon(ctx.shitennoDir, commandName);
+    tryAutoStartDaemon(ctx.shitennoDir, thisCommand);
     await getHookBus().executeHook("pre-analysis", { command: commandName, projectRoot: ctx.projectRoot }, (_plugin, input) => input);
   };
 }
 
-function tryAutoStartDaemon(shitennoDir: string, commandName: string) {
-  if (shouldSkipDaemon() || commandName === "daemon") return;
+function getRootCommandName(cmd: Command): string {
+  let c: Command | null = cmd;
+  while (c?.parent) c = c.parent;
+  return c?.name() ?? "";
+}
+
+function tryAutoStartDaemon(shitennoDir: string, command: Command) {
+  if (shouldSkipDaemon() || getRootCommandName(command) === "daemon") return;
   try {
     const breaker = new DaemonCircuitBreaker(shitennoDir);
     const approvedPath = getApprovedPath(shitennoDir);

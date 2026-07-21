@@ -112,6 +112,7 @@ describe("O.1 — Heavy bootstrap scoping regression", () => {
     const { dir } = scaffoldTestProject("heavy-scope-plan-status");
     try {
       const plansDir = join(dir, ".shitenno", "governance", "plans");
+      mkdirSync(plansDir, { recursive: true });
       writeFileSync(
         join(plansDir, "PLAN-A.md"),
         `# Plan A\n\n**Status:** In Progress\n`

@@ -99,6 +99,11 @@ export function isDaemonRunning(shitennoDir: string): boolean {
  * Rejects if the daemon script does not exist or socket never appears.
  */
 export async function startDaemon(shitennoDir: string, projectRoot?: string): Promise<void> {
+  if (isDaemonRunning(shitennoDir)) {
+    logger.info("daemon-client", "Daemon already running, skipping start");
+    return;
+  }
+
   if (!existsSync(DAEMON_SCRIPT)) {
     throw new Error(
       `Daemon script not found: ${DAEMON_SCRIPT}. Run 'pnpm build' first.`
