@@ -22,7 +22,7 @@ function buildCapabilitiesSummary(capabilities: CapabilityEntity[], byMaturity: 
 }
 
 export function evaluateCapabilities(state: EngineeringState, shitennoDir: string): CapabilityEngineResult {
-  const capabilities = CAPABILITIES.map((capInfo) => buildCapabilityEntity(capInfo, shitennoDir, state.capabilities, state.assets, state.maturity?.overallScore ?? 0));
+  const capabilities = CAPABILITIES.map((capInfo) => buildCapabilityEntity({ capInfo, shitennoDir, installedCapabilities: state.capabilities, assets: state.assets, maturityScore: state.maturity?.overallScore ?? 0 }));
   const byMaturity = buildMaturityMap(capabilities);
   const totalScore = capabilities.reduce((sum, c) => sum + c.maturityScore, 0);
   const overallScore = capabilities.length > 0 ? Math.round(totalScore / capabilities.length) : 0;

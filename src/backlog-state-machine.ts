@@ -177,13 +177,10 @@ export function getAllowedTransitions(state: BacklogState): BacklogState[] {
   return VALID_TRANSITIONS[state] || [];
 }
 
-function validateTransition(
-  taskId: string,
-  fromState: BacklogState,
-  toState: BacklogState,
-  backlogPath: string,
-  item: { state: string; line: number },
-): TransitionResult | null {
+interface TransitionInput { taskId: string; fromState: BacklogState; toState: BacklogState; backlogPath: string; item: { state: string; line: number }; }
+
+function validateTransition(input: TransitionInput): TransitionResult | null {
+  const { taskId, fromState, toState, backlogPath, item } = input;
   if (!isValidTransition(fromState, toState)) {
     const allowed = getAllowedTransitions(fromState);
     return { success: false, message: `Invalid transition: ${fromState} → ${toState}. Allowed: ${allowed.join(", ") || "(terminal state)"}` };
@@ -234,7 +231,7 @@ export function transitionTask(
     return { success: false, message: `Task ${taskId} not found in BACKLOG.md` };
   }
 
-  const validationError = validateTransition(taskId, fromState, toState, backlogPath, item);
+  const validationError = validateTransition({ taskId, fromState, toState, backlogPath, item });
   if (validationError) return validationError;
 
   try {

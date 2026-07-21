@@ -122,8 +122,8 @@ export const detectCommand = new Command("detect")
           cacheHit = true;
         } else {
           report = detectPatterns(ctx.projectRoot, ctx.shitennoDir);
-          setCache(ctx.projectRoot, ctx.shitennoDir, "patterns", report,
-            computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
+          setCache({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, key: "patterns", data: report,
+            checksums: computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir) });
         }
       } else {
         report = detectPatterns(ctx.projectRoot, ctx.shitennoDir);

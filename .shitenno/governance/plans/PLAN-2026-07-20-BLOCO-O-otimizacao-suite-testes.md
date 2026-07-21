@@ -1,6 +1,6 @@
 # BLOCO O — Otimização da suíte de testes (e do CLI em si)
 
-**Status:** Checked
+**Status:** Refused
 
 **Contexto:** investigação de por que `npx vitest run` demora tanto. Achado
 principal: **não é só arquitetura de teste — é um bug de performance real no

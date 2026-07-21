@@ -287,13 +287,10 @@ function diffSetChanges<T>(
   return lines;
 }
 
-function diffArrayChanges<T>(
-  oldArr: T[],
-  newArr: T[],
-  getKey: (item: T) => string,
-  getLabel: (item: T) => string,
-  label: string,
-): string[] {
+interface DiffArrayInput<T> { oldArr: T[]; newArr: T[]; getKey: (item: T) => string; getLabel: (item: T) => string; label: string; }
+
+function diffArrayChanges<T>(input: DiffArrayInput<T>): string[] {
+  const { oldArr, newArr, getKey, getLabel, label } = input;
   const oldIds = new Set(oldArr.map(getKey));
   return newArr.filter((item) => !oldIds.has(getKey(item))).map((item) => `+ ${label}: ${getLabel(item)}`);
 }
@@ -326,10 +323,10 @@ export function generateDiff(oldBriefing: Briefing, newBriefing: Briefing): stri
   );
   if (testChanges.length > 0) { lines.push(...testChanges); hasChanges = true; }
 
-  const ruleChanges = diffArrayChanges(oldBriefing.contextRules, newBriefing.contextRules, (r) => r.id, (r) => `[${r.area}] ${r.rule}`, "New rule");
+  const ruleChanges = diffArrayChanges({ oldArr: oldBriefing.contextRules, newArr: newBriefing.contextRules, getKey: (r) => r.id, getLabel: (r) => `[${r.area}] ${r.rule}`, label: "New rule" });
   if (ruleChanges.length > 0) { lines.push(...ruleChanges); hasChanges = true; }
 
-  const dynamicChanges = diffArrayChanges(oldBriefing.dynamicRules, newBriefing.dynamicRules, (r) => r.id, (r) => `[${r.severity}] ${r.rule}`, "New dynamic rule");
+  const dynamicChanges = diffArrayChanges({ oldArr: oldBriefing.dynamicRules, newArr: newBriefing.dynamicRules, getKey: (r) => r.id, getLabel: (r) => `[${r.severity}] ${r.rule}`, label: "New dynamic rule" });
   if (dynamicChanges.length > 0) { lines.push(...dynamicChanges); hasChanges = true; }
 
   const oldRecs = new Set(oldBriefing.recommendations);

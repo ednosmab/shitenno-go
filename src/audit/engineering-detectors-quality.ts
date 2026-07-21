@@ -314,21 +314,13 @@ export function detectHighComplexity(projectRoot: string, files: SourceFileInfo[
   return issues;
 }
 
-export function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
-  const issues: HealthIssue[] = [];
-  if (files.length === 0) return issues;
-
-  const importGraph = new Map<string, Set<string>>();
+function buildImportGraph(files: SourceFileInfo[]): Map<string, Set<string>> {
   const importRegex = /(?:from|import)\s+["']([^"']+)["']/g;
-
   const pathToKey = (p: string) => p.replace(/\.ts$/, "").replace(/\.js$/, "").replace(/\/\.\//g, "/");
-
+  const importGraph = new Map<string, Set<string>>();
   for (const file of files) {
     const deps = new Set<string>();
-    const contentWithoutTypeImports = file.content
-      .split("\n")
-      .filter((line) => !/^\s*import\s+type\s+/.test(line))
-      .join("\n");
+    const contentWithoutTypeImports = file.content.split("\n").filter((line) => !/^\s*import\s+type\s+/.test(line)).join("\n");
     let match;
     while ((match = importRegex.exec(contentWithoutTypeImports)) !== null) {
       const spec = match[1];
@@ -336,66 +328,45 @@ export function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]
       if (spec.startsWith(".") || spec.startsWith("/")) {
         const dirOfCurrentFile = file.relPath.split("/").slice(0, -1).join("/");
         const resolved = pathToKey(dirOfCurrentFile + "/" + spec.replace(/\.js$/, ""));
-        if (resolved && resolved !== pathToKey(file.relPath)) {
-          deps.add(resolved);
-        }
+        if (resolved && resolved !== pathToKey(file.relPath)) deps.add(resolved);
       }
     }
     importGraph.set(pathToKey(file.relPath), deps);
   }
+  return importGraph;
+}
 
+function findCycles(importGraph: Map<string, Set<string>>): string[][] {
   const visited = new Set<string>();
   const inStack = new Set<string>();
   const cycles: string[][] = [];
-
   function dfs(node: string, path: string[]): void {
-    if (inStack.has(node)) {
-      const cycleStart = path.indexOf(node);
-      if (cycleStart !== -1) {
-        cycles.push([...path.slice(cycleStart), node]);
-      }
-      return;
-    }
+    if (inStack.has(node)) { const cycleStart = path.indexOf(node); if (cycleStart !== -1) cycles.push([...path.slice(cycleStart), node]); return; }
     if (visited.has(node)) return;
-
-    visited.add(node);
-    inStack.add(node);
-    path.push(node);
-
+    visited.add(node); inStack.add(node); path.push(node);
     const deps = importGraph.get(node);
-    if (deps) {
-      for (const dep of deps) {
-        if (importGraph.has(dep)) {
-          dfs(dep, path);
-        }
-      }
-    }
-
-    path.pop();
-    inStack.delete(node);
+    if (deps) { for (const dep of deps) { if (importGraph.has(dep)) dfs(dep, path); } }
+    path.pop(); inStack.delete(node);
   }
+  for (const node of importGraph.keys()) dfs(node, []);
+  return cycles;
+}
 
-  for (const node of importGraph.keys()) {
-    dfs(node, []);
-  }
-
+export function detectCircularDeps(_projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  if (files.length === 0) return issues;
+  const importGraph = buildImportGraph(files);
+  const cycles = findCycles(importGraph);
   const seenCycles = new Set<string>();
   for (const cycle of cycles) {
     const key = [...cycle].sort().join("->");
     if (seenCycles.has(key)) continue;
     seenCycles.add(key);
-
     const cyclePath = cycle.join(" → ");
-    issues.push({
-      type: "circular_dep",
-      severity: 3,
+    issues.push({ type: "circular_dep", severity: 3,
       description: `Dependência circular detectada: ${cyclePath}`,
-      location: cycle.join(", "),
-      recommendation: `Extrair interface comum ou usar injeção de dependência para quebrar o ciclo entre ${cycle.join(", ")}`,
-      confidence: 0.8,
-    });
+      location: cycle.join(", "), recommendation: `Extrair interface comum ou usar injeção de dependência para quebrar o ciclo entre ${cycle.join(", ")}`, confidence: 0.8 });
   }
-
   return issues;
 }
 
@@ -436,75 +407,44 @@ export function detectUnusedExports(_projectRoot: string, files: SourceFileInfo[
   return issues;
 }
 
-export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
+const CONTROL_FLOW_KEYWORDS = new Set(["if", "for", "while", "switch", "try", "catch", "else"]);
+const METHOD_DECL_REGEX = /(\w+)\s*\([^)]*\)\s*\{\s*\}/g;
+
+function scanFileForDeadCode(file: SourceFileInfo): HealthIssue[] {
   const issues: HealthIssue[] = [];
-  const CONTROL_FLOW_KEYWORDS = new Set(["if", "for", "while", "switch", "try", "catch", "else"]);
-  const methodDeclRegex = /(\w+)\s*\([^)]*\)\s*\{\s*\}/g;
-
-  for (const file of files) {
-    const lines = file.content.split("\n");
-
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i]!.trim();
-      if (trimmed.startsWith("// @ts-ignore") || trimmed.startsWith("// @ts-expect-error")) {
-        issues.push({
-          type: "dead_code",
-          severity: 1,
-          description: `Type safety bypass em "${file.relPath}:${i + 1}" — ${trimmed.split(" ").slice(0, 3).join(" ")}`,
-          location: `${file.relPath}:${i + 1}`,
-          recommendation: `Remover "${trimmed.split(" ").slice(0, 2).join(" ")}" e corrigir o problema de tipo subjacente`,
-          confidence: 0.6,
-        });
-      }
-    }
-
-    const emptyFuncRegex = /(?:function\s+\w+|\(\)\s*=>|=>)\s*\{\s*\}/g;
-    let emptyMatch;
-    while ((emptyMatch = emptyFuncRegex.exec(file.content)) !== null) {
-      const lineNum = file.content.substring(0, emptyMatch.index).split("\n").length;
-      issues.push({
-        type: "dead_code",
-        severity: 1,
-        description: `Função vazia em "${file.relPath}:${lineNum}" — corpo sem implementação`,
-        location: `${file.relPath}:${lineNum}`,
-        recommendation: `Implementar a função em ${file.relPath}:${lineNum} ou removê-la se desnecessária`,
-        confidence: 0.6,
-      });
-    }
-    let methodMatch;
-    while ((methodMatch = methodDeclRegex.exec(file.content)) !== null) {
-      const name = methodMatch[1];
-      if (!name || CONTROL_FLOW_KEYWORDS.has(name)) continue;
-      const lineNum = file.content.substring(0, methodMatch.index).split("\n").length;
-      issues.push({
-        type: "dead_code",
-        severity: 1,
-        description: `Método vazio em "${file.relPath}:${lineNum}" — corpo sem implementação`,
-        location: `${file.relPath}:${lineNum}`,
-        recommendation: `Implementar o método em ${file.relPath}:${lineNum} ou removê-lo se desnecessário`,
-        confidence: 0.6,
-      });
-    }
-
-    let todoCount = 0;
-    const maxTodosPerFile = 5;
-    for (let i = 0; i < lines.length; i++) {
-      if (todoCount >= maxTodosPerFile) break;
-      const trimmed = lines[i]!.trim();
-      const todoMatch = trimmed.match(/(?:TODO|FIXME|HACK|XXX)[:\s]*(.*)/);
-      if (todoMatch) {
-        issues.push({
-          type: "dead_code",
-          severity: 1,
-          description: `Código pendente em "${file.relPath}:${i + 1}" — ${todoMatch[0].slice(0, 60)}`,
-          location: `${file.relPath}:${i + 1}`,
-          recommendation: `Resolver o TODO/FIXME em ${file.relPath}:${i + 1} ou removê-lo se já resolvido`,
-          confidence: 0.6,
-        });
-        todoCount++;
-      }
+  const lines = file.content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i]!.trim();
+    if (trimmed.startsWith("// @ts-ignore") || trimmed.startsWith("// @ts-expect-error")) {
+      issues.push({ type: "dead_code", severity: 1, description: `Type safety bypass em "${file.relPath}:${i + 1}" — ${trimmed.split(" ").slice(0, 3).join(" ")}`, location: `${file.relPath}:${i + 1}`, recommendation: `Remover "${trimmed.split(" ").slice(0, 2).join(" ")}" e corrigir o problema de tipo subjacente`, confidence: 0.6 });
     }
   }
+  const emptyFuncRegex = /(?:function\s+\w+|\(\)\s*=>|=>)\s*\{\s*\}/g;
+  let emptyMatch;
+  while ((emptyMatch = emptyFuncRegex.exec(file.content)) !== null) {
+    const lineNum = file.content.substring(0, emptyMatch.index).split("\n").length;
+    issues.push({ type: "dead_code", severity: 1, description: `Função vazia em "${file.relPath}:${lineNum}" — corpo sem implementação`, location: `${file.relPath}:${lineNum}`, recommendation: `Implementar a função em ${file.relPath}:${lineNum} ou removê-la se desnecessária`, confidence: 0.6 });
+  }
+  METHOD_DECL_REGEX.lastIndex = 0;
+  let methodMatch;
+  while ((methodMatch = METHOD_DECL_REGEX.exec(file.content)) !== null) {
+    const name = methodMatch[1];
+    if (!name || CONTROL_FLOW_KEYWORDS.has(name)) continue;
+    const lineNum = file.content.substring(0, methodMatch.index).split("\n").length;
+    issues.push({ type: "dead_code", severity: 1, description: `Método vazio em "${file.relPath}:${lineNum}" — corpo sem implementação`, location: `${file.relPath}:${lineNum}`, recommendation: `Implementar o método em ${file.relPath}:${lineNum} ou removê-lo se desnecessário`, confidence: 0.6 });
+  }
+  let todoCount = 0;
+  for (let i = 0; i < lines.length && todoCount < 5; i++) {
+    const trimmed = lines[i]!.trim();
+    const todoMatch = trimmed.match(/(?:TODO|FIXME|HACK|XXX)[:\s]*(.*)/);
+    if (todoMatch) { issues.push({ type: "dead_code", severity: 1, description: `Código pendente em "${file.relPath}:${i + 1}" — ${todoMatch[0].slice(0, 60)}`, location: `${file.relPath}:${i + 1}`, recommendation: `Resolver o TODO/FIXME em ${file.relPath}:${i + 1} ou removê-lo se já resolvido`, confidence: 0.6 }); todoCount++; }
+  }
+  return issues;
+}
+
+export function detectDeadCodePatterns(_projectRoot: string, files: SourceFileInfo[]): HealthIssue[] {
+  const issues: HealthIssue[] = [];
+  for (const file of files) issues.push(...scanFileForDeadCode(file));
   return issues;
 }
 

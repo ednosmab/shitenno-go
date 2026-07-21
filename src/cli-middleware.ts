@@ -97,7 +97,11 @@ function tryAutoStartDaemon(shitennoDir: string, commandName: string) {
   } catch {}
 }
 
-function handlePostAction(ctx: MiddlewareContext, preActionTimestampRef: { value: number }, sessionEndedRef: { value: boolean }, resolvedSessionId: string, sessionStartTime: number) {
+interface PostActionInput { ctx: MiddlewareContext; preActionTimestampRef: { value: number }; sessionEndedRef: { value: boolean };
+  resolvedSessionId: string; sessionStartTime: number; }
+
+function handlePostAction(input: PostActionInput) {
+  const { ctx, preActionTimestampRef, sessionEndedRef, resolvedSessionId, sessionStartTime } = input;
   return async (thisCommand: Command) => {
     const commandName = thisCommand.name();
     const duration = preActionTimestampRef.value ? Date.now() - preActionTimestampRef.value : 0;
@@ -129,5 +133,5 @@ export function installMiddleware(program: Command, ctx: MiddlewareContext): voi
 
   program.hook("preAction", handlePreAction(ctx, resolvedSessionId, sessionStartedRef));
   program.hook("preAction", () => { preActionTimestampRef.value = Date.now(); });
-  program.hook("postAction", handlePostAction(ctx, preActionTimestampRef, sessionEndedRef, resolvedSessionId, sessionStartTime));
+  program.hook("postAction", handlePostAction({ ctx, preActionTimestampRef, sessionEndedRef, resolvedSessionId, sessionStartTime }));
 }

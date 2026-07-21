@@ -1825,3 +1825,33 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | PLAN-2026-07-19 — MASTER 2/3: Correção de Dados e Checks Genéricos |
 | **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-19-MASTER-2-correcao-dados-e-checks.md` |
+
+
+### BACKLOG-PLAN_2026_07_20_BLOCO_N_GATE_QUEBRADO_E_ACHADOS — BLOCO N — Gate de verificação quebrado + achados desta auditoria
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-21 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | BLOCO N — Gate de verificação quebrado + achados desta auditoria |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-20-BLOCO-N-gate-quebrado-e-achados.md` |
+
+
+### BACKLOG-PLAN_2026_07_20_REFACTOR_ESLINT_WARNINGS — PLAN-2026-07-20 — Refatoração de ESLint Warnings (305 → 0)
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-21 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | PLAN-2026-07-20 — Refatoração de ESLint Warnings (305 → 0) |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-20-refactor-eslint-warnings.md` |

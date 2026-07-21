@@ -162,8 +162,8 @@ export async function withCache<T>(
   }
 
   const data = await compute();
-  setCache(projectRoot, shitennoDir, key as "complexity" | "patterns" | "health",
-    data as Record<string, unknown>, computeKeyChecksums(projectRoot, shitennoDir));
+  setCache({ projectRoot, shitennoDir, key: key as "complexity" | "patterns" | "health",
+    data: data as Record<string, unknown>, checksums: computeKeyChecksums(projectRoot, shitennoDir) });
   return { data, cacheHit: false };
 }
 

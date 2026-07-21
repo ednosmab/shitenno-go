@@ -197,13 +197,10 @@ export function getCached<T>(
 /**
  * Store a result in the cache.
  */
-export function setCache<T>(
-  projectRoot: string,
-  _shitennoDir: string,
-  key: "complexity" | "patterns" | "health",
-  data: T,
-  checksums: Record<string, string>
-): void {
+interface SetCacheInput<T> { projectRoot: string; _shitennoDir: string; key: "complexity" | "patterns" | "health"; data: T; checksums: Record<string, string>; }
+
+export function setCache<T>(input: SetCacheInput<T>): void {
+  const { projectRoot, key, data, checksums } = input;
   const cache = readCache(projectRoot) || { version: 1 as const, projectRoot };
   cache[key] = { checksums, computedAt: new Date().toISOString(), data };
   writeCache(projectRoot, cache);

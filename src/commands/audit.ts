@@ -87,13 +87,11 @@ export const auditSuppressCommand = new Command("suppress")
     output(chalk.gray("    Use 'shugo audit --show-suppressed' to review suppressed issues."));
   });
 
-function displayIssueCategory(
-  title: string,
-  issues: Array<{ description: string; location: string; recommendation: string }>,
-  icon: string,
-  color: typeof chalk,
-  limit = 5,
-): void {
+interface IssueCategoryInput { title: string; issues: Array<{ description: string; location: string; recommendation: string }>;
+  icon: string; color: typeof chalk; limit?: number; }
+
+function displayIssueCategory(input: IssueCategoryInput): void {
+  const { title, issues, icon, color, limit = 5 } = input;
   if (issues.length === 0) return;
   output(chalk.bold(`  ${icon} ${title}:`));
   outputBlank();
@@ -178,6 +176,282 @@ function handleAutoBacklog(
   }
 }
 
+interface AuditActionCtx { projectRoot: string; shitennoDir: string; }
+
+function handleChangedFiles(options: { changed?: string | boolean }, ctx: AuditActionCtx, isJson: boolean): string[] | undefined {
+  if (!options.changed) return undefined;
+  const baseBranch = typeof options.changed === "string" ? options.changed : "main";
+  const changedResult = getChangedFiles(ctx.projectRoot, baseBranch);
+  if (!changedResult.isGitRepo) {
+    if (!isJson) { output(chalk.yellow("  ⚠ Not a git repository — falling back to full scan.")); outputBlank(); }
+    return undefined;
+  }
+  if (changedResult.fallbackToFull) {
+    if (!isJson) { output(chalk.yellow(`  ⚠ Base branch '${baseBranch}' not found — falling back to full scan.`)); outputBlank(); }
+    return undefined;
+  }
+  if (changedResult.files.length === 0) {
+    if (!isJson) { output(chalk.green("  ✔ No changed files detected since " + baseBranch + ". Nothing to audit.")); outputBlank(); }
+    throw new Error("no-changes");
+  }
+  if (!isJson) { output(chalk.gray(`  📁 Scanning ${changedResult.files.length} changed file(s) since ${baseBranch}...`)); outputBlank(); }
+  return changedResult.files;
+}
+
+function handleFullSweep(options: { fullSweep?: boolean }, ctx: AuditActionCtx, isJson: boolean): void {
+  if (!options.fullSweep) return;
+  if (process.env.SHITENNO_CHILD === "1") {
+    console.error("Erro: --full-sweep não pode ser usado por processo automatizado (daemon/CI). Rode manualmente.");
+    process.exitCode = 1;
+    throw new Error("exit");
+  }
+  const sweepSpinner = isJson ? null : ora("Rodando verify:all (build + test + lint) antes da varredura...").start();
+  const checks = [checkBuild(ctx.projectRoot), checkTests(ctx.projectRoot), checkLint(ctx.projectRoot)];
+  const passed = checks.every((c) => c.passed);
+  let commitHash = "unknown";
+  try { commitHash = execSync("git rev-parse HEAD", { cwd: ctx.projectRoot, encoding: "utf-8", timeout: 5000 }).trim(); } catch { /* not in a git repo or git unavailable */ }
+  const record = { commitHash, checks, passed, timestamp: new Date().toISOString() };
+  writeFileSync(join(ctx.shitennoDir, "governance", "last-verify.json"), JSON.stringify(record, null, 2), "utf-8");
+  if (sweepSpinner) {
+    if (record.passed) sweepSpinner.succeed("verify:all passou");
+    else sweepSpinner.fail(`verify:all falhou: ${record.checks.filter((c) => !c.passed).map((c) => c.name).join(", ")}`);
+  }
+}
+
+function fetchAuditReport(options: { cache?: boolean; level: string }, ctx: AuditActionCtx, level: string, changedFiles: string[] | undefined): Promise<{ report: HealthAuditReport; cacheHit: boolean }> {
+  if (options.cache !== false && level !== "code-review" && level !== "enterprise") {
+    const cached = getCached<HealthAuditReport>(ctx.projectRoot, ctx.shitennoDir, "health", () => computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
+    if (cached) return Promise.resolve({ report: cached, cacheHit: true });
+  }
+  return auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles).then((report) => ({ report, cacheHit: false }));
+}
+
+function buildIssueCounts(issues: HealthAuditReport["issues"]) {
+  const count = (type: string) => issues.filter((i) => i.type === type).length;
+  return {
+    total: issues.length, critical: issues.filter((i) => i.severity === 3).length,
+    warning: issues.filter((i) => i.severity === 2).length, info: issues.filter((i) => i.severity === 1).length,
+    datePlaceholders: count("date_placeholder"), emptyDirs: count("empty_dir"), brokenRefs: count("broken_ref"),
+    missingGitignore: count("missing_gitignore"), maturityInconsistency: count("maturity_inconsistency"),
+    adrCoverageGap: count("adr_coverage_gap"), testFailures: count("test_failure"), orphanModules: count("orphan_module"),
+    oversizedFiles: count("oversized_file"), lintErrors: count("lint_error"), missingTests: count("missing_test"),
+    anyTypeUsage: count("any_type_usage"), typeErrors: count("type_error"), consoleLogs: count("console_log_outside_cmd"),
+    emptyCatchBlocks: count("empty_catch"), circularDeps: count("circular_dep"), highComplexity: count("high_complexity"),
+    unusedExports: count("unused_export"), deadCode: count("dead_code"), unpinnedVersions: count("unpinned_version"),
+    missingLockFile: count("missing_lock_file"), lockFileDrift: count("lock_file_drift"),
+    phantomDeps: count("phantom_dep"), deprecatedPackages: count("deprecated_package"),
+  };
+}
+
+function displayHumanAuditReport(report: HealthAuditReport, graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: Array<{ name: string; type: string }>; hubArtifacts: Array<{ artifact: { name: string }; connectionCount: number }>; suggestions: string[] }, ctx: AuditActionCtx, isJson: boolean, cacheHit: boolean, reportFile: string | null): void {
+  if (cacheHit) output(chalk.gray("  📦 Used cached results"));
+  outputBlank();
+  output(chalk.bold("  🏥 Health Audit Results:"));
+  outputBlank();
+  output(chalk.gray(`    Rules:           ${report.totalRules}`));
+  output(chalk.gray(`    History entries:  ${report.historyEntries}`));
+  output(chalk.gray(`    Issues found:    ${report.issues.length}`));
+  output(chalk.gray(`    Optimizations:   ${report.optimizations.length}`));
+  displayIssueCounts(report.issues);
+  outputBlank();
+  output(chalk.bold("    Code Health:"));
+  output(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
+  outputBlank();
+  displayKnowledgeGraph(graphAnalysis);
+  if (report.issues.length === 0) {
+    output(chalk.green("  ✔ No issues found. Governance is healthy!"));
+    outputBlank();
+  } else {
+    displayCategorizedIssues(report, ctx, isJson);
+  }
+  if (reportFile) { output(chalk.gray(`  📄 Report saved: shitenno/reports/${reportFile}`)); outputBlank(); }
+}
+
+function displayIssueCounts(issues: HealthAuditReport["issues"]): void {
+  const count = (type: string) => issues.filter((i) => i.type === type).length;
+  const show = (label: string, type: string, color: typeof chalk) => { const n = count(type); if (n > 0) output(color(`    ${label}: ${n}`)); };
+  show("Date placeholders", "date_placeholder", chalk.gray);
+  show("Empty directories", "empty_dir", chalk.gray);
+  show("Broken references", "broken_ref", chalk.gray);
+  show("Missing .gitignore", "missing_gitignore", chalk.gray);
+  show("Maturity issues", "maturity_inconsistency", chalk.gray);
+  show("ADR coverage gaps", "adr_coverage_gap", chalk.gray);
+  show("Test failures", "test_failure", chalk.red);
+  show("Orphan modules", "orphan_module", chalk.gray);
+  show("Oversized files", "oversized_file", chalk.gray);
+  show("Lint errors", "lint_error", chalk.yellow);
+  show("Missing tests", "missing_test", chalk.gray);
+  show("Any type usage", "any_type_usage", chalk.gray);
+  show("Type errors", "type_error", chalk.yellow);
+  show("Console.log", "console_log_outside_cmd", chalk.gray);
+  show("Empty catch blocks", "empty_catch", chalk.yellow);
+  show("Circular deps", "circular_dep", chalk.red);
+  show("High complexity", "high_complexity", chalk.yellow);
+  show("Unused exports", "unused_export", chalk.gray);
+  show("Dead code", "dead_code", chalk.gray);
+  show("Unpinned versions", "unpinned_version", chalk.yellow);
+  show("Missing lock file", "missing_lock_file", chalk.red);
+  show("Lock file drift", "lock_file_drift", chalk.yellow);
+  show("Phantom deps", "phantom_dep", chalk.yellow);
+  show("Deprecated pkgs", "deprecated_package", chalk.yellow);
+}
+
+function displayKnowledgeGraph(graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: Array<{ name: string; type: string }>; hubArtifacts: Array<{ artifact: { name: string }; connectionCount: number }>; suggestions: string[] }): void {
+  output(chalk.bold("  📊 Knowledge Graph:"));
+  outputBlank();
+  const graphColor = graphAnalysis.healthScore >= 70 ? chalk.green : graphAnalysis.healthScore >= 40 ? chalk.yellow : chalk.red;
+  output(`    Health:  ${graphColor(graphAnalysis.healthScore + "/100")}  ${healthBar(graphAnalysis.healthScore, 100)}`);
+  output(`    Artifacts: ${graphAnalysis.totalArtifacts} | Relations: ${graphAnalysis.totalRelations}`);
+  outputBlank();
+  if (graphAnalysis.orphanArtifacts.length > 0) {
+    output(chalk.yellow(`    ⚠ ${graphAnalysis.orphanArtifacts.length} orphaned artifact(s):`));
+    for (const orphan of graphAnalysis.orphanArtifacts.slice(0, 5)) output(chalk.gray(`      - ${orphan.name} (${orphan.type})`));
+    outputBlank();
+  }
+  if (graphAnalysis.hubArtifacts.length > 0) {
+    output(chalk.cyan("    🔗 Top Hubs:"));
+    for (const hub of graphAnalysis.hubArtifacts.slice(0, 5)) output(chalk.gray(`      - ${hub.artifact.name}: ${hub.connectionCount} connection(s)`));
+    outputBlank();
+  }
+  if (graphAnalysis.suggestions.length > 0) {
+    output(chalk.blue("    💡 Suggestions:"));
+    for (const suggestion of graphAnalysis.suggestions) output(chalk.gray(`      - ${suggestion}`));
+    outputBlank();
+  }
+}
+
+function displayCategorizedIssues(report: HealthAuditReport, ctx: AuditActionCtx, isJson: boolean): void {
+  const categorized = categorizeIssues(report.issues);
+  displayIssueCategory({ title: "Critical Issues (require immediate attention)", issues: categorized.critical, icon: "🚨", color: chalk.red });
+  displayIssueCategory({ title: "Warnings (should be addressed)", issues: categorized.warnings, icon: "⚠️", color: chalk.yellow });
+  if (categorized.info.length > 0) {
+    output(chalk.bold("  ℹ️  Info (informational, low priority):"));
+    outputBlank();
+    const groupedByType = groupByType(categorized.info);
+    for (const [type, issues] of Object.entries(groupedByType)) {
+      const first = issues[0];
+      output(chalk.gray(`    • ${first && issues.length === 1 ? first.description : formatTypeGroup(type, issues)}`));
+    }
+    outputBlank();
+  }
+  const quickWins = identifyQuickWins(report.issues);
+  if (quickWins.length > 0) {
+    output(chalk.bold("  ⚡ Quick Wins (low effort, high impact):"));
+    outputBlank();
+    for (const win of quickWins.slice(0, 5)) {
+      output(chalk.green(`    ✔ ${win.description}`));
+      output(chalk.gray(`       Effort: ${win.effort} | Impact: ${win.impact}`));
+    }
+    outputBlank();
+  }
+  displayFixSuggestions(report, ctx, isJson);
+  displayOptimizations(report.optimizations);
+}
+
+function displayFixSuggestions(report: HealthAuditReport, ctx: AuditActionCtx, isJson: boolean): void {
+  if (report.issues.length === 0) return;
+  const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
+  const prioritized = prioritizeSuggestions(suggestions);
+  if (prioritized.length > 0) {
+    output(chalk.bold("  🔧 Top Fix Suggestions (auto-generated):"));
+    outputBlank();
+    for (const s of prioritized.slice(0, 3)) {
+      output(chalk.cyan(`    ${s.description}`));
+      output(chalk.gray(`       File: ${s.file} | Confidence: ${Math.round(s.confidence * 100)}%`));
+    }
+    outputBlank();
+  }
+  displayAutofixApplication(prioritized, ctx, isJson);
+}
+
+function displayAutofixApplication(prioritized: Array<{ description: string; file: string; confidence: number }>, ctx: AuditActionCtx, isJson: boolean): void {
+  if (!isJson || prioritized.length === 0) return;
+  output(chalk.bold("  🔧 Applying high-confidence fixes..."));
+  outputBlank();
+  const policyEngine = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
+  const policyCheck = checkPolicyGate({ type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+    { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }, policyEngine);
+  if (!policyCheck.allowed) {
+    output(chalk.red(`  ✘ Blocked by policy: ${policyCheck.reason}`));
+    outputBlank();
+    return;
+  }
+  const autofixReport: AutofixReport = applyAllFixes(prioritized, ctx.projectRoot, { dryRun: false });
+  output(chalk.gray(`    Total: ${autofixReport.total} | Applied: ${autofixReport.applied} | Reverted: ${autofixReport.reverted} | Skipped: ${autofixReport.skipped}`));
+  outputBlank();
+  for (const result of autofixReport.results) {
+    const icon = result.status === "applied" ? "✔" : result.status === "reverted" ? "✘" : "⊘";
+    const color = result.status === "applied" ? chalk.green : result.status === "reverted" ? chalk.red : chalk.gray;
+    output(color(`    ${icon} ${result.suggestion.description} (${result.status})`));
+    if (result.reason) output(chalk.gray(`       Reason: ${result.reason}`));
+  }
+  outputBlank();
+  if (autofixReport.reverted > 0) {
+    output(chalk.yellow("  ⚠ Some fixes were reverted due to verification failure."));
+    output(chalk.gray("    Files were restored to their original state."));
+    outputBlank();
+  }
+}
+
+function displayWhatWasMeasured(report: HealthAuditReport): void {
+  outputBlank();
+  output(chalk.bold("  📏 What Was Measured:"));
+  outputBlank();
+  output(chalk.gray(`    Duration:         ${report.durationMs}ms`));
+  output(chalk.gray(`    Files scanned:    ${report.filesScanned}`));
+  output(chalk.gray(`    Detectors run:    ${report.detectorsRun.length}`));
+  output(chalk.gray(`    Rules evaluated:  ${report.totalRules}`));
+  output(chalk.gray(`    History sessions: ${report.historyEntries}`));
+  outputBlank();
+  output(chalk.bold("  📊 Health Card:"));
+  outputBlank();
+  const dimensions: AuditDimension[] = ["security", "reliability", "complexity", "hygiene", "coverage", "governance"];
+  for (const dim of dimensions) {
+    const score = report.dimensionScores[dim] ?? 100;
+    const color = score >= 80 ? chalk.green : score >= 60 ? chalk.yellow : chalk.red;
+    output(`    ${dimensionIcon(dim)} ${dimensionLabel(dim).padEnd(15)} ${color(`${score}/100`)}`);
+  }
+  outputBlank();
+  outputBlank();
+}
+
+function handleJsonOutput(report: HealthAuditReport, graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: { length: number }; hubArtifacts: { length: number }; suggestions: string[] }, options: { apply?: boolean; dryRun?: boolean }, ctx: AuditActionCtx, cacheHit: boolean, reportFile: string | null, growthProfile: { growthCapacity?: number; challengeLevel?: string; patterns: Array<{ type: string }>; pathHistory: unknown[] }): void {
+  let autofixReportJson: AutofixReport | undefined;
+  if (options.apply && report.issues.length > 0) {
+    const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
+    const prioritized = prioritizeSuggestions(suggestions);
+    if (prioritized.length > 0) {
+      const policyEngineJson = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
+      const policyCheckJson = checkPolicyGate({ type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+        { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }, policyEngineJson);
+      if (policyCheckJson.allowed) autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, { dryRun: options.dryRun === true });
+    }
+  }
+  const issueCounts = buildIssueCounts(report.issues);
+  outputJson({ projectRoot: ctx.projectRoot, level: report.level, healthScore: report.healthScore, dimensionScores: report.dimensionScores,
+    totalRules: report.totalRules, historyEntries: report.historyEntries, sessionsAnalyzed: report.sessionsAnalyzed,
+    filesScanned: report.filesScanned, detectorsRun: report.detectorsRun, durationMs: report.durationMs,
+    issues: report.issues, suppressedIssues: report.suppressedIssues, autofixReport: autofixReportJson ?? null,
+    issueCounts, optimizations: report.optimizations, summary: report.summary,
+    knowledgeGraph: { totalArtifacts: graphAnalysis.totalArtifacts, totalRelations: graphAnalysis.totalRelations,
+      healthScore: graphAnalysis.healthScore, orphanCount: graphAnalysis.orphanArtifacts.length,
+      hubCount: graphAnalysis.hubArtifacts.length, suggestions: graphAnalysis.suggestions },
+    cacheHit, reportFile: reportFile || null, auditedAt: report.auditedAt,
+    growthProfile: { growthCapacity: growthProfile.growthCapacity, challengeLevel: growthProfile.challengeLevel,
+      pattern: growthProfile.patterns[0]?.type || "balanced", totalChoices: growthProfile.pathHistory.length } });
+}
+
+function displaySuppressedIssues(suppressedIssues: HealthAuditReport["suppressedIssues"]): void {
+  output(chalk.bold("  🚫 Suppressed Issues:"));
+  outputBlank();
+  for (const issue of suppressedIssues) {
+    const fp = issueFingerprint(issue);
+    output(chalk.gray(`    [${fp}] ${issue.description}`));
+    output(chalk.gray(`      Reason: ${issue.suppressionReason}`));
+  }
+  outputBlank();
+}
+
 // ── Main audit command ───────────────────────────────────────────────────────
 
 export const auditCommand = new Command("audit")
@@ -197,491 +471,46 @@ export const auditCommand = new Command("audit")
   .action(async (options) => {
     const isJson = options.json === true;
     if (isJson) muteLogs();
-
     if (!isJson) {
       const levelLabel = options.level === "enterprise" ? "enterprise" : options.level === "code-review" ? "code-review" : options.level === "quick" ? "quick" : "standard";
-      outputBlank();
-      banner("shugo audit", "Health Audit");
-      output(chalk.gray(`    Level: ${levelLabel}`));
-      outputBlank();
+      outputBlank(); banner("shugo audit", "Health Audit"); output(chalk.gray(`    Level: ${levelLabel}`)); outputBlank();
     }
-
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
-
     void printDaemonBanner(ctx.shitennoDir, isJson);
-
     if (!checkLifecycleGate("audit", ctx.projectRoot, ctx.shitennoDir, isJson)) return;
-
     const spinner = isJson ? null : ora("Auditing governance health...").start();
-
     try {
       const level = ["quick", "standard", "code-review", "enterprise"].includes(options.level) ? options.level : "standard";
-
-      // Handle --changed flag for incremental scanning
       let changedFiles: string[] | undefined;
-      if (options.changed) {
-        const baseBranch = typeof options.changed === "string" ? options.changed : "main";
-        const changedResult = getChangedFiles(ctx.projectRoot, baseBranch);
-        
-        if (!changedResult.isGitRepo) {
-          if (!isJson) {
-            output(chalk.yellow("  ⚠ Not a git repository — falling back to full scan."));
-            outputBlank();
-          }
-        } else if (changedResult.fallbackToFull) {
-          if (!isJson) {
-            output(chalk.yellow(`  ⚠ Base branch '${baseBranch}' not found — falling back to full scan.`));
-            outputBlank();
-          }
-        } else if (changedResult.files.length === 0) {
-          if (!isJson) {
-            output(chalk.green("  ✔ No changed files detected since " + baseBranch + ". Nothing to audit."));
-            outputBlank();
-          }
-          return;
-        } else {
-          changedFiles = changedResult.files;
-          if (!isJson) {
-            output(chalk.gray(`  📁 Scanning ${changedFiles.length} changed file(s) since ${baseBranch}...`));
-            outputBlank();
-          }
-        }
-      }
-
+      try { changedFiles = handleChangedFiles(options, ctx, isJson); } catch { return; }
+      handleFullSweep(options, ctx, isJson);
       const growthProfile = loadGrowthProfile(ctx.shitennoDir);
-
-      // Handle --full-sweep flag: run verify:all (build+test+lint) before audit
-      if (options.fullSweep) {
-        // Trava explícita: nunca deve rodar disparado por processo automatizado.
-        // SHITENNO_CHILD já é setado pelo próprio CLI/daemon internamente (ver
-        // cli-integration.test.ts, runShugo() seta esse env) — reaproveitar como
-        // sinal de "isso não é um humano no terminal esperando", não criar flag nova.
-        if (process.env.SHITENNO_CHILD === "1") {
-          console.error("Erro: --full-sweep não pode ser usado por processo automatizado (daemon/CI). Rode manualmente.");
-          process.exitCode = 1;
-          return;
-        }
-
-        const sweepSpinner = isJson ? null : ora("Rodando verify:all (build + test + lint) antes da varredura...").start();
-
-        const checks = [checkBuild(ctx.projectRoot), checkTests(ctx.projectRoot), checkLint(ctx.projectRoot)];
-        const passed = checks.every((c) => c.passed);
-        let commitHash = "unknown";
-        try {
-          commitHash = execSync("git rev-parse HEAD", { cwd: ctx.projectRoot, encoding: "utf-8", timeout: 5000 }).trim();
-        } catch { /* not in a git repo or git unavailable */ }
-
-        const record = {
-          commitHash,
-          checks,
-          passed,
-          timestamp: new Date().toISOString(),
-        };
-
-        writeFileSync(
-          join(ctx.shitennoDir, "governance", "last-verify.json"),
-          JSON.stringify(record, null, 2),
-          "utf-8"
-        );
-
-        if (sweepSpinner) {
-          if (record.passed) {
-            sweepSpinner.succeed("verify:all passou");
-          } else {
-            sweepSpinner.fail(`verify:all falhou: ${record.checks.filter((c) => !c.passed).map((c) => c.name).join(", ")}`);
-          }
-        }
-      }
-
-      let report: HealthAuditReport;
-      let cacheHit = false;
-      if (options.cache !== false && level !== "code-review" && level !== "enterprise") {
-        const cached = getCached<HealthAuditReport>(ctx.projectRoot, ctx.shitennoDir, "health",
-          () => computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
-        if (cached) {
-          report = cached;
-          cacheHit = true;
-        } else {
-          report = await auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
-          setCache(ctx.projectRoot, ctx.shitennoDir, "health", report,
-            computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
-        }
-      } else {
-        report = await auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles);
-      }
-
+      const { report: initialReport, cacheHit } = await fetchAuditReport(options, ctx, level, changedFiles);
+      let report = initialReport;
       if (options.minConfidence !== undefined && options.minConfidence >= 0 && options.minConfidence <= 1) {
         report = { ...report, issues: report.issues.filter((i) => (i.confidence ?? 1.0) >= options.minConfidence) };
       }
-
       const reportFile = writeHealthReport(ctx.shitennoDir, report);
-
       const artifacts = discoverArtifacts(ctx.shitennoDir);
       const relations = discoverRelations(artifacts);
       const graphAnalysis = analyzeGraph(artifacts, relations);
-
-      getEventBus().publish("knowledge.analyzed", {
-        totalArtifacts: graphAnalysis.totalArtifacts,
-        totalRelations: graphAnalysis.totalRelations,
-        healthScore: graphAnalysis.healthScore,
-      });
-
-      if (spinner) {
-        spinner.succeed(`Audit complete — code health: ${report.healthScore}/100`);
-      }
-
-      if (!isJson) {
-        outputBlank();
-        output(chalk.bold("  📏 What Was Measured:"));
-        outputBlank();
-        output(chalk.gray(`    Duration:         ${report.durationMs}ms`));
-        output(chalk.gray(`    Files scanned:    ${report.filesScanned}`));
-        output(chalk.gray(`    Detectors run:    ${report.detectorsRun.length}`));
-        output(chalk.gray(`    Rules evaluated:  ${report.totalRules}`));
-        output(chalk.gray(`    History sessions: ${report.historyEntries}`));
-        outputBlank();
-        output(chalk.bold("  📊 Health Card:"));
-        outputBlank();
-        const dimensions: AuditDimension[] = ["security", "reliability", "complexity", "hygiene", "coverage", "governance"];
-        for (const dim of dimensions) {
-          const score = report.dimensionScores[dim] ?? 100;
-          const icon = dimensionIcon(dim);
-          const label = dimensionLabel(dim);
-          const color = score >= 80 ? chalk.green : score >= 60 ? chalk.yellow : chalk.red;
-          output(`    ${icon} ${label.padEnd(15)} ${color(`${score}/100`)}`);
-        }
-        outputBlank();
-        outputBlank();
-      }
-
-      if (isJson) {
-        let autofixReportJson: AutofixReport | undefined;
-        if (options.apply && report.issues.length > 0) {
-          const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
-          const prioritized = prioritizeSuggestions(suggestions);
-          if (prioritized.length > 0) {
-            const policyEngineJson = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
-            const policyCheckJson = checkPolicyGate(
-              { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
-              { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() },
-              policyEngineJson
-            );
-            if (policyCheckJson.allowed) {
-              autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, {
-                dryRun: options.dryRun === true,
-              });
-            }
-          }
-        }
-        outputJson({
-          projectRoot: ctx.projectRoot,
-          level: report.level,
-          healthScore: report.healthScore,
-          dimensionScores: report.dimensionScores,
-          totalRules: report.totalRules,
-          historyEntries: report.historyEntries,
-          sessionsAnalyzed: report.sessionsAnalyzed,
-          filesScanned: report.filesScanned,
-          detectorsRun: report.detectorsRun,
-          durationMs: report.durationMs,
-          issues: report.issues,
-          suppressedIssues: report.suppressedIssues,
-          autofixReport: autofixReportJson ?? null,
-          issueCounts: {
-            total: report.issues.length,
-            critical: report.issues.filter((i) => i.severity === 3).length,
-            warning: report.issues.filter((i) => i.severity === 2).length,
-            info: report.issues.filter((i) => i.severity === 1).length,
-            datePlaceholders: report.issues.filter((i) => i.type === "date_placeholder").length,
-            emptyDirs: report.issues.filter((i) => i.type === "empty_dir").length,
-            brokenRefs: report.issues.filter((i) => i.type === "broken_ref").length,
-            missingGitignore: report.issues.filter((i) => i.type === "missing_gitignore").length,
-            maturityInconsistency: report.issues.filter((i) => i.type === "maturity_inconsistency").length,
-            adrCoverageGap: report.issues.filter((i) => i.type === "adr_coverage_gap").length,
-            testFailures: report.issues.filter((i) => i.type === "test_failure").length,
-            orphanModules: report.issues.filter((i) => i.type === "orphan_module").length,
-            oversizedFiles: report.issues.filter((i) => i.type === "oversized_file").length,
-            lintErrors: report.issues.filter((i) => i.type === "lint_error").length,
-            missingTests: report.issues.filter((i) => i.type === "missing_test").length,
-            anyTypeUsage: report.issues.filter((i) => i.type === "any_type_usage").length,
-            typeErrors: report.issues.filter((i) => i.type === "type_error").length,
-            consoleLogs: report.issues.filter((i) => i.type === "console_log_outside_cmd").length,
-            emptyCatchBlocks: report.issues.filter((i) => i.type === "empty_catch").length,
-            circularDeps: report.issues.filter((i) => i.type === "circular_dep").length,
-            highComplexity: report.issues.filter((i) => i.type === "high_complexity").length,
-            unusedExports: report.issues.filter((i) => i.type === "unused_export").length,
-            deadCode: report.issues.filter((i) => i.type === "dead_code").length,
-            unpinnedVersions: report.issues.filter((i) => i.type === "unpinned_version").length,
-            missingLockFile: report.issues.filter((i) => i.type === "missing_lock_file").length,
-            lockFileDrift: report.issues.filter((i) => i.type === "lock_file_drift").length,
-            phantomDeps: report.issues.filter((i) => i.type === "phantom_dep").length,
-            deprecatedPackages: report.issues.filter((i) => i.type === "deprecated_package").length,
-          },
-          optimizations: report.optimizations,
-          summary: report.summary,
-          knowledgeGraph: {
-            totalArtifacts: graphAnalysis.totalArtifacts,
-            totalRelations: graphAnalysis.totalRelations,
-            healthScore: graphAnalysis.healthScore,
-            orphanCount: graphAnalysis.orphanArtifacts.length,
-            hubCount: graphAnalysis.hubArtifacts.length,
-            suggestions: graphAnalysis.suggestions,
-          },
-          cacheHit,
-          reportFile: reportFile || null,
-          auditedAt: report.auditedAt,
-          growthProfile: {
-            growthCapacity: growthProfile.growthCapacity,
-            challengeLevel: growthProfile.challengeLevel,
-            pattern: growthProfile.patterns[0]?.type || "balanced",
-            totalChoices: growthProfile.pathHistory.length,
-          },
-        });
-        return;
-      }
-
-      if (cacheHit) {
-        output(chalk.gray("  📦 Used cached results"));
-      }
-      outputBlank();
-      output(chalk.bold("  🏥 Health Audit Results:"));
-      outputBlank();
-      output(chalk.gray(`    Rules:           ${report.totalRules}`));
-      output(chalk.gray(`    History entries:  ${report.historyEntries}`));
-      output(chalk.gray(`    Issues found:    ${report.issues.length}`));
-      output(chalk.gray(`    Optimizations:   ${report.optimizations.length}`));
-      const datePlaceholders = report.issues.filter((i) => i.type === "date_placeholder").length;
-      const emptyDirs = report.issues.filter((i) => i.type === "empty_dir").length;
-      const brokenRefs = report.issues.filter((i) => i.type === "broken_ref").length;
-      const missingGitignore = report.issues.filter((i) => i.type === "missing_gitignore").length;
-      const maturityIssues = report.issues.filter((i) => i.type === "maturity_inconsistency").length;
-      const adrGaps = report.issues.filter((i) => i.type === "adr_coverage_gap").length;
-      if (datePlaceholders > 0) output(chalk.gray(`    Date placeholders: ${datePlaceholders}`));
-      if (emptyDirs > 0) output(chalk.gray(`    Empty directories: ${emptyDirs}`));
-      if (brokenRefs > 0) output(chalk.gray(`    Broken references: ${brokenRefs}`));
-      if (missingGitignore > 0) output(chalk.gray(`    Missing .gitignore: ${missingGitignore}`));
-      if (maturityIssues > 0) output(chalk.gray(`    Maturity issues:   ${maturityIssues}`));
-      if (adrGaps > 0) output(chalk.gray(`    ADR coverage gaps: ${adrGaps}`));
-      const testFailures = report.issues.filter((i) => i.type === "test_failure").length;
-      const orphanModules = report.issues.filter((i) => i.type === "orphan_module").length;
-      const oversizedFiles = report.issues.filter((i) => i.type === "oversized_file").length;
-      const lintErrors = report.issues.filter((i) => i.type === "lint_error").length;
-      const missingTests = report.issues.filter((i) => i.type === "missing_test").length;
-      const anyTypeUsage = report.issues.filter((i) => i.type === "any_type_usage").length;
-      const typeErrors = report.issues.filter((i) => i.type === "type_error").length;
-      const consoleLogs = report.issues.filter((i) => i.type === "console_log_outside_cmd").length;
-      if (testFailures > 0) output(chalk.red(`    Test failures:      ${testFailures}`));
-      if (orphanModules > 0) output(chalk.gray(`    Orphan modules:     ${orphanModules}`));
-      if (oversizedFiles > 0) output(chalk.gray(`    Oversized files:    ${oversizedFiles}`));
-      if (lintErrors > 0) output(chalk.yellow(`    Lint errors:        ${lintErrors}`));
-      if (missingTests > 0) output(chalk.gray(`    Missing tests:      ${missingTests}`));
-      if (anyTypeUsage > 0) output(chalk.gray(`    Any type usage:     ${anyTypeUsage}`));
-      if (typeErrors > 0) output(chalk.yellow(`    Type errors:        ${typeErrors}`));
-      if (consoleLogs > 0) output(chalk.gray(`    Console.log:        ${consoleLogs}`));
-      const emptyCatchBlocks = report.issues.filter((i) => i.type === "empty_catch").length;
-      const circularDeps = report.issues.filter((i) => i.type === "circular_dep").length;
-      const highComplexity = report.issues.filter((i) => i.type === "high_complexity").length;
-      const unusedExports = report.issues.filter((i) => i.type === "unused_export").length;
-      const deadCode = report.issues.filter((i) => i.type === "dead_code").length;
-      if (emptyCatchBlocks > 0) output(chalk.yellow(`    Empty catch blocks: ${emptyCatchBlocks}`));
-      if (circularDeps > 0) output(chalk.red(`    Circular deps:      ${circularDeps}`));
-      if (highComplexity > 0) output(chalk.yellow(`    High complexity:    ${highComplexity}`));
-      if (unusedExports > 0) output(chalk.gray(`    Unused exports:     ${unusedExports}`));
-      if (deadCode > 0) output(chalk.gray(`    Dead code:          ${deadCode}`));
-      const unpinnedVersions = report.issues.filter((i) => i.type === "unpinned_version").length;
-      const missingLockFile = report.issues.filter((i) => i.type === "missing_lock_file").length;
-      const lockFileDrift = report.issues.filter((i) => i.type === "lock_file_drift").length;
-      const phantomDeps = report.issues.filter((i) => i.type === "phantom_dep").length;
-      const deprecatedPackages = report.issues.filter((i) => i.type === "deprecated_package").length;
-      if (unpinnedVersions > 0) output(chalk.yellow(`    Unpinned versions:  ${unpinnedVersions}`));
-      if (missingLockFile > 0) output(chalk.red(`    Missing lock file:  ${missingLockFile}`));
-      if (lockFileDrift > 0) output(chalk.yellow(`    Lock file drift:    ${lockFileDrift}`));
-      if (phantomDeps > 0) output(chalk.yellow(`    Phantom deps:       ${phantomDeps}`));
-      if (deprecatedPackages > 0) output(chalk.yellow(`    Deprecated pkgs:    ${deprecatedPackages}`));
-      outputBlank();
-
-      output(chalk.bold("    Code Health:"));
-      output(`      ${report.healthScore}/100  ${healthBar(report.healthScore, 100)}`);
-      outputBlank();
-
-      output(chalk.bold("  📊 Knowledge Graph:"));
-      outputBlank();
-      const graphColor = graphAnalysis.healthScore >= 70 ? chalk.green
-        : graphAnalysis.healthScore >= 40 ? chalk.yellow : chalk.red;
-      output(`    Health:  ${graphColor(graphAnalysis.healthScore + "/100")}  ${healthBar(graphAnalysis.healthScore, 100)}`);
-      output(`    Artifacts: ${graphAnalysis.totalArtifacts} | Relations: ${graphAnalysis.totalRelations}`);
-      outputBlank();
-
-      if (graphAnalysis.orphanArtifacts.length > 0) {
-        output(chalk.yellow(`    ⚠ ${graphAnalysis.orphanArtifacts.length} orphaned artifact(s):`));
-        for (const orphan of graphAnalysis.orphanArtifacts.slice(0, 5)) {
-          output(chalk.gray(`      - ${orphan.name} (${orphan.type})`));
-        }
-        outputBlank();
-      }
-
-      if (graphAnalysis.hubArtifacts.length > 0) {
-        output(chalk.cyan("    🔗 Top Hubs:"));
-        for (const hub of graphAnalysis.hubArtifacts.slice(0, 5)) {
-          output(chalk.gray(`      - ${hub.artifact.name}: ${hub.connectionCount} connection(s)`));
-        }
-        outputBlank();
-      }
-
-      if (graphAnalysis.suggestions.length > 0) {
-        output(chalk.blue("    💡 Suggestions:"));
-        for (const suggestion of graphAnalysis.suggestions) {
-          output(chalk.gray(`      - ${suggestion}`));
-        }
-        outputBlank();
-      }
-
-      if (report.issues.length === 0) {
-        output(chalk.green("  ✔ No issues found. Governance is healthy!"));
-        outputBlank();
-      } else {
-        const categorized = categorizeIssues(report.issues);
-        displayIssueCategory("Critical Issues (require immediate attention)", categorized.critical, "🚨", chalk.red);
-        displayIssueCategory("Warnings (should be addressed)", categorized.warnings, "⚠️", chalk.yellow);
-
-        if (categorized.info.length > 0) {
-          output(chalk.bold("  ℹ️  Info (informational, low priority):"));
-          outputBlank();
-          const groupedByType = groupByType(categorized.info);
-          for (const [type, issues] of Object.entries(groupedByType)) {
-            const first = issues[0];
-            output(chalk.gray(`    • ${first && issues.length === 1 ? first.description : formatTypeGroup(type, issues)}`));
-          }
-          outputBlank();
-        }
-
-        const quickWins = identifyQuickWins(report.issues);
-        if (quickWins.length > 0) {
-          output(chalk.bold("  ⚡ Quick Wins (low effort, high impact):"));
-          outputBlank();
-          for (const win of quickWins.slice(0, 5)) {
-            output(chalk.green(`    ✔ ${win.description}`));
-            output(chalk.gray(`       Effort: ${win.effort} | Impact: ${win.impact}`));
-          }
-          outputBlank();
-        }
-
-        if (report.issues.length > 0) {
-          const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
-          const prioritized = prioritizeSuggestions(suggestions);
-          if (prioritized.length > 0) {
-            output(chalk.bold("  🔧 Top Fix Suggestions (auto-generated):"));
-            outputBlank();
-            for (const s of prioritized.slice(0, 3)) {
-              output(chalk.cyan(`    ${s.description}`));
-              output(chalk.gray(`       File: ${s.file} | Confidence: ${Math.round(s.confidence * 100)}%`));
-            }
-            outputBlank();
-          }
-
-          if (options.apply && prioritized.length > 0) {
-            output(chalk.bold("  🔧 Applying high-confidence fixes..."));
-            outputBlank();
-
-            const policyEngine = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
-            const policyCheck = checkPolicyGate(
-              { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
-              { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() },
-              policyEngine
-            );
-            if (!policyCheck.allowed) {
-              output(chalk.red(`  ✘ Blocked by policy: ${policyCheck.reason}`));
-              outputBlank();
-            } else {
-              const autofixReport: AutofixReport = applyAllFixes(prioritized, ctx.projectRoot, {
-                dryRun: options.dryRun === true,
-              });
-              output(chalk.gray(`    Total: ${autofixReport.total} | Applied: ${autofixReport.applied} | Reverted: ${autofixReport.reverted} | Skipped: ${autofixReport.skipped}`));
-              outputBlank();
-              for (const result of autofixReport.results) {
-                const icon = result.status === "applied" ? "✔" : result.status === "reverted" ? "✘" : "⊘";
-                const color = result.status === "applied" ? chalk.green : result.status === "reverted" ? chalk.red : chalk.gray;
-                output(color(`    ${icon} ${result.suggestion.description} (${result.status})`));
-                if (result.reason) {
-                  output(chalk.gray(`       Reason: ${result.reason}`));
-                }
-              }
-              outputBlank();
-              if (autofixReport.reverted > 0) {
-                output(chalk.yellow("  ⚠ Some fixes were reverted due to verification failure."));
-                output(chalk.gray("    Files were restored to their original state."));
-                outputBlank();
-              }
-            }
-          }
-        }
-
-        displayOptimizations(report.optimizations);
-      }
-
-      if (reportFile) {
-        output(chalk.gray(`  📄 Report saved: shitenno/reports/${reportFile}`));
-        outputBlank();
-      }
-
+      getEventBus().publish("knowledge.analyzed", { totalArtifacts: graphAnalysis.totalArtifacts, totalRelations: graphAnalysis.totalRelations, healthScore: graphAnalysis.healthScore });
+      if (spinner) spinner.succeed(`Audit complete — code health: ${report.healthScore}/100`);
+      if (!isJson) displayWhatWasMeasured(report);
+      if (isJson) { handleJsonOutput(report, graphAnalysis, options, ctx, cacheHit, reportFile, growthProfile); return; }
+      displayHumanAuditReport(report, graphAnalysis, ctx, isJson, cacheHit, reportFile);
       if (!isJson) await displayDynamicRules(ctx.projectRoot, ctx.shitennoDir);
-
-      output(chalk.bold("  📝 Summary:"));
-      output(chalk.gray(`    ${report.summary}`));
-      outputBlank();
-
-      if (options.showSuppressed && report.suppressedIssues.length > 0) {
-        output(chalk.bold("  🚫 Suppressed Issues:"));
-        outputBlank();
-        for (const issue of report.suppressedIssues) {
-          const fp = issueFingerprint(issue);
-          output(chalk.gray(`    [${fp}] ${issue.description}`));
-          output(chalk.gray(`      Reason: ${issue.suppressionReason}`));
-        }
-        outputBlank();
-      }
-
-      output(formatGrowthProgress(growthProfile));
-      outputBlank();
-
-      const auditStatus = report.healthScore >= 70 ? "healthy" : report.healthScore >= 40 ? "degraded" : "critical";
-      getEventBus().publish("health.checked", {
-        status: auditStatus,
-        healthScore: report.healthScore,
-          dimensionScores: report.dimensionScores,
-        issues: report.issues.map((i) => i.description),
-        checksRun: report.totalRules,
-      });
-
+      output(chalk.bold("  📝 Summary:")); output(chalk.gray(`    ${report.summary}`)); outputBlank();
+      if (options.showSuppressed && report.suppressedIssues.length > 0) { displaySuppressedIssues(report.suppressedIssues); }
+      output(formatGrowthProgress(growthProfile)); outputBlank();
+      getEventBus().publish("health.checked", { status: report.healthScore >= 70 ? "healthy" : report.healthScore >= 40 ? "degraded" : "critical", healthScore: report.healthScore, dimensionScores: report.dimensionScores, issues: report.issues.map((i) => i.description), checksRun: report.totalRules });
       if (options.autoBacklog) handleAutoBacklog(report, graphAnalysis, ctx, isJson);
-
       const hookBus = getHookBus();
-      const customResults = await hookBus.collectHook("custom-check", async (plugin) => {
-        if (plugin.hooks?.["custom-check"]) {
-          return await plugin.hooks["custom-check"]({
-            projectRoot: ctx.projectRoot,
-            shitennoDir: ctx.shitennoDir,
-            healthReport: report,
-          });
-        }
-        return null;
-      });
-      if (customResults.length > 0 && !isJson) {
-        output(chalk.bold("  🔌 Custom Checks:"));
-        for (const result of customResults) {
-          if (result) output(chalk.gray(`    ${result}`));
-        }
-        outputBlank();
-      }
-
+      const customResults = await hookBus.collectHook("custom-check", async (plugin) => { if (plugin.hooks?.["custom-check"]) return await plugin.hooks["custom-check"]({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, healthReport: report }); return null; });
+      if (customResults.length > 0 && !isJson) { output(chalk.bold("  🔌 Custom Checks:")); for (const result of customResults) { if (result) output(chalk.gray(`    ${result}`)); } outputBlank(); }
     } catch (error) {
-      if (isJson) {
-        outputJson({ error: "audit_failed", message: String(error) });
-      } else {
-        if (spinner) spinner.fail("Health audit failed");
-        output(chalk.red(`  Error: ${error}`));
-        outputBlank();
-      }
+      if (isJson) outputJson({ error: "audit_failed", message: String(error) });
+      else { if (spinner) spinner.fail("Health audit failed"); output(chalk.red(`  Error: ${error}`)); outputBlank(); }
     }
   });

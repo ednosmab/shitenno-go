@@ -220,32 +220,6 @@ export function detectNumberingGap(shitennoDir: string): HealthIssue[] {
   return issues;
 }
 
-function findLetterGaps(letterMatches: RegExpMatchArray[]): string[] {
-  const gaps: string[] = [];
-  const letters = letterMatches.map((m) => (m[2] ?? "").charCodeAt(0)).filter((c) => c > 0);
-  for (let i = 1; i < letters.length; i++) {
-    if (letters[i]! - letters[i - 1]! > 1) {
-      gaps.push(`${String.fromCharCode(letters[i - 1]!)}→${String.fromCharCode(letters[i]!)} (letra ${String.fromCharCode(letters[i - 1]! + 1)} ausente)`);
-    }
-  }
-  return gaps;
-}
-
-function detectNumberingGapsInFile(agentsPath: string, issues: HealthIssue[]): void {
-  try {
-    const content = readFileSync(agentsPath, "utf-8");
-    const letterMatches = [...content.matchAll(/^(\s*)\*\*([a-z])\.\*\*/gm)];
-    if (letterMatches.length <= 2) return;
-    for (const gap of findLetterGaps(letterMatches)) {
-      issues.push({ type: "numbering_gap", severity: 2,
-        description: `Gap na lettering em AGENTS.md: ${gap}`,
-        location: "shitenno/docs/AGENTS.md", recommendation: `Verificar se a letra foi removida ou renumerada`, confidence: 0.65 });
-    }
-  } catch (err) { logger.debug("governance-detectors", "Error scanning AGENTS.md numbering:", err); }
-
-  return issues;
-}
-
 export function detectPhantomRuleRefs(shitennoDir: string): HealthIssue[] {
   const issues: HealthIssue[] = [];
 
@@ -444,7 +418,7 @@ function detectEmptyDataFilesInDir(dir: string, shitennoDir: string): HealthIssu
   const issues: HealthIssue[] = [];
   const dirPath = join(shitennoDir, dir);
   if (!existsSync(dirPath)) return issues;
-  try { scanFileForEmptyFiles(dir, readdirSync(dirPath), issues); }
+  try { scanFileForEmptyFiles(dirPath, readdirSync(dirPath), issues); }
   catch (scanErr) { logger.debug("governance-detectors", "Error in detectEmptyDataFiles:", scanErr); }
   return issues;
 }

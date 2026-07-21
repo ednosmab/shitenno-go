@@ -56,8 +56,8 @@ export const statusCommand = new Command("status")
         cacheHit = true;
       } else {
         complexity = await calculateComplexityScore(ctx.projectRoot, ctx.shitennoDir, analysis);
-        setCache(ctx.projectRoot, ctx.shitennoDir, "complexity", complexity,
-          computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
+        setCache({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, key: "complexity", data: complexity,
+          checksums: computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir) });
       }
     } else {
       complexity = await calculateComplexityScore(ctx.projectRoot, ctx.shitennoDir, analysis);

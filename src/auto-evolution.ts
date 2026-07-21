@@ -123,73 +123,40 @@ function generateCapabilityRecommendations(state: EngineeringState): EvolutionRe
   return recs;
 }
 
-function generateKnowledgeRecommendations(
-  state: EngineeringState,
-  debtReport: KnowledgeDebtReport | null
-): EvolutionRecommendation[] {
+function createAdrRecommendation(id: number): EvolutionRecommendation {
+  return { id: `EVO-${String(id).padStart(3, "0")}`, type: "knowledge_creation", priority: "high",
+    title: "Create first ADR", description: "No Architecture Decision Records found. ADRs document important decisions.",
+    expectedImpact: "Captures decision rationale for future reference", action: "Create an ADR for your most recent architectural decision",
+    affectedArtifacts: ["docs/adrs/ADR-001.md"], dependencies: [], confidence: 0.9,
+    evidence: ["No ADRs in project", "Project has source files indicating decisions were made"], feedbackAdjusted: false };
+}
+
+function createSkillExtractionRecommendation(id: number, adrCount: number): EvolutionRecommendation {
+  return { id: `EVO-${String(id).padStart(3, "0")}`, type: "pattern_extraction", priority: "medium",
+    title: "Extract skills from ADRs", description: `${adrCount} ADRs exist but no Skills — patterns not extracted`,
+    expectedImpact: "Reusable patterns improve consistency across sessions", action: "Review ADRs and extract common patterns into Skills",
+    affectedArtifacts: ["docs/skills/"], dependencies: [], confidence: 0.7, evidence: [`${adrCount} ADRs, 0 skills`], feedbackAdjusted: false };
+}
+
+function createKnowledgeDebtRecommendation(id: number, criticalGaps: Array<{ description: string; location: string }>): EvolutionRecommendation {
+  return { id: `EVO-${String(id).padStart(3, "0")}`, type: "debt_remediation", priority: "urgent",
+    title: "Address knowledge debt", description: `${criticalGaps.length} critical/high knowledge gap(s) detected`,
+    expectedImpact: "Reduces risk of repeated mistakes and knowledge loss", action: "Review and address critical knowledge gaps",
+    affectedArtifacts: criticalGaps.map((g) => g.location), dependencies: [], confidence: 0.95,
+    evidence: criticalGaps.map((g) => g.description), feedbackAdjusted: false };
+}
+
+function generateKnowledgeRecommendations(state: EngineeringState, debtReport: KnowledgeDebtReport | null): EvolutionRecommendation[] {
   const recs: EvolutionRecommendation[] = [];
   let id = 100;
-
   const adrs = state.assets.filter((a) => a.type === "adr");
   const skills = state.assets.filter((a) => a.type === "skill");
-
-  // ADR creation
-  if (adrs.length === 0 && state.project.sourceFileCount > 10) {
-    recs.push({
-      id: `EVO-${String(id++).padStart(3, "0")}`,
-      type: "knowledge_creation",
-      priority: "high",
-      title: "Create first ADR",
-      description: "No Architecture Decision Records found. ADRs document important decisions.",
-      expectedImpact: "Captures decision rationale for future reference",
-      action: "Create an ADR for your most recent architectural decision",
-      affectedArtifacts: ["docs/adrs/ADR-001.md"],
-      dependencies: [],
-      confidence: 0.9,
-      evidence: ["No ADRs in project", "Project has source files indicating decisions were made"],
-      feedbackAdjusted: false,
-    });
-  }
-
-  // Skill extraction
-  if (adrs.length > 3 && skills.length === 0) {
-    recs.push({
-      id: `EVO-${String(id++).padStart(3, "0")}`,
-      type: "pattern_extraction",
-      priority: "medium",
-      title: "Extract skills from ADRs",
-      description: `${adrs.length} ADRs exist but no Skills — patterns not extracted`,
-      expectedImpact: "Reusable patterns improve consistency across sessions",
-      action: "Review ADRs and extract common patterns into Skills",
-      affectedArtifacts: ["docs/skills/"],
-      dependencies: [],
-      confidence: 0.7,
-      evidence: [`${adrs.length} ADRs, 0 skills`],
-      feedbackAdjusted: false,
-    });
-  }
-
-  // Knowledge debt remediation
+  if (adrs.length === 0 && state.project.sourceFileCount > 10) recs.push(createAdrRecommendation(id++));
+  if (adrs.length > 3 && skills.length === 0) recs.push(createSkillExtractionRecommendation(id++, adrs.length));
   if (debtReport && debtReport.totalGaps > 0) {
     const criticalGaps = debtReport.gaps.filter((g) => g.severity === "critical" || g.severity === "high");
-    if (criticalGaps.length > 0) {
-      recs.push({
-        id: `EVO-${String(id++).padStart(3, "0")}`,
-        type: "debt_remediation",
-        priority: "urgent",
-        title: "Address knowledge debt",
-        description: `${criticalGaps.length} critical/high knowledge gap(s) detected`,
-        expectedImpact: "Reduces risk of repeated mistakes and knowledge loss",
-        action: "Review and address critical knowledge gaps",
-        affectedArtifacts: criticalGaps.map((g) => g.location),
-        dependencies: [],
-        confidence: 0.95,
-        evidence: criticalGaps.map((g) => g.description),
-        feedbackAdjusted: false,
-      });
-    }
+    if (criticalGaps.length > 0) recs.push(createKnowledgeDebtRecommendation(id++, criticalGaps));
   }
-
   return recs;
 }
 
@@ -361,14 +328,11 @@ function countByPriority(recommendations: EvolutionRecommendation[]): Record<Rec
   return byPriority;
 }
 
-function buildSummary(
-  recommendations: EvolutionRecommendation[],
-  byPriority: Record<RecommendationPriority, number>,
-  suppressedCount: number,
-  state: EngineeringState,
-  debtReport: KnowledgeDebtReport | null,
-  growthProfile: GrowthProfile,
-): string {
+interface SummaryInput { recommendations: EvolutionRecommendation[]; byPriority: Record<RecommendationPriority, number>;
+  suppressedCount: number; state: EngineeringState; debtReport: KnowledgeDebtReport | null; growthProfile: GrowthProfile; }
+
+function buildSummary(input: SummaryInput): string {
+  const { recommendations, byPriority, suppressedCount, state, debtReport, growthProfile } = input;
   const parts: string[] = [`${recommendations.length} recommendation(s).`];
   if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
   if (byPriority.high) parts.push(`${byPriority.high} high.`);
@@ -429,7 +393,7 @@ export function analyzeEvolution(
     dualPaths,
     growthProfile,
     topNextSteps,
-    summary: buildSummary(recommendations, byPriority, suppressedCount, state, debtReport, growthProfile),
+    summary: buildSummary({ recommendations, byPriority, suppressedCount, state, debtReport, growthProfile }),
   };
 }
 
