@@ -68,107 +68,60 @@ export async function ensurePluginsLoaded(projectRoot: string): Promise<void> {
  * 3. Execute pre/post analysis hooks
  * 4. Publish analysis.complete events
  */
-export function installMiddleware(program: Command, ctx: MiddlewareContext): void {
-  const resolvedSessionId = ctx.sessionId ?? `cli-${Date.now()}`;
-  let sessionStarted = false;
-  let sessionEnded = false;
-  const sessionStartTime = Date.now();
-
-  program.hook("preAction", async (thisCommand) => {
+function handlePreAction(ctx: MiddlewareContext, resolvedSessionId: string, sessionStartedRef: { value: boolean }) {
+  return async (thisCommand: Command) => {
     const commandName = thisCommand.name();
-
-    // Track command in session
-    if (ctx.sessionId) {
-      trackCommand(ctx.shitennoDir, ctx.sessionId, commandName);
+    if (ctx.sessionId) trackCommand(ctx.shitennoDir, ctx.sessionId, commandName);
+    if (!sessionStartedRef.value) {
+      sessionStartedRef.value = true;
+      getEventBus().publish("session.start", { sessionId: resolvedSessionId, projectRoot: ctx.projectRoot });
     }
-
-    // Publish session.start once per CLI invocation
-    if (!sessionStarted) {
-      sessionStarted = true;
-      getEventBus().publish("session.start", {
-        sessionId: resolvedSessionId,
-        projectRoot: ctx.projectRoot,
-      });
-    }
-
-    // Ensure plugins are loaded
     await ensurePluginsLoaded(ctx.projectRoot);
-
-    // Sensitive command warning — emit reminder before commit/push/delete/force
     if (isSensitiveCommand(commandName, thisCommand.args)) {
-      const eventBus = getEventBus();
-      eventBus.publish("action.pre_sensitive", {
-        command: commandName,
-        args: thisCommand.args,
-        reminder: "MANDATORY RULES: Consult FORBIDDEN_OPERATIONS.md before proceeding. G-01: No commit without explicit authorization.",
-      });
+      getEventBus().publish("action.pre_sensitive", { command: commandName, args: thisCommand.args, reminder: "MANDATORY RULES: Consult FORBIDDEN_OPERATIONS.md before proceeding. G-01: No commit without explicit authorization." });
     }
+    tryAutoStartDaemon(ctx.shitennoDir, commandName);
+    await getHookBus().executeHook("pre-analysis", { command: commandName, projectRoot: ctx.projectRoot }, (_plugin, input) => input);
+  };
+}
 
-    // Daemon auto-start: only if approved by user and circuit not tripped
-    // Fire-and-forget — never blocks or throws into CLI flow
-    if (!shouldSkipDaemon() && commandName !== "daemon") {
-      try {
-        const breaker = new DaemonCircuitBreaker(ctx.shitennoDir);
-        const approvedPath = getApprovedPath(ctx.shitennoDir);
-        if (
-          existsSync(approvedPath) &&
-          !breaker.isTripped() &&
-          !isDaemonRunning(ctx.shitennoDir)
-        ) {
-          startDaemon(ctx.shitennoDir).catch(() => {
-            // Auto-start failure is silent — CLI continues without daemon
-          });
-        }
-      } catch {
-        // Daemon logic must never crash the CLI
-      }
+function tryAutoStartDaemon(shitennoDir: string, commandName: string) {
+  if (shouldSkipDaemon() || commandName === "daemon") return;
+  try {
+    const breaker = new DaemonCircuitBreaker(shitennoDir);
+    const approvedPath = getApprovedPath(shitennoDir);
+    if (existsSync(approvedPath) && !breaker.isTripped() && !isDaemonRunning(shitennoDir)) {
+      startDaemon(shitennoDir).catch(() => {});
     }
+  } catch {}
+}
 
-    // Execute pre-analysis hook
-    const hookBus = getHookBus();
-    await hookBus.executeHook(
-      "pre-analysis",
-      { command: commandName, projectRoot: ctx.projectRoot },
-      (_plugin, input) => input
-    );
-  });
-
-  let preActionTimestamp = 0;
-
-  program.hook("preAction", () => {
-    preActionTimestamp = Date.now();
-  });
-
-  program.hook("postAction", async (thisCommand) => {
+function handlePostAction(ctx: MiddlewareContext, preActionTimestampRef: { value: number }, sessionEndedRef: { value: boolean }, resolvedSessionId: string, sessionStartTime: number) {
+  return async (thisCommand: Command) => {
     const commandName = thisCommand.name();
-    const duration = preActionTimestamp ? Date.now() - preActionTimestamp : 0;
-
-    // Execute post-analysis hook
-    const hookBus = getHookBus();
-    await hookBus.executeHook(
-      "post-analysis",
-      { command: commandName, projectRoot: ctx.projectRoot, success: true, duration },
-      (_plugin, input) => input
-    );
-
-    // Publish telemetry event (command completed)
-    getEventBus().publish("command.completed", {
-      command: commandName,
-      projectRoot: ctx.projectRoot,
-      timestamp: new Date().toISOString(),
-      duration,
-    });
-
-    // Publish session.end once for the daemon to track session lifecycle
-    if (!sessionEnded) {
-      sessionEnded = true;
+    const duration = preActionTimestampRef.value ? Date.now() - preActionTimestampRef.value : 0;
+    await getHookBus().executeHook("post-analysis", { command: commandName, projectRoot: ctx.projectRoot, success: true, duration }, (_plugin, input) => input);
+    getEventBus().publish("command.completed", { command: commandName, projectRoot: ctx.projectRoot, timestamp: new Date().toISOString(), duration });
+    if (!sessionEndedRef.value && commandName !== "feedback") {
+      sessionEndedRef.value = true;
       const sessionDuration = Date.now() - sessionStartTime;
       const outcome = process.exitCode && process.exitCode !== 0 ? "failed" : "success";
-      getEventBus().publish("session.end", {
-        sessionId: resolvedSessionId,
-        duration: sessionDuration,
-        outcome,
-      });
+      getEventBus().publish("session.end", { sessionId: resolvedSessionId, duration: sessionDuration, outcome });
     }
-  });
+    if (!ctx.sessionId) return;
+    const feedback = await getFeedbackCollector(ctx.shitennoDir);
+    await feedback.record({ command: commandName, sessionId: ctx.sessionId, timestamp: new Date().toISOString(), outcome: "success", duration });
+    await feedback.flush();
+  };
+}
+export function installMiddleware(program: Command, ctx: MiddlewareContext): void {
+  const resolvedSessionId = ctx.sessionId ?? `cli-${Date.now()}`;
+  const sessionStartedRef = { value: false };
+  const sessionEndedRef = { value: false };
+  const sessionStartTime = Date.now();
+  const preActionTimestampRef = { value: 0 };
+
+  program.hook("preAction", handlePreAction(ctx, resolvedSessionId, sessionStartedRef));
+  program.hook("preAction", () => { preActionTimestampRef.value = Date.now(); });
+  program.hook("postAction", handlePostAction(ctx, preActionTimestampRef, sessionEndedRef, resolvedSessionId, sessionStartTime));
 }

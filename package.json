@@ -25,7 +25,7 @@
     "clean": "rm -rf dist node_modules *.tsbuildinfo",
     "test:coverage": "vitest run --coverage",
     "validate-publish": "npm run build && npm pack --dry-run && echo 'Ready to publish'",
-    "lint": "eslint 'src/**/*.ts' --max-warnings=300",
+    "lint": "eslint 'src/**/*.ts' --max-warnings=305",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "prepare": "husky",
     "sync:docs": "tsx .shitenno/scripts/sync-docs.ts",

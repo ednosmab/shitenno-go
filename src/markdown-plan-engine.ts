@@ -5,8 +5,8 @@
  * Plans are stored in governance/plans/ with status tracking.
  *
  * Status flow: andamento → parado → check → done
- *                                      ↳ blocked (retry → check)
- * "done" e "blocked" só devem ser escritos pelo pipeline de verificação
+ *                                      ↳ refused (retry → check)
+ * "done" e "refused" só devem ser escritos pelo pipeline de verificação
  * (ver plan-lifecycle.ts:runAutoVerification), nunca diretamente pelo agente.
  * When status = done, plan is moved to done/ subdirectory.
  *
@@ -22,7 +22,7 @@ import { logger } from "./logger.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type MarkdownPlanStatus = "andamento" | "parado" | "check" | "done" | "blocked";
+export type MarkdownPlanStatus = "andamento" | "parado" | "check" | "done" | "blocked" | "refused";
 
 export interface MarkdownPlan {
   /** Plan ID (filename without .md). */
@@ -155,7 +155,33 @@ function normalizeStatusValue(raw: string): MarkdownPlanStatus {
   if (lower.includes("parado") || lower.includes("paused") || lower.includes("stopped")) return "parado";
   if (lower.includes("check") || lower.includes("verificando") || lower.includes("checking")) return "check";
   if (lower.includes("blocked") || lower.includes("bloqueado")) return "blocked";
+  if (lower.includes("refused") || lower.includes("rejeitado") || lower.includes("rejected")) return "refused";
   return "andamento";
+}
+
+/**
+ * Map a canonical MarkdownPlanStatus to the text written into the
+ * **Status:** frontmatter field. Each status needs a text that,
+ * when re-read by normalizeStatusValue(), maps back to the same
+ * canonical status (round-trip) — otherwise the signal (e.g. "blocked")
+ * is silently lost on re-read.
+ */
+function statusDisplayText(status: MarkdownPlanStatus): string {
+  switch (status) {
+    case "done":
+      return "Done";
+    case "parado":
+      return "Paused";
+    case "check":
+      return "Checking";
+    case "blocked":
+      return "Blocked";
+    case "refused":
+      return "Refused";
+    case "andamento":
+    default:
+      return "In Progress";
+  }
 }
 
 /**
@@ -360,18 +386,13 @@ export class MarkdownPlanEngine {
 
       if (statusMatch) {
         // Update existing status
-        const newStatusDisplay = newStatus === "done" ? "Done" : 
-                                 newStatus === "parado" ? "Paused" :
-                                 newStatus === "check" ? "Check" :
-                                 newStatus === "blocked" ? "Blocked" :
-                                 "In Progress";
-        content = content.replace(statusRegex, `$1${newStatusDisplay}`);
+        content = content.replace(statusRegex, `$1${statusDisplayText(newStatus)}`);
       } else {
         // Add status after title
         const lines = content.split("\n");
         const titleIndex = lines.findIndex((l) => l.startsWith("# "));
         if (titleIndex !== -1) {
-          lines.splice(titleIndex + 2, 0, "", `**Status:** ${newStatus === "done" ? "Done" : newStatus === "parado" ? "Paused" : newStatus === "check" ? "Check" : newStatus === "blocked" ? "Blocked" : "In Progress"}`);
+          lines.splice(titleIndex + 2, 0, "", `**Status:** ${statusDisplayText(newStatus)}`);
           content = lines.join("\n");
         }
       }

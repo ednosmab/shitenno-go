@@ -172,11 +172,17 @@ export function runCompletionPipeline(options: PipelineOptions): PipelineResult 
         valid: gates.passed,
         checks: gates.gates.map((g) => ({ name: g.name.toUpperCase(), passed: g.passed, message: g.message })),
       };
-      planArchived = archivePlan(shitennoDir, planId, validationResult);
-      if (planArchived) {
-        logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
-      } else {
-        errors.push(`Plan archival failed for: ${planId}`);
+      try {
+        planArchived = archivePlan(shitennoDir, planId, validationResult);
+        if (planArchived) {
+          logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
+        } else {
+          errors.push(`Plan archival failed for: ${planId}`);
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        errors.push(`Plan archival failed for ${planId}: ${msg}`);
+        logger.warn("task-completion-pipeline", `Plan archival error: ${msg}`);
       }
     } else {
       logger.info("task-completion-pipeline", `No active plan found for task: ${taskId}`);

@@ -177,9 +177,49 @@ export function getAllowedTransitions(state: BacklogState): BacklogState[] {
   return VALID_TRANSITIONS[state] || [];
 }
 
+function validateTransition(
+  taskId: string,
+  fromState: BacklogState,
+  toState: BacklogState,
+  backlogPath: string,
+  item: { state: string; line: number },
+): TransitionResult | null {
+  if (!isValidTransition(fromState, toState)) {
+    const allowed = getAllowedTransitions(fromState);
+    return { success: false, message: `Invalid transition: ${fromState} → ${toState}. Allowed: ${allowed.join(", ") || "(terminal state)"}` };
+  }
+  if (!item) return { success: false, message: `Task ${taskId} not found in BACKLOG.md` };
+  if (item.state !== fromState) return { success: false, message: `Task ${taskId} is in state "${item.state}", expected "${fromState}"` };
+
+  if (fromState === "adiado" && toState === "planeado") {
+    const lines = readFileSync(backlogPath, "utf-8").split("\n");
+    const line = lines[item.line] || "";
+    if (!line.includes("[REVISIT:") && !line.includes("[REVISIT:")) {
+      return { success: false, message: `Task ${taskId} is "adiado" — requires [REVISIT: YYYY-MM-DD] date to transition back to "planeado"` };
+    }
+  }
+
+  return null;
+}
+
+function updateBacklogFile(backlogPath: string, itemLine: number, toState: BacklogState): boolean {
+  const content = readFileSync(backlogPath, "utf-8");
+  const lines = content.split("\n");
+  const line = lines[itemLine];
+  if (!line) return false;
+
+  const cells = line.split("|").map((c) => c.trim()).filter(Boolean);
+  if (cells.length >= 4) {
+    cells[3] = toState;
+    lines[itemLine] = `| ${cells.join(" | ")} |`;
+    writeFileSync(backlogPath, lines.join("\n"), "utf-8");
+    return true;
+  }
+  return false;
+}
+
 /**
  * Transition a backlog item to a new state.
- * Updates both BACKLOG.md and context_buffer.yaml.
  */
 export function transitionTask(
   shitennoDir: string,
@@ -188,88 +228,30 @@ export function transitionTask(
   toState: BacklogState
 ): TransitionResult {
   const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
-
-  // Validate transition
-  if (!isValidTransition(fromState, toState)) {
-    const allowed = getAllowedTransitions(fromState);
-    return {
-      success: false,
-      message: `Invalid transition: ${fromState} → ${toState}. Allowed: ${allowed.join(", ") || "(terminal state)"}`,
-    };
-  }
-
-  // Find item in BACKLOG.md
   const item = findBacklogItem(backlogPath, taskId);
+
   if (!item) {
-    return {
-      success: false,
-      message: `Task ${taskId} not found in BACKLOG.md`,
-    };
+    return { success: false, message: `Task ${taskId} not found in BACKLOG.md` };
   }
 
-  // Verify current state matches
-  if (item.state !== fromState) {
-    return {
-      success: false,
-      message: `Task ${taskId} is in state "${item.state}", expected "${fromState}"`,
-    };
-  }
+  const validationError = validateTransition(taskId, fromState, toState, backlogPath, item);
+  if (validationError) return validationError;
 
-  // Check adiado requires [REVISIT: YYYY-MM-DD]
-  if (fromState === "adiado" && toState === "planeado") {
-    const content = readFileSync(backlogPath, "utf-8");
-    const lines = content.split("\n");
-    const line = lines[item.line] || "";
-    if (!line.includes("[REVISIT:") && !line.includes("[REVISIT:")) {
-      return {
-        success: false,
-        message: `Task ${taskId} is "adiado" — requires [REVISIT: YYYY-MM-DD] date to transition back to "planeado"`,
-      };
-    }
-  }
-
-  // Update BACKLOG.md
   try {
-    const content = readFileSync(backlogPath, "utf-8");
-    const lines = content.split("\n");
-    const line = lines[item.line];
-
-    if (!line) {
+    if (!updateBacklogFile(backlogPath, item.line, toState)) {
       return { success: false, message: `Could not read line ${item.line} of BACKLOG.md` };
     }
 
-    // Replace state in the line
-    const cells = line.split("|").map((c) => c.trim()).filter(Boolean);
-    if (cells.length >= 4) {
-      cells[3] = toState;
-      lines[item.line] = `| ${cells.join(" | ")} |`;
-      writeFileSync(backlogPath, lines.join("\n"), "utf-8");
-    }
-
-    // Update context_buffer.yaml if current_task matches
     const bufStatus = toState === "concluído" ? "completed" : "in_progress";
     updateCurrentTask(shitennoDir, { status: bufStatus });
     if (toState === "concluído") {
-      addCompletedTask(shitennoDir, {
-        id: taskId,
-        description: "Auto-completed via backlog state machine",
-        completed_at: new Date().toISOString(),
-      });
+      addCompletedTask(shitennoDir, { id: taskId, description: "Auto-completed via backlog state machine", completed_at: new Date().toISOString() });
     }
 
     logger.info("backlog-state-machine", `Transitioned ${taskId}: ${fromState} → ${toState}`);
-
-    return {
-      success: true,
-      message: `Task ${taskId} transitioned: ${fromState} → ${toState}`,
-      previousState: fromState,
-      newState: toState,
-    };
+    return { success: true, message: `Task ${taskId} transitioned: ${fromState} → ${toState}`, previousState: fromState, newState: toState };
   } catch (error) {
-    return {
-      success: false,
-      message: `Failed to update BACKLOG.md: ${error instanceof Error ? error.message : String(error)}`,
-    };
+    return { success: false, message: `Failed to update BACKLOG.md: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 

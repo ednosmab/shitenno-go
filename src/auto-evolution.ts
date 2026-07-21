@@ -313,7 +313,71 @@ function generateSmartSuggestions(state: EngineeringState): EvolutionRecommendat
   return recs;
 }
 
-// ── Main Analysis ───────────────────────────────────────────────────────────
+function adjustRecommendationsWithFeedback(
+  recommendations: EvolutionRecommendation[],
+  shitennoDir: string,
+): number {
+  const feedbackSummaries = getAllFeedbackSummaries(shitennoDir);
+  let suppressedCount = 0;
+
+  for (const rec of recommendations) {
+    const summary = feedbackSummaries[rec.id] as FeedbackSummary | undefined;
+    if (!summary) continue;
+
+    if (shouldSuppress(summary)) {
+      rec.confidence = 0;
+      rec.feedbackAdjusted = true;
+      suppressedCount++;
+      continue;
+    }
+
+    if (summary.acceptCount > 0) {
+      rec.confidence = adjustConfidence(rec.confidence, "accepted");
+      rec.feedbackAdjusted = true;
+    }
+    if (summary.rejectCount > 0) {
+      rec.confidence = adjustConfidence(rec.confidence, "rejected");
+      rec.feedbackAdjusted = true;
+    }
+  }
+
+  return suppressedCount;
+}
+
+function buildDualPaths(
+  recommendations: EvolutionRecommendation[],
+  growthProfile: GrowthProfile,
+): DualPath[] {
+  return recommendations.map((rec) => ({
+    comfortable: rec,
+    challenging: generateChallengingAlternative(rec, growthProfile),
+    challengeLevel: growthProfile.challengeLevel ?? "medium",
+  }));
+}
+
+function countByPriority(recommendations: EvolutionRecommendation[]): Record<RecommendationPriority, number> {
+  const byPriority: Record<RecommendationPriority, number> = { urgent: 0, high: 0, medium: 0, low: 0 };
+  for (const rec of recommendations) byPriority[rec.priority]++;
+  return byPriority;
+}
+
+function buildSummary(
+  recommendations: EvolutionRecommendation[],
+  byPriority: Record<RecommendationPriority, number>,
+  suppressedCount: number,
+  state: EngineeringState,
+  debtReport: KnowledgeDebtReport | null,
+  growthProfile: GrowthProfile,
+): string {
+  const parts: string[] = [`${recommendations.length} recommendation(s).`];
+  if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
+  if (byPriority.high) parts.push(`${byPriority.high} high.`);
+  if (suppressedCount > 0) parts.push(`${suppressedCount} suppressed by feedback.`);
+  parts.push(`Maturity: ${state.maturity?.overallScore || 0}/100.`);
+  parts.push(`Debt: ${debtReport?.healthScore || 100}/100.`);
+  parts.push(`Growth capacity: ${Math.round((growthProfile.growthCapacity ?? 0.5) * 100)}%.`);
+  return parts.join(" ");
+}
 
 /** Executa análise de evolução autónoma. */
 export function analyzeEvolution(
@@ -323,13 +387,9 @@ export function analyzeEvolution(
   const state = consolidateEngineeringState(projectRoot, shitennoDir);
 
   let debtReport: KnowledgeDebtReport | null = null;
-  try {
-    debtReport = detectKnowledgeDebt(projectRoot, shitennoDir);
-  } catch (err) {
-    logger.debug("auto-evolution", "Knowledge debt detection unavailable:", err instanceof Error ? err.message : err);
-  }
+  try { debtReport = detectKnowledgeDebt(projectRoot, shitennoDir); }
+  catch (err) { logger.debug("auto-evolution", "Knowledge debt detection unavailable:", err instanceof Error ? err.message : err); }
 
-  // Generate all recommendations
   const allRecommendations: EvolutionRecommendation[] = [
     ...generateCapabilityRecommendations(state),
     ...generateKnowledgeRecommendations(state, debtReport),
@@ -338,82 +398,22 @@ export function analyzeEvolution(
     ...generateSmartSuggestions(state),
   ];
 
-  // Load feedback and adjust confidence
-  const feedbackSummaries = getAllFeedbackSummaries(shitennoDir);
-  let suppressedCount = 0;
-
-  for (const rec of allRecommendations) {
-    const summary = feedbackSummaries[rec.id] as FeedbackSummary | undefined;
-
-    if (summary) {
-      // Suppress if rejected too many times
-      if (shouldSuppress(summary)) {
-        rec.confidence = 0;
-        rec.feedbackAdjusted = true;
-        suppressedCount++;
-        continue;
-      }
-
-      // Adjust confidence based on feedback
-      if (summary.acceptCount > 0) {
-        rec.confidence = adjustConfidence(rec.confidence, "accepted");
-        rec.feedbackAdjusted = true;
-      }
-      if (summary.rejectCount > 0) {
-        rec.confidence = adjustConfidence(rec.confidence, "rejected");
-        rec.feedbackAdjusted = true;
-      }
-    }
-  }
-
-  // Filter out suppressed recommendations
+  const suppressedCount = adjustRecommendationsWithFeedback(allRecommendations, shitennoDir);
   const recommendations = allRecommendations.filter((r) => r.confidence > 0);
+  recommendations.sort((a, b) => ({ urgent: 0, high: 1, medium: 2, low: 3 }[a.priority] - { urgent: 0, high: 1, medium: 2, low: 3 }[b.priority]));
 
-  // Sort by priority
-  const priorityOrder: Record<RecommendationPriority, number> = {
-    urgent: 0,
-    high: 1,
-    medium: 2,
-    low: 3,
-  };
-  recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-  // Load growth profile and generate dual paths
   const growthProfile = loadGrowthProfile(shitennoDir);
-  const dualPaths: DualPath[] = [];
+  const dualPaths = buildDualPaths(recommendations, growthProfile);
 
-  for (const rec of recommendations) {
-    const challenging = generateChallengingAlternative(rec, growthProfile);
-    dualPaths.push({
-      comfortable: rec,
-      challenging,
-      challengeLevel: growthProfile.challengeLevel,
-    });
-  }
 
-  // Count by type and priority
   const byType = {} as Record<RecommendationType, number>;
-  const byPriority = {} as Record<RecommendationPriority, number>;
-  for (const rec of recommendations) {
-    byType[rec.type] = (byType[rec.type] || 0) + 1;
-    byPriority[rec.priority] = (byPriority[rec.priority] || 0) + 1;
-  }
+  const byPriority = countByPriority(recommendations);
+  for (const rec of recommendations) byType[rec.type] = (byType[rec.type] || 0) + 1;
 
-  // Top next steps
   const topNextSteps = recommendations
     .filter((r) => r.priority === "urgent" || r.priority === "high")
     .slice(0, 5)
     .map((r) => r.command || r.action);
-
-  // Summary
-  const parts: string[] = [];
-  parts.push(`${recommendations.length} recommendation(s).`);
-  if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
-  if (byPriority.high) parts.push(`${byPriority.high} high.`);
-  if (suppressedCount > 0) parts.push(`${suppressedCount} suppressed by feedback.`);
-  parts.push(`Maturity: ${state.maturity?.overallScore || 0}/100.`);
-  parts.push(`Debt: ${debtReport?.healthScore || 100}/100.`);
-  parts.push(`Growth capacity: ${Math.round(growthProfile.growthCapacity * 100)}%.`);
 
   return {
     analyzedAt: new Date().toISOString(),
@@ -429,7 +429,7 @@ export function analyzeEvolution(
     dualPaths,
     growthProfile,
     topNextSteps,
-    summary: parts.join(" "),
+    summary: buildSummary(recommendations, byPriority, suppressedCount, state, debtReport, growthProfile),
   };
 }
 

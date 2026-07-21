@@ -29,6 +29,28 @@ import { writeFileSync } from "node:fs";
 
 // ── Subcommand: audit suppress ───────────────────────────────────────────────
 
+async function findIssueInReports(
+  reportsDir: string,
+  fingerprint: string,
+): Promise<{ type: string; location: string; description: string } | null> {
+  try {
+    const { readdirSync, readFileSync: fsReadFileSync } = await import("node:fs");
+    const files = readdirSync(reportsDir)
+      .filter((f: string) => f.startsWith("health-") && f.endsWith(".json"))
+      .sort()
+      .reverse();
+    for (const f of files) {
+      const reportPath = join(reportsDir, f);
+      const reportData: HealthAuditReport = JSON.parse(fsReadFileSync(reportPath, "utf-8"));
+      const match = reportData.issues.find((i) => issueFingerprint(i) === fingerprint);
+      if (match) return match;
+      const suppressedMatch = reportData.suppressedIssues?.find((i) => issueFingerprint(i) === fingerprint);
+      if (suppressedMatch) return suppressedMatch;
+    }
+  } catch { /* reports dir may not exist */ }
+  return null;
+}
+
 export const auditSuppressCommand = new Command("suppress")
   .description("Suppress a specific audit issue by fingerprint")
   .argument("<fingerprint>", "Issue fingerprint (10-char hex from audit output)")
@@ -49,49 +71,14 @@ export const auditSuppressCommand = new Command("suppress")
       return;
     }
 
-    const reportsDir = join(ctx.shitennoDir, "reports");
-    let foundIssue: { type: string; location: string; description: string } | null = null;
-    try {
-      const { readdirSync, readFileSync: fsReadFileSync } = await import("node:fs");
-      const files = readdirSync(reportsDir)
-        .filter((f: string) => f.startsWith("health-") && f.endsWith(".json"))
-        .sort()
-        .reverse();
-      for (const f of files) {
-        const reportPath = join(reportsDir, f);
-        const reportData: HealthAuditReport = JSON.parse(
-          fsReadFileSync(reportPath, "utf-8")
-        );
-        const match = reportData.issues.find(
-          (i) => issueFingerprint(i) === fingerprint
-        );
-        if (match) {
-          foundIssue = match;
-          break;
-        }
-        const suppressedMatch = reportData.suppressedIssues?.find(
-          (i) => issueFingerprint(i) === fingerprint
-        );
-        if (suppressedMatch) {
-          foundIssue = suppressedMatch;
-          break;
-        }
-      }
-    } catch { /* reports dir may not exist */ }
-
+    const foundIssue = await findIssueInReports(join(ctx.shitennoDir, "reports"), fingerprint);
     if (!foundIssue) {
       output(chalk.red(`  ✘ Issue ${fingerprint} not found in any recent report.`));
       output(chalk.gray("    Run 'shugo audit --json' first to see available fingerprints."));
       return;
     }
 
-    addSuppression(
-      ctx.shitennoDir,
-      foundIssue as import("../audit/types.js").HealthIssue,
-      options.reason,
-      "user"
-    );
-
+    addSuppression(ctx.shitennoDir, foundIssue as import("../audit/types.js").HealthIssue, options.reason, "user");
     output(chalk.green(`  ✔ Issue ${fingerprint} suppressed successfully.`));
     output(chalk.gray(`    Type: ${foundIssue.type}`));
     output(chalk.gray(`    Location: ${foundIssue.location}`));
@@ -99,6 +86,97 @@ export const auditSuppressCommand = new Command("suppress")
     output(chalk.gray("    The issue will not appear in future audits."));
     output(chalk.gray("    Use 'shugo audit --show-suppressed' to review suppressed issues."));
   });
+
+function displayIssueCategory(
+  title: string,
+  issues: Array<{ description: string; location: string; recommendation: string }>,
+  icon: string,
+  color: typeof chalk,
+  limit = 5,
+): void {
+  if (issues.length === 0) return;
+  output(chalk.bold(`  ${icon} ${title}:`));
+  outputBlank();
+  for (const issue of issues.slice(0, limit)) {
+    output(`    ${color(`[${title.toUpperCase()}]`)} ${issue.description}`);
+    output(chalk.gray(`       Location: ${issue.location}`));
+    output(chalk.gray(`       Fix: ${issue.recommendation}`));
+    outputBlank();
+  }
+  if (issues.length > limit) {
+    output(chalk.gray(`    ... and ${issues.length - limit} more ${title.toLowerCase()}`));
+    outputBlank();
+  }
+}
+
+function displayOptimizations(optimizations: Array<{ action: string }>): void {
+  if (optimizations.length === 0) return;
+  output(chalk.bold("  🔧 Proposed Optimizations:"));
+  outputBlank();
+  const optByAction = groupOptimizationsByAction(optimizations);
+  for (const [action, opts] of Object.entries(optByAction)) {
+    output(chalk.cyan(`    ${action}: ${opts.length} item(s)`));
+  }
+  output(chalk.yellow("  ⚠ These are PROPOSALS only. Manual approval required."));
+  outputBlank();
+}
+
+async function displayDynamicRules(projectRoot: string, shitennoDir: string): Promise<void> {
+  try {
+    const { generateDynamicRules } = await import("../dynamic-rules.js");
+    const dynamicRules = generateDynamicRules(projectRoot, shitennoDir);
+    if (dynamicRules.length > 0) {
+      output(chalk.bold("  🚨 Dynamic Rules (from History):"));
+      outputBlank();
+      for (const rule of dynamicRules.slice(0, 5)) {
+        const severityIcon = rule.severity === "critical" ? "🔴" : rule.severity === "high" ? "🟡" : "ℹ️";
+        output(`    ${severityIcon} ${rule.rule}`);
+        output(chalk.gray(`      Evidence: ${rule.evidence}`));
+        outputBlank();
+      }
+    }
+  } catch { /* Skip dynamic rules on error */ }
+}
+
+function handleAutoBacklog(
+  report: HealthAuditReport,
+  graphAnalysis: { orphanArtifacts: Array<{ name: string; type: string }> },
+  ctx: { shitennoDir: string; projectRoot: string },
+  isJson: boolean,
+): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const backlogItems: BacklogItem[] = [];
+
+  report.issues.forEach((issue, idx) => {
+    backlogItems.push(issueToBacklogItem(issue, today, "SA", idx + 1));
+  });
+
+  if (graphAnalysis.orphanArtifacts.length > 0) {
+    backlogItems.push({
+      id: `SA${backlogItems.length + 1}`,
+      title: `${graphAnalysis.orphanArtifacts.length} artifacts orfaos no knowledge graph`,
+      severity: "Alto",
+      priority: "P1",
+      source: "shugo audit",
+      date: today,
+      modules: ["shitenno/"],
+      description: `${graphAnalysis.orphanArtifacts.length} artifacts no knowledge graph sem relacoes conectando-os.`,
+      correction: "Adicionar relacoes entre artifacts orfaos e existentes.",
+    });
+  }
+
+  if (backlogItems.length === 0) return;
+  const backlogPath = join(ctx.shitennoDir, "docs", "BACKLOG.md");
+  const result = appendBacklogSection(backlogPath, backlogItems, today);
+  if (!isJson) {
+    output(chalk.bold("  📋 Auto-backlog:"));
+    output(chalk.green(`    ✔ ${result.itemsAdded} item(s) adicionado(s) ao backlog`));
+    if (result.itemsSkipped > 0) {
+      output(chalk.gray(`    ⊘ ${result.itemsSkipped} item(s) duplicado(s) ignorado(s)`));
+    }
+    outputBlank();
+  }
+}
 
 // ── Main audit command ───────────────────────────────────────────────────────
 
@@ -464,36 +542,8 @@ export const auditCommand = new Command("audit")
         outputBlank();
       } else {
         const categorized = categorizeIssues(report.issues);
-
-        if (categorized.critical.length > 0) {
-          output(chalk.bold("  🚨 Critical Issues (require immediate attention):"));
-          outputBlank();
-          for (const issue of categorized.critical.slice(0, 5)) {
-            output(`    🔴 ${chalk.red("[CRITICAL]")} ${issue.description}`);
-            output(chalk.gray(`       Location: ${issue.location}`));
-            output(chalk.gray(`       Fix: ${issue.recommendation}`));
-            outputBlank();
-          }
-          if (categorized.critical.length > 5) {
-            output(chalk.gray(`    ... and ${categorized.critical.length - 5} more critical issues`));
-            outputBlank();
-          }
-        }
-
-        if (categorized.warnings.length > 0) {
-          output(chalk.bold("  ⚠️  Warnings (should be addressed):"));
-          outputBlank();
-          for (const issue of categorized.warnings.slice(0, 5)) {
-            output(`    🟡 ${chalk.yellow("[WARNING]")} ${issue.description}`);
-            output(chalk.gray(`       Location: ${issue.location}`));
-            output(chalk.gray(`       Fix: ${issue.recommendation}`));
-            outputBlank();
-          }
-          if (categorized.warnings.length > 5) {
-            output(chalk.gray(`    ... and ${categorized.warnings.length - 5} more warnings`));
-            outputBlank();
-          }
-        }
+        displayIssueCategory("Critical Issues (require immediate attention)", categorized.critical, "🚨", chalk.red);
+        displayIssueCategory("Warnings (should be addressed)", categorized.warnings, "⚠️", chalk.yellow);
 
         if (categorized.info.length > 0) {
           output(chalk.bold("  ℹ️  Info (informational, low priority):"));
@@ -501,11 +551,7 @@ export const auditCommand = new Command("audit")
           const groupedByType = groupByType(categorized.info);
           for (const [type, issues] of Object.entries(groupedByType)) {
             const first = issues[0];
-            if (first && issues.length === 1) {
-              output(chalk.gray(`    • ${first.description}`));
-            } else {
-              output(chalk.gray(`    • ${formatTypeGroup(type, issues)}`));
-            }
+            output(chalk.gray(`    • ${first && issues.length === 1 ? first.description : formatTypeGroup(type, issues)}`));
           }
           outputBlank();
         }
@@ -571,16 +617,7 @@ export const auditCommand = new Command("audit")
           }
         }
 
-        if (report.optimizations.length > 0) {
-          output(chalk.bold("  🔧 Proposed Optimizations:"));
-          outputBlank();
-          const optByAction = groupOptimizationsByAction(report.optimizations);
-          for (const [action, opts] of Object.entries(optByAction)) {
-            output(chalk.cyan(`    ${action}: ${opts.length} item(s)`));
-          }
-          output(chalk.yellow("  ⚠ These are PROPOSALS only. Manual approval required."));
-          outputBlank();
-        }
+        displayOptimizations(report.optimizations);
       }
 
       if (reportFile) {
@@ -588,23 +625,7 @@ export const auditCommand = new Command("audit")
         outputBlank();
       }
 
-      try {
-        const { generateDynamicRules } = await import("../dynamic-rules.js");
-        const dynamicRules = generateDynamicRules(ctx.projectRoot, ctx.shitennoDir);
-
-        if (dynamicRules.length > 0 && !isJson) {
-          output(chalk.bold("  🚨 Dynamic Rules (from History):"));
-          outputBlank();
-          for (const rule of dynamicRules.slice(0, 5)) {
-            const severityIcon = rule.severity === "critical" ? "🔴" : rule.severity === "high" ? "🟡" : "ℹ️";
-            output(`    ${severityIcon} ${rule.rule}`);
-            output(chalk.gray(`      Evidence: ${rule.evidence}`));
-            outputBlank();
-          }
-        }
-      } catch {
-        // Skip dynamic rules on error
-      }
+      if (!isJson) await displayDynamicRules(ctx.projectRoot, ctx.shitennoDir);
 
       output(chalk.bold("  📝 Summary:"));
       output(chalk.gray(`    ${report.summary}`));
@@ -633,42 +654,7 @@ export const auditCommand = new Command("audit")
         checksRun: report.totalRules,
       });
 
-      if (options.autoBacklog) {
-        const today = new Date().toISOString().slice(0, 10);
-        const backlogItems: BacklogItem[] = [];
-
-        report.issues.forEach((issue, idx) => {
-          backlogItems.push(issueToBacklogItem(issue, today, "SA", idx + 1));
-        });
-
-        if (graphAnalysis.orphanArtifacts.length > 0) {
-          backlogItems.push({
-            id: `SA${backlogItems.length + 1}`,
-            title: `${graphAnalysis.orphanArtifacts.length} artifacts orfaos no knowledge graph`,
-            severity: "Alto",
-            priority: "P1",
-            source: "shugo audit",
-            date: today,
-            modules: ["shitenno/"],
-            description: `${graphAnalysis.orphanArtifacts.length} artifacts no knowledge graph sem relacoes conectando-os.`,
-            correction: "Adicionar relacoes entre artifacts orfaos e existentes.",
-          });
-        }
-
-        if (backlogItems.length > 0) {
-          const backlogPath = join(ctx.shitennoDir, "docs", "BACKLOG.md");
-          const result = appendBacklogSection(backlogPath, backlogItems, today);
-
-          if (!isJson) {
-            output(chalk.bold("  📋 Auto-backlog:"));
-            output(chalk.green(`    ✔ ${result.itemsAdded} item(s) adicionado(s) ao backlog`));
-            if (result.itemsSkipped > 0) {
-              output(chalk.gray(`    ⊘ ${result.itemsSkipped} item(s) duplicado(s) ignorado(s)`));
-            }
-            outputBlank();
-          }
-        }
-      }
+      if (options.autoBacklog) handleAutoBacklog(report, graphAnalysis, ctx, isJson);
 
       const hookBus = getHookBus();
       const customResults = await hookBus.collectHook("custom-check", async (plugin) => {

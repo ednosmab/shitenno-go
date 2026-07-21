@@ -110,7 +110,7 @@ describe("Bloco F — gate de done, caso positivo, negativo e invalidação por 
     expect(record.diffHash).toBe(expectedHash);
   });
 
-  it("caso negativo: um check falha → blocked, NÃO vai para done/", () => {
+  it("caso negativo: um check falha → refused, NÃO vai para done/", () => {
     // Override test script to fail — real execSync will run it and it will exit 1
     writeFileSync(
       join(dir, "package.json"),
@@ -128,7 +128,7 @@ describe("Bloco F — gate de done, caso positivo, negativo e invalidação por 
     const record = runAutoVerification(shitennoDir, dir, plan.id);
 
     expect(record.passed).toBe(false);
-    expect(engine.getById(plan.id)!.status).toBe("blocked");
+    expect(engine.getById(plan.id)!.status).toBe("refused");
     expect(
       existsSync(
         join(shitennoDir, "governance", "plans", "done", `${plan.id}.md`)

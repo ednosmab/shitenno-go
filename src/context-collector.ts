@@ -49,7 +49,7 @@ export interface ContextDeps {
   /** Optional: compute checksums for snapshot cache invalidation. */
   computeKeyChecksums?: (projectRoot: string, shitennoDir: string) => Record<string, string>;
   /** Optional: read cached snapshot. Return null to disable cache reads. */
-  getCached?: <T>(projectRoot: string, shitennoDir: string, key: string, checksumsFn: () => Record<string, string>) => T | null;
+  getCached?: <T>(projectRoot: string, shitennoDir: string, key: "complexity" | "patterns" | "health", checksumsFn: () => Record<string, string>) => T | null;
   /** Optional: write snapshot to cache. No-op to disable cache writes. */
   setCache?: <T>(projectRoot: string, shitennoDir: string, key: string, data: T, checksums: Record<string, string>) => void;
 }
@@ -93,40 +93,31 @@ export const defaultDeps: ContextDeps = {
 
 // ── Main Collector ─────────────────────────────────────────────────────────
 
-/**
- * Collect all project context into a single snapshot.
- *
- * Uses an intermediate disk cache keyed by a lightweight pre-hash
- * (git HEAD + shitenno dir). On cache hit, all heavy computation
- * (fingerprint, risk map, rules, briefing) is skipped.
- *
- * @param projectRoot - Root directory of the project.
- * @param shitennoDir - Path to shitenno/ directory.
- * @param deps - Injectable dependencies (for testing). Uses real I/O if omitted.
- * @returns A complete ContextSnapshot.
- */
-export function collectContext(
+function tryReadCache<T>(
   projectRoot: string,
   shitennoDir: string,
-  deps: ContextDeps = defaultDeps
-): ContextSnapshot {
-  // 0. Snapshot cache check (intermediate cache — 2.15b)
-  const computeChecksums = deps.computeKeyChecksums ?? computeKeyChecksums;
-  const cacheGet = deps.getCached ?? getCached;
-  const cacheSet = deps.setCache ?? setCache;
+  computeChecksums: (root: string, dir: string) => Record<string, string>,
+  cacheGet: <R>(root: string, dir: string, key: "complexity" | "patterns" | "health", fn: () => Record<string, string>) => R | null,
+): T | null {
   try {
-    const cached = cacheGet<ContextSnapshot>(projectRoot, shitennoDir, "complexity", () =>
+    const cached = cacheGet<T>(projectRoot, shitennoDir, "complexity", () =>
       computeChecksums(projectRoot, shitennoDir)
     );
-    if (cached && (cached as ContextSnapshot).inputHash) {
+    if (cached && (cached as { inputHash?: string }).inputHash) {
       logger.debug("collectContext", "Snapshot cache hit — skipping recomputation");
-      return cached as ContextSnapshot;
+      return cached;
     }
   } catch {
     logger.debug("collectContext", "Cache read failed — computing fresh snapshot");
   }
+  return null;
+}
 
-  // 1. Fingerprint
+function ensureFingerprint(
+  projectRoot: string,
+  shitennoDir: string,
+  deps: ContextDeps,
+): ProjectFingerprint {
   let fingerprint = deps.loadFingerprint(shitennoDir);
   if (!fingerprint || deps.isFingerprintStale(shitennoDir)) {
     const analysis = deps.analyseProject(projectRoot);
@@ -134,23 +125,21 @@ export function collectContext(
     fingerprint = deps.generateProjectFingerprint(projectRoot, analysis, maturityProfile?.overallScore);
     deps.saveFingerprint(shitennoDir, fingerprint);
   }
+  return fingerprint;
+}
 
-  // 2. Risk Map
+function buildSnapshot(
+  projectRoot: string,
+  shitennoDir: string,
+  fingerprint: ProjectFingerprint,
+  deps: ContextDeps,
+): ContextSnapshot {
   const riskMap = deps.generateRiskMap(projectRoot, shitennoDir);
-
-  // 3. Context Rules
   const contextRules = deps.generateContextRules(fingerprint, riskMap);
-
-  // 4. Dynamic Rules
   const dynamicRules = deps.generateDynamicRules(projectRoot, shitennoDir);
-
-  // 5. Maturity Profile
   const maturityProfile = deps.loadMaturityProfile(shitennoDir);
-
-  // 6. Load Quick Board data from context_buffer.yaml
   const quickBoard = loadQuickBoard(shitennoDir);
 
-  // 7. Generate Briefing
   const briefing = deps.generateBriefing(
     fingerprint, riskMap, contextRules, dynamicRules,
     maturityProfile ?? undefined,
@@ -164,16 +153,10 @@ export function collectContext(
     quickBoard.reminders
   );
 
-  // 7. Enrich briefing with detected patterns (Gap 4+5: feedback hotspots + pattern-detector)
   const enrichedBriefing = enrichBriefingWithPatterns(briefing, projectRoot, shitennoDir, deps);
-
-  // 7b. Enrich briefing with recent activity from persisted events (last 24h)
   const activityEnriched = enrichBriefingWithRecentActivity(enrichedBriefing, shitennoDir);
-
-  // 7c. Enrich briefing with governance knowledge (ADRs + skills)
   const finalBriefing = enrichBriefingWithGovernanceKnowledge(activityEnriched, shitennoDir);
 
-  // 8. Compute input hash for cache invalidation
   const inputHash = computeInputHash({
     fingerprintHash: fingerprint.hash,
     riskMapHash: riskMap.generatedAt,
@@ -182,7 +165,7 @@ export function collectContext(
     maturityScore: maturityProfile?.overallScore ?? null,
   });
 
-  const snapshot: ContextSnapshot = {
+  return {
     collectedAt: new Date().toISOString(),
     inputHash,
     fingerprint,
@@ -192,8 +175,30 @@ export function collectContext(
     maturityProfile,
     briefing: finalBriefing,
   };
+}
 
-  // 9. Store snapshot in cache (reuse complexity slot in shitenno-cache.json)
+/**
+ * Collect all project context into a single snapshot.
+ *
+ * Uses an intermediate disk cache keyed by a lightweight pre-hash
+ * (git HEAD + shitenno dir). On cache hit, all heavy computation
+ * (fingerprint, risk map, rules, briefing) is skipped.
+ */
+export function collectContext(
+  projectRoot: string,
+  shitennoDir: string,
+  deps: ContextDeps = defaultDeps
+): ContextSnapshot {
+  const computeChecksums = deps.computeKeyChecksums ?? computeKeyChecksums;
+  const cacheGet = deps.getCached ?? getCached;
+  const cacheSet = deps.setCache ?? setCache;
+
+  const cached = tryReadCache<ContextSnapshot>(projectRoot, shitennoDir, computeChecksums, cacheGet);
+  if (cached) return cached;
+
+  const fingerprint = ensureFingerprint(projectRoot, shitennoDir, deps);
+  const snapshot = buildSnapshot(projectRoot, shitennoDir, fingerprint, deps);
+
   try {
     const checksums = computeChecksums(projectRoot, shitennoDir);
     cacheSet(projectRoot, shitennoDir, "complexity", snapshot, checksums);
@@ -375,10 +380,57 @@ function enrichBriefingWithRecentActivity(
 
 // ── Quick Board Loading ─────────────────────────────────────────────────────
 
-/**
- * Load Quick Board data from context_buffer.yaml.
- * Provides session state summary for agent reminder at session start.
- */
+function parseSessionStatus(status: string | undefined): string {
+  if (status === "completed") return "Concluída";
+  if (status === "in_progress" || status === "active") return "Em curso";
+  return "Desconhecido";
+}
+
+function extractImpediments(data: Record<string, unknown>): string {
+  const impediments = data?.impediments as Array<{ description: string }> | undefined;
+  if (!impediments || impediments.length === 0) return "Nenhum";
+  return impediments.map((i) => i.description).join(", ");
+}
+
+function extractP1Debts(data: Record<string, unknown>): string {
+  const debts = data?.technical_debt as Array<{ priority?: string; severity?: string; description: string }> | undefined;
+  if (!debts || debts.length === 0) return "Nenhuma";
+  const p1Debts = debts.filter((d) => d.priority === "P1" || d.severity === "high");
+  return p1Debts.length > 0 ? p1Debts.map((d) => d.description).join(", ") : "Nenhuma";
+}
+
+function findInProgressItems(backlog: string): string[] {
+  const items: string[] = [];
+  const sections = backlog.split(/^### /m).slice(1);
+  for (const item of sections) {
+    const title = item.split("\n")[0]?.trim();
+    if (title && item.includes("| **Status** | In Progress")) {
+      items.push(`${title} (In Progress)`);
+    }
+  }
+  return items;
+}
+
+function normalizeReminders(data: Record<string, unknown>): Reminder[] {
+  if (!Array.isArray(data?.reminders)) return [];
+  return data.reminders.map((r: string | Reminder) => {
+    if (typeof r === "string") {
+      return {
+        message: r,
+        priority: "medium" as ReminderPriority,
+        category: "feature" as ReminderCategory,
+        createdAt: new Date().toISOString(),
+      };
+    }
+    return {
+      message: r.message || "",
+      priority: (r.priority as ReminderPriority) || "medium",
+      category: (r.category as ReminderCategory) || "feature",
+      createdAt: r.createdAt || new Date().toISOString(),
+    };
+  });
+}
+
 function loadQuickBoard(shitennoDir: string): {
   currentTask: string;
   nextP0: string;
@@ -398,14 +450,11 @@ function loadQuickBoard(shitennoDir: string): {
 
   try {
     const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
-    if (!existsSync(bufferPath)) {
-      return defaultQuickBoard;
-    }
+    if (!existsSync(bufferPath)) return defaultQuickBoard;
 
     const content = readFileSync(bufferPath, "utf-8");
-    const data = parseYaml(content);
+    const data = parseYaml(content) as Record<string, unknown>;
 
-    // Publish context.p4_loaded event for on-demand reads outside initial profile
     try {
       const bus = getEventBus();
       bus.publish("context.p4_loaded", {
@@ -417,97 +466,39 @@ function loadQuickBoard(shitennoDir: string): {
       logger.debug("context-collector", "Failed to publish quick-board event — best-effort");
     }
 
-    // Extract current task
-    const currentTask = data?.current_task?.description
-      ? `${data.current_task.description} (${data.current_task.status})`
+    const session = data?.session as { status?: string } | undefined;
+    const currentTaskData = data?.current_task as { description?: string; status?: string } | undefined;
+    const currentTask = currentTaskData?.description
+      ? `${currentTaskData.description} (${currentTaskData.status})`
       : "Nenhuma";
 
-    // Extract last session status
-    const lastSessionStatus = data?.session?.status === "completed"
-      ? "Concluída"
-      : data?.session?.status === "in_progress" || data?.session?.status === "active"
-        ? "Em curso"
-        : "Desconhecido";
-
-    // Extract impediments
-    const impediments = data?.impediments?.length > 0
-      ? data.impediments.map((i: { description: string }) => i.description).join(", ")
-      : "Nenhum";
-
-    // Extract technical debt (P1/high debts) — support both 'priority' and 'severity' fields
-    const p1Debts = data?.technical_debt?.length > 0
-      ? data.technical_debt
-          .filter((d: { priority?: string; severity?: string }) => d.priority === "P1" || d.severity === "high")
-          .map((d: { description: string }) => d.description)
-          .join(", ") || "Nenhuma"
-      : "Nenhuma";
-
-    // Auto-update next_p0 and current_task from BACKLOG.md if stale
-    const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
-    let nextP0 = data?.next_p0 ?? "Verificar BACKLOG.md para próximo P0";
+    let nextP0 = (data?.next_p0 as string) ?? "Verificar BACKLOG.md para próximo P0";
     let currentTaskVal = currentTask;
 
+    const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
     if (existsSync(backlogPath)) {
       try {
         const backlog = readFileSync(backlogPath, "utf-8");
         const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
+        const p0Items = findInProgressItems(p0Section);
+        if (p0Items.length > 0) nextP0 = p0Items[0]!;
 
-        // Find first P0 item with "In Progress" status (skip Done items)
-        const p0Items = p0Section.split(/^### /m).slice(1);
-        for (const item of p0Items) {
-          const title = item.split("\n")[0]?.trim();
-          if (title && item.includes("| **Status** | In Progress")) {
-            nextP0 = `${title} (In Progress)`;
-            break;
-          }
-        }
-
-        // If current_task is completed or missing, find first In Progress item across all sections
-        if (data?.current_task?.status === "completed" || !data?.current_task?.description) {
-          const allItems = backlog.split(/^### /m).slice(1);
-          for (const item of allItems) {
-            const title = item.split("\n")[0]?.trim();
-            if (title && item.includes("| **Status** | In Progress")) {
-              currentTaskVal = `${title} (In Progress)`;
-              break;
-            }
-          }
+        if (currentTaskData?.status === "completed" || !currentTaskData?.description) {
+          const allItems = findInProgressItems(backlog);
+          if (allItems.length > 0) currentTaskVal = allItems[0]!;
         }
       } catch {
         logger.debug("context-collector", "Failed to read supplemental context — using buffer values");
       }
     }
 
-    // Extract reminders - support both old string[] and new Reminder[] formats
-    let reminders: Reminder[] = [];
-    if (Array.isArray(data?.reminders)) {
-      reminders = data.reminders.map((r: string | Reminder) => {
-        // Handle old format (string) - migrate to new format
-        if (typeof r === "string") {
-          return {
-            message: r,
-            priority: "medium" as ReminderPriority,
-            category: "feature" as ReminderCategory,
-            createdAt: new Date().toISOString(),
-          };
-        }
-        // Handle new format (Reminder object)
-        return {
-          message: r.message || "",
-          priority: (r.priority as ReminderPriority) || "medium",
-          category: (r.category as ReminderCategory) || "feature",
-          createdAt: r.createdAt || new Date().toISOString(),
-        };
-      });
-    }
-
     return {
       currentTask: currentTaskVal,
       nextP0,
-      p1Debts,
-      impediments,
-      lastSessionStatus,
-      reminders,
+      p1Debts: extractP1Debts(data),
+      impediments: extractImpediments(data),
+      lastSessionStatus: parseSessionStatus(session?.status),
+      reminders: normalizeReminders(data),
     };
   } catch (err) {
     logger.debug("loadQuickBoard", "Failed to load context buffer:", err instanceof Error ? err.message : err);

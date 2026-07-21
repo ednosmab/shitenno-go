@@ -15,14 +15,14 @@ export function registerMdStatus(cmd: import("commander").Command) {
     .command("status")
     .description("Update markdown plan status")
     .argument("<id>", "Plan ID")
-    .argument("<status>", "New status: andamento, parado, check, done, blocked")
+    .argument("<status>", "New status: andamento, parado, check, done, refused")
     .option("--json", "Output as JSON")
     .action((id: string, status: string, opts: Record<string, unknown>) => {
       const isJson = opts.json === true;
       const ctx = guardNotInitialized(opts, isJson);
       if (!ctx) return;
 
-      const validStatuses: MarkdownPlanStatus[] = ["andamento", "parado", "check", "done", "blocked"];
+      const validStatuses: MarkdownPlanStatus[] = ["andamento", "parado", "check", "done", "refused"];
       if (!validStatuses.includes(status as MarkdownPlanStatus)) {
         if (isJson) outputJson({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
         else output(chalk.red(`  Invalid status: ${status}. Must be: ${validStatuses.join(", ")}`));

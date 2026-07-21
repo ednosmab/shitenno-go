@@ -27,6 +27,16 @@ import {
 } from "./inference-engine.js";
 import { output, outputBlank } from "./output.js";
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function extractExecError(err: unknown): string {
+  if (err instanceof Error) {
+    const execErr = err as Error & { stderr?: string; stdout?: string };
+    return execErr.stderr || execErr.stdout || err.message;
+  }
+  return String(err);
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface CompletionCheck {
@@ -131,15 +141,16 @@ export function checkBuild(projectRoot: string): CompletionCheck {
   }
   const { run } = resolveRunner(projectRoot);
   try {
-    execSync(`${run("build")} 2>/dev/null`, {
+    execSync(`${run("build")}`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 120000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { name: "BUILD", passed: true, message: "Build passed" };
-  } catch {
-    return { name: "BUILD", passed: false, message: "Build failed" };
+  } catch (err) {
+    const detail = extractExecError(err);
+    return { name: "BUILD", passed: false, message: `Build failed: ${String(detail).slice(0, 300)}` };
   }
 }
 
@@ -152,15 +163,16 @@ export function checkTests(projectRoot: string): CompletionCheck {
   }
   const { run } = resolveRunner(projectRoot);
   try {
-    execSync(`${run("test")} 2>/dev/null`, {
+    execSync(`${run("test")}`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 420000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { name: "TESTS", passed: true, message: "Tests passed" };
-  } catch {
-    return { name: "TESTS", passed: false, message: "Tests failed" };
+  } catch (err) {
+    const detail = extractExecError(err);
+    return { name: "TESTS", passed: false, message: `Tests failed: ${String(detail).slice(0, 300)}` };
   }
 }
 
@@ -173,15 +185,16 @@ export function checkLint(projectRoot: string): CompletionCheck {
   }
   const { run } = resolveRunner(projectRoot);
   try {
-    execSync(`${run("lint")} 2>/dev/null`, {
+    execSync(`${run("lint")}`, {
       encoding: "utf-8",
       cwd: projectRoot,
       timeout: 60000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { name: "LINT", passed: true, message: "Lint passed" };
-  } catch {
-    return { name: "LINT", passed: false, message: "Lint failed" };
+  } catch (err) {
+    const detail = extractExecError(err);
+    return { name: "LINT", passed: false, message: `Lint failed: ${String(detail).slice(0, 300)}` };
   }
 }
 
@@ -268,9 +281,9 @@ export function runAutoVerification(
     );
     engine.updateStatus(planId, "done"); // moveToDone() arrasta o sidecar junto
   } else {
-    engine.updateStatus(planId, "blocked");
-    const failedNames = checks.filter((c) => !c.passed).map((c) => c.name).join(", ");
-    logger.warn("plan-lifecycle", `Plan ${planId} blocked — failed: ${failedNames}`);
+    engine.updateStatus(planId, "refused");
+    const failedChecks = checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.message}`).join("; ");
+    logger.warn("plan-lifecycle", `Plan ${planId} refused — ${failedChecks}`);
   }
 
   return record;
@@ -305,13 +318,28 @@ export function archivePlan(shitennoDir: string, planId: string, validation?: Va
 
     engine.updateStatus(planId, "done");
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // Não engolir o motivo real — os chamadores (md-done.ts,
+    // runLifecycleReview) já têm try/catch próprio que exibe
+    // error.message; só precisamos parar de esconder.
+    logger.warn(
+      "plan-lifecycle",
+      `archivePlan failed for ${planId}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    throw error;
   }
 }
 
 export function removePlan(shitennoDir: string, planId: string, validation?: ValidationResult): boolean {
-  return archivePlan(shitennoDir, planId, validation);
+  try {
+    return archivePlan(shitennoDir, planId, validation);
+  } catch (error) {
+    logger.warn(
+      "plan-lifecycle",
+      `removePlan failed for ${planId}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return false;
+  }
 }
 
 // ── Interactive Review ─────────────────────────────────────────────────────
@@ -354,6 +382,97 @@ function printInference(inf: PlanInference): void {
   outputBlank();
 }
 
+function handleAutoMode(
+  inf: { id: string; recommendation: string; reason: string },
+  validation: ValidationResult,
+  options: { dry?: boolean },
+  shitennoDir: string,
+  result: LifecycleResult,
+): boolean {
+  const action = inf.recommendation;
+  if (action !== "archive" && action !== "remove") {
+    output(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
+    outputBlank();
+    result.skipped++;
+    return true;
+  }
+
+  if (options.dry) {
+    output(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
+    outputBlank();
+    return true;
+  }
+
+  try {
+    archivePlan(shitennoDir, inf.id, validation);
+    output(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
+    outputBlank();
+    if (action === "archive") result.archived++;
+    else result.removed++;
+  } catch (error) {
+    output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+    outputBlank();
+    result.skipped++;
+  }
+  return true;
+}
+
+async function handleInteractiveMode(
+  inf: { id: string },
+  validation: ValidationResult,
+  options: { dry?: boolean },
+  shitennoDir: string,
+  result: LifecycleResult,
+): Promise<void> {
+  const answer = await askQuestion(
+    `  [A] Archive as done / [S] Skip / [M] Keep active / [R] Remove: `
+  );
+
+  switch (answer) {
+    case "a": {
+      if (options.dry) {
+        output(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
+        break;
+      }
+      try {
+        archivePlan(shitennoDir, inf.id, validation);
+        output(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
+        result.archived++;
+      } catch (error) {
+        output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+        result.skipped++;
+      }
+      break;
+    }
+    case "r": {
+      if (options.dry) {
+        output(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
+        break;
+      }
+      try {
+        removePlan(shitennoDir, inf.id, validation);
+        output(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
+        result.removed++;
+      } catch (error) {
+        output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+        result.skipped++;
+      }
+      break;
+    }
+    case "m": {
+      output(chalk.dim(`  Kept: ${inf.id}`));
+      result.skipped++;
+      break;
+    }
+    default: {
+      output(chalk.dim(`  Skipped: ${inf.id}`));
+      result.skipped++;
+      break;
+    }
+  }
+  outputBlank();
+}
+
 // ── Main Lifecycle Flow ────────────────────────────────────────────────────
 
 export async function runLifecycleReview(
@@ -367,7 +486,6 @@ export async function runLifecycleReview(
   output(chalk.bold.cyan("🔍 PLAN LIFECYCLE — Checking active plans"));
   outputBlank();
 
-  // 1. Run inference
   const inferenceEngine = new InferenceEngine(shitennoDir);
   const summary = inferenceEngine.generateSummary();
 
@@ -378,113 +496,32 @@ export async function runLifecycleReview(
   }
 
   result.active = summary.totalPlans;
-
-  // 2. Show inference summary
   output(`  ${chalk.bold(String(summary.totalPlans))} active plan(s):`);
   outputBlank();
+  for (const inf of summary.plans) printInference(inf);
 
-  for (const inf of summary.plans) {
-    printInference(inf);
-  }
-
-  // 3. For each plan, validate and prompt
   for (const inf of summary.plans) {
     const plan = detectActivePlans(shitennoDir).find((p) => p.id === inf.id);
     if (!plan) continue;
 
-    // Technical validation
     output(chalk.bold(`  🔧 Validating: ${inf.id}`));
     const validation = await runValidationWithProgress(plan, projectRoot);
     outputBlank();
 
     if (!validation.valid) {
-      output(
-        chalk.yellow("  ⚠️  Technical checks failed. Skipping.")
-      );
+      output(chalk.yellow("  ⚠️  Technical checks failed. Skipping."));
       outputBlank();
       result.skipped++;
       continue;
     }
 
-    // Auto mode: use recommendation
     if (options.auto) {
-      const action = inf.recommendation;
-      if (action === "archive" || action === "remove") {
-        if (options.dry) {
-          output(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
-          outputBlank();
-          continue;
-        }
-        try {
-          archivePlan(shitennoDir, inf.id, validation);
-          output(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
-          outputBlank();
-          if (action === "archive") result.archived++;
-          else result.removed++;
-        } catch (error) {
-          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-          outputBlank();
-          result.skipped++;
-        }
-      } else {
-        output(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
-        outputBlank();
-        result.skipped++;
-      }
-      continue;
+      handleAutoMode(inf, validation, options, shitennoDir, result);
+    } else {
+      await handleInteractiveMode(inf, validation, options, shitennoDir, result);
     }
-
-    // Interactive mode: 4-option prompt
-    const answer = await askQuestion(
-      `  [A] Archive as done / [S] Skip / [M] Keep active / [R] Remove: `
-    );
-
-    switch (answer) {
-      case "a": {
-        if (options.dry) {
-          output(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
-          break;
-        }
-        try {
-          archivePlan(shitennoDir, inf.id, validation);
-          output(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
-          result.archived++;
-        } catch (error) {
-          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-          result.skipped++;
-        }
-        break;
-      }
-      case "r": {
-        if (options.dry) {
-          output(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
-          break;
-        }
-        try {
-          removePlan(shitennoDir, inf.id, validation);
-          output(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
-          result.removed++;
-        } catch (error) {
-          output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-          result.skipped++;
-        }
-        break;
-      }
-      case "m": {
-        output(chalk.dim(`  Kept: ${inf.id}`));
-        result.skipped++;
-        break;
-      }
-      default: {
-        output(chalk.dim(`  Skipped: ${inf.id}`));
-        result.skipped++;
-        break;
-      }
-    }
-    outputBlank();
   }
 
-  // 4. Summary
   output(chalk.bold("  ── Summary ──"));
   output(`  Active:   ${result.active}`);
   output(`  Archived: ${chalk.green(String(result.archived))}`);

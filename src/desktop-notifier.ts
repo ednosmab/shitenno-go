@@ -4,9 +4,9 @@
  * Subscribes to lifecycle events and sends desktop notifications
  * with intelligent rate limiting:
  *
- * 1. PROGRESSIVE COOLDOWN: Starts at 30s, increases when burst detected
- * 2. BATCHING: Groups multiple events within a 5s window into one notification
- * 3. DEDUPLICATION: Same event key within cooldown → skip
+ * 1. GLOBAL COOLDOWN: 60s between ANY notification (not per-key)
+ * 2. RESTRICTED SCOPE: Only task.completed and session.end events
+ * 3. IMMEDIATE DISPATCH: No batching — notifications fire instantly
  *
  * PRINCIPLE: Notifications inform, never interrupt.
  */
@@ -17,159 +17,79 @@ import { logger } from "./logger.js";
 
 // ── Configuration ────────────────────────────────────────────────────────
 
-const BASE_COOLDOWN_MS = 30_000;
-const BATCH_WINDOW_MS = 5_000;
-const BURST_THRESHOLD = 3;
-const BURST_WINDOW_MS = 60_000;
-const MAX_COOLDOWN_MS = 5 * 60_000;
+const GLOBAL_COOLDOWN_MS = 60_000;    // 60s between ANY notification
+const MIN_SESSION_DURATION_MS = 60_000; // Ignore sessions shorter than 60s
+                                         // (shell hooks create ~5-15s sessions on every prompt)
 
 // ── State ────────────────────────────────────────────────────────────────
 
-interface NotificationEvent {
-  title: string;
-  message: string;
-  timestamp: number;
-}
-
-const lastNotified = new Map<string, number>();
-const recentTimestamps: number[] = [];
-let batchTimeout: ReturnType<typeof setTimeout> | null = null;
-const batchQueue: NotificationEvent[] = [];
+let lastGlobalNotification = 0;        // Global cooldown tracker
 let initialized = false;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function computeCooldown(): number {
+function canNotify(): boolean {
   const now = Date.now();
-  // Count events in burst window
-  while (recentTimestamps.length > 0 && recentTimestamps[0]! < now - BURST_WINDOW_MS) {
-    recentTimestamps.shift();
-  }
-  const recentCount = recentTimestamps.length;
-  if (recentCount >= BURST_THRESHOLD) {
-    // Exponential backoff: 30s → 60s → 120s → 300s (max)
-    const exponent = Math.min(recentCount - BURST_THRESHOLD + 1, 4);
-    return Math.min(BASE_COOLDOWN_MS * Math.pow(2, exponent), MAX_COOLDOWN_MS);
-  }
-  return BASE_COOLDOWN_MS;
+  return now - lastGlobalNotification >= GLOBAL_COOLDOWN_MS;
 }
 
-function throttledNotify(key: string, title: string, message: string): void {
+function getCooldownRemaining(): number {
   const now = Date.now();
-  const last = lastNotified.get(key) ?? 0;
-  const cooldown = computeCooldown();
+  const elapsed = now - lastGlobalNotification;
+  return Math.max(0, GLOBAL_COOLDOWN_MS - elapsed);
+}
 
-  if (now - last < cooldown) {
-    logger.debug("desktop-notifier", `Throttled: ${key} (${Math.round((cooldown - (now - last)) / 1000)}s remaining)`);
+function throttledNotify(key: string, title: string, message: string, bypassCooldown = false): void {
+  if (!bypassCooldown && !canNotify()) {
+    const remaining = Math.round(getCooldownRemaining() / 1000);
+    logger.debug("desktop-notifier", `Throttled: ${key} (${remaining}s remaining)`);
     return;
   }
 
-  lastNotified.set(key, now);
-  recentTimestamps.push(now);
+  lastGlobalNotification = Date.now();
   sendDesktopNotification(title, message);
-}
-
-function flushBatch(): void {
-  if (batchQueue.length === 0) return;
-  batchTimeout = null;
-
-  if (batchQueue.length === 1) {
-    const evt = batchQueue[0]!;
-    throttledNotify(evt.title + ":" + evt.message, evt.title, evt.message);
-  } else {
-    // Group multiple events into one notification
-    const titles = [...new Set(batchQueue.map((e) => e.title))];
-    const count = batchQueue.length;
-    const summary = batchQueue
-      .slice(0, 3)
-      .map((e) => e.message)
-      .join("; ");
-    const extra = count > 3 ? ` (+${count - 3} mais)` : "";
-    throttledNotify(
-      `batch:${titles.join(",")}:${Date.now()}`,
-      titles[0] ?? "Shugo",
-      `${count} eventos: ${summary}${extra}`
-    );
-  }
-  batchQueue.length = 0;
-}
-
-function queueNotification(title: string, message: string): void {
-  batchQueue.push({ title, message, timestamp: Date.now() });
-
-  if (batchTimeout === null) {
-    batchTimeout = setTimeout(() => {
-      flushBatch();
-    }, BATCH_WINDOW_MS);
-  }
 }
 
 // ── Event Handlers ───────────────────────────────────────────────────────
 
-function handlePlanStatusChanged(payload: Record<string, unknown>): void {
-  const planId = String(payload.planId ?? "unknown");
-  const newStatus = String(payload.newStatus ?? "");
-  const oldStatus = String(payload.oldStatus ?? "");
-
-  if (newStatus === "check") {
-    queueNotification(
-      "Shugo Plan",
-      `Plano ${planId} mudou para CHECK (era ${oldStatus}) — aguardando verificacao`
-    );
-  } else if (newStatus === "done") {
-    queueNotification(
-      "Shugo Plan",
-      `Plano ${planId} CONCLUIDO — movendo para done/`
-    );
-  } else if (newStatus === "blocked") {
-    queueNotification(
-      "Shugo Plan",
-      `Plano ${planId} BLOQUEADO — verificacao falhou, retry necessario`
-    );
-  }
-}
-
-function handlePlanArchived(payload: Record<string, unknown>): void {
-  const title = String(payload.title ?? payload.planId ?? "unknown");
-  const planId = String(payload.planId ?? "");
-  queueNotification(
-    "Shugo Plan",
-    `Plano '${title}' (${planId}) arquivado em done/`
-  );
-}
-
 function handleTaskCompleted(payload: Record<string, unknown>): void {
-  const taskId = String(payload.taskId ?? "unknown");
+  const taskId = String(payload.taskId ?? "desconhecida");
   const gatesPassed = payload.gatesPassed ?? payload.gates ?? "?";
-  const count = typeof gatesPassed === "number" ? gatesPassed : Array.isArray(gatesPassed) ? gatesPassed.length : "?";
-  queueNotification(
-    "Shugo Task",
-    `Tarefa ${taskId} concluida (${count} gates OK)`
+  const count = typeof gatesPassed === "number"
+    ? gatesPassed
+    : Array.isArray(gatesPassed)
+      ? gatesPassed.length
+      : "?";
+
+  // Task completion is important — send immediately
+  throttledNotify(
+    `task:${taskId}:${Date.now()}`,
+    "✅ Tarefa Concluída",
+    `Tarefa ${taskId} finalizada com sucesso (${count} verificações OK)`
   );
 }
 
 function handleSessionEnd(payload: Record<string, unknown>): void {
   const outcome = String(payload.outcome ?? "unknown");
-  const duration = Number(payload.duration ?? 0);
-  const mins = Math.floor(duration / 60);
-  const secs = Math.round(duration % 60);
-  const time = mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
-  const icon = outcome === "success" ? "OK" : outcome === "failed" ? "FALHOU" : "PARCIAL";
-  queueNotification(
-    "Shugo Session",
-    `Sessao encerrada: ${icon} (${time})`
-  );
-}
+  const durationMs = Number(payload.duration ?? 0); // already in ms from cli-middleware
 
-function handleValidationCompleted(payload: Record<string, unknown>): void {
-  const passed = Boolean(payload.passed);
-  const issues = Array.isArray(payload.issues) ? payload.issues.length : 0;
-  if (!passed) {
-    queueNotification(
-      "Shugo Validation",
-      `Verificacao falhou — ${issues} issue(s) encontrada(s)`
-    );
+  // Filter out short sessions (shell hooks create ~5-15s sessions on every prompt)
+  if (durationMs > 0 && durationMs < MIN_SESSION_DURATION_MS) {
+    logger.debug("desktop-notifier", `Ignored short session: ${Math.round(durationMs / 1000)}s (< ${MIN_SESSION_DURATION_MS / 1000}s threshold)`);
+    return;
   }
+
+  const mins = Math.floor(durationMs / 60000);
+  const secs = Math.round((durationMs % 60000) / 1000);
+  const time = mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
+
+  const statusMap: Record<string, string> = {
+    success: "✅ Sessão encerrada",
+    failed: "❌ Sessão encerrada com falha",
+  };
+  const title = statusMap[outcome] ?? "⚠️ Sessão encerrada";
+
+  throttledNotify(`session:${outcome}:${Date.now()}`, title, `Duração: ${time}`, true);
 }
 
 // ── Initialization ───────────────────────────────────────────────────────
@@ -180,36 +100,10 @@ export function initDesktopNotifier(): void {
 
   const bus = getEventBus();
 
-  bus.subscribe("plan.status_changed", handlePlanStatusChanged);
-  bus.subscribe("plan.archived", handlePlanArchived);
+  // Only subscribe to task completion and session end
+  // Plan status changes and validation completed are too noisy
   bus.subscribe("task.completed", handleTaskCompleted);
   bus.subscribe("session.end", handleSessionEnd);
-  bus.subscribe("validation.completed", handleValidationCompleted);
 
-  logger.debug("desktop-notifier", "Initialized — subscribed to plan.status_changed, plan.archived, task.completed, session.end, validation.completed");
-}
-
-/**
- * Direct notification for code that changes plan status outside the event bus
- * (e.g., agent editing files directly). Bypasses event subscription.
- */
-export function notifyPlanStatusChange(
-  planId: string,
-  newStatus: string,
-  oldStatus: string
-): void {
-  queueNotification(
-    "Shugo Plan",
-    `Plano ${planId} mudou para ${newStatus.toUpperCase()} (era ${oldStatus})`
-  );
-}
-
-/**
- * Direct notification for task completion outside the event bus.
- */
-export function notifyTaskCompleted(taskId: string, detail?: string): void {
-  queueNotification(
-    "Shugo Task",
-    `Tarefa ${taskId} concluida${detail ? ` — ${detail}` : ""}`
-  );
+  logger.debug("desktop-notifier", "Initialized — subscribed to task.completed, session.end");
 }

@@ -368,7 +368,9 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
                 daemonLog(
                   logPath,
                   record.passed ? "INFO" : "WARN",
-                  `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "FAILED → blocked"}`
+                  `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "REFUSED"} — ${
+                    record.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.message}`).join("; ")
+                  }`
                 );
               } catch (err) {
                 daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
@@ -628,7 +630,6 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
 
   // ── Check-nag: periodic desktop notification for plans stuck in 'check' ──
 
-  const { sendDesktopNotification } = await import("../notify.js").catch(() => ({ sendDesktopNotification: () => {} }));
   const CHECK_NAG_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
   let checkNagTimer: NodeJS.Timeout;
 
@@ -638,11 +639,10 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
         const engine = new MarkdownPlanEngine(shitennoDir);
         const pending = engine.listAll().filter((p) => p.isActive && p.status === "check");
         if (pending.length > 0) {
-          sendDesktopNotification(
-            "Shugo — plano pendente",
-            `${pending.length} plano(s) em 'check' aguardando verificacao: ${pending.map((p) => p.id).join(", ")}`,
-            "medium"
-          );
+          // Log only — no desktop notification for nag reminders.
+          // Desktop notifications are reserved for actionable events.
+          // Users can check stuck plans via 'shugo status' or 'shugo plan md list'.
+          daemonLog(logPath, "WARN", `Check-nag: ${pending.length} plan(s) stuck in 'check': ${pending.map((p) => p.id).join(", ")}`);
         }
       } catch (err) {
         daemonLog(logPath, "ERROR", `Check-nag failed: ${err}`);

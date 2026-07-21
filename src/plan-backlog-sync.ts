@@ -117,16 +117,26 @@ export function syncBacklogToPlan(
   planId: string,
   backlogStatus: string
 ): void {
+  const VERIFICATION_OWNED = new Set(["check", "done", "refused"]);
+
+  const engine = new MarkdownPlanEngine(shitennoDir);
+  const plan = engine.getById(planId);
+  if (plan && VERIFICATION_OWNED.has(plan.status)) {
+    logger.debug("plan-backlog-sync", `Skipping sync for ${planId} — status '${plan.status}' is verification-owned`);
+    return;
+  }
+
   const statusMap: Record<string, MarkdownPlanStatus> = {
     "concluído": "done",
     "em implementação": "andamento",
     "pausado": "parado",
     "planeado": "andamento",
+    "rejeitado": "refused",
+    "blocked": "blocked",
   };
 
   const planStatus = statusMap[backlogStatus] || "andamento";
 
-  const engine = new MarkdownPlanEngine(shitennoDir);
   try {
     withSyncWriteGuard(() => {
       markPlanWritten(planId);
