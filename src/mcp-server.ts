@@ -128,11 +128,18 @@ const TOOLS = [
   },
   {
     name: "getSkills",
-    description: "List coding skills/guidelines, or get the full content of one by name",
+    description:
+      "Get skills. Pass `name` for a specific skill, or `task`/`language`/`framework`/`layer` " +
+      "to resolve which skills are mandatory or relevant for that scope of work — mandatory " +
+      "skills are returned in full, others as pointers.",
     inputSchema: {
       type: "object" as const,
       properties: {
-        name: { type: "string" as const, description: "Optional skill name. If omitted, lists all skills." },
+        name: { type: "string" as const, description: "Specific skill name or filename." },
+        task: { type: "string" as const, description: "e.g. implementation, refactor, audit, infra." },
+        language: { type: "string" as const },
+        framework: { type: "string" as const },
+        layer: { type: "string" as const, description: "e.g. frontend, backend, daemon, cli." },
       },
     },
   },

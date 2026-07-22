@@ -1,3 +1,8 @@
+---
+category: implementation
+lifecycle: Active
+---
+
 # 28 — VALIDATION CHECKLIST
 
 > Validation checklist per capability.

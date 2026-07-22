@@ -18,6 +18,7 @@ import { queryDaemon, isDaemonRunning } from "./daemon-client.js";
 import { sanitizePlanName } from "./path-safety.js";
 import { listAdrs, getAdr, listSkills, getSkill } from "./knowledge-loader.js";
 import { loadManifest, partitionRules } from "./rule-manifest.js";
+import { loadSkillManifest, partitionSkills, type TaskMetadata } from "./skill-manifest.js";
 
 type ToolResponse = { content: Array<{ type: string; text: string }> };
 
@@ -348,6 +349,7 @@ export async function handleGetSkills(
 ): Promise<ToolResponse> {
   const name = args.name as string | undefined;
 
+  // Existing behavior: direct lookup by name, unchanged.
   if (name) {
     const skill = getSkill(shitennoDir, name);
     if (!skill) {
@@ -356,6 +358,47 @@ export async function handleGetSkills(
     return { content: [{ type: "text", text: skill.content }] };
   }
 
+  // New: scope-aware resolution when task metadata is provided.
+  const taskMeta: TaskMetadata = {
+    task: args.task as string | undefined,
+    language: args.language as string | undefined,
+    framework: args.framework as string | undefined,
+    layer: args.layer as string | undefined,
+  };
+  const hasScope = Object.values(taskMeta).some(Boolean);
+
+  if (hasScope) {
+    const manifestPath = join(shitennoDir, "governance", "skill-manifest.yaml");
+    if (existsSync(manifestPath)) {
+      try {
+        const manifest = loadSkillManifest(manifestPath);
+        const { mandatory, contextual } = partitionSkills(manifest, taskMeta);
+
+        // Mandatory skills: full content, inlined — the agent should not need
+        // a second round-trip to read what it's required to follow.
+        const mandatoryBlocks = mandatory
+          .map((entry) => getSkill(shitennoDir, entry.id))
+          .filter((s): s is NonNullable<typeof s> => s !== null)
+          .map((s) => `## [MANDATORY] ${s.name}\n${s.content}`);
+
+        // Contextual skills: metadata only, so the agent knows they exist
+        // and can fetch by name if relevant — keeps the response bounded.
+        const contextualList = contextual
+          .map((entry) => `- ${entry.id} (available — fetch by name if needed)`)
+          .join("\n");
+
+        const text = [...mandatoryBlocks, contextualList ? `## Also available for this scope\n${contextualList}` : ""]
+          .filter(Boolean)
+          .join("\n\n");
+
+        return { content: [{ type: "text", text: text || "No skills matched this scope." }] };
+      } catch {
+        // Fall through to flat list if manifest is malformed
+      }
+    }
+  }
+
+  // Fallback: existing flat list behavior, unchanged.
   const summaries = listSkills(shitennoDir);
   const text = summaries
     .map((s) => `${s.name}: ${s.description}`)

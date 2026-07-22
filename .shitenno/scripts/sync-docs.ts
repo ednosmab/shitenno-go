@@ -24,6 +24,7 @@ import { checkSystemMap } from "./validators/check-system-map.js";
 import { checkREADMEStatistics } from "./validators/check-readme-stats.js";
 import { checkVersionConsistency } from "./validators/check-version-consistency.js";
 import { checkScriptReferences } from "./validators/check-script-refs.js";
+import { checkDocsFrontmatter } from "./validators/check-docs-frontmatter.js";
 
 // ── CLI Flags ──────────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ async function main() {
   checkREADMEStatistics(ctx);
   checkVersionConsistency(ctx);
   checkScriptReferences(ctx);
+  checkDocsFrontmatter(ctx);
 
   const errors = ctx.discrepancies.filter((d) => d.severity === "error").length;
   const warnings = ctx.discrepancies.filter((d) => d.severity === "warning").length;

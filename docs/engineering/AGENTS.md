@@ -1,3 +1,8 @@
+---
+category: engineering
+lifecycle: Active
+---
+
 # AI Agent Rules
 
 > Rules for AI agents working on the Shugo CLI codebase.

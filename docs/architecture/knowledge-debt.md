@@ -1,3 +1,8 @@
+---
+category: architecture
+lifecycle: Active
+---
+
 # 11 — KNOWLEDGE DEBT
 
 > The silent killer of engineering productivity.

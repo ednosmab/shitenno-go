@@ -1,3 +1,8 @@
+---
+category: philosophy
+lifecycle: Active
+---
+
 # Engineering Manifesto
 
 > Why the Shitenno exists.

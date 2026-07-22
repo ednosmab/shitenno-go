@@ -1,3 +1,8 @@
+---
+category: reference
+lifecycle: Active
+---
+
 # Configuration Reference
 
 > How Shugo CLI reads and writes configuration.

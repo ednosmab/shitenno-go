@@ -1,3 +1,8 @@
+---
+category: domain
+lifecycle: Active
+---
+
 # Identity
 
 > The single source of truth for what Shitenno is. Every other document that needs to explain the project should link here instead of defining identity independently.

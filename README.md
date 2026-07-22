@@ -96,7 +96,7 @@ That's it. Your project now has governed context for you and your AI agents.
 
 ---
 
-## All Commands (38)
+## All Commands (37)
 
 ### Core Commands
 
@@ -227,9 +227,9 @@ shitenno-cli/
 
 | Metric | Count |
 |--------|-------|
-| CLI Commands | 40 |
+| CLI Commands | 37 |
 | Source Files | 269 |
-| Test Files | 130 |
+| Test Files | 144 |
 | Audit Detectors | 100+ |
 | Engine Modules | 12 |
 

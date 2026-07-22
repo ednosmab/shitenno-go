@@ -1,3 +1,8 @@
+---
+category: reference
+lifecycle: Active
+---
+
 # Watch
 
 Real-time event log for governance monitoring.

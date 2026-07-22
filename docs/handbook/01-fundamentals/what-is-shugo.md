@@ -1,3 +1,8 @@
+---
+category: product
+lifecycle: Active
+---
+
 # What Is Shugo
 
 > A plain-language explanation of what Shugo does and why it exists.

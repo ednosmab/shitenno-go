@@ -1,3 +1,8 @@
+---
+category: domain
+lifecycle: Active
+---
+
 # Knowledge
 
 > What knowledge means in the Shitenno.
