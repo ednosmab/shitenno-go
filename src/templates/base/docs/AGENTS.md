@@ -32,10 +32,10 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 
 ### 🔄 PASSO 1: DIAGNÓSTICO E LEITURA PREGUIÇOSA (LAZY LOADING)
 - **Leia `governance/WORKFLOW.md` primeiro** — ele define o fluxo da sessão com base no tipo de operação (FEATURE/BUG/REFACTOR/DOCUMENTATION/PLANNING).
-- Use o MCP para ler `governance/SYSTEM_MAP.md` e localize a pasta da camada da tarefa.
+- Use o MCP tool `getSkills` com os metadados da tarefa (`task`, `language`, `framework`, `layer`) para resolver quais skills são obrigatórias ou relevantes para o escopo de trabalho — skills obrigatórias são retornadas em texto integral, outras como ponteiros.
 - Use o MCP para ler `governance/context/context_buffer.yaml` para extrair o estado da última execução.
-- **Leia TODOS os P0 obrigatórios** (já injetados como system prompt pelo `opencode.json`): AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md, Requisitos_plataforma.md, CONTEXT_HIERARCHY.md
-- Use o MCP para ler a Skill e o Plano de Execução específicos da camada afetada (P2).
+- **Leia TODOS os P0 obrigatórios** (já injetados como system prompt pelo `opencode.json`): AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md, Requisitos_plataforma.md, CONTEXT_HIERARCHY.md, MANDATORY_CONTEXT.md
+- Use o MCP para ler o Plano de Execução específico da camada afetada (P2).
 - **Registre no buffer quais documentos foram lidos** na seção `## 🕹️ Documentos Carregados via MCP`.
 
 ### 📝 PASSO 2: ATUALIZAÇÃO DA MEMÓRIA RAM (BEFORE-CODE)
@@ -121,7 +121,7 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 ## ⏳ Diretriz de Leitura Preguiçosa Otimizada (Lazy Loading)
 - Você está PROIBIDO de realizar buscas globais (globbing) ou ler múltiplos arquivos da pasta `docs/` ou `governance/` de forma simultânea no início do chat.
 - A primeira leitura obrigatória é `governance/WORKFLOW.md` — ele determina o fluxo da sessão.
-- Sempre que o usuário solicitar uma tarefa, analise o escopo e use o arquivo `governance/SYSTEM_MAP.md` para identificar os caminhos exatos dos arquivos de plano e skill necessários.
+- Sempre que o usuário solicitar uma tarefa, analise o escopo e use o MCP tool `getSkills` com os metadados da tarefa (`task`, `language`, `framework`, `layer`) para resolver quais skills são obrigatórias ou relevantes para o escopo de trabalho.
 - Use a ferramenta MCP para ler exclusivamente os arquivos mapeados para a tarefa atual e ignore as demais pastas de documentação.
 - Leia `governance/context/context_buffer.yaml` ao iniciar cada nova tarefa para obter o estado actual (exceto durante fluxos de refatoração ou correção de bugs).
 
@@ -353,7 +353,7 @@ Em reconhecimento ao desempenho excepcional, os 3 papéis foram consolidados em 
 ### ⏳ Diretriz de Leitura Preguiçosa Otimizada (Lazy Loading)
 - Você está PROIBIDO de realizar buscas globais (globbing) ou ler múltiplos arquivos da pasta `docs/` ou `governance/` de forma simultânea no início do chat.
 - A primeira leitura obrigatória é `governance/WORKFLOW.md` — ele determina o fluxo da sessão.
-- Sempre que o usuário solicitar uma tarefa, analise o escopo e use o arquivo `governance/SYSTEM_MAP.md` para identificar os caminhos exatos dos arquivos de plano e skill necessários.
+- Sempre que o usuário solicitar uma tarefa, analise o escopo e use o MCP tool `getSkills` com os metadados da tarefa (`task`, `language`, `framework`, `layer`) para resolver quais skills são obrigatórias ou relevantes para o escopo de trabalho.
 - Use a ferramenta MCP para ler exclusivamente os arquivos mapeados para a tarefa atual e ignore as demais pastas de documentação.
 - Leia `governance/context/context_buffer.yaml` ao iniciar cada nova tarefa para obter o estado actual (exceto durante fluxos de refatoração ou correção de bugs).
 
@@ -365,10 +365,10 @@ Sempre que o usuário enviar uma nova mensagem ou comando, você DEVE executar r
 
 ### 🔄 PASSO 1: DIAGNÓSTICO E LEITURA PREGUIÇOSA (LAZY LOADING)
 - **Leia `governance/WORKFLOW.md` primeiro** — ele define o fluxo da sessão com base no tipo de operação (FEATURE/BUG/REFACTOR/DOCUMENTATION/PLANNING).
-- Use o MCP para ler `governance/SYSTEM_MAP.md` e localize a pasta da camada da tarefa.
+- Use o MCP tool `getSkills` com os metadados da tarefa (`task`, `language`, `framework`, `layer`) para resolver quais skills são obrigatórias ou relevantes para o escopo de trabalho — skills obrigatórias são retornadas em texto integral, outras como ponteiros.
 - Use o MCP para ler `governance/context/context_buffer.yaml` para extrair o estado da última execução.
-- **Leia TODOS os P0 obrigatórios** (já injetados como system prompt pelo `opencode.json`): AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md, Requisitos_plataforma.md, CONTEXT_HIERARCHY.md
-- Use o MCP para ler a Skill e o Plano de Execução específicos da camada afetada (P2).
+- **Leia TODOS os P0 obrigatórios** (já injetados como system prompt pelo `opencode.json`): AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md, Requisitos_plataforma.md, CONTEXT_HIERARCHY.md, MANDATORY_CONTEXT.md
+- Use o MCP para ler o Plano de Execução específico da camada afetada (P2).
 - **Registre no buffer quais documentos foram lidos** na seção `## 🕹️ Documentos Carregados via MCP`.
 
 ### 📝 PASSO 2: ATUALIZAÇÃO DA MEMÓRIA RAM (BEFORE-CODE)

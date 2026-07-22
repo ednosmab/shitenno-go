@@ -39,7 +39,8 @@ const TOOLS = [
     name: "getBriefing",
     description:
       "Generate a pre-session briefing for the project. Includes project identity, " +
-      "risk status, test coverage, context rules, dynamic rules, and recommendations.",
+      "risk status, test coverage, context rules, dynamic rules, and recommendations. " +
+      "Pass `task` (e.g. implementation, refactor) to auto-attach mandatory skills for that scope.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -52,6 +53,10 @@ const TOOLS = [
           type: "string" as const,
           enum: ["minimal", "standard", "full"],
           description: "Briefing depth.",
+        },
+        task: {
+          type: "string" as const,
+          description: "e.g. implementation, refactor, audit, infra — used to resolve mandatory skills.",
         },
       },
     },
