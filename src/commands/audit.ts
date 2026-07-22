@@ -19,8 +19,7 @@ import { muteLogs } from "../logger.js";
 import { loadSuppressions, addSuppression } from "../audit/suppression.js";
 import { applyAllFixes, type AutofixReport } from "../audit/autofix-engine.js";
 import { getChangedFiles } from "../audit/changed-files.js";
-import { checkPolicyGate } from "../decision-core/policy-gate.js";
-import { PolicyEngine, FilePolicyRepository } from "../rule-engine/index.js";
+import { runPolicyGate } from "../decision-core/invoke.js";
 import { dimensionIcon, dimensionLabel, type AuditDimension } from "../audit/dimensions.js";
 import { categorizeIssues, groupByType, formatTypeGroup, groupOptimizationsByAction, identifyQuickWins } from "./audit/reporter.js";
 import { checkBuild, checkTests, checkLint } from "../plan-lifecycle.js";
@@ -372,11 +371,12 @@ function displayAutofixApplication(prioritized: ReturnType<typeof prioritizeSugg
   if (!isJson || prioritized.length === 0) return;
   output(chalk.bold("  🔧 Applying high-confidence fixes..."));
   outputBlank();
-  const policyEngine = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
-  const policyCheck = checkPolicyGate({ type: "apply_autofix", params: { suggestionCount: prioritized.length } },
-    { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }, policyEngine);
-  if (!policyCheck.allowed) {
-    output(chalk.red(`  ✘ Blocked by policy: ${policyCheck.reason}`));
+  const policyBlock = runPolicyGate(
+    { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+    { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }
+  );
+  if (policyBlock) {
+    output(chalk.red(`  ✘ ${policyBlock.message}`));
     outputBlank();
     return;
   }
@@ -430,10 +430,11 @@ function handleJsonOutput(input: JsonOutputInput): void {
     const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
     const prioritized = prioritizeSuggestions(suggestions);
     if (prioritized.length > 0) {
-      const policyEngineJson = new PolicyEngine(new FilePolicyRepository(ctx.shitennoDir));
-      const policyCheckJson = checkPolicyGate({ type: "apply_autofix", params: { suggestionCount: prioritized.length } },
-        { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }, policyEngineJson);
-      if (policyCheckJson.allowed) autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, { dryRun: options.dryRun === true });
+      const policyBlockJson = runPolicyGate(
+        { type: "apply_autofix", params: { suggestionCount: prioritized.length } },
+        { trigger: "manual", eventData: {}, projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, timestamp: new Date().toISOString() }
+      );
+      if (!policyBlockJson) autofixReportJson = applyAllFixes(prioritized, ctx.projectRoot, { dryRun: options.dryRun === true });
     }
   }
   const issueCounts = buildIssueCounts(report.issues);

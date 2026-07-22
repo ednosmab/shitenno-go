@@ -1,6 +1,6 @@
 # Plan — Deterministic Skill Routing (MCP-first, opencode-compatible)
 
-**Status:** Refused
+**Status:** Done
 
 > Third plan, separate from identity/documentation and from quality-gate tooling on purpose: this one is about a runtime mechanism, not content. Focused on the MCP server as the primary injection surface, with an explicit compatibility path so `opencode.json` users get the same effective behavior without hand-maintained duplication.
 

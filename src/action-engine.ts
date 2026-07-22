@@ -12,10 +12,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 
 import { join } from "node:path";
 import { logger } from "./logger.js";
 import { safeJsonParseValidated } from "./validation.js";
-import { checkPolicyGate } from "./decision-core/policy-gate.js";
 import { getResourceId } from "./decision-core/precedence.js";
+import { runPolicyGate } from "./decision-core/invoke.js";
 import { claimResource, releaseResource } from "./resource-claims.js";
-import { PolicyEngine, FilePolicyRepository } from "./rule-engine/index.js";
 import type { RuleAction, RuleContext } from "./domain/rules/rule.js";
 import { RunScriptExecutor, CreateReminderExecutor } from "./decision-core/executors/index.js";
 
@@ -277,7 +276,6 @@ export class ActionEngine {
 
   private evaluatePolicyGate(request: ActionRequest, executionHash: string): ExecutionRecord | undefined {
     if (!this.shitennoDir) return undefined;
-    const policyEngine = new PolicyEngine(new FilePolicyRepository(this.shitennoDir));
     const action: RuleAction = { type: request.type as RuleAction["type"], params: request.params as RuleAction["params"] };
     const context: RuleContext = {
       trigger: "manual",
@@ -286,9 +284,9 @@ export class ActionEngine {
       shitennoDir: this.shitennoDir,
       timestamp: new Date().toISOString(),
     };
-    const policyResult = checkPolicyGate(action, context, policyEngine);
-    if (!policyResult.allowed) {
-      const record = this.createFailedRecord(request, executionHash, `Blocked by policy: ${policyResult.reason}`);
+    const policyBlock = runPolicyGate(action, context);
+    if (policyBlock) {
+      const record = this.createFailedRecord(request, executionHash, policyBlock.message);
       this.repo.save(record);
       return record;
     }

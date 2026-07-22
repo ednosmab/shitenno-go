@@ -93,7 +93,7 @@ function getExecLogDir(shitennoDir: string): string {
 
 // ── Gate Helpers ─────────────────────────────────────────────────────────────
 
-function runPolicyGate(
+export function runPolicyGate(
   action: RuleAction,
   context: RuleContext,
 ): InvokeResult | null {

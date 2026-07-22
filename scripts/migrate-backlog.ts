@@ -78,7 +78,7 @@ function parseBacklogManually(content: string): BacklogItem[] {
       currentItem = {
         id,
         title: titleRaw,
-        state: "",
+        state: currentSection === "Done" ? "Done" : "",
         severity: "",
         priority: currentSection,
         owner: "",

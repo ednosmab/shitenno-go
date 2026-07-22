@@ -1,6 +1,6 @@
 # Plan — Enforcing the Documentation Quality Gate
 
-**Status:** Checked
+**Status:** Done
 
 > Separate from `PLAN_identity_documentation_v2.md` on purpose: that plan is about *content* (what the docs say). This plan is about *tooling* (making an existing rule actually true). Keeping them apart avoids mixing a one-time content fix with a recurring process/tooling change.
 

@@ -232,6 +232,7 @@ export type HealthIssueType =
   // Accessibility (A11y)
   | "accessibility_gap"
   | "orphan_skill"
+  | "broken_skill_manifest_entry"
   // Governance Integrity (J.1)
   | "governance_integrity";
 

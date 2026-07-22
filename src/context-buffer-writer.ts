@@ -433,8 +433,8 @@ export function recordSkillResolution(
   }
 
   const entry = `  - skillId: "${resolution.skillId}"
-    reason: "${resolution.reason}"
     taskMeta: "${resolution.taskMeta}"
+    reason: "${resolution.reason}"
     resolvedAt: "${resolution.resolvedAt}"
 `;
 

@@ -72,7 +72,7 @@ export function detectBrokenSkillManifestEntries(shitennoDir: string): HealthIss
   for (const entry of entries) {
     if (!existsSync(join(shitennoDir, entry.path))) {
       issues.push({
-        type: "orphan_skill",
+        type: "broken_skill_manifest_entry",
         severity: 3,
         description: `skill-manifest.yaml entry "${entry.id}" points to "${entry.path}", which does not exist.`,
         location: "shitenno/governance/skill-manifest.yaml",
