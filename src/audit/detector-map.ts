@@ -37,6 +37,8 @@ import {
   detectEmptyDataFiles,
   detectPhantomRuleRefs,
   detectOrphanSkills,
+  detectOrphanSkillFiles,
+  detectBrokenSkillManifestEntries,
 } from "../audit/governance-detectors.js";
 
 import {
@@ -293,6 +295,8 @@ function buildGovernanceDetectors(ctx: DetectorContext) {
     detectEmptyDataFiles: () => detectEmptyDataFiles(ctx.shitennoDir),
     detectPhantomRuleRefs: () => detectPhantomRuleRefs(ctx.shitennoDir),
     detectOrphanSkills: () => detectOrphanSkills(ctx.shitennoDir),
+    detectOrphanSkillFiles: () => detectOrphanSkillFiles(ctx.shitennoDir),
+    detectBrokenSkillManifestEntries: () => detectBrokenSkillManifestEntries(ctx.shitennoDir),
   };
 }
 

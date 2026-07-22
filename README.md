@@ -117,6 +117,7 @@ That's it. Your project now has governed context for you and your AI agents.
 | `shugo evolve` | Adaptive recommendations | Get next-step suggestions |
 | `shugo assess` | Re-evaluate maturity profile | After major changes |
 | `shugo doctor` | System diagnostics | When something feels off |
+| `shugo scheduled-check` | Check uncommitted drift | Detect stale uncommitted changes |
 
 ### Governance Commands
 
@@ -137,6 +138,7 @@ That's it. Your project now has governed context for you and your AI agents.
 | `shugo digest` | Generate digest summaries | Quick status overviews |
 | `shugo feedback` | Submit session feedback | Record session outcomes |
 | `shugo history` | View engineering state history | Review past snapshots |
+| `shugo handbook` | Reference handbook for Shugo | Quick reference lookup |
 
 ### Utility Commands
 
@@ -154,6 +156,8 @@ That's it. Your project now has governed context for you and your AI agents.
 | `shugo update` | Update Shugo system | Keep governance current |
 | `shugo shell-init` | Shell integration setup | Configure shell completions |
 | `shugo docs-audit` | Audit documentation sync | Validate docs match code |
+| `shugo events` | Show rule engine execution trace | Debug rule engine behaviour |
+| `shugo hooks` | Manage Git hooks for auto-detection | Setup post-commit/merge hooks |
 
 ---
 
@@ -229,7 +233,7 @@ shitenno-cli/
 |--------|-------|
 | CLI Commands | 37 |
 | Source Files | 269 |
-| Test Files | 144 |
+| Test Files | 146 |
 | Audit Detectors | 100+ |
 | Engine Modules | 12 |
 

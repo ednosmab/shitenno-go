@@ -402,6 +402,57 @@ ${impediment.category ? `    category: "${impediment.category}"\n` : ""}`;
   return { success: true, message: `Impediment added (new section): ${impediment.description}` };
 }
 
+// ── Skill Resolution Evidence ─────────────────────────────────────────────
+
+export interface SkillResolutionInput {
+  skillId: string;
+  reason: "mandatory" | "contextual";
+  taskMeta: string;
+  resolvedAt: string;
+}
+
+/**
+ * Record that a skill was resolved and delivered for a task — the runtime
+ * proof that Layer 1–3's guarantees actually reached a live session.
+ * Call this from handleGetSkills / handleGetBriefing whenever
+ * partitionSkills(...) returns a non-empty mandatory set.
+ */
+export function recordSkillResolution(
+  shitennoDir: string,
+  resolution: SkillResolutionInput
+): { success: boolean; message: string; skipped?: boolean } {
+  const content = readBuffer(shitennoDir);
+  if (content === null) {
+    return { success: false, message: "context_buffer.yaml not found" };
+  }
+
+  // Dedup within the same task: same skillId + same taskMeta already logged → skip.
+  const dedupeKey = `skillId: "${resolution.skillId}"\n    taskMeta: "${resolution.taskMeta}"`;
+  if (content.includes(dedupeKey)) {
+    return { success: true, message: "Skill resolution already recorded, skipped", skipped: true };
+  }
+
+  const entry = `  - skillId: "${resolution.skillId}"
+    reason: "${resolution.reason}"
+    taskMeta: "${resolution.taskMeta}"
+    resolvedAt: "${resolution.resolvedAt}"
+`;
+
+  const sectionRegex = /^skills_resolved:\s*\n/m;
+  const match = sectionRegex.exec(content);
+
+  if (match) {
+    const insertPos = match.index + match[0].length;
+    const updated = content.slice(0, insertPos) + entry + content.slice(insertPos);
+    writeBuffer(shitennoDir, updated);
+    return { success: true, message: `Skill resolution recorded: ${resolution.skillId}` };
+  }
+
+  const updated = "skills_resolved:\n" + entry + "\n" + content;
+  writeBuffer(shitennoDir, updated);
+  return { success: true, message: `Skill resolution recorded (new section): ${resolution.skillId}` };
+}
+
 /**
  * Clear impediments matching a pattern from context_buffer.yaml.
  * If pattern is omitted, clears ALL impediments.
