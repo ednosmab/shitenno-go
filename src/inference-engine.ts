@@ -100,7 +100,23 @@ function calculateAgeInDays(filePath: string): number {
   }
 }
 
-// ── Status Inference ───────────────────────────────────────────────────────
+function isAbandonedStatus(estado: string | null): boolean {
+  return !!(estado?.includes("AGUARDA APROVACAO") || estado?.includes("abandoned") || estado?.includes("cancelled"));
+}
+
+function resolveDoneStatus(rawStatus: string, checkboxes: CheckboxSummary): InferredStatus {
+  if (rawStatus === "done") {
+    if (checkboxes.total > 0 && checkboxes.open > 0) return "inconsistent";
+    return "done";
+  }
+  return "in_progress";
+}
+
+function resolveCheckboxStatus(checkboxes: CheckboxSummary, isAbandoned: boolean): InferredStatus {
+  if (checkboxes.total === 0) return isAbandoned ? "obsolete" : "in_progress";
+  if (checkboxes.open === 0) return "done";
+  return "in_progress";
+}
 
 function inferStatus(
   rawStatus: string,
@@ -108,37 +124,36 @@ function inferStatus(
   ageInDays: number,
   estado: string | null
 ): InferredStatus {
-  // Explicit "parado" / "paused"
   if (rawStatus === "parado") return "paused";
 
-  // Check for obsolete signals
-  const isAbandoned =
-    estado?.includes("AGUARDA APROVACAO") ||
-    estado?.includes("abandoned") ||
-    estado?.includes("cancelled");
+  const isAbandoned = isAbandonedStatus(estado);
   if (isAbandoned && ageInDays > OBSOLETE_THRESHOLD_DAYS) return "obsolete";
 
-  // Explicit "done" — but check for checkbox inconsistency
-  if (rawStatus === "done") {
-    if (checkboxes.total > 0 && checkboxes.open > 0) return "inconsistent";
-    return "done";
-  }
+  if (rawStatus === "done") return resolveDoneStatus(rawStatus, checkboxes);
 
-  // No checkboxes — use raw status
-  if (checkboxes.total === 0) {
-    if (isAbandoned) return "obsolete";
-    return "in_progress";
-  }
-
-  // Has checkboxes — infer from checkbox state
-  if (checkboxes.open === 0) return "done";
-  if (checkboxes.closed === 0) return "in_progress";
-
-  // Mix of [x] and [ ]
-  return "in_progress";
+  return resolveCheckboxStatus(checkboxes, isAbandoned);
 }
 
-// ── Recommendation Generation ──────────────────────────────────────────────
+function recommendInProgress(
+  checkboxes: CheckboxSummary,
+  ageInDays: number
+): { recommendation: Recommendation; reason: string; confidence: number } {
+  if (ageInDays > OBSOLETE_THRESHOLD_DAYS && checkboxes.percentage < 50) {
+    return {
+      recommendation: "remove",
+      reason: `Only ${checkboxes.percentage}% complete after ${ageInDays} days`,
+      confidence: 0.7,
+    };
+  }
+  return {
+    recommendation: "keep",
+    reason:
+      checkboxes.total > 0
+        ? `${checkboxes.closed}/${checkboxes.total} steps complete (${checkboxes.percentage}%)`
+        : "Plan is actively in progress",
+    confidence: 0.6,
+  };
+}
 
 function generateRecommendation(
   inferredStatus: InferredStatus,
@@ -156,46 +171,19 @@ function generateRecommendation(
             : "Status explicitly marked as done",
         confidence: checkboxes.total > 0 ? 0.95 : 0.8,
       };
-
     case "obsolete":
-      return {
-        recommendation: "remove",
-        reason: `Plan inactive for ${ageInDays}+ days with abandoned status`,
-        confidence: 0.85,
-      };
-
+      return { recommendation: "remove", reason: `Plan inactive for ${ageInDays}+ days with abandoned status`, confidence: 0.85 };
     case "inconsistent":
       return {
         recommendation: "investigate",
         reason: `Status says "${rawStatus}" but ${checkboxes.open} of ${checkboxes.total} steps still open`,
         confidence: 0.7,
       };
-
     case "paused":
-      return {
-        recommendation: "keep",
-        reason: "Plan is paused — review before archiving",
-        confidence: 0.6,
-      };
-
+      return { recommendation: "keep", reason: "Plan is paused — review before archiving", confidence: 0.6 };
     case "in_progress":
-    default: {
-      if (ageInDays > OBSOLETE_THRESHOLD_DAYS && checkboxes.percentage < 50) {
-        return {
-          recommendation: "remove",
-          reason: `Only ${checkboxes.percentage}% complete after ${ageInDays} days`,
-          confidence: 0.7,
-        };
-      }
-      return {
-        recommendation: "keep",
-        reason:
-          checkboxes.total > 0
-            ? `${checkboxes.closed}/${checkboxes.total} steps complete (${checkboxes.percentage}%)`
-            : "Plan is actively in progress",
-        confidence: 0.6,
-      };
-    }
+    default:
+      return recommendInProgress(checkboxes, ageInDays);
   }
 }
 

@@ -22,6 +22,7 @@ import { SHITENNO_DIR_NAME } from "../constants.js";
 import {
   PolicyEngine,
   FilePolicyRepository,
+  type Policy,
   type PolicyMode,
   type PolicyEffect,
   type ComparisonOperator,
@@ -68,6 +69,11 @@ function registerPolicyList(cmd: Command) {
     });
 }
 
+function renderPolicySections(policy: Policy) {
+  if (policy.conditions.length > 0) { outputSection("Conditions:"); for (const c of policy.conditions) output(`    ${c.field} ${c.operator} ${c.value ?? "(any)"}`); }
+  if (policy.actions.length > 0) { outputSection("Actions:"); for (const a of policy.actions) output(`    ${a.type}: ${JSON.stringify(a.params)}`); }
+}
+
 function registerPolicyShow(cmd: Command) {
   cmd.command("show").description("Show policy details").argument("<id>", "Policy ID").option("--json", "Output as JSON")
     .action((id: string, opts: Record<string, unknown>) => {
@@ -85,8 +91,7 @@ function registerPolicyShow(cmd: Command) {
       if (policy.categories?.length) output(`  Categories: ${policy.categories.join(", ")}`);
       if (policy.tags?.length) output(`  Tags:     ${policy.tags.join(", ")}`);
       outputBlank();
-      if (policy.conditions.length > 0) { outputSection("Conditions:"); for (const c of policy.conditions) output(`    ${c.field} ${c.operator} ${c.value ?? "(any)"}`); }
-      if (policy.actions.length > 0) { outputSection("Actions:"); for (const a of policy.actions) output(`    ${a.type}: ${JSON.stringify(a.params)}`); }
+      renderPolicySections(policy);
       outputBlank();
     });
 }

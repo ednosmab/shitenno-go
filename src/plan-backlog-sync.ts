@@ -171,104 +171,91 @@ let syncInitialized = false;
  * Call this once at CLI startup (bin/shugo.ts).
  * Safe to call multiple times — subscribers are registered only once.
  */
+function onPlanCreated(
+  bus: ReturnType<typeof getEventBus>,
+  projectRoot: string,
+  shitennoDir: string,
+  payload: Record<string, unknown>,
+): void {
+  const planId = payload.planId as string;
+  if (!planId) return;
+  logger.info("plan-backlog-sync", `Plan created: ${planId} — running auto-prepare`);
+  import("./commands/plan.js").then(({ runPrepare }) => {
+    runPrepare(projectRoot, shitennoDir, planId).then((results) => {
+      const done = results.filter((r) => r.status === "done").length;
+      const errors = results.filter((r) => r.status === "error").length;
+      logger.info("plan-backlog-sync", `Auto-prepare ${planId}: ${done} done, ${errors} errors`);
+      bus.publish("backlog.updated", { planId, stepsCount: done, errorCount: errors, source: "auto_prepare" });
+      if (errors === 0) {
+        clearImpediments(shitennoDir, planId);
+      } else {
+        addImpediment(shitennoDir, {
+          description: `Sync failed for ${planId}: ${errors} errors during auto-prepare`,
+          priority: "high",
+          createdAt: new Date().toISOString(),
+          category: "plan_sync",
+        });
+      }
+    });
+  }).catch((err) => {
+    logger.error("plan-backlog-sync", `Auto-prepare failed for ${planId}: ${err}`);
+    addImpediment(shitennoDir, {
+      description: `Auto-prepare crashed for ${planId}: ${String(err)}`,
+      priority: "high",
+      createdAt: new Date().toISOString(),
+      category: "plan_sync",
+    });
+  });
+}
+
+function onPlanFileChanged(shitennoDir: string, payload: Record<string, unknown>): void {
+  if (isSyncWriteInProgress()) return;
+  const planId = payload.planId as string;
+  const content = payload.content as string;
+  if (!planId || !content) return;
+  if (isWithinPlanCooldown(planId)) {
+    logger.debug("plan-backlog-sync", `Skipping plan ${planId} — within cooldown`);
+    return;
+  }
+  logger.info("plan-backlog-sync", `Plan changed: ${planId}`);
+  syncPlanToBacklog(shitennoDir, planId, content);
+  import("./markdown-plan-engine.js").then(({ MarkdownPlanEngine }) => {
+    const engine = new MarkdownPlanEngine(shitennoDir);
+    const archived = engine.archiveIfDone(planId);
+    if (archived) {
+      logger.info("plan-backlog-sync", `Auto-archived plan ${planId} → done/`);
+    }
+  }).catch((err) => {
+    logger.debug("plan-backlog-sync", `archiveIfDone skipped for ${planId}: ${err}`);
+  });
+}
+
+function onPlanArchived(shitennoDir: string, payload: Record<string, unknown>): void {
+  if (isSyncWriteInProgress()) return;
+  const planId = payload.planId as string;
+  if (!planId) return;
+  logger.info("plan-backlog-sync", `Plan archived: ${planId}`);
+  const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
+  const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
+  if (existsSync(backlogPath)) {
+    let backlog = readFileSync(backlogPath, "utf-8");
+    const statusRegex = new RegExp(
+      `(### ${planIdUpper}[\\s\\S]*?\\| \\*\\*Status\\*\\* \\| )([^|]+)( \\|)`,
+      "m"
+    );
+    backlog = backlog.replace(statusRegex, `$1concluído$3`);
+    withSyncWriteGuard(() => writeFileSync(backlogPath, backlog, "utf-8"));
+  }
+}
+
 export function initPlanBacklogSync(projectRoot: string, shitennoDir: string): void {
   if (syncInitialized) return;
   syncInitialized = true;
 
   const bus = getEventBus();
-
-  // When a new plan is created, auto-prepare it (header + checklist + backlog)
-  bus.subscribe("plan.created", (payload: Record<string, unknown>) => {
-    const planId = payload.planId as string;
-    if (planId) {
-      logger.info("plan-backlog-sync", `Plan created: ${planId} — running auto-prepare`);
-      import("./commands/plan.js").then(({ runPrepare }) => {
-        runPrepare(projectRoot, shitennoDir, planId).then((results) => {
-          const done = results.filter((r) => r.status === "done").length;
-          const errors = results.filter((r) => r.status === "error").length;
-          logger.info("plan-backlog-sync", `Auto-prepare ${planId}: ${done} done, ${errors} errors`);
-          bus.publish("backlog.updated", {
-            planId,
-            stepsCount: done,
-            errorCount: errors,
-            source: "auto_prepare",
-          });
-          if (errors === 0) {
-            clearImpediments(shitennoDir, planId);
-          } else {
-            addImpediment(shitennoDir, {
-              description: `Sync failed for ${planId}: ${errors} errors during auto-prepare`,
-              priority: "high",
-              createdAt: new Date().toISOString(),
-              category: "plan_sync",
-            });
-          }
-        });
-      }).catch((err) => {
-        logger.error("plan-backlog-sync", `Auto-prepare failed for ${planId}: ${err}`);
-        addImpediment(shitennoDir, {
-          description: `Auto-prepare crashed for ${planId}: ${String(err)}`,
-          priority: "high",
-          createdAt: new Date().toISOString(),
-          category: "plan_sync",
-        });
-      });
-    }
-  });
-
-  // When a plan file changes, sync checklist progress to BACKLOG.md
-  // and auto-archive if status changed to done
-  bus.subscribe("plan.file_changed", (payload: Record<string, unknown>) => {
-    // Guard: ignore events fired by our own writes (prevent feedback loop)
-    if (isSyncWriteInProgress()) return;
-
-    const planId = payload.planId as string;
-    const content = payload.content as string;
-    if (planId && content) {
-      // Cooldown: ignore events for plans we just wrote to (prevents bidirectional loop)
-      if (isWithinPlanCooldown(planId)) {
-        logger.debug("plan-backlog-sync", `Skipping plan ${planId} — within cooldown`);
-        return;
-      }
-
-      logger.info("plan-backlog-sync", `Plan changed: ${planId}`);
-      syncPlanToBacklog(shitennoDir, planId, content);
-
-      // Check if status changed to done → auto-archive
-      import("./markdown-plan-engine.js").then(({ MarkdownPlanEngine }) => {
-        const engine = new MarkdownPlanEngine(shitennoDir);
-        const archived = engine.archiveIfDone(planId);
-        if (archived) {
-          logger.info("plan-backlog-sync", `Auto-archived plan ${planId} → done/`);
-        }
-      }).catch((err) => {
-        logger.debug("plan-backlog-sync", `archiveIfDone skipped for ${planId}: ${err}`);
-      });
-    }
-  });
-
-  // When a plan is archived, mark it as done in BACKLOG.md
-  bus.subscribe("plan.archived", (payload: Record<string, unknown>) => {
-    // Guard: ignore events fired by our own writes (prevent feedback loop)
-    if (isSyncWriteInProgress()) return;
-
-    const planId = payload.planId as string;
-    if (planId) {
-      logger.info("plan-backlog-sync", `Plan archived: ${planId}`);
-      const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
-      const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
-      if (existsSync(backlogPath)) {
-        let backlog = readFileSync(backlogPath, "utf-8");
-        const statusRegex = new RegExp(
-          `(### ${planIdUpper}[\\s\\S]*?\\| \\*\\*Status\\*\\* \\| )([^|]+)( \\|)`,
-          "m"
-        );
-        backlog = backlog.replace(statusRegex, `$1concluído$3`);
-        withSyncWriteGuard(() => writeFileSync(backlogPath, backlog, "utf-8"));
-      }
-    }
-  });
-
+  bus.subscribe("plan.created", (payload: Record<string, unknown>) => onPlanCreated(bus, projectRoot, shitennoDir, payload));
+  bus.subscribe("plan.file_changed", (payload: Record<string, unknown>) => onPlanFileChanged(shitennoDir, payload));
+  bus.subscribe("plan.archived", (payload: Record<string, unknown>) => onPlanArchived(shitennoDir, payload));
   logger.info("plan-backlog-sync", "Plan-Backlog sync subscribers initialized");
 }
 
@@ -280,6 +267,39 @@ export function initPlanBacklogSync(projectRoot: string, shitennoDir: string): v
  * Segurança: tem cooldown persistente + lock inter-processo, então pode ser
  * chamada várias vezes sem risco de race condition ou trabalho duplicado.
  */
+function retroactivePrepare(
+  bus: ReturnType<typeof getEventBus>,
+  projectRoot: string,
+  shitennoDir: string,
+  planId: string,
+): Promise<void> {
+  return import("./commands/plan.js")
+    .then(({ runPrepare }) => runPrepare(projectRoot, shitennoDir, planId))
+    .then((results) => {
+      const done = results.filter((r) => r.status === "done").length;
+      const errors = results.filter((r) => r.status === "error").length;
+      logger.info("plan-backlog-sync", `Retroactive prepare ${planId}: ${done} done, ${errors} errors`);
+      bus.publish("backlog.updated", { planId, stepsCount: done, errorCount: errors, source: "retroactive_scan" });
+      if (errors > 0) {
+        addImpediment(shitennoDir, {
+          description: `Retroactive sync failed for ${planId}: ${errors} errors`,
+          priority: "high",
+          createdAt: new Date().toISOString(),
+          category: "plan_sync",
+        });
+      }
+    })
+    .catch((err) => {
+      logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
+      addImpediment(shitennoDir, {
+        description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
+        priority: "high",
+        createdAt: new Date().toISOString(),
+        category: "plan_sync",
+      });
+    });
+}
+
 export function runRetroactiveScan(projectRoot: string, shitennoDir: string): void {
   const bus = getEventBus();
   const plansDir = join(shitennoDir, "governance", "plans");
@@ -309,34 +329,7 @@ export function runRetroactiveScan(projectRoot: string, shitennoDir: string): vo
       if (!hasBacklogEntry || (hasBacklogEntry && !hasStepsSection)) {
         const reason = !hasBacklogEntry ? "no BACKLOG entry" : "no steps section";
         logger.info("plan-backlog-sync", `Retroactive scan: processing ${planId} (${reason})`);
-
-        const p = import("./commands/plan.js")
-          .then(({ runPrepare }) => runPrepare(projectRoot, shitennoDir, planId))
-          .then((results) => {
-            const done = results.filter((r) => r.status === "done").length;
-            const errors = results.filter((r) => r.status === "error").length;
-            logger.info("plan-backlog-sync", `Retroactive prepare ${planId}: ${done} done, ${errors} errors`);
-            bus.publish("backlog.updated", { planId, stepsCount: done, errorCount: errors, source: "retroactive_scan" });
-            if (errors > 0) {
-              addImpediment(shitennoDir, {
-                description: `Retroactive sync failed for ${planId}: ${errors} errors`,
-                priority: "high",
-                createdAt: new Date().toISOString(),
-                category: "plan_sync",
-              });
-            }
-          })
-          .catch((err) => {
-            logger.error("plan-backlog-sync", `Retroactive prepare failed for ${planId}: ${err}`);
-            addImpediment(shitennoDir, {
-              description: `Retroactive prepare crashed for ${planId}: ${String(err)}`,
-              priority: "high",
-              createdAt: new Date().toISOString(),
-              category: "plan_sync",
-            });
-          });
-
-        scanPromises.push(p);
+        scanPromises.push(retroactivePrepare(bus, projectRoot, shitennoDir, planId));
       }
     }
 

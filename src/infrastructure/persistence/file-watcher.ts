@@ -31,6 +31,20 @@ export interface WatcherOptions {
   enableDocSync?: boolean;
 }
 
+interface WatcherContext {
+  shitennoDir: string;
+  bus: ReturnType<typeof getEventBus>;
+  enableDocSync: boolean;
+  debounceMs: number;
+  pendingEvents: Map<string, NodeJS.Timeout>;
+}
+
+interface ChangeInfo {
+  filePath: string;
+  relativePath: string;
+  significance: SignificanceResult;
+}
+
 // ── File Type Detection ──────────────────────────────────────────────────────
 
 type ArtifactType = "adr" | "skill" | "workflow" | "rule" | "config" | "doc" | "unknown";
@@ -80,137 +94,164 @@ export function startWatching(
     ...(options.extraPaths || []),
   ];
 
-  const bus = getEventBus();
-  const pendingEvents = new Map<string, NodeJS.Timeout>();
+  const ctx: WatcherContext = {
+    shitennoDir,
+    bus: getEventBus(),
+    enableDocSync,
+    debounceMs,
+    pendingEvents: new Map<string, NodeJS.Timeout>(),
+  };
 
-  function createWatcher(): FSWatcher {
-    const watcher = watch(watchPaths, {
-      ignoreInitial: true,
-      depth: 3,
-      ignored: [
-        /node_modules/,
-        /telemetry\/events-/,
-        /docs\/generated\//,
-      ],
-    });
-
-    watcher.on("ready", () => {
-      watcherRestartCount = 0;
-      logger.info("file-watcher", "Watcher ready");
-    });
-
-    watcher.on("error", (err: unknown) => {
-      const error = err instanceof Error ? err : new Error(String(err));
-      logger.error("file-watcher", `Watcher error: ${error.message}`);
-      bus.publish("watcher.error" as never, {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      } as never);
-
-      if (watcherRestartCount < MAX_RESTARTS) {
-        watcherRestartCount++;
-        const delay = getRestartDelay(watcherRestartCount);
-        logger.info("file-watcher", `Restarting watcher in ${delay}ms (attempt ${watcherRestartCount}/${MAX_RESTARTS})`);
-        setTimeout(() => {
-          activeWatcher?.close();
-          activeWatcher = createWatcher();
-        }, delay);
-      } else {
-        logger.error("file-watcher", `Max restart attempts (${MAX_RESTARTS}) reached — watcher stopped`);
-      }
-    });
-
-    watcher.on("change", (filePath: string) => {
-      if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
-
-      const existing = pendingEvents.get(filePath);
-      if (existing) clearTimeout(existing);
-
-      pendingEvents.set(
-        filePath,
-        setTimeout(() => {
-          pendingEvents.delete(filePath);
-          handleFileChange(filePath, shitennoDir, bus, enableDocSync);
-        }, debounceMs)
-      );
-    });
-
-    watcher.on("add", (filePath: string) => {
-      if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
-
-      // Skip hidden files/dirs (e.g. .git, .env)
-      const addRelative = filePath.slice(shitennoDir.length + 1);
-      if (addRelative.split(/[/\\]/).some((s) => s.startsWith(".") && s !== "")) return;
-
-      const artifactType = detectArtifactType(filePath, shitennoDir);
-
-      if (artifactType === "adr") {
-        bus.publish("adr.created", {
-          adrId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-          title: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-          status: "proposed",
-        });
-      }
-
-      if (artifactType === "skill") {
-        bus.publish("skill.created", {
-          skillId: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-          skillName: filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown",
-        });
-      }
-
-      const relativePath = filePath.replace(shitennoDir, "").replace(/^\//, "");
-      const plansDir = join("governance", "plans");
-      if (
-        relativePath.startsWith(plansDir) &&
-        relativePath.endsWith(".md") &&
-        !relativePath.includes("/done/") &&
-        !relativePath.includes("/reference/") &&
-        !relativePath.includes("/pipeline/") &&
-        !filePath.includes("TEMPLATE") &&
-        !filePath.includes("README")
-      ) {
-        const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
-        bus.publish("plan.created", {
-          planId,
-          path: relativePath,
-          title: planId.replace(/-/g, " "),
-        });
-
-        let fileContent = "";
-        try {
-          fileContent = readFileSync(filePath, "utf-8");
-        } catch {
-          // File might have been deleted between add and read
-        }
-        bus.publish("plan.file_changed", {
-          planId,
-          path: relativePath,
-          content: fileContent,
-        });
-      }
-
-      bus.publish("asset.created", {
-        assetId: filePath,
-        assetType: artifactType,
-        path: filePath,
-      });
-    });
-
-    return watcher;
-  }
-
-  activeWatcher = createWatcher();
+  activeWatcher = createWatcherInstance(watchPaths, ctx);
 
   return () => {
-    for (const timeout of pendingEvents.values()) {
+    for (const timeout of ctx.pendingEvents.values()) {
       clearTimeout(timeout);
     }
-    pendingEvents.clear();
+    ctx.pendingEvents.clear();
     watcherRestartCount = MAX_RESTARTS;
     activeWatcher?.close();
     activeWatcher = null;
   };
+}
+
+function createWatcherInstance(watchPaths: string[], ctx: WatcherContext): FSWatcher {
+  const watcher = watch(watchPaths, {
+    ignoreInitial: true,
+    depth: 3,
+    ignored: [
+      /node_modules/,
+      /telemetry\/events-/,
+      /docs\/generated\//,
+    ],
+  });
+
+  watcher.on("ready", () => {
+    watcherRestartCount = 0;
+    logger.info("file-watcher", "Watcher ready");
+  });
+
+  watcher.on("error", (err: unknown) => {
+    handleWatcherError(err, watchPaths, ctx);
+  });
+
+  watcher.on("change", (filePath: string) => {
+    handleChangeEvent(filePath, ctx);
+  });
+
+  watcher.on("add", (filePath: string) => {
+    handleFileAdd(filePath, ctx);
+  });
+
+  return watcher;
+}
+
+function handleWatcherError(err: unknown, watchPaths: string[], ctx: WatcherContext): void {
+  const error = err instanceof Error ? err : new Error(String(err));
+  logger.error("file-watcher", `Watcher error: ${error.message}`);
+  ctx.bus.publish("watcher.error" as never, {
+    error: error.message,
+    timestamp: new Date().toISOString(),
+  } as never);
+
+  if (watcherRestartCount >= MAX_RESTARTS) {
+    logger.error("file-watcher", `Max restart attempts (${MAX_RESTARTS}) reached — watcher stopped`);
+    return;
+  }
+
+  watcherRestartCount++;
+  const delay = getRestartDelay(watcherRestartCount);
+  logger.info("file-watcher", `Restarting watcher in ${delay}ms (attempt ${watcherRestartCount}/${MAX_RESTARTS})`);
+  setTimeout(() => {
+    activeWatcher?.close();
+    activeWatcher = createWatcherInstance(watchPaths, ctx);
+  }, delay);
+}
+
+function handleChangeEvent(filePath: string, ctx: WatcherContext): void {
+  if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
+  const existing = ctx.pendingEvents.get(filePath);
+  if (existing) clearTimeout(existing);
+
+  ctx.pendingEvents.set(
+    filePath,
+    setTimeout(() => {
+      ctx.pendingEvents.delete(filePath);
+      handleFileChange(filePath, ctx.shitennoDir, ctx.bus, ctx.enableDocSync);
+    }, ctx.debounceMs)
+  );
+}
+
+function handleFileAdd(filePath: string, ctx: WatcherContext): void {
+  if (!/\.(md|yaml|json|ts)$/.test(filePath)) return;
+
+  const { shitennoDir, bus } = ctx;
+  const addRelative = filePath.slice(shitennoDir.length + 1);
+  if (addRelative.split(/[/\\]/).some((s) => s.startsWith(".") && s !== "")) return;
+
+  const artifactType = detectArtifactType(filePath, shitennoDir);
+
+  publishArtifactCreatedEvents(filePath, artifactType, bus);
+  publishPlanFileEvents(filePath, shitennoDir, bus);
+
+  bus.publish("asset.created", {
+    assetId: filePath,
+    assetType: artifactType,
+    path: filePath,
+  });
+}
+
+function publishArtifactCreatedEvents(
+  filePath: string,
+  artifactType: ArtifactType,
+  bus: ReturnType<typeof getEventBus>,
+): void {
+  const fileName = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
+
+  if (artifactType === "adr") {
+    bus.publish("adr.created", { adrId: fileName, title: fileName, status: "proposed" });
+  }
+
+  if (artifactType === "skill") {
+    bus.publish("skill.created", { skillId: fileName, skillName: fileName });
+  }
+}
+
+function publishPlanFileEvents(
+  filePath: string,
+  shitennoDir: string,
+  bus: ReturnType<typeof getEventBus>,
+): void {
+  const relativePath = filePath.replace(shitennoDir, "").replace(/^\//, "");
+  const plansDir = join("governance", "plans");
+  if (
+    !relativePath.startsWith(plansDir) ||
+    !relativePath.endsWith(".md") ||
+    relativePath.includes("/done/") ||
+    relativePath.includes("/reference/") ||
+    relativePath.includes("/pipeline/") ||
+    filePath.includes("TEMPLATE") ||
+    filePath.includes("README")
+  ) return;
+
+  const planId = filePath.split("/").pop()?.replace(/\.md$/, "") || "unknown";
+  bus.publish("plan.created", {
+    planId,
+    path: relativePath,
+    title: planId.replace(/-/g, " "),
+  });
+
+  let fileContent = "";
+  try {
+    fileContent = readFileSync(filePath, "utf-8");
+  } catch {
+  }
+  bus.publish("plan.file_changed", {
+    planId,
+    path: relativePath,
+    content: fileContent,
+  });
 }
 
 function publishTypeSpecificEvents(
@@ -238,23 +279,21 @@ function publishTypeSpecificEvents(
 }
 
 function handleDocSync(
-  filePath: string,
-  relativePath: string,
-  significance: SignificanceResult,
+  info: ChangeInfo,
   enableDocSync: boolean,
   bus: ReturnType<typeof getEventBus>,
 ): void {
-  if (!enableDocSync || !significance.shouldSync) return;
-  if (significance.level === "high") {
-    logger.info("file-watcher", `High significance change: ${relativePath} (${significance.score.toFixed(2)})`);
+  if (!enableDocSync || !info.significance.shouldSync) return;
+  if (info.significance.level === "high") {
+    logger.info("file-watcher", `High significance change: ${info.relativePath} (${info.significance.score.toFixed(2)})`);
   }
   bus.publish("docs.sync.triggered", {
-    path: filePath,
-    relativePath,
-    significance: significance.score,
-    level: significance.level,
-    outputLevel: significance.outputLevel,
-    reasons: significance.reasons,
+    path: info.filePath,
+    relativePath: info.relativePath,
+    significance: info.significance.score,
+    level: info.significance.level,
+    outputLevel: info.significance.outputLevel,
+    reasons: info.significance.reasons,
   });
 }
 
@@ -310,11 +349,11 @@ function handleFileChange(
   let newContent: string;
   try { newContent = readFileSync(filePath, "utf-8"); } catch { newContent = ""; }
 
-  const significance = calculateSignificance(filePath, shitennoDir, null, newContent, frequency);
+  const significance = calculateSignificance({ filePath, shitennoDir, oldContent: null, newContent, frequency });
 
   bus.publish("asset.updated", { assetId: filePath, assetType: artifactType, path: filePath, changes: ["content"] });
   publishTypeSpecificEvents(artifactType, filePath, bus);
-  handleDocSync(filePath, relativePath, significance, enableDocSync, bus);
+  handleDocSync({ filePath, relativePath, significance }, enableDocSync, bus);
   handlePlanChange(filePath, relativePath, newContent, bus);
   handleBacklogChange(filePath, newContent, shitennoDir, bus);
 }

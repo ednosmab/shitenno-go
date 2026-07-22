@@ -2,8 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { join } from "node:path";
-import { auditHealth, writeHealthReport, type HealthAuditReport, issueFingerprint } from "../health-auditor.js";
-import { getCached, setCache, computeKeyChecksums } from "../cache.js";
+import { auditHealth, writeHealthReport, type HealthAuditReport, type AuditLevel, issueFingerprint } from "../health-auditor.js";
+import { getCached, computeKeyChecksums } from "../cache.js";
 import { healthBar, outputJson, banner } from "../formatting.js";
 import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
@@ -220,10 +220,10 @@ function handleFullSweep(options: { fullSweep?: boolean }, ctx: AuditActionCtx, 
 
 function fetchAuditReport(options: { cache?: boolean; level: string }, ctx: AuditActionCtx, level: string, changedFiles: string[] | undefined): Promise<{ report: HealthAuditReport; cacheHit: boolean }> {
   if (options.cache !== false && level !== "code-review" && level !== "enterprise") {
-    const cached = getCached<HealthAuditReport>(ctx.projectRoot, ctx.shitennoDir, "health", () => computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
+    const cached = getCached<HealthAuditReport>({ projectRoot: ctx.projectRoot, key: "health", computeChecksumsFn: () => computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir) });
     if (cached) return Promise.resolve({ report: cached, cacheHit: true });
   }
-  return auditHealth(ctx.projectRoot, ctx.shitennoDir, level, changedFiles).then((report) => ({ report, cacheHit: false }));
+  return auditHealth(ctx.projectRoot, ctx.shitennoDir, level as AuditLevel, changedFiles).then((report) => ({ report, cacheHit: false }));
 }
 
 function buildIssueCounts(issues: HealthAuditReport["issues"]) {
@@ -243,7 +243,11 @@ function buildIssueCounts(issues: HealthAuditReport["issues"]) {
   };
 }
 
-function displayHumanAuditReport(report: HealthAuditReport, graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: Array<{ name: string; type: string }>; hubArtifacts: Array<{ artifact: { name: string }; connectionCount: number }>; suggestions: string[] }, ctx: AuditActionCtx, isJson: boolean, cacheHit: boolean, reportFile: string | null): void {
+interface HumanReportInput { report: HealthAuditReport; graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: Array<{ name: string; type: string }>; hubArtifacts: Array<{ artifact: { name: string }; connectionCount: number }>; suggestions: string[] };
+  ctx: AuditActionCtx; isJson: boolean; cacheHit: boolean; reportFile: string | null; }
+
+function displayHumanAuditReport(input: HumanReportInput): void {
+  const { report, graphAnalysis, ctx, isJson, cacheHit, reportFile } = input;
   if (cacheHit) output(chalk.gray("  📦 Used cached results"));
   outputBlank();
   output(chalk.bold("  🏥 Health Audit Results:"));
@@ -364,7 +368,7 @@ function displayFixSuggestions(report: HealthAuditReport, ctx: AuditActionCtx, i
   displayAutofixApplication(prioritized, ctx, isJson);
 }
 
-function displayAutofixApplication(prioritized: Array<{ description: string; file: string; confidence: number }>, ctx: AuditActionCtx, isJson: boolean): void {
+function displayAutofixApplication(prioritized: ReturnType<typeof prioritizeSuggestions>, ctx: AuditActionCtx, isJson: boolean): void {
   if (!isJson || prioritized.length === 0) return;
   output(chalk.bold("  🔧 Applying high-confidence fixes..."));
   outputBlank();
@@ -415,7 +419,12 @@ function displayWhatWasMeasured(report: HealthAuditReport): void {
   outputBlank();
 }
 
-function handleJsonOutput(report: HealthAuditReport, graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: { length: number }; hubArtifacts: { length: number }; suggestions: string[] }, options: { apply?: boolean; dryRun?: boolean }, ctx: AuditActionCtx, cacheHit: boolean, reportFile: string | null, growthProfile: { growthCapacity?: number; challengeLevel?: string; patterns: Array<{ type: string }>; pathHistory: unknown[] }): void {
+interface JsonOutputInput { report: HealthAuditReport; graphAnalysis: { totalArtifacts: number; totalRelations: number; healthScore: number; orphanArtifacts: { length: number }; hubArtifacts: { length: number }; suggestions: string[] };
+  options: { apply?: boolean; dryRun?: boolean }; ctx: AuditActionCtx; cacheHit: boolean; reportFile: string | null;
+  growthProfile: { growthCapacity?: number; challengeLevel?: number; patterns: Array<{ type: string }>; pathHistory: unknown[] }; }
+
+function handleJsonOutput(input: JsonOutputInput): void {
+  const { report, graphAnalysis, options, ctx, cacheHit, reportFile, growthProfile } = input;
   let autofixReportJson: AutofixReport | undefined;
   if (options.apply && report.issues.length > 0) {
     const suggestions = generateFixSuggestions(report.issues as Parameters<typeof generateFixSuggestions>[0], []);
@@ -452,6 +461,121 @@ function displaySuppressedIssues(suppressedIssues: HealthAuditReport["suppressed
   outputBlank();
 }
 
+function resolveLevelLabel(level: string): string {
+  if (level === "enterprise") return "enterprise";
+  if (level === "code-review") return "code-review";
+  if (level === "quick") return "quick";
+  return "standard";
+}
+
+function resolveAuditLevel(level: string): string {
+  if (["quick", "standard", "code-review", "enterprise"].includes(level)) return level;
+  return "standard";
+}
+
+function applyMinConfidenceFilter(report: HealthAuditReport, minConfidence: number | undefined): HealthAuditReport {
+  if (minConfidence === undefined || minConfidence < 0 || minConfidence > 1) return report;
+  return { ...report, issues: report.issues.filter((i) => (i.confidence ?? 1.0) >= minConfidence) };
+}
+
+function initializeAuditOutput(isJson: boolean, options: { level: string }): void {
+  if (isJson) {
+    muteLogs();
+    return;
+  }
+  const levelLabel = resolveLevelLabel(options.level);
+  outputBlank();
+  banner("shugo audit", "Health Audit");
+  output(chalk.gray(`    Level: ${levelLabel}`));
+  outputBlank();
+}
+
+function runAuditExecution(
+  options: { level: string; minConfidence?: number; changed?: string | boolean; fullSweep?: boolean },
+  ctx: AuditActionCtx,
+  isJson: boolean,
+): Promise<{ report: HealthAuditReport; cacheHit: boolean; growthProfile: ReturnType<typeof loadGrowthProfile> } | null> {
+  return (async () => {
+    const level = resolveAuditLevel(options.level);
+    let changedFiles: string[] | undefined;
+    try {
+      changedFiles = handleChangedFiles(options, ctx, isJson);
+    } catch {
+      return null;
+    }
+    handleFullSweep(options, ctx, isJson);
+    const growthProfile = loadGrowthProfile(ctx.shitennoDir);
+    const { report: initialReport, cacheHit } = await fetchAuditReport(options, ctx, level, changedFiles);
+    const report = applyMinConfidenceFilter(initialReport, options.minConfidence);
+    return { report, cacheHit, growthProfile };
+  })();
+}
+
+interface HumanPostAuditInput {
+  report: HealthAuditReport;
+  graphAnalysis: ReturnType<typeof analyzeGraph>;
+  ctx: AuditActionCtx;
+  cacheHit: boolean;
+  reportFile: string | null;
+  options: { showSuppressed?: boolean; autoBacklog?: boolean };
+  growthProfile: ReturnType<typeof loadGrowthProfile>;
+}
+
+function displayHumanPostAudit(input: HumanPostAuditInput): Promise<void> {
+  return (async () => {
+    const { report, graphAnalysis, ctx, cacheHit, reportFile, options, growthProfile } = input;
+    displayHumanAuditReport({ report, graphAnalysis, ctx, isJson: false, cacheHit, reportFile });
+    await displayDynamicRules(ctx.projectRoot, ctx.shitennoDir);
+    output(chalk.bold("  📝 Summary:"));
+    output(chalk.gray(`    ${report.summary}`));
+    outputBlank();
+    if (options.showSuppressed && report.suppressedIssues.length > 0) {
+      displaySuppressedIssues(report.suppressedIssues);
+    }
+    output(formatGrowthProgress(growthProfile));
+    outputBlank();
+    getEventBus().publish("health.checked", {
+      status: resolveHealthStatus(report.healthScore),
+      healthScore: report.healthScore,
+      dimensionScores: report.dimensionScores,
+      issues: report.issues.map((i) => i.description),
+      checksRun: report.totalRules,
+    });
+    if (options.autoBacklog) handleAutoBacklog(report, graphAnalysis, ctx, false);
+    await displayCustomCheckResults(ctx, report);
+  })();
+}
+
+function resolveHealthStatus(healthScore: number): string {
+  if (healthScore >= 70) return "healthy";
+  if (healthScore >= 40) return "degraded";
+  return "critical";
+}
+
+async function displayCustomCheckResults(ctx: AuditActionCtx, report: HealthAuditReport): Promise<void> {
+  const hookBus = getHookBus();
+  const customResults = await hookBus.collectHook("custom-check", async (plugin) => {
+    if (plugin.hooks?.["custom-check"]) return await plugin.hooks["custom-check"]({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, healthReport: report });
+    return null;
+  });
+  if (customResults.length === 0) return;
+  output(chalk.bold("  🔌 Custom Checks:"));
+  for (const result of customResults) {
+    if (result) output(chalk.gray(`    ${result}`));
+  }
+  outputBlank();
+}
+
+function handleAuditError(error: unknown, isJson: boolean, spinner: ReturnType<typeof ora> | null): void {
+  if (isJson) {
+    outputJson({ error: "audit_failed", message: String(error) });
+    return;
+  }
+  if (spinner) spinner.fail("Health audit failed");
+  output(chalk.red(`  Error: ${error}`));
+  outputBlank();
+}
+
 // ── Main audit command ───────────────────────────────────────────────────────
 
 export const auditCommand = new Command("audit")
@@ -470,47 +594,29 @@ export const auditCommand = new Command("audit")
   .addCommand(auditSuppressCommand)
   .action(async (options) => {
     const isJson = options.json === true;
-    if (isJson) muteLogs();
-    if (!isJson) {
-      const levelLabel = options.level === "enterprise" ? "enterprise" : options.level === "code-review" ? "code-review" : options.level === "quick" ? "quick" : "standard";
-      outputBlank(); banner("shugo audit", "Health Audit"); output(chalk.gray(`    Level: ${levelLabel}`)); outputBlank();
-    }
+    initializeAuditOutput(isJson, options);
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
     void printDaemonBanner(ctx.shitennoDir, isJson);
     if (!checkLifecycleGate("audit", ctx.projectRoot, ctx.shitennoDir, isJson)) return;
     const spinner = isJson ? null : ora("Auditing governance health...").start();
     try {
-      const level = ["quick", "standard", "code-review", "enterprise"].includes(options.level) ? options.level : "standard";
-      let changedFiles: string[] | undefined;
-      try { changedFiles = handleChangedFiles(options, ctx, isJson); } catch { return; }
-      handleFullSweep(options, ctx, isJson);
-      const growthProfile = loadGrowthProfile(ctx.shitennoDir);
-      const { report: initialReport, cacheHit } = await fetchAuditReport(options, ctx, level, changedFiles);
-      let report = initialReport;
-      if (options.minConfidence !== undefined && options.minConfidence >= 0 && options.minConfidence <= 1) {
-        report = { ...report, issues: report.issues.filter((i) => (i.confidence ?? 1.0) >= options.minConfidence) };
-      }
+      const executionResult = await runAuditExecution(options, ctx, isJson);
+      if (!executionResult) return;
+      const { report, cacheHit, growthProfile } = executionResult;
       const reportFile = writeHealthReport(ctx.shitennoDir, report);
       const artifacts = discoverArtifacts(ctx.shitennoDir);
       const relations = discoverRelations(artifacts);
       const graphAnalysis = analyzeGraph(artifacts, relations);
       getEventBus().publish("knowledge.analyzed", { totalArtifacts: graphAnalysis.totalArtifacts, totalRelations: graphAnalysis.totalRelations, healthScore: graphAnalysis.healthScore });
       if (spinner) spinner.succeed(`Audit complete — code health: ${report.healthScore}/100`);
-      if (!isJson) displayWhatWasMeasured(report);
-      if (isJson) { handleJsonOutput(report, graphAnalysis, options, ctx, cacheHit, reportFile, growthProfile); return; }
-      displayHumanAuditReport(report, graphAnalysis, ctx, isJson, cacheHit, reportFile);
-      if (!isJson) await displayDynamicRules(ctx.projectRoot, ctx.shitennoDir);
-      output(chalk.bold("  📝 Summary:")); output(chalk.gray(`    ${report.summary}`)); outputBlank();
-      if (options.showSuppressed && report.suppressedIssues.length > 0) { displaySuppressedIssues(report.suppressedIssues); }
-      output(formatGrowthProgress(growthProfile)); outputBlank();
-      getEventBus().publish("health.checked", { status: report.healthScore >= 70 ? "healthy" : report.healthScore >= 40 ? "degraded" : "critical", healthScore: report.healthScore, dimensionScores: report.dimensionScores, issues: report.issues.map((i) => i.description), checksRun: report.totalRules });
-      if (options.autoBacklog) handleAutoBacklog(report, graphAnalysis, ctx, isJson);
-      const hookBus = getHookBus();
-      const customResults = await hookBus.collectHook("custom-check", async (plugin) => { if (plugin.hooks?.["custom-check"]) return await plugin.hooks["custom-check"]({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, healthReport: report }); return null; });
-      if (customResults.length > 0 && !isJson) { output(chalk.bold("  🔌 Custom Checks:")); for (const result of customResults) { if (result) output(chalk.gray(`    ${result}`)); } outputBlank(); }
+      if (isJson) {
+        handleJsonOutput({ report, graphAnalysis, options, ctx, cacheHit, reportFile, growthProfile });
+        return;
+      }
+      displayWhatWasMeasured(report);
+      await displayHumanPostAudit({ report, graphAnalysis, ctx, cacheHit, reportFile, options, growthProfile });
     } catch (error) {
-      if (isJson) outputJson({ error: "audit_failed", message: String(error) });
-      else { if (spinner) spinner.fail("Health audit failed"); output(chalk.red(`  Error: ${error}`)); outputBlank(); }
+      handleAuditError(error, isJson, spinner);
     }
   });

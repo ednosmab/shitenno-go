@@ -123,6 +123,358 @@ export function shouldBlockInit(targetDir: string, force: boolean): boolean {
   return targetDir.includes("shitenno-cli") && !force;
 }
 
+function displayProjectAnalysis(analysis: ProjectAnalysis, title: string): void {
+  output(chalk.bold(`  ${title}:`));
+  output(`    Stack:     ${analysis.stack.length > 0 ? analysis.stack.join(", ") : chalk.gray("none detected")}`);
+  output(`    Packages:  ${analysis.packageCount}`);
+  output(`    Apps:      ${analysis.appCount}`);
+  output(`    Source:    ${analysis.sourceFileCount} files`);
+  output(`    Manager:  ${analysis.packageManager}`);
+  output(`    TypeScript:${analysis.hasTypeScript ? " yes" : chalk.gray(" no")}`);
+  output(`    Tests:     ${analysis.hasTests ? "yes" : chalk.gray("no")}`);
+  output(`    CI/CD:     ${analysis.hasCI ? "yes" : chalk.gray("no")}`);
+  outputBlank();
+}
+
+async function handleAlreadyInitialized(targetDir: string): Promise<boolean> {
+  if (!existsSync(resolve(targetDir, SHITENNO_DIR_NAME))) return false;
+
+  output(chalk.yellow("  ⚠ Shugo is already initialized in this directory."));
+  outputBlank();
+  output(chalk.bold("  Your project has grown — let me re-analyze your maturity:"));
+  outputBlank();
+
+  const analyseSpinner = ora("Re-analysing project complexity...").start();
+  const analysis = analyseProject(targetDir);
+  analyseSpinner.succeed("Project analysis complete");
+
+  outputBlank();
+  displayProjectAnalysis(analysis, "Current state");
+
+  const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
+  const previousProfile = loadMaturityProfile(shitennoDir);
+
+  if (previousProfile) {
+    output(chalk.bold("  Previous maturity score:"));
+    output(`    ${previousProfile.overallScore}/100 ${healthBar(previousProfile.overallScore, 100)}`);
+    outputBlank();
+  }
+
+  output(chalk.gray("  Or:  shugo init --accept-recommended"));
+  outputBlank();
+
+  return true;
+}
+
+function analyseAndDisplay(targetDir: string): ProjectAnalysis {
+  const analyseSpinner = ora("Analysing project...").start();
+  const analysis = analyseProject(targetDir);
+  analyseSpinner.succeed("Project analysis complete");
+  outputBlank();
+  displayProjectAnalysis(analysis, "Detected");
+  return analysis;
+}
+
+async function getAnswers(
+  options: { answersFile?: string },
+  analysis: ProjectAnalysis,
+): Promise<UserAnswers | null> {
+  if (options.answersFile) {
+    const answersPath = resolve(options.answersFile);
+    if (!existsSync(answersPath)) {
+      output(chalk.red(`  ✘ Answers file not found: ${answersPath}`));
+      process.exitCode = 1;
+      return null;
+    }
+    const raw = readFileSync(answersPath, "utf-8");
+    output(chalk.gray(`  Loaded answers from ${options.answersFile}`));
+    return JSON.parse(raw);
+  }
+
+  if (!guardInteractive(options, false)) return null;
+
+  output(chalk.bold("  Answer a few questions to determine your maturity profile:"));
+  outputBlank();
+  return await askQuestions(analysis);
+}
+
+function calculateAndDisplayProfile(
+  targetDir: string,
+  answers: UserAnswers,
+  analysis: ProjectAnalysis,
+): { profile: MaturityProfile; shitennoDir: string } {
+  const profileSpinner = ora("Calculating maturity profile...").start();
+  const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
+  const profile = calculateMaturityProfile(answers.maturity, analysis, shitennoDir);
+  profileSpinner.succeed("Maturity profile calculated");
+
+  outputBlank();
+  output(chalk.bold.green("  ═══ Maturity Profile ═══"));
+  outputBlank();
+  displayMaturityDimensions(profile);
+  outputBlank();
+  displayCapabilities(profile);
+
+  return { profile, shitennoDir };
+}
+
+function handleDryRun(profile: MaturityProfile): void {
+  const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
+  output(chalk.bold.green("  ═══ Dry Run — Would install ═══"));
+  outputBlank();
+  output(chalk.bold("  Capabilities:"));
+  for (const cap of capsToInstall) {
+    const info = CAPABILITIES.find((c) => c.id === cap);
+    output(chalk.green(`    ✓ ${info?.name || cap}`));
+  }
+  outputBlank();
+  output(chalk.bold("  Files that would be created:"));
+  output(chalk.gray("    opencode.json"));
+  output(chalk.gray("    shitenno/ (governance ecosystem)"));
+  for (const dir of ["governance", "docs", "skills", "scripts", "telemetry"] as string[]) {
+    output(chalk.gray(`      ${dir}/`));
+  }
+  outputBlank();
+  output(chalk.gray("  Run without --dry-run to apply changes."));
+  outputBlank();
+}
+
+function displaySuccessResults(
+  result: { directoriesCreated: string[]; filesCreated: string[] },
+): void {
+  outputBlank();
+  output(chalk.bold.green("  ✓ Shitenno Framework installed!"));
+  outputBlank();
+  output(chalk.bold("  Structure created:"));
+  output(chalk.gray("    opencode.json          ← configuration (project root)"));
+  output(chalk.gray("    shitenno/          ← governance ecosystem"));
+  for (const dir of result.directoriesCreated) {
+    if (dir === SHITENNO_DIR_NAME) continue;
+    output(chalk.gray(`      ${dir.replace("shitenno/", "")}/`));
+  }
+  outputBlank();
+  output(chalk.bold("  Files created:"));
+  for (const file of result.filesCreated) {
+    output(chalk.gray(`    ${file}`));
+  }
+  outputBlank();
+  output(chalk.bold("  Next steps:"));
+  output(chalk.gray("    1. Edit shitenno/docs/AGENTS.md to customise rules"));
+  output(chalk.gray("    2. Edit opencode.json to set your AI models"));
+  output(chalk.gray("    3. Run 'shugo status' to check governance health"));
+  output(chalk.gray("    4. Run 'shugo assess' to re-evaluate maturity later"));
+  outputBlank();
+}
+
+function mergeMcpJson(
+  mcpJsonPath: string,
+  entry: Record<string, { command: string; args: string[] }>,
+): void {
+  try {
+    const existing = JSON.parse(readFileSync(mcpJsonPath, "utf-8"));
+    if (!existing.mcpServers) existing.mcpServers = {};
+    existing.mcpServers["shitenno-mcp"] = entry["shitenno-mcp"];
+    writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
+  } catch {
+    const merged = { mcpServers: { ...entry } };
+    writeFileSync(mcpJsonPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
+  }
+}
+
+function generateMcpJson(
+  targetDir: string,
+  result: { filesCreated: string[] },
+): void {
+  const mcpJsonPath = join(targetDir, ".mcp.json");
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const mcpTemplatePath = join(currentDir, "..", "templates", "base", ".mcp.json");
+  const shitennoMcpEntry = { "shitenno-mcp": { command: "shugo", args: ["mcp"] } };
+
+  if (existsSync(mcpJsonPath)) {
+    mergeMcpJson(mcpJsonPath, shitennoMcpEntry);
+  } else if (existsSync(mcpTemplatePath)) {
+    copySync(mcpTemplatePath, mcpJsonPath);
+  } else {
+    const content = { mcpServers: shitennoMcpEntry };
+    writeFileSync(mcpJsonPath, JSON.stringify(content, null, 2) + "\n", "utf-8");
+  }
+  result.filesCreated.push(".mcp.json");
+}
+
+interface PublishInitEventsOptions {
+  bus: ReturnType<typeof getEventBus>;
+  result: { filesCreated: string[] };
+  capsToInstall: Capability[];
+  cliVersion: string;
+  previousProfile: MaturityProfile | null;
+  profile: MaturityProfile;
+}
+
+function publishInitEvents(options: PublishInitEventsOptions): void {
+  const { bus, result, capsToInstall, cliVersion, previousProfile, profile } = options;
+  for (const file of result.filesCreated) {
+    bus.publish("asset.created", {
+      assetId: file,
+      assetType: "governance",
+      path: file,
+    });
+  }
+
+  for (const cap of capsToInstall) {
+    bus.publish("capability.installed", {
+      capabilityId: cap,
+      capabilityName: cap,
+      version: cliVersion,
+    });
+  }
+
+  if (previousProfile) {
+    bus.publish("maturity.changed", {
+      dimension: "overall",
+      previousScore: previousProfile.overallScore,
+      newScore: profile.overallScore,
+      delta: profile.overallScore - previousProfile.overallScore,
+    });
+  }
+}
+
+function installGitHooks(targetDir: string): void {
+  try {
+    const hooksResult = installReactiveHooks(targetDir, "shugo");
+    if (hooksResult.installed.length > 0) {
+      output(chalk.gray(`  ✓ Shugo git hooks installed: ${hooksResult.installed.join(", ")}`));
+    } else if (hooksResult.skipped.length > 0 && hooksResult.skipped[0] !== "not-a-git-repo") {
+      output(chalk.gray(`  • Git hooks already configured`));
+    }
+  } catch (error) {
+    logger.debug("init", "Failed to install git hooks", { error });
+  }
+}
+
+async function getCliVersion(): Promise<string> {
+  try {
+    const { readFileSync: readFS } = await import("node:fs");
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const pkg = JSON.parse(readFS(join(__dirname, "..", "..", "package.json"), "utf-8"));
+    return pkg.version || "unknown";
+  } catch (error) {
+    logger.debug("init", "Suppressed error", { error });
+    return "unknown";
+  }
+}
+
+function saveUserProfileFromAnswers(shitennoDir: string, answers: UserAnswers): void {
+  if (answers.userProfile) {
+    saveUserProfile(shitennoDir, {
+      name: answers.userProfile.name,
+      role: answers.userProfile.role,
+      architecture: answers.userProfile.architecture,
+      coding: answers.userProfile.coding,
+      leadership: answers.userProfile.leadership,
+      tone: answers.userProfile.tone,
+      language: answers.userProfile.language,
+      codeFreePercent: answers.userProfile.codeFreePercent,
+      focusAreas: answers.userProfile.focusAreas,
+    });
+  }
+}
+
+async function generateFingerprintAndBriefing(
+  targetDir: string,
+  shitennoDir: string,
+  analysis: ProjectAnalysis,
+  profile: MaturityProfile,
+): Promise<void> {
+  const { generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
+  const fingerprint = generateProjectFingerprint(targetDir, analysis, profile.overallScore);
+  saveFingerprint(shitennoDir, fingerprint);
+
+  try {
+    const { generateRiskMap } = await import("../risk-map.js");
+    const { generateBriefing, briefingToMarkdown } = await import("../briefing.js");
+    const riskMap = generateRiskMap(targetDir, shitennoDir);
+    const briefing = generateBriefing({ fingerprint, riskMap, contextRules: [], dynamicRules: [], maturityProfile: profile });
+    const briefingPath = join(shitennoDir, "BRIEFING.md");
+    writeFileSync(briefingPath, briefingToMarkdown(briefing), "utf-8");
+  } catch (error) {
+    logger.debug("init", "Suppressed error", { error });
+  }
+}
+
+async function loadAndRegisterPlugins(targetDir: string): Promise<void> {
+  const plugins = await loadPlugins(targetDir);
+  const hookBus = getHookBus();
+  for (const plugin of plugins) {
+    hookBus.registerPlugin(plugin);
+  }
+  if (plugins.length > 0) {
+    output(chalk.gray(`  🔌 Loaded ${plugins.length} plugin(s)`));
+  }
+}
+
+function handleScaffoldError(error: unknown, shitennoDir: string): void {
+  outputError(chalk.red(`  Error: ${error}`));
+  if (existsSync(shitennoDir)) {
+    try {
+      fse.removeSync(shitennoDir);
+      output(chalk.gray("  Cleaned up partial shitenno/ directory."));
+    } catch {
+      output(chalk.yellow("  ⚠ Could not clean up shitenno/ — remove manually."));
+    }
+  }
+  process.exitCode = 1;
+}
+
+async function runScaffolding(
+  targetDir: string,
+  analysis: ProjectAnalysis,
+  profile: MaturityProfile,
+  answers: UserAnswers,
+): Promise<void> {
+  const scaffoldSpinner = ora("Installing governance ecosystem...").start();
+  const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
+  const previousProfile = existsSync(shitennoDir) ? loadMaturityProfile(shitennoDir) : null;
+
+  try {
+    const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
+    const result = scaffoldShitenno(targetDir, answers, capsToInstall);
+    scaffoldSpinner.succeed("Framework installed!");
+
+    initializeRules(shitennoDir);
+    saveMaturityProfile(shitennoDir, profile);
+    recordMaturitySnapshot(shitennoDir, profile);
+
+    const cliVersion = await getCliVersion();
+    const manifest = createManifest(cliVersion, shitennoDir, capsToInstall, profile.overallScore);
+    writeManifest(shitennoDir, manifest);
+
+    saveUserProfileFromAnswers(shitennoDir, answers);
+    await generateFingerprintAndBriefing(targetDir, shitennoDir, analysis, profile);
+
+    displaySuccessResults(result);
+    invalidateCache({ projectRoot: targetDir });
+
+    if (answers.enableMcpRegistration) {
+      generateMcpJson(targetDir, result);
+    }
+
+    installGitHooks(targetDir);
+    await loadAndRegisterPlugins(targetDir);
+
+    if (profile.futureCapabilities.length > 0) {
+      output(chalk.gray("  As your project grows, run 'shugo assess' to discover new capabilities."));
+    }
+    outputBlank();
+
+    const bus = getEventBus();
+    publishInitEvents({ bus, result, capsToInstall, cliVersion, previousProfile, profile });
+  } catch (error) {
+    scaffoldSpinner.fail("Failed to install ecosystem");
+    handleScaffoldError(error, shitennoDir);
+  }
+}
+
 export const initCommand = new Command("init")
   .description("Initialize Shitenno ecosystem with maturity-based discovery")
   .option("-d, --dir <path>", "Project root directory (default: current)")
@@ -135,12 +487,8 @@ export const initCommand = new Command("init")
     banner("shugo init", isDryRun ? "Dry Run — No files will be written" : "Maturity-Based Discovery");
     outputBlank();
 
-    // Determine project root
-    const targetDir = options.dir
-      ? resolve(options.dir)
-      : resolve(process.cwd());
+    const targetDir = options.dir ? resolve(options.dir) : resolve(process.cwd());
 
-    // Safety guard
     if (shouldBlockInit(targetDir, options.force === true)) {
       output(chalk.yellow("  ⚠ shitenno should be created in your project, not inside shitenno-cli."));
       output(chalk.gray("  Run from your project root: shugo init"));
@@ -149,314 +497,18 @@ export const initCommand = new Command("init")
       return;
     }
 
-    // Check if already initialized
-    if (existsSync(resolve(targetDir, SHITENNO_DIR_NAME))) {
-      output(chalk.yellow("  ⚠ Shugo is already initialized in this directory."));
-      outputBlank();
-      output(chalk.bold("  Your project has grown — let me re-analyze your maturity:"));
-      outputBlank();
+    if (await handleAlreadyInitialized(targetDir)) return;
 
-      // Re-analyse project complexity
-      const analyseSpinner = ora("Re-analysing project complexity...").start();
-      const analysis = analyseProject(targetDir);
-      analyseSpinner.succeed("Project analysis complete");
+    const analysis = analyseAndDisplay(targetDir);
+    const answers = await getAnswers(options, analysis);
+    if (!answers) return;
 
-      // Show what was detected (compare with initial state)
-      outputBlank();
-      output(chalk.bold("  Current state:"));
-      output(`    Stack:     ${analysis.stack.length > 0 ? analysis.stack.join(", ") : chalk.gray("none detected")}`);
-      output(`    Packages:  ${analysis.packageCount}`);
-      output(`    Apps:      ${analysis.appCount}`);
-      output(`    Source:    ${analysis.sourceFileCount} files`);
-      output(`    Manager:  ${analysis.packageManager}`);
-      output(`    TypeScript:${analysis.hasTypeScript ? " yes" : chalk.gray(" no")}`);
-      output(`    Tests:     ${analysis.hasTests ? "yes" : chalk.gray("no")}`);
-      output(`    CI/CD:     ${analysis.hasCI ? "yes" : chalk.gray("no")}`);
-      outputBlank();
+    const { profile } = calculateAndDisplayProfile(targetDir, answers, analysis);
 
-      // Load previous maturity profile
-      const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
-      const previousProfile = loadMaturityProfile(shitennoDir);
-
-      if (previousProfile) {
-        output(chalk.bold("  Previous maturity score:"));
-        output(`    ${previousProfile.overallScore}/100 ${healthBar(previousProfile.overallScore, 100)}`);
-        outputBlank();
-      }
-
-      output(chalk.gray("  Or:  shugo init --accept-recommended"));
-      outputBlank();
-
-      return;
-    }
-
-    // Step 1: Analyse project
-    const analyseSpinner = ora("Analysing project...").start();
-    const analysis = analyseProject(targetDir);
-    analyseSpinner.succeed("Project analysis complete");
-
-    // Show what was detected
-    outputBlank();
-    output(chalk.bold("  Detected:"));
-    output(`    Stack:     ${analysis.stack.length > 0 ? analysis.stack.join(", ") : chalk.gray("none detected")}`);
-    output(`    Packages:  ${analysis.packageCount}`);
-    output(`    Apps:      ${analysis.appCount}`);
-    output(`    Source:    ${analysis.sourceFileCount} files`);
-    output(`    Manager:  ${analysis.packageManager}`);
-    output(`    TypeScript:${analysis.hasTypeScript ? " yes" : chalk.gray(" no")}`);
-    output(`    Tests:     ${analysis.hasTests ? "yes" : chalk.gray("no")}`);
-    output(`    CI/CD:     ${analysis.hasCI ? "yes" : chalk.gray("no")}`);
-    outputBlank();
-
-    // Step 2: Get answers (interactive or from file)
-    let answers: UserAnswers;
-    if (options.answersFile) {
-      const answersPath = resolve(options.answersFile);
-      if (!existsSync(answersPath)) {
-        output(chalk.red(`  ✘ Answers file not found: ${answersPath}`));
-        process.exitCode = 1;
-        return;
-      }
-      const raw = readFileSync(answersPath, "utf-8");
-      answers = JSON.parse(raw);
-      output(chalk.gray(`  Loaded answers from ${options.answersFile}`));
-    } else {
-      // Guard against non-interactive environments
-      if (!guardInteractive(options, false)) return;
-
-      output(chalk.bold("  Answer a few questions to determine your maturity profile:"));
-      outputBlank();
-      answers = await askQuestions(analysis);
-    }
-
-    // Step 3: Calculate maturity profile
-    const profileSpinner = ora("Calculating maturity profile...").start();      const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
-    const profile = calculateMaturityProfile(answers.maturity, analysis, shitennoDir);
-    profileSpinner.succeed("Maturity profile calculated");
-
-    // Step 4: Display maturity profile
-    outputBlank();
-    output(chalk.bold.green("  ═══ Maturity Profile ═══"));
-    outputBlank();
-    displayMaturityDimensions(profile);
-    outputBlank();
-    displayCapabilities(profile);
-
-    // Dry-run: show what would be installed and return
     if (isDryRun) {
-      const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
-      output(chalk.bold.green("  ═══ Dry Run — Would install ═══"));
-      outputBlank();
-      output(chalk.bold("  Capabilities:"));
-      for (const cap of capsToInstall) {
-        const info = CAPABILITIES.find((c) => c.id === cap);
-        output(chalk.green(`    ✓ ${info?.name || cap}`));
-      }
-      outputBlank();
-      output(chalk.bold("  Files that would be created:"));
-      output(chalk.gray("    opencode.json"));
-      output(chalk.gray("    shitenno/ (governance ecosystem)"));
-      for (const dir of ["governance", "docs", "skills", "scripts", "telemetry"] as string[]) {
-        output(chalk.gray(`      ${dir}/`));
-      }
-      outputBlank();
-      output(chalk.gray("  Run without --dry-run to apply changes."));
-      outputBlank();
+      handleDryRun(profile);
       return;
     }
 
-    // Step 5: Scaffold by capabilities
-    const scaffoldSpinner = ora("Installing governance ecosystem...").start();
-    const shitennoDirForEvents = resolve(targetDir, SHITENNO_DIR_NAME);
-    const previousProfile = existsSync(shitennoDirForEvents) ? loadMaturityProfile(shitennoDirForEvents) : null;
-    try {
-      // Determine which capabilities to install (recommended + selected)
-      const capsToInstall: Capability[] = ["core", ...profile.recommendedCapabilities];
-
-      // Allow user to customize if they want more
-      const result = scaffoldShitenno(targetDir, answers, capsToInstall);
-      scaffoldSpinner.succeed("Framework installed!");
-
-      // Initialize default rules if governance/rules is empty
-      initializeRules(shitennoDir);
-
-      // Save maturity profile
-      saveMaturityProfile(shitennoDir, profile);
-      recordMaturitySnapshot(shitennoDir, profile);
-
-      // Create installation manifest for change detection
-      const { readFileSync: readFS } = await import("node:fs");
-      let cliVersion = "unknown";
-      try {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        const pkg = JSON.parse(readFS(join(__dirname, "..", "..", "package.json"), "utf-8"));
-        cliVersion = pkg.version || "unknown";
-      } catch (error) {
-        logger.debug("init", "Suppressed error", { error });
-      }
-      const manifest = createManifest(cliVersion, shitennoDir, capsToInstall, profile.overallScore);
-      writeManifest(shitennoDir, manifest);
-
-      // Save user profile for personalized feedback
-      if (answers.userProfile) {
-        saveUserProfile(shitennoDir, {
-          name: answers.userProfile.name,
-          role: answers.userProfile.role,
-          architecture: answers.userProfile.architecture,
-          coding: answers.userProfile.coding,
-          leadership: answers.userProfile.leadership,
-          tone: answers.userProfile.tone,
-          language: answers.userProfile.language,
-          codeFreePercent: answers.userProfile.codeFreePercent,
-          focusAreas: answers.userProfile.focusAreas,
-        });
-      }
-
-      // Generate project fingerprint
-      const { generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
-      const fingerprint = generateProjectFingerprint(targetDir, analysis, profile.overallScore);
-      saveFingerprint(shitennoDir, fingerprint);
-
-      // Generate initial BRIEFING.md
-      try {
-        const { generateRiskMap } = await import("../risk-map.js");
-        const { generateBriefing, briefingToMarkdown } = await import("../briefing.js");
-        const riskMap = generateRiskMap(targetDir, shitennoDir);
-        const briefing = generateBriefing(fingerprint, riskMap, [], [], profile);
-        const briefingPath = join(shitennoDir, "BRIEFING.md");
-        writeFileSync(briefingPath, briefingToMarkdown(briefing), "utf-8");
-      } catch (error) {
-        logger.debug("init", "Suppressed error", { error });
-      }
-
-      // Display results
-      outputBlank();
-      output(chalk.bold.green("  ✓ Shitenno Framework installed!"));
-      outputBlank();
-      output(chalk.bold("  Structure created:"));
-      output(chalk.gray("    opencode.json          ← configuration (project root)"));
-      output(chalk.gray("    shitenno/          ← governance ecosystem"));
-      for (const dir of result.directoriesCreated) {
-        if (dir === SHITENNO_DIR_NAME) continue;
-        output(chalk.gray(`      ${dir.replace("shitenno/", "")}/`));
-      }
-      outputBlank();
-      output(chalk.bold("  Files created:"));
-      for (const file of result.filesCreated) {
-        output(chalk.gray(`    ${file}`));
-      }
-      outputBlank();
-      output(chalk.bold("  Next steps:"));
-      output(chalk.gray("    1. Edit shitenno/docs/AGENTS.md to customise rules"));
-      output(chalk.gray("    2. Edit opencode.json to set your AI models"));
-      output(chalk.gray("    3. Run 'shugo status' to check governance health"));
-      output(chalk.gray("    4. Run 'shugo assess' to re-evaluate maturity later"));
-      outputBlank();
-
-      // Invalidate cache
-      invalidateCache(targetDir);
-
-      // Generate .mcp.json at project root if user opted in
-      if (answers.enableMcpRegistration) {
-        const mcpJsonPath = join(targetDir, ".mcp.json");
-        const currentDir = dirname(fileURLToPath(import.meta.url));
-        const mcpTemplatePath = join(currentDir, "..", "templates", "base", ".mcp.json");
-        const shitennoMcpEntry = { "shitenno-mcp": { command: "shugo", args: ["mcp"] } };
-
-        if (existsSync(mcpJsonPath)) {
-          try {
-            const existing = JSON.parse(readFileSync(mcpJsonPath, "utf-8"));
-            if (!existing.mcpServers) existing.mcpServers = {};
-            existing.mcpServers["shitenno-mcp"] = shitennoMcpEntry["shitenno-mcp"];
-            writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
-          } catch {
-            const merged = { mcpServers: { ...shitennoMcpEntry } };
-            writeFileSync(mcpJsonPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
-          }
-        } else if (existsSync(mcpTemplatePath)) {
-          copySync(mcpTemplatePath, mcpJsonPath);
-        } else {
-          const content = { mcpServers: shitennoMcpEntry };
-          writeFileSync(mcpJsonPath, JSON.stringify(content, null, 2) + "\n", "utf-8");
-        }
-        result.filesCreated.push(".mcp.json");
-      }
-
-      // Install reactive git hooks (append-safe, husky-aware)
-      try {
-        const hooksResult = installReactiveHooks(targetDir, "shugo");
-        if (hooksResult.installed.length > 0) {
-          output(chalk.gray(`  ✓ Shugo git hooks installed: ${hooksResult.installed.join(", ")}`));
-        } else if (hooksResult.skipped.length > 0 && hooksResult.skipped[0] !== "not-a-git-repo") {
-          output(chalk.gray(`  • Git hooks already configured`));
-        }
-      } catch (error) {
-        logger.debug("init", "Failed to install git hooks", { error });
-      }
-
-      // Load and register plugins
-      const plugins = await loadPlugins(targetDir);
-      const hookBus = getHookBus();
-      for (const plugin of plugins) {
-        hookBus.registerPlugin(plugin);
-      }
-      if (plugins.length > 0) {
-        output(chalk.gray(`  🔌 Loaded ${plugins.length} plugin(s)`));
-      }
-
-      // Suggest future capabilities
-      if (profile.futureCapabilities.length > 0) {
-        output(chalk.gray("  As your project grows, run 'shugo assess' to discover new capabilities."));
-      }
-      outputBlank();
-
-      // Publish events for init completion
-      const bus = getEventBus();
-
-      // Asset created events for scaffolding files
-      for (const file of result.filesCreated) {
-        bus.publish("asset.created", {
-          assetId: file,
-          assetType: "governance",
-          path: file,
-        });
-      }
-
-      // Capability installed events
-      for (const cap of capsToInstall) {
-        bus.publish("capability.installed", {
-          capabilityId: cap,
-          capabilityName: cap,
-          version: cliVersion,
-        });
-      }
-
-      // Maturity changed event (initial score)
-      if (previousProfile) {
-        bus.publish("maturity.changed", {
-          dimension: "overall",
-          previousScore: previousProfile.overallScore,
-          newScore: profile.overallScore,
-          delta: profile.overallScore - previousProfile.overallScore,
-        });
-      }
-    } catch (error) {
-      scaffoldSpinner.fail("Failed to install ecosystem");
-      outputError(chalk.red(`  Error: ${error}`));
-
-      // Rollback: remove partial shitenno directory
-      const shitennoDir = resolve(targetDir, SHITENNO_DIR_NAME);
-      if (existsSync(shitennoDir)) {
-        try {
-          fse.removeSync(shitennoDir);
-          output(chalk.gray("  Cleaned up partial shitenno/ directory."));
-        } catch {
-          output(chalk.yellow("  ⚠ Could not clean up shitenno/ — remove manually."));
-        }
-      }
-
-      process.exitCode = 1;
-      return;
-    }
+    await runScaffolding(targetDir, analysis, profile, answers);
   });

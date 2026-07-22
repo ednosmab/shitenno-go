@@ -49,15 +49,84 @@ function execSafe(
   }
 }
 
-export function installMcpServer(
-  options: {
-    check?: boolean;
-    upgrade?: boolean;
-  } = {}
-): McpInstallResult {
-  const packageName = "@modelcontextprotocol/server-filesystem";
+function parseInstalledVersion(
+  json: string,
+  packageName: string
+): string | undefined {
+  try {
+    const parsed = JSON.parse(json);
+    return parsed.dependencies?.[packageName]?.version;
+  } catch {
+    return undefined;
+  }
+}
 
-  // Check node version
+function getCurrentVersion(packageName: string): string | undefined {
+  const listResult = execSafe(`npm list -g ${packageName} --json`, {
+    timeout: 15000,
+  });
+  if (listResult.exitCode === 0 && listResult.stdout) {
+    return parseInstalledVersion(listResult.stdout, packageName);
+  }
+  return undefined;
+}
+
+function getLatestVersion(packageName: string): {
+  version: string | undefined;
+  failed: boolean;
+} {
+  const viewResult = execSafe(`npm view ${packageName} version`, {
+    timeout: 15000,
+  });
+  if (viewResult.exitCode === 0 && viewResult.stdout) {
+    return { version: viewResult.stdout, failed: false };
+  }
+  return { version: undefined, failed: true };
+}
+
+function runNpmInstall(
+  packageName: string,
+  tag: string
+): { error?: string; errorCode?: string } | null {
+  const installResult = execSafe(`npm install -g ${packageName}${tag}`, {
+    timeout: 120000,
+  });
+  if (installResult.exitCode === 0) return null;
+  const message = installResult.stderr || installResult.stdout;
+  const action = tag ? "Upgrading" : "Installing";
+  if (message.includes("EACCES") || message.includes("EPERM")) {
+    return {
+      error: `${action} failed: Permission denied.\n  Fix: npm config set prefix ~/.npm-global\n  Then add to PATH: export PATH=~/.npm-global/bin:$PATH`,
+      errorCode: "PERMISSION_DENIED",
+    };
+  }
+  return {
+    error: `${action} failed: ${message}`,
+    errorCode: "INSTALL_FAILED",
+  };
+}
+
+function verifyInstalledVersion(
+  packageName: string
+): string | undefined {
+  const verifyResult = execSafe(`npm list -g ${packageName} --json`, {
+    timeout: 15000,
+  });
+  if (verifyResult.exitCode === 0 && verifyResult.stdout) {
+    return parseInstalledVersion(verifyResult.stdout, packageName);
+  }
+  return undefined;
+}
+
+function checkPrerequisites(
+  packageName: string,
+  options: { check?: boolean; upgrade?: boolean }
+): McpInstallResult | {
+  currentVersion: string | undefined;
+  latestVersion: string | undefined;
+  latestVersionCheckFailed: boolean;
+  shouldInstall: boolean;
+} {
   const nodeMajor = getNodeMajorVersion();
   if (nodeMajor < 18) {
     return {
@@ -67,7 +136,6 @@ export function installMcpServer(
     };
   }
 
-  // Check npm availability
   const npmCheck = execSafe("npm --version", { timeout: 5000 });
   if (npmCheck.exitCode !== 0) {
     return {
@@ -77,130 +145,57 @@ export function installMcpServer(
     };
   }
 
-  // Check current installed version
-  let currentVersion: string | undefined;
-  const listResult = execSafe(`npm list -g ${packageName} --json`, {
-    timeout: 15000,
-  });
-  if (listResult.exitCode === 0 && listResult.stdout) {
-    try {
-      const parsed = JSON.parse(listResult.stdout);
-      const pkg = parsed.dependencies?.[packageName];
-      if (pkg?.version) {
-        currentVersion = pkg.version;
-      }
-    } catch {
-      currentVersion = undefined;
-    }
-  }
+  const currentVersion = getCurrentVersion(packageName);
+  const latest = getLatestVersion(packageName);
+  const latestVersion = latest.version;
+  const latestVersionCheckFailed = latest.failed;
 
-  // Check latest available version
-  let latestVersion: string | undefined;
-  let latestVersionCheckFailed = false;
-  const viewResult = execSafe(`npm view ${packageName} version`, {
-    timeout: 15000,
-  });
-  if (viewResult.exitCode === 0 && viewResult.stdout) {
-    latestVersion = viewResult.stdout;
-  } else {
-    latestVersionCheckFailed = true;
-  }
-
-  // Check-only mode
   if (options.check) {
     return {
       installed: !!currentVersion,
       version: currentVersion,
-      upgrade: !!(
-        currentVersion &&
-        latestVersion &&
-        currentVersion !== latestVersion
-      ),
+      upgrade: !!(currentVersion && latestVersion && currentVersion !== latestVersion),
       latestVersionCheckFailed,
     };
   }
 
-  const isOutdated =
-    currentVersion &&
-    latestVersion &&
-    currentVersion !== latestVersion;
+  const isOutdated = !!(currentVersion && latestVersion && currentVersion !== latestVersion);
+  const shouldInstall =
+    !currentVersion || (options.upgrade && isOutdated) || (!options.upgrade && isOutdated);
 
-  // Already installed and up to date, no upgrade requested
-  if (currentVersion && !options.upgrade && !isOutdated) {
+  if (!shouldInstall) {
     return {
       installed: true,
       version: currentVersion,
+      ...(options.upgrade && latestVersion ? { upgrade: false } : {}),
       latestVersionCheckFailed,
     };
   }
 
-  // Already installed and upgrade requested, but already latest
-  if (currentVersion && options.upgrade && latestVersion && !isOutdated) {
-    return {
-      installed: true,
-      version: currentVersion,
-      upgrade: false,
-      latestVersionCheckFailed,
-    };
+  return { currentVersion, latestVersion, latestVersionCheckFailed, shouldInstall: true };
+}
+
+export function installMcpServer(
+  options: { check?: boolean; upgrade?: boolean } = {}
+): McpInstallResult {
+  const packageName = "@modelcontextprotocol/server-filesystem";
+  const preReq = checkPrerequisites(packageName, options);
+
+  if ("installed" in preReq) return preReq;
+
+  const tag = options.upgrade && preReq.latestVersion ? `@${preReq.latestVersion}` : "";
+  const installError = runNpmInstall(packageName, tag);
+  if (installError) {
+    return { installed: false, ...installError, latestVersionCheckFailed: preReq.latestVersionCheckFailed } as McpInstallResult;
   }
 
-  // Install or upgrade
-  const tag =
-    options.upgrade && latestVersion ? `@${latestVersion}` : "";
-  const action = options.upgrade ? "Upgrading" : "Installing";
-
-  const installResult = execSafe(
-    `npm install -g ${packageName}${tag}`,
-    { timeout: 120000 }
-  );
-
-  if (installResult.exitCode !== 0) {
-    const message = installResult.stderr || installResult.stdout;
-
-    if (
-      message.includes("EACCES") ||
-      message.includes("EPERM")
-    ) {
-      return {
-        installed: false,
-        error: `${action} failed: Permission denied.\n  Fix: npm config set prefix ~/.npm-global\n  Then add to PATH: export PATH=~/.npm-global/bin:$PATH`,
-        errorCode: "PERMISSION_DENIED",
-        latestVersionCheckFailed,
-      };
-    }
-
-    return {
-      installed: false,
-      error: `${action} failed: ${message}`,
-      errorCode: "INSTALL_FAILED",
-      latestVersionCheckFailed,
-    };
-  }
-
-  // Verify installation
-  const verifyResult = execSafe(
-    `npm list -g ${packageName} --json`,
-    { timeout: 15000 }
-  );
-  let newVersion: string | undefined;
-  if (verifyResult.exitCode === 0 && verifyResult.stdout) {
-    try {
-      const parsed = JSON.parse(verifyResult.stdout);
-      const pkg = parsed.dependencies?.[packageName];
-      if (pkg?.version) {
-        newVersion = pkg.version;
-      }
-    } catch {
-      newVersion = undefined;
-    }
-  }
-
+  const newVersion = verifyInstalledVersion(packageName);
   return {
     installed: true,
-    version: newVersion || latestVersion || "unknown",
-    previousVersion: currentVersion,
+    version: newVersion || preReq.latestVersion || "unknown",
+    previousVersion: preReq.currentVersion,
     upgrade: options.upgrade,
-    latestVersionCheckFailed,
+    latestVersionCheckFailed: preReq.latestVersionCheckFailed,
   };
 }
 

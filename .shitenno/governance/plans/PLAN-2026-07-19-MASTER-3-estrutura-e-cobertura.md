@@ -1,7 +1,7 @@
 # PLAN-2026-07-19 — MASTER 3/3: Estrutura e Cobertura de Teste
 
 **Status:** Refused
-**Updated_at:** 2026-07-21T05:25:28.777Z
+**Updated_at:** 2026-07-21T15:20:16.855Z
 **Date:** 2026-07-20
 
 **Continuação de `PLAN-2026-07-19-MASTER-1-integridade-gate.md` e `PLAN-2026-07-19-MASTER-2-correcao-dados-e-checks.md`. Cobre M.11, M.12, M.13. Prioridade baixa em relação às duas partes anteriores — nenhum item aqui é regressão ativa ou bypass de segurança, é dívida estrutural e cobertura.**

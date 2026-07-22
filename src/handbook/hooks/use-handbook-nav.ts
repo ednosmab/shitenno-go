@@ -136,8 +136,6 @@ function buildNavItems(
   return items;
 }
 
-// ── Hook ───────────────────────────────────────────────────────────────────
-
 export interface HandbookNavState {
   viewMode: ViewMode;
   levels: HandbookLevel[];
@@ -150,213 +148,161 @@ export interface HandbookNavState {
   totalItems: number;
 }
 
+function adjustScroll(selected: number, scroll: number, viewport: number): number {
+  if (selected < scroll) return selected;
+  if (selected >= scroll + viewport) return selected - viewport + 1;
+  return scroll;
+}
+
+function expandLevelUpdate(prev: HandbookNavState, levelNumber: number): HandbookNavState {
+  const newExpanded = prev.expandedLevel === levelNumber ? null : levelNumber;
+  const newNavItems = buildNavItems(prev.levels, newExpanded, 0);
+  return {
+    ...prev,
+    expandedLevel: newExpanded,
+    selectedIndex: 0,
+    sidebarScrollOffset: 0,
+    navItems: newNavItems,
+    totalItems: newNavItems.length,
+    viewMode: "tree",
+    selectedTopic: null,
+    content: null,
+  };
+}
+
+function moveUpdate(prev: HandbookNavState, delta: number, maxVisible: number | undefined): HandbookNavState {
+  const newSelected = delta < 0
+    ? Math.max(0, prev.selectedIndex + delta)
+    : Math.min(prev.totalItems - 1, prev.selectedIndex + delta);
+  const viewport = maxVisible ?? Infinity;
+  return {
+    ...prev,
+    selectedIndex: newSelected,
+    sidebarScrollOffset: adjustScroll(newSelected, prev.sidebarScrollOffset, viewport),
+  };
+}
+
+function toggleLevelAt(prev: HandbookNavState, index: number, maxVisible?: number): HandbookNavState {
+  const currentItem = prev.navItems[index];
+  if (!currentItem || currentItem.type !== "level") return prev;
+  const newExpanded = prev.expandedLevel === currentItem.levelNumber ? null : currentItem.levelNumber;
+  const newNavItems = buildNavItems(prev.levels, newExpanded, index);
+  const viewport = maxVisible ?? Infinity;
+  return {
+    ...prev,
+    selectedIndex: index,
+    sidebarScrollOffset: adjustScroll(index, prev.sidebarScrollOffset, viewport),
+    expandedLevel: newExpanded,
+    navItems: newNavItems,
+    totalItems: newNavItems.length,
+    viewMode: "tree",
+    selectedTopic: null,
+    content: null,
+  };
+}
+
+function openTopicAt(prev: HandbookNavState, index: number): HandbookNavState {
+  const currentItem = prev.navItems[index];
+  if (!currentItem || currentItem.type !== "topic" || !currentItem.topic) return prev;
+  return {
+    ...prev,
+    selectedIndex: index,
+    viewMode: "content",
+    selectedTopic: currentItem.topic,
+    content: readTopicContent(currentItem.topic),
+  };
+}
+
+function selectCurrentUpdate(prev: HandbookNavState): HandbookNavState {
+  const currentItem = prev.navItems[prev.selectedIndex];
+  if (!currentItem) return prev;
+  if (currentItem.type === "level") {
+    const newExpanded = prev.expandedLevel === currentItem.levelNumber ? null : currentItem.levelNumber;
+    const newNavItems = buildNavItems(prev.levels, newExpanded, prev.selectedIndex);
+    return { ...prev, expandedLevel: newExpanded, navItems: newNavItems, totalItems: newNavItems.length, sidebarScrollOffset: 0, viewMode: "tree", selectedTopic: null, content: null };
+  }
+  return openTopicAt(prev, prev.selectedIndex);
+}
+
+function goBackUpdate(prev: HandbookNavState): HandbookNavState {
+  if (prev.viewMode !== "content") return prev;
+  return { ...prev, viewMode: "tree", sidebarScrollOffset: 0, selectedTopic: null, content: null };
+}
+
+function jumpToLevelUpdate(prev: HandbookNavState, levelNumber: number): HandbookNavState {
+  const level = prev.levels.find((l) => l.number === levelNumber);
+  if (!level) return prev;
+  const newNavItems = buildNavItems(prev.levels, levelNumber, 0);
+  const firstTopicIndex = newNavItems.findIndex((item) => item.type === "level" && item.levelNumber === levelNumber);
+  return {
+    ...prev,
+    expandedLevel: levelNumber,
+    selectedIndex: firstTopicIndex >= 0 ? firstTopicIndex : 0,
+    sidebarScrollOffset: 0,
+    navItems: newNavItems,
+    totalItems: newNavItems.length,
+    viewMode: "tree",
+    selectedTopic: null,
+    content: null,
+  };
+}
+
+function selectTopicByIdUpdate(prev: HandbookNavState, topicId: string): HandbookNavState {
+  const topic = TOPIC_REGISTRY.find((t) => t.id === topicId);
+  if (!topic) return prev;
+  return { ...prev, viewMode: "content", selectedTopic: topic, content: readTopicContent(topic) };
+}
+
+function selectAtUpdate(prev: HandbookNavState, index: number, maxVisible?: number): HandbookNavState {
+  const currentItem = prev.navItems[index];
+  if (!currentItem) return prev;
+  if (currentItem.type === "level") return toggleLevelAt(prev, index, maxVisible);
+  return openTopicAt(prev, index);
+}
+
 export function useHandbookNav() {
   const levels = useMemo(() => buildLevels(), []);
 
   const [state, setState] = useState<HandbookNavState>(() => ({
-    viewMode: "tree",
-    levels,
-    expandedLevel: null,
-    selectedIndex: 0,
-    sidebarScrollOffset: 0,
-    selectedTopic: null,
-    content: null,
-    navItems: buildNavItems(levels, null, 0),
-    totalItems: levels.length, // Only level headers initially
+    viewMode: "tree", levels, expandedLevel: null, selectedIndex: 0,
+    sidebarScrollOffset: 0, selectedTopic: null, content: null,
+    navItems: buildNavItems(levels, null, 0), totalItems: levels.length,
   }));
 
   const expandLevel = useCallback((levelNumber: number) => {
-    setState((prev) => {
-      const newExpanded = prev.expandedLevel === levelNumber ? null : levelNumber;
-      const newNavItems = buildNavItems(prev.levels, newExpanded, 0);
-      return {
-        ...prev,
-        expandedLevel: newExpanded,
-        selectedIndex: 0,
-        sidebarScrollOffset: 0,
-        navItems: newNavItems,
-        totalItems: newNavItems.length,
-        viewMode: "tree",
-        selectedTopic: null,
-        content: null,
-      };
-    });
+    setState((prev) => expandLevelUpdate(prev, levelNumber));
   }, []);
 
   const moveUp = useCallback((maxVisible?: number) => {
-    setState((prev) => {
-      const newSelected = Math.max(0, prev.selectedIndex - 1);
-      const viewport = maxVisible ?? Infinity;
-      let newScroll = prev.sidebarScrollOffset;
-      if (newSelected < newScroll) {
-        newScroll = newSelected;
-      } else if (newSelected >= newScroll + viewport) {
-        newScroll = newSelected - viewport + 1;
-      }
-      return {
-        ...prev,
-        selectedIndex: newSelected,
-        sidebarScrollOffset: newScroll,
-      };
-    });
+    setState((prev) => moveUpdate(prev, -1, maxVisible));
   }, []);
 
   const moveDown = useCallback((maxVisible?: number) => {
-    setState((prev) => {
-      const newSelected = Math.min(prev.totalItems - 1, prev.selectedIndex + 1);
-      const viewport = maxVisible ?? Infinity;
-      let newScroll = prev.sidebarScrollOffset;
-      if (newSelected < newScroll) {
-        newScroll = newSelected;
-      } else if (newSelected >= newScroll + viewport) {
-        newScroll = newSelected - viewport + 1;
-      }
-      return {
-        ...prev,
-        selectedIndex: newSelected,
-        sidebarScrollOffset: newScroll,
-      };
-    });
+    setState((prev) => moveUpdate(prev, 1, maxVisible));
   }, []);
 
   const selectCurrent = useCallback(() => {
-    setState((prev) => {
-      const currentItem = prev.navItems[prev.selectedIndex];
-      if (!currentItem) return prev;
-
-      if (currentItem.type === "level") {
-        const newExpanded = prev.expandedLevel === currentItem.levelNumber
-          ? null
-          : currentItem.levelNumber;
-        const newNavItems = buildNavItems(prev.levels, newExpanded, prev.selectedIndex);
-        return {
-          ...prev,
-          expandedLevel: newExpanded,
-          navItems: newNavItems,
-          totalItems: newNavItems.length,
-          sidebarScrollOffset: 0,
-          viewMode: "tree",
-          selectedTopic: null,
-          content: null,
-        };
-      }
-
-      if (currentItem.type === "topic" && currentItem.topic) {
-        const content = readTopicContent(currentItem.topic);
-        return {
-          ...prev,
-          viewMode: "content",
-          selectedTopic: currentItem.topic,
-          content,
-        };
-      }
-
-      return prev;
-    });
+    setState(selectCurrentUpdate);
   }, []);
 
   const selectAt = useCallback((index: number, maxVisible?: number) => {
-    setState((prev) => {
-      const currentItem = prev.navItems[index];
-      if (!currentItem) return prev;
-
-      if (currentItem.type === "level") {
-        const newExpanded = prev.expandedLevel === currentItem.levelNumber
-          ? null
-          : currentItem.levelNumber;
-        const newNavItems = buildNavItems(prev.levels, newExpanded, index);
-        const viewport = maxVisible ?? Infinity;
-        let newScroll = prev.sidebarScrollOffset;
-        if (index < newScroll) newScroll = index;
-        else if (index >= newScroll + viewport) newScroll = index - viewport + 1;
-        return {
-          ...prev,
-          selectedIndex: index,
-          sidebarScrollOffset: newScroll,
-          expandedLevel: newExpanded,
-          navItems: newNavItems,
-          totalItems: newNavItems.length,
-          viewMode: "tree",
-          selectedTopic: null,
-          content: null,
-        };
-      }
-
-      if (currentItem.type === "topic" && currentItem.topic) {
-        const content = readTopicContent(currentItem.topic);
-        return {
-          ...prev,
-          selectedIndex: index,
-          viewMode: "content",
-          selectedTopic: currentItem.topic,
-          content,
-        };
-      }
-
-      return prev;
-    });
+    setState((prev) => selectAtUpdate(prev, index, maxVisible));
   }, []);
 
   const goBack = useCallback(() => {
-    setState((prev) => {
-      if (prev.viewMode === "content") {
-        return {
-          ...prev,
-          viewMode: "tree",
-          sidebarScrollOffset: 0,
-          selectedTopic: null,
-          content: null,
-        };
-      }
-      return prev;
-    });
+    setState(goBackUpdate);
   }, []);
 
   const jumpToLevel = useCallback((levelNumber: number) => {
-    setState((prev) => {
-      const level = prev.levels.find((l) => l.number === levelNumber);
-      if (!level) return prev;
-
-      const newExpanded = levelNumber;
-      const newNavItems = buildNavItems(prev.levels, newExpanded, 0);
-      const firstTopicIndex = newNavItems.findIndex(
-        (item) => item.type === "level" && item.levelNumber === levelNumber
-      );
-
-      return {
-        ...prev,
-        expandedLevel: newExpanded,
-        selectedIndex: firstTopicIndex >= 0 ? firstTopicIndex : 0,
-        sidebarScrollOffset: 0,
-        navItems: newNavItems,
-        totalItems: newNavItems.length,
-        viewMode: "tree",
-        selectedTopic: null,
-        content: null,
-      };
-    });
+    setState((prev) => jumpToLevelUpdate(prev, levelNumber));
   }, []);
 
   const selectTopicById = useCallback((topicId: string) => {
-    setState((prev) => {
-      const topic = TOPIC_REGISTRY.find((t) => t.id === topicId);
-      if (!topic) return prev;
-
-      const content = readTopicContent(topic);
-      return {
-        ...prev,
-        viewMode: "content",
-        selectedTopic: topic,
-        content,
-      };
-    });
+    setState((prev) => selectTopicByIdUpdate(prev, topicId));
   }, []);
 
   const setSidebarScroll = useCallback((offset: number) => {
-    setState((prev) => ({
-      ...prev,
-      sidebarScrollOffset: Math.max(0, offset),
-    }));
+    setState((prev) => ({ ...prev, sidebarScrollOffset: Math.max(0, offset) }));
   }, []);
 
   return {

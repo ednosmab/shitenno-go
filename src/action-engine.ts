@@ -249,80 +249,53 @@ export class ActionEngine {
     this.executors.set(executor.name, executor);
   }
 
-  /** Execute an action with idempotency guarantees. */
-  async execute(request: ActionRequest): Promise<ExecutionRecord> {
-    const executionHash = computeExecutionHash(request.type, request.params);
-
-    // Idempotency check: if same action ID already executed successfully, return existing
+  private findIdempotentMatch(request: ActionRequest, executionHash: string): ExecutionRecord | undefined {
     const existing = this.repo.findByActionId(request.id);
     if (existing && existing.status === "completed") {
       return existing;
     }
-
-    // Idempotency check: if same hash already executed successfully, return existing
     const hashMatch = this.repo.findByHash(executionHash);
     if (hashMatch && hashMatch.status === "completed") {
       return hashMatch;
     }
+    return undefined;
+  }
 
-    // Policy gate — check before execution (ADR-009)
-    if (this.shitennoDir) {
-      const policyEngine = new PolicyEngine(new FilePolicyRepository(this.shitennoDir));
-      const action: RuleAction = { type: request.type as RuleAction["type"], params: request.params as RuleAction["params"] };
-      const context: RuleContext = {
-        trigger: "manual",
-        eventData: {},
-        projectRoot: "",
-        shitennoDir: this.shitennoDir,
-        timestamp: new Date().toISOString(),
-      };
-      const policyResult = checkPolicyGate(action, context, policyEngine);
-      if (!policyResult.allowed) {
-        const record: ExecutionRecord = {
-          executionId: `EXE-${randomUUID().slice(0, 8).toUpperCase()}`,
-          request,
-          executionHash,
-          status: "failed",
-          result: "failure",
-          error: `Blocked by policy: ${policyResult.reason}`,
-          startedAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-          duration: 0,
-        };
-        this.repo.save(record);
-        return record;
-      }
-    }
-
-    const executor = this.executors.get(request.type);
-    if (!executor) {
-      const record: ExecutionRecord = {
-        executionId: `EXE-${randomUUID().slice(0, 8).toUpperCase()}`,
-        request,
-        executionHash,
-        status: "failed",
-        result: "failure",
-        error: `No executor registered for type: ${request.type}`,
-        startedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        duration: 0,
-      };
-      this.repo.save(record);
-      return record;
-    }
-
-    // Create execution record
-    const record: ExecutionRecord = {
+  private createFailedRecord(request: ActionRequest, executionHash: string, error: string): ExecutionRecord {
+    return {
       executionId: `EXE-${randomUUID().slice(0, 8).toUpperCase()}`,
       request,
       executionHash,
-      status: "running",
+      status: "failed",
+      result: "failure",
+      error,
       startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      duration: 0,
     };
+  }
 
-    this.repo.save(record);
+  private evaluatePolicyGate(request: ActionRequest, executionHash: string): ExecutionRecord | undefined {
+    if (!this.shitennoDir) return undefined;
+    const policyEngine = new PolicyEngine(new FilePolicyRepository(this.shitennoDir));
+    const action: RuleAction = { type: request.type as RuleAction["type"], params: request.params as RuleAction["params"] };
+    const context: RuleContext = {
+      trigger: "manual",
+      eventData: {},
+      projectRoot: "",
+      shitennoDir: this.shitennoDir,
+      timestamp: new Date().toISOString(),
+    };
+    const policyResult = checkPolicyGate(action, context, policyEngine);
+    if (!policyResult.allowed) {
+      const record = this.createFailedRecord(request, executionHash, `Blocked by policy: ${policyResult.reason}`);
+      this.repo.save(record);
+      return record;
+    }
+    return undefined;
+  }
 
-    // Claim plan/task resources so the daemon defers conflicting autonomous actions (ADR-008).
+  private async runWithResources(executor: ActionExecutor, request: ActionRequest, record: ExecutionRecord): Promise<void> {
     const resourceId = getResourceId(request.type as RuleAction["type"], request.params);
     const claimType: "plan" | "task" | undefined = resourceId?.startsWith("plan:")
       ? "plan"
@@ -355,6 +328,35 @@ export class ActionEngine {
         releaseResource(resourceId, claimSessionId);
       }
     }
+  }
+
+  /** Execute an action with idempotency guarantees. */
+  async execute(request: ActionRequest): Promise<ExecutionRecord> {
+    const executionHash = computeExecutionHash(request.type, request.params);
+
+    const idempotentMatch = this.findIdempotentMatch(request, executionHash);
+    if (idempotentMatch) return idempotentMatch;
+
+    const policyBlock = this.evaluatePolicyGate(request, executionHash);
+    if (policyBlock) return policyBlock;
+
+    const executor = this.executors.get(request.type);
+    if (!executor) {
+      const record = this.createFailedRecord(request, executionHash, `No executor registered for type: ${request.type}`);
+      this.repo.save(record);
+      return record;
+    }
+
+    const record: ExecutionRecord = {
+      executionId: `EXE-${randomUUID().slice(0, 8).toUpperCase()}`,
+      request,
+      executionHash,
+      status: "running",
+      startedAt: new Date().toISOString(),
+    };
+    this.repo.save(record);
+
+    await this.runWithResources(executor, request, record);
 
     this.repo.save(record);
     return record;

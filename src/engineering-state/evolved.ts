@@ -279,40 +279,43 @@ export class IncrementalConsolidator {
   getLastConsolidated(): string { return this._lastConsolidated; }
   private pendingDeltas: StateDelta[] = [];
 
+  private diffDimensionsChanges(
+    previous: EngineeringState | null,
+    current: EngineeringState,
+  ): StateDelta["dimensionsChanged"] {
+    if (!previous?.maturity?.dimensions || !current.maturity?.dimensions) return [];
+    const prevDims = previous.maturity.dimensions as unknown as Record<string, number>;
+    const currDims = current.maturity.dimensions as unknown as Record<string, number>;
+    const changes: StateDelta["dimensionsChanged"] = [];
+    for (const key of Object.keys(currDims)) {
+      const prev = prevDims[key] ?? 0;
+      const curr = currDims[key] ?? 0;
+      if (prev !== curr) {
+        changes.push({ dimension: key, previousScore: prev, newScore: curr, delta: curr - prev });
+      }
+    }
+    return changes;
+  }
+
+  private diffAssets(
+    previous: EngineeringState | null,
+    current: EngineeringState,
+  ): { assetsAdded: EngineeringAsset[]; assetsRemoved: string[] } {
+    const prevAssetIds = new Set((previous?.assets ?? []).map((a) => a.id));
+    const currAssetIds = new Set(current.assets.map((a) => a.id));
+    return {
+      assetsAdded: current.assets.filter((a) => !prevAssetIds.has(a.id)),
+      assetsRemoved: (previous?.assets ?? []).filter((a) => !currAssetIds.has(a.id)).map((a) => a.id),
+    };
+  }
+
   /** Compute delta between two states. */
   computeDelta(
     previous: EngineeringState | null,
     current: EngineeringState
   ): StateDelta {
-    const prevAssets = previous?.assets ?? [];
-    const currAssets = current.assets;
-
-    const prevAssetIds = new Set(prevAssets.map((a) => a.id));
-    const currAssetIds = new Set(currAssets.map((a) => a.id));
-
-    const assetsAdded = currAssets.filter((a) => !prevAssetIds.has(a.id));
-    const assetsRemoved = prevAssets
-      .filter((a) => !currAssetIds.has(a.id))
-      .map((a) => a.id);
-
-    const dimensionsChanged: StateDelta["dimensionsChanged"] = [];
-    if (previous?.maturity?.dimensions && current.maturity?.dimensions) {
-      const prevDims = previous.maturity.dimensions as unknown as Record<string, number>;
-      const currDims = current.maturity.dimensions as unknown as Record<string, number>;
-      for (const key of Object.keys(currDims)) {
-        const prev = prevDims[key] ?? 0;
-        const curr = currDims[key] ?? 0;
-        if (prev !== curr) {
-          dimensionsChanged.push({
-            dimension: key,
-            previousScore: prev,
-            newScore: curr,
-            delta: curr - prev,
-          });
-        }
-      }
-    }
-
+    const { assetsAdded, assetsRemoved } = this.diffAssets(previous, current);
+    const dimensionsChanged = this.diffDimensionsChanges(previous, current);
     const prevHealth = previous?.healthScores?.overall ?? 0;
     const currHealth = current.healthScores?.overall ?? 0;
 

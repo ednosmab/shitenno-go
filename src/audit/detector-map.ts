@@ -296,7 +296,7 @@ function buildGovernanceDetectors(ctx: DetectorContext) {
   };
 }
 
-function buildQualityDetectors(ctx: DetectorContext) {
+function buildEngineeringQualityDetectors(ctx: DetectorContext) {
   return {
     detectOrphanModules: () => detectOrphanModules(ctx.projectRoot, ctx.sourceFiles),
     detectComplexityHotspots: () => detectComplexityHotspots(ctx.projectRoot, ctx.sourceFiles),
@@ -334,6 +334,11 @@ function buildQualityDetectors(ctx: DetectorContext) {
     detectInsecureCookies: () => detectInsecureCookies(ctx.projectRoot, ctx.sourceFiles),
     detectWeakRandomness: () => detectWeakRandomness(ctx.projectRoot, ctx.sourceFiles),
     detectTaintFlow: buildTaintDetector(ctx),
+  };
+}
+
+function buildGitEnforcementDetectors(ctx: DetectorContext) {
+  return {
     detectCommitFormat: () => detectCommitFormat(ctx.projectRoot),
     detectBranchNaming: () => detectBranchNaming(ctx.projectRoot),
     detectDirectMainCommits: () => detectDirectMainCommits(ctx.projectRoot),
@@ -363,6 +368,11 @@ function buildQualityDetectors(ctx: DetectorContext) {
     detectDuplicateCode: () => detectDuplicateCode(ctx.projectRoot, ctx.sourceFiles),
     detectGodFunctions: () => detectGodFunctions(ctx.projectRoot, ctx.sourceFiles),
     detectCoverageThreshold: () => detectCoverageThreshold(ctx.projectRoot),
+  };
+}
+
+function buildArchReliabilityDetectors(ctx: DetectorContext) {
+  return {
     detectCleanArchitectureLayers: () => detectCleanArchitectureLayers(ctx.projectRoot, ctx.sourceFiles),
     detectSRPViolations: () => detectSRPViolations(ctx.projectRoot, ctx.sourceFiles),
     detectDependencyInversion: () => detectDependencyInversion(ctx.projectRoot, ctx.sourceFiles),
@@ -392,6 +402,11 @@ function buildQualityDetectors(ctx: DetectorContext) {
     detectStatefulServices: () => detectStatefulServices(ctx.projectRoot, ctx.sourceFiles),
     detectMissingRateLimiting: () => detectMissingRateLimiting(ctx.projectRoot, ctx.sourceFiles),
     detectMissingTimeouts: () => detectMissingTimeouts(ctx.projectRoot, ctx.sourceFiles),
+  };
+}
+
+function buildOpsComplianceDetectors(ctx: DetectorContext) {
+  return {
     detectMissingTracing: () => detectMissingTracing(ctx.projectRoot, ctx.sourceFiles),
     detectLogStructure: () => detectLogStructure(ctx.projectRoot, ctx.sourceFiles),
     detectAlertCoverage: () => detectAlertCoverage(ctx.projectRoot, ctx.sourceFiles),
@@ -420,6 +435,11 @@ function buildQualityDetectors(ctx: DetectorContext) {
     detectAccessControls: () => detectAccessControls(ctx.projectRoot, ctx.sourceFiles),
     detectAuditLogging: () => detectAuditLogging(ctx.projectRoot, ctx.sourceFiles),
     detectComplianceReport: () => detectComplianceReport(ctx.projectRoot, ctx.sourceFiles),
+  };
+}
+
+function buildSupplyChainTechDebtDetectors(ctx: DetectorContext) {
+  return {
     detectSBOMCoverage: () => detectSBOMCoverage(ctx.projectRoot, ctx.sourceFiles),
     detectDependencyProvenance: () => detectDependencyProvenance(ctx.projectRoot, ctx.sourceFiles),
     detectTyposquatting: () => detectTyposquatting(ctx.projectRoot, ctx.sourceFiles),
@@ -446,13 +466,28 @@ function buildQualityDetectors(ctx: DetectorContext) {
   };
 }
 
+function buildQualityDetectors(ctx: DetectorContext) {
+  return {
+    ...buildEngineeringQualityDetectors(ctx),
+    ...buildGitEnforcementDetectors(ctx),
+    ...buildArchReliabilityDetectors(ctx),
+    ...buildOpsComplianceDetectors(ctx),
+    ...buildSupplyChainTechDebtDetectors(ctx),
+  };
+}
+
+interface BuildDetectorMapOptions {
+  projectRoot: string;
+  shitennoDir: string;
+  sourceFiles: SourceFileInfo[];
+  rules: string[];
+  history: HistoryEntry[];
+}
+
 export function buildDetectorMap(
-  projectRoot: string,
-  shitennoDir: string,
-  sourceFiles: SourceFileInfo[],
-  rules: string[],
-  history: HistoryEntry[]
+  options: BuildDetectorMapOptions
 ): Record<string, () => HealthIssue[] | Promise<HealthIssue[]>> {
+  const { projectRoot, shitennoDir, sourceFiles, rules, history } = options;
   const ctx: DetectorContext = { projectRoot, shitennoDir, sourceFiles, rules, history };
   return { ...buildGovernanceDetectors(ctx), ...buildQualityDetectors(ctx) };
 }

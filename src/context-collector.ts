@@ -15,7 +15,7 @@ import { generateProjectFingerprint, loadFingerprint, saveFingerprint, isFingerp
 import { generateRiskMap, type RiskMap } from "./risk-map.js";
 import { generateContextRules, type ContextRule } from "./context-rules.js";
 import { generateDynamicRules, type DynamicRule } from "./dynamic-rules.js";
-import { generateBriefing, type Briefing, type Reminder, type ReminderPriority, type ReminderCategory } from "./briefing.js";
+import { generateBriefing, type Briefing, type BriefingOptions, type Reminder, type ReminderPriority, type ReminderCategory } from "./briefing.js";
 import { loadMaturityProfile, type MaturityProfile } from "./maturity-profile.js";
 import { listAdrs, listSkills } from "./knowledge-loader.js";
 
@@ -44,14 +44,14 @@ export interface ContextDeps {
   generateRiskMap: (root: string, shitennoDir: string) => RiskMap;
   generateContextRules: (fp: ProjectFingerprint, risk: RiskMap) => ContextRule[];
   generateDynamicRules: (root: string, shitennoDir: string) => DynamicRule[];
-  generateBriefing: (fp: ProjectFingerprint, risk: RiskMap, ctx: ContextRule[], dyn: DynamicRule[], mat?: MaturityProfile, quickBoard?: { currentTask: string; nextP0: string; p1Debts: string; impediments: string; lastSessionStatus: string }, reminders?: Reminder[]) => Briefing;
+  generateBriefing: (options: BriefingOptions) => Briefing;
   detectPatterns: (projectRoot: string, shitennoDir: string) => PatternDetectionReport;
   /** Optional: compute checksums for snapshot cache invalidation. */
   computeKeyChecksums?: (projectRoot: string, shitennoDir: string) => Record<string, string>;
   /** Optional: read cached snapshot. Return null to disable cache reads. */
-  getCached?: <T>(projectRoot: string, shitennoDir: string, key: "complexity" | "patterns" | "health", checksumsFn: () => Record<string, string>) => T | null;
+  getCached?: <T>(input: { projectRoot: string; key: "complexity" | "patterns" | "health"; computeChecksumsFn: () => Record<string, string> }) => T | null;
   /** Optional: write snapshot to cache. No-op to disable cache writes. */
-  setCache?: <T>(projectRoot: string, shitennoDir: string, key: string, data: T, checksums: Record<string, string>) => void;
+  setCache?: <T>(input: { projectRoot: string; shitennoDir: string; key: string; data: T; checksums: Record<string, string> }) => void;
 }
 
 /** The collected context snapshot. */
@@ -97,12 +97,12 @@ function tryReadCache<T>(
   projectRoot: string,
   shitennoDir: string,
   computeChecksums: (root: string, dir: string) => Record<string, string>,
-  cacheGet: <R>(root: string, dir: string, key: "complexity" | "patterns" | "health", fn: () => Record<string, string>) => R | null,
+  cacheGet: <R>(input: { projectRoot: string; key: "complexity" | "patterns" | "health"; computeChecksumsFn: () => Record<string, string> }) => R | null,
 ): T | null {
   try {
-    const cached = cacheGet<T>(projectRoot, shitennoDir, "complexity", () =>
+    const cached = cacheGet<T>({ projectRoot, key: "complexity", computeChecksumsFn: () =>
       computeChecksums(projectRoot, shitennoDir)
-    );
+    });
     if (cached && (cached as { inputHash?: string }).inputHash) {
       logger.debug("collectContext", "Snapshot cache hit — skipping recomputation");
       return cached;
@@ -140,20 +140,23 @@ function buildSnapshot(
   const maturityProfile = deps.loadMaturityProfile(shitennoDir);
   const quickBoard = loadQuickBoard(shitennoDir);
 
-  const briefing = deps.generateBriefing(
-    fingerprint, riskMap, contextRules, dynamicRules,
-    maturityProfile ?? undefined,
-    {
+  const briefing = deps.generateBriefing({
+    fingerprint,
+    riskMap,
+    contextRules,
+    dynamicRules,
+    maturityProfile: maturityProfile ?? undefined,
+    quickBoard: {
       currentTask: quickBoard.currentTask,
       nextP0: quickBoard.nextP0,
       p1Debts: quickBoard.p1Debts,
       impediments: quickBoard.impediments,
       lastSessionStatus: quickBoard.lastSessionStatus,
     },
-    quickBoard.reminders
-  );
+    reminders: quickBoard.reminders,
+  });
 
-  const enrichedBriefing = enrichBriefingWithPatterns(briefing, projectRoot, shitennoDir, deps);
+  const enrichedBriefing = enrichBriefingWithPatterns({ briefing, projectRoot, shitennoDir, deps });
   const activityEnriched = enrichBriefingWithRecentActivity(enrichedBriefing, shitennoDir);
   const finalBriefing = enrichBriefingWithGovernanceKnowledge(activityEnriched, shitennoDir);
 
@@ -201,7 +204,7 @@ export function collectContext(
 
   try {
     const checksums = computeChecksums(projectRoot, shitennoDir);
-    cacheSet(projectRoot, shitennoDir, "complexity", snapshot, checksums);
+    cacheSet({ projectRoot, shitennoDir, key: "complexity", data: snapshot, checksums });
   } catch (err) {
     logger.debug("collectContext", "Failed to cache snapshot:", err instanceof Error ? err.message : err);
   }
@@ -241,44 +244,36 @@ function enrichBriefingWithGovernanceKnowledge(
 
 // ── Pattern Enrichment (Gaps 4+5) ─────────────────────────────────────────
 
-/**
- * Enrich a briefing with detected patterns from pattern-detector
- * and failure hotspots from session-feedback.
- *
- * Gap 4: patterns.recurringErrors populated from feedback failure hotspots.
- * Gap 5: patterns.detected populated from pattern-detector DetectedPattern[].
- *
- * @param briefing - The base briefing to enrich.
- * @param projectRoot - Root directory of the project.
- * @param shitennoDir - Path to shitenno/ directory.
- * @param deps - Injectable dependencies (for testing).
- * @param existingPatternReport - Optional pre-computed pattern report to avoid re-detection.
- * @returns The enriched briefing with recurringErrors and detected patterns populated.
- */
-function enrichBriefingWithPatterns(
-  briefing: Briefing,
-  projectRoot: string,
-  shitennoDir: string,
-  deps: ContextDeps,
-  existingPatternReport?: PatternDetectionReport
-): Briefing {
-  // Gap 4: Populate recurringErrors from feedback failure hotspots
-  let recurringErrors: string[] = [];
+interface EnrichPatternsOptions {
+  briefing: Briefing;
+  projectRoot: string;
+  shitennoDir: string;
+  deps: ContextDeps;
+  existingPatternReport?: PatternDetectionReport;
+}
+
+function collectRecurringErrors(shitennoDir: string): string[] {
   try {
     const records = getFeedbackRecords(shitennoDir);
     if (records.length > 0) {
       const summary = computeFeedbackSummary(records);
-      recurringErrors = summary.failureHotspots;
+      return summary.failureHotspots;
     }
   } catch (err) {
     logger.debug("enrichBriefing", "Feedback data unavailable:", err instanceof Error ? err.message : err);
   }
+  return [];
+}
 
-  // Gap 5: Populate detected patterns from pattern-detector
-  let detected: Briefing["patterns"]["detected"] = [];
+function collectDetectedPatterns(
+  projectRoot: string,
+  shitennoDir: string,
+  deps: ContextDeps,
+  existingPatternReport?: PatternDetectionReport,
+): Briefing["patterns"]["detected"] {
   try {
     const patternReport = existingPatternReport ?? deps.detectPatterns(projectRoot, shitennoDir);
-    detected = patternReport.patterns.map((p: DetectedPattern) => ({
+    return patternReport.patterns.map((p: DetectedPattern) => ({
       type: p.type,
       description: p.description,
       occurrences: p.occurrences,
@@ -288,6 +283,13 @@ function enrichBriefingWithPatterns(
   } catch (err) {
     logger.debug("enrichBriefing", "Pattern detection unavailable:", err instanceof Error ? err.message : err);
   }
+  return [];
+}
+
+function enrichBriefingWithPatterns(opts: EnrichPatternsOptions): Briefing {
+  const { briefing, projectRoot, shitennoDir, deps, existingPatternReport } = opts;
+  const recurringErrors = collectRecurringErrors(shitennoDir);
+  const detected = collectDetectedPatterns(projectRoot, shitennoDir, deps, existingPatternReport);
 
   return {
     ...briefing,
@@ -380,6 +382,15 @@ function enrichBriefingWithRecentActivity(
 
 // ── Quick Board Loading ─────────────────────────────────────────────────────
 
+interface QuickBoardResult {
+  currentTask: string;
+  nextP0: string;
+  p1Debts: string;
+  impediments: string;
+  lastSessionStatus: string;
+  reminders: Reminder[];
+}
+
 function parseSessionStatus(status: string | undefined): string {
   if (status === "completed") return "Concluída";
   if (status === "in_progress" || status === "active") return "Em curso";
@@ -431,70 +442,78 @@ function normalizeReminders(data: Record<string, unknown>): Reminder[] {
   });
 }
 
-function loadQuickBoard(shitennoDir: string): {
-  currentTask: string;
-  nextP0: string;
-  p1Debts: string;
-  impediments: string;
-  lastSessionStatus: string;
-  reminders: Reminder[];
-} {
-  const defaultQuickBoard = {
+function publishP4LoadedEvent(): void {
+  try {
+    const bus = getEventBus();
+    bus.publish("context.p4_loaded", {
+      docPath: "governance/context/context_buffer.yaml",
+      taskType: "loadQuickBoard",
+      tierDeclared: "P4",
+    });
+  } catch {
+    logger.debug("context-collector", "Failed to publish quick-board event — best-effort");
+  }
+}
+
+function readContextBuffer(shitennoDir: string): Record<string, unknown> | null {
+  const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
+  if (!existsSync(bufferPath)) return null;
+  const content = readFileSync(bufferPath, "utf-8");
+  return parseYaml(content) as Record<string, unknown>;
+}
+
+function resolveWithContext(
+  shitennoDir: string,
+  fallbackNextP0: string,
+  currentTaskData: { description?: string; status?: string } | undefined,
+  baseCurrentTask: string,
+): { nextP0: string; currentTask: string } {
+  let nextP0 = fallbackNextP0;
+  let currentTaskVal = baseCurrentTask;
+  const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
+  if (!existsSync(backlogPath)) return { nextP0, currentTask: currentTaskVal };
+
+  try {
+    const backlog = readFileSync(backlogPath, "utf-8");
+    const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
+    const p0Items = findInProgressItems(p0Section);
+    if (p0Items.length > 0) nextP0 = p0Items[0]!;
+    if (currentTaskData?.status === "completed" || !currentTaskData?.description) {
+      const allItems = findInProgressItems(backlog);
+      if (allItems.length > 0) currentTaskVal = allItems[0]!;
+    }
+  } catch {
+    logger.debug("context-collector", "Failed to read supplemental context — using buffer values");
+  }
+  return { nextP0, currentTask: currentTaskVal };
+}
+
+function loadQuickBoard(shitennoDir: string): QuickBoardResult {
+  const defaultQuickBoard: QuickBoardResult = {
     currentTask: "Nenhuma",
     nextP0: "Definir novo P0 no BACKLOG.md",
     p1Debts: "Nenhuma",
     impediments: "Nenhum",
     lastSessionStatus: "Desconhecido",
-    reminders: [] as Reminder[],
+    reminders: [],
   };
 
   try {
-    const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
-    if (!existsSync(bufferPath)) return defaultQuickBoard;
-
-    const content = readFileSync(bufferPath, "utf-8");
-    const data = parseYaml(content) as Record<string, unknown>;
-
-    try {
-      const bus = getEventBus();
-      bus.publish("context.p4_loaded", {
-        docPath: "governance/context/context_buffer.yaml",
-        taskType: "loadQuickBoard",
-        tierDeclared: "P4",
-      });
-    } catch {
-      logger.debug("context-collector", "Failed to publish quick-board event — best-effort");
-    }
+    const data = readContextBuffer(shitennoDir);
+    if (!data) return defaultQuickBoard;
+    publishP4LoadedEvent();
 
     const session = data?.session as { status?: string } | undefined;
     const currentTaskData = data?.current_task as { description?: string; status?: string } | undefined;
     const currentTask = currentTaskData?.description
       ? `${currentTaskData.description} (${currentTaskData.status})`
       : "Nenhuma";
-
-    let nextP0 = (data?.next_p0 as string) ?? "Verificar BACKLOG.md para próximo P0";
-    let currentTaskVal = currentTask;
-
-    const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
-    if (existsSync(backlogPath)) {
-      try {
-        const backlog = readFileSync(backlogPath, "utf-8");
-        const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
-        const p0Items = findInProgressItems(p0Section);
-        if (p0Items.length > 0) nextP0 = p0Items[0]!;
-
-        if (currentTaskData?.status === "completed" || !currentTaskData?.description) {
-          const allItems = findInProgressItems(backlog);
-          if (allItems.length > 0) currentTaskVal = allItems[0]!;
-        }
-      } catch {
-        logger.debug("context-collector", "Failed to read supplemental context — using buffer values");
-      }
-    }
+    const fallbackNextP0 = (data?.next_p0 as string) ?? "Verificar BACKLOG.md para próximo P0";
+    const resolved = resolveWithContext(shitennoDir, fallbackNextP0, currentTaskData, currentTask);
 
     return {
-      currentTask: currentTaskVal,
-      nextP0,
+      currentTask: resolved.currentTask,
+      nextP0: resolved.nextP0,
       p1Debts: extractP1Debts(data),
       impediments: extractImpediments(data),
       lastSessionStatus: parseSessionStatus(session?.status),

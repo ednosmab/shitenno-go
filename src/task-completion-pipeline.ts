@@ -42,42 +42,35 @@ export interface PipelineOptions {
 
 // ── Plan Detection ─────────────────────────────────────────────────────────
 
-/**
- * Find the active plan file for a given task.
- * Returns the plan filename (without extension) or null.
- */
+function isDoneStatus(status: string): boolean {
+  return status === "done" || status === "concluído" || status === "concluido" || status === "checked";
+}
+
+function listPlanFiles(plansDir: string): string[] {
+  try {
+    return readdirSync(plansDir).filter((f) => f.endsWith(".md") && !f.startsWith("TEMPLATE"));
+  } catch {
+    return [];
+  }
+}
+
+function planIsActive(plansDir: string, file: string, lowerTaskId: string): boolean {
+  const id = file.replace(".md", "").toLowerCase();
+  if (!id.includes(lowerTaskId) && !lowerTaskId.includes(id)) return false;
+  const content = readFileSync(join(plansDir, file), "utf-8");
+  const statusMatch = content.match(/\*\*Status:\*\*\s*(.+)/i);
+  if (!statusMatch) return false;
+  const status = (statusMatch[1] || "").trim().toLowerCase();
+  return !isDoneStatus(status);
+}
+
 function findActivePlanForTask(shitennoDir: string, taskId: string): string | null {
   const plansDir = join(shitennoDir, "governance", "plans");
   if (!existsSync(plansDir)) return null;
-
-  try {
-    const files = readdirSync(plansDir).filter(
-      (f) => f.endsWith(".md") && !f.startsWith("TEMPLATE")
-    );
-
-    const lowerTaskId = taskId.toLowerCase();
-
-    for (const file of files) {
-      const id = file.replace(".md", "").toLowerCase();
-      if (id.includes(lowerTaskId) || lowerTaskId.includes(id)) {
-        const planPath = join(plansDir, file);
-        const content = readFileSync(planPath, "utf-8");
-
-        const statusMatch = content.match(/\*\*Status:\*\*\s*(.+)/i);
-        if (statusMatch) {
-          const statusValue = statusMatch[1] || "";
-          const status = statusValue.trim().toLowerCase();
-          if (status !== "done" && status !== "concluído" && status !== "concluido" && status !== "checked") {
-            return file.replace(".md", "");
-          }
-        }
-      }
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+  const files = listPlanFiles(plansDir);
+  const lowerTaskId = taskId.toLowerCase();
+  const found = files.find((f) => planIsActive(plansDir, f, lowerTaskId));
+  return found ? found.replace(".md", "") : null;
 }
 
 // ── Main Pipeline ──────────────────────────────────────────────────────────
@@ -93,115 +86,119 @@ function findActivePlanForTask(shitennoDir: string, taskId: string): string | nu
  * This function is idempotent — running it multiple times for the same task
  * will not cause errors (backlog transition will fail gracefully if already done).
  */
-export function runCompletionPipeline(options: PipelineOptions): PipelineResult {
-  const { projectRoot, shitennoDir, taskId, affectedFiles } = options;
-
-  logger.info("task-completion-pipeline", `Running completion pipeline for task: ${taskId}`);
-
-  // Step 1: Validate all 5 completion gates
+function validateGates(options: PipelineOptions): { gates: CompletionResult; errors: string[] } {
   const gates = validateCompletionGate({
-    projectRoot,
-    shitennoDir,
-    taskId,
-    affectedFiles,
+    projectRoot: options.projectRoot,
+    shitennoDir: options.shitennoDir,
+    taskId: options.taskId,
+    affectedFiles: options.affectedFiles,
   });
 
   const errors: string[] = [];
-
   if (!gates.passed) {
-    const failedGates = gates.gates.filter((g) => !g.passed);
-    for (const gate of failedGates) {
+    for (const gate of gates.gates.filter((g) => !g.passed)) {
       errors.push(`Gate "${gate.name}" failed: ${gate.message}`);
     }
-
-    logger.warn("task-completion-pipeline", `Completion gates failed for ${taskId}: ${errors.join("; ")}`);
-
-    return {
-      success: false,
-      taskId,
-      gates,
-      backlogUpdated: false,
-      planArchived: false,
-      eventPublished: false,
-      errors,
-    };
+    logger.warn("task-completion-pipeline", `Completion gates failed for ${options.taskId}: ${errors.join("; ")}`);
+  } else {
+    logger.info("task-completion-pipeline", `All 5 gates passed for task: ${options.taskId}`);
   }
 
-  logger.info("task-completion-pipeline", `All 5 gates passed for task: ${taskId}`);
+  return { gates, errors };
+}
 
-  // Step 2: Publish `task.completed` event
-  let eventPublished = false;
+function publishCompletionEvent(taskId: string, gateCount: number, errors: string[]): boolean {
   try {
-    const bus = getEventBus();
-    bus.publish("task.completed", {
-      taskId,
-      completedAt: new Date().toISOString(),
-      gatesPassed: gates.gates.length,
+    getEventBus().publish("task.completed", {
+      taskId, completedAt: new Date().toISOString(), gatesPassed: gateCount,
     });
-    eventPublished = true;
     logger.info("task-completion-pipeline", `Published task.completed event for: ${taskId}`);
+    return true;
   } catch (error) {
     errors.push(`Failed to publish event: ${error instanceof Error ? error.message : String(error)}`);
     logger.warn("task-completion-pipeline", `Event publication failed: ${errors[errors.length - 1]}`);
+    return false;
   }
+}
 
-  // Step 3: Transition backlog item to "concluído"
-  let backlogUpdated = false;
-  if (!options.skipBacklog) {
-    try {
-      const result = completeTask(shitennoDir, taskId);
-      backlogUpdated = result.success;
-      if (result.success) {
-        logger.info("task-completion-pipeline", `Backlog updated: ${result.message}`);
-      } else {
-        errors.push(`Backlog update failed: ${result.message}`);
-        logger.warn("task-completion-pipeline", `Backlog update failed: ${result.message}`);
-      }
-    } catch (error) {
-      errors.push(`Backlog transition error: ${error instanceof Error ? error.message : String(error)}`);
-      logger.warn("task-completion-pipeline", `Backlog transition error: ${errors[errors.length - 1]}`);
+function transitionBacklog(shitennoDir: string, taskId: string, skipBacklog: boolean | undefined, errors: string[]): boolean {
+  if (skipBacklog) return false;
+  try {
+    const result = completeTask(shitennoDir, taskId);
+    if (result.success) {
+      logger.info("task-completion-pipeline", `Backlog updated: ${result.message}`);
+      return true;
     }
+    errors.push(`Backlog update failed: ${result.message}`);
+    logger.warn("task-completion-pipeline", `Backlog update failed: ${result.message}`);
+    return false;
+  } catch (error) {
+    errors.push(`Backlog transition error: ${error instanceof Error ? error.message : String(error)}`);
+    logger.warn("task-completion-pipeline", `Backlog transition error: ${errors[errors.length - 1]}`);
+    return false;
+  }
+}
+
+interface ArchiveContext {
+  shitennoDir: string;
+  taskId: string;
+  gates: CompletionResult;
+  errors: string[];
+}
+
+function buildValidationResult(gates: CompletionResult): ValidationResult {
+  return {
+    valid: gates.passed,
+    checks: gates.gates.map((g) => ({ name: g.name.toUpperCase(), passed: g.passed, message: g.message })),
+  };
+}
+
+function archiveActivePlan(ctx: ArchiveContext, skipArchive: boolean | undefined): boolean {
+  if (skipArchive) return false;
+  const planId = findActivePlanForTask(ctx.shitennoDir, ctx.taskId);
+  if (!planId) {
+    logger.info("task-completion-pipeline", `No active plan found for task: ${ctx.taskId}`);
+    return false;
   }
 
-  // Step 4: Archive active plan
-  let planArchived = false;
-  if (!options.skipArchive) {
-    const planId = findActivePlanForTask(shitennoDir, taskId);
-    if (planId) {
-      const validationResult: ValidationResult = {
-        valid: gates.passed,
-        checks: gates.gates.map((g) => ({ name: g.name.toUpperCase(), passed: g.passed, message: g.message })),
-      };
-      try {
-        planArchived = archivePlan(shitennoDir, planId, validationResult);
-        if (planArchived) {
-          logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
-        } else {
-          errors.push(`Plan archival failed for: ${planId}`);
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        errors.push(`Plan archival failed for ${planId}: ${msg}`);
-        logger.warn("task-completion-pipeline", `Plan archival error: ${msg}`);
-      }
-    } else {
-      logger.info("task-completion-pipeline", `No active plan found for task: ${taskId}`);
+  const validationResult = buildValidationResult(ctx.gates);
+
+  try {
+    const archived = archivePlan(ctx.shitennoDir, planId, validationResult);
+    if (archived) {
+      logger.info("task-completion-pipeline", `Plan archived: ${planId}`);
+      return true;
     }
+    ctx.errors.push(`Plan archival failed for: ${planId}`);
+    return false;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    ctx.errors.push(`Plan archival failed for ${planId}: ${msg}`);
+    logger.warn("task-completion-pipeline", `Plan archival error: ${msg}`);
+    return false;
+  }
+}
+
+export function runCompletionPipeline(options: PipelineOptions): PipelineResult {
+  logger.info("task-completion-pipeline", `Running completion pipeline for task: ${options.taskId}`);
+
+  const { gates, errors } = validateGates(options);
+
+  if (!gates.passed) {
+    return {
+      success: false, taskId: options.taskId, gates,
+      backlogUpdated: false, planArchived: false, eventPublished: false, errors,
+    };
   }
 
+  const eventPublished = publishCompletionEvent(options.taskId, gates.gates.length, errors);
+  const backlogUpdated = transitionBacklog(options.shitennoDir, options.taskId, options.skipBacklog, errors);
+  const planArchived = archiveActivePlan({ shitennoDir: options.shitennoDir, taskId: options.taskId, gates, errors }, options.skipArchive);
   const success = errors.length === 0;
 
-  logger.info("task-completion-pipeline", `Pipeline completed for ${taskId}: success=${success}, backlog=${backlogUpdated}, plan=${planArchived}, event=${eventPublished}`);
+  logger.info("task-completion-pipeline", `Pipeline completed for ${options.taskId}: success=${success}, backlog=${backlogUpdated}, plan=${planArchived}, event=${eventPublished}`);
 
-  return {
-    success,
-    taskId,
-    gates,
-    backlogUpdated,
-    planArchived,
-    eventPublished,
-    errors,
-  };
+  return { success, taskId: options.taskId, gates, backlogUpdated, planArchived, eventPublished, errors };
 }
 
 /**

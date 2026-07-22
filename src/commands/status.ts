@@ -21,6 +21,26 @@ interface StatusCheck {
   message: string;
 }
 
+interface StatusOutputData {
+  ctx: { projectRoot: string; shitennoDir: string };
+  checks: StatusCheck[];
+  complexity: ComplexityReport;
+  maturityProfile: MaturityProfile | null;
+  installedCapabilities: string[];
+  analysis: ProjectAnalysis;
+  cacheHit: boolean;
+  reportFile: string | undefined;
+  growthProfile: ReturnType<typeof loadGrowthProfile>;
+}
+
+interface FooterData {
+  cacheHit: boolean;
+  reportFile: string | undefined;
+  projectRoot: string;
+  maturityProfile: MaturityProfile | null;
+  complexity: ComplexityReport;
+}
+
 export const statusCommand = new Command("status")
   .description("Check governance health status")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
@@ -29,271 +49,269 @@ export const statusCommand = new Command("status")
   .option("--fix", "Auto-fix governance issues (like doctor)")
   .action(async (options) => {
     const isJson = options.json === true;
-    if (isJson) muteLogs();
-
-    if (!isJson) {
-      outputBlank();        banner("shugo status", "Health Check");
-      outputBlank();
-    }
-
+    displayHeader(isJson);
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
-
     if (!checkLifecycleGate("status", ctx.projectRoot, ctx.shitennoDir, isJson)) return;
-
     const checks = runHealthChecks(ctx.projectRoot, ctx.shitennoDir);
-
-    // Complexity analysis (with cache)
     const analysis = analyseProject(ctx.projectRoot);
-    let complexity: ComplexityReport;
-    let cacheHit = false;
-
-    if (options.cache !== false) {
-      const cached = getCached<ComplexityReport>(ctx.projectRoot, ctx.shitennoDir, "complexity",
-        () => computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir));
-      if (cached) {
-        complexity = cached;
-        cacheHit = true;
-      } else {
-        complexity = await calculateComplexityScore(ctx.projectRoot, ctx.shitennoDir, analysis);
-        setCache({ projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, key: "complexity", data: complexity,
-          checksums: computeKeyChecksums(ctx.projectRoot, ctx.shitennoDir) });
-      }
-    } else {
-      complexity = await calculateComplexityScore(ctx.projectRoot, ctx.shitennoDir, analysis);
-    }
-
-    // Write report to reports/
+    const { complexity, cacheHit } = await resolveComplexity(options, ctx.projectRoot, ctx.shitennoDir, analysis);
     const reportFile = writeComplexityReport(ctx.projectRoot, ctx.shitennoDir, complexity);
-
-    // Load maturity profile
     const maturityProfile = loadMaturityProfile(ctx.shitennoDir);
     const installedCapabilities = maturityProfile?.installedCapabilities ?? ["core"];
-
-    // Load growth profile (needed for both JSON and human output)
     const growthProfile = loadGrowthProfile(ctx.shitennoDir);
-
-    // JSON output
-    if (isJson) {
-      outputJson({
-        projectRoot: ctx.projectRoot,
-        checks: checks.map((c) => ({ name: c.name, status: c.status, message: c.message })),
-        complexity: {
-          score: complexity.score,
-          level: complexity.level,
-          staticScore: complexity.staticScore,
-          behaviorScore: complexity.behaviorScore,
-          reasons: complexity.reasons,
-          suggestions: complexity.suggestions,
-          areaScores: complexity.areaScores,
-        },
-        maturity: maturityProfile ? {
-          overallScore: maturityProfile.overallScore,
-          dimensions: maturityProfile.dimensions,
-          installedCapabilities: maturityProfile.installedCapabilities,
-          recommendedCapabilities: maturityProfile.recommendedCapabilities,
-        } : null,
-        installedCapabilities,
-        analysis: {
-          packageCount: analysis.packageCount,
-          appCount: analysis.appCount,
-          sourceFileCount: analysis.sourceFileCount,
-          dependencyCount: analysis.dependencyCount,
-          monorepo: analysis.monorepo,
-          hasTypeScript: analysis.hasTypeScript,
-          hasTests: analysis.hasTests,
-        },
-        cacheHit,
-        reportFile: reportFile || null,
-        computedAt: complexity.computedAt,
-        growthProfile: {
-          growthCapacity: growthProfile.growthCapacity,
-          challengeLevel: growthProfile.challengeLevel,
-          pattern: growthProfile.patterns[0]?.type || "balanced",
-          totalChoices: growthProfile.pathHistory.length,
-        },
-      });
-      return;
-    }
-
-    // Human-readable output
-    output(chalk.bold("  Project root:"));
-    output(chalk.gray(`    ${ctx.projectRoot}`));
-    outputBlank();
-
+    if (isJson) { displayJsonOutput({ ctx, checks, complexity, maturityProfile, installedCapabilities, analysis, cacheHit, reportFile: reportFile ?? undefined, growthProfile }); return; }
+    displayProjectRootText(ctx.projectRoot);
     displayResults(checks);
-
-    // 3.26: --fix mode: run auto-fix suggestions
-    if (options.fix) {
-      const failCount = checks.filter((c) => c.status === "fail").length;
-      const warnCount = checks.filter((c) => c.status === "warn").length;
-      if (!isJson) {
-        output(chalk.bold("  🔧 Auto-fix Mode:"));
-        outputBlank();
-        if (failCount > 0) {
-          output(chalk.gray("  Attempting fixes for failed checks..."));
-          output(chalk.gray("  → Run 'shugo init' to fix failed governance checks"));
-          output(chalk.gray("  → Run 'shugo upgrade --accept-recommended' to add missing capabilities"));
-        }
-        if (warnCount > 0) {
-          output(chalk.gray("  Attempting fixes for warnings..."));
-          output(chalk.gray("  → Run 'shugo upgrade' to add optional components"));
-          output(chalk.gray("  → Run 'shugo sync' to synchronize documentation"));
-        }
-        if (failCount === 0 && warnCount === 0) {
-          output(chalk.green("  ✔ No fixes needed — governance is healthy!"));
-        }
-        outputBlank();
-      }
-    }
-
+    if (options.fix) displayFixMode(checks, isJson);
     displayMaturityProfile(maturityProfile, installedCapabilities);
     displayComplexityReport(complexity, analysis);
-
-    // Display project fingerprint
-    const { loadFingerprint, isFingerprintStale, generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
-    const staleFingerprint = isFingerprintStale(ctx.shitennoDir);
-    let fingerprint = loadFingerprint(ctx.shitennoDir);
-    if (!fingerprint || staleFingerprint) {
-      fingerprint = generateProjectFingerprint(ctx.projectRoot, analysis, maturityProfile?.overallScore);
-      saveFingerprint(ctx.shitennoDir, fingerprint);
-    }
-    if (fingerprint) {
-      output(chalk.bold("  🔍 Project Fingerprint:"));
-      output(chalk.gray(`    Domain:    ${fingerprint.domain}`));
-      output(chalk.gray(`    Scale:     ${fingerprint.scale}`));
-      output(chalk.gray(`    Stack:     ${fingerprint.stack.slice(0, 5).join(", ")}${fingerprint.stack.length > 5 ? ` (+${fingerprint.stack.length - 5})` : ""}`));
-      output(chalk.gray(`    Hash:      ${fingerprint.hash}`));
-      outputBlank();
-    }
-
-    // Display context pipeline summary — daemon-first, disk-fallback
-    try {
-      const { collectContext } = await import("../context-collector.js");
-      const { computeInputHash, getCachedBriefing } = await import("../briefing-cache.js");
-
-      let briefing;
-      if (isDaemonRunning(ctx.shitennoDir)) {
-        const result = await queryDaemon<{ type: string; data: typeof briefing }>(ctx.shitennoDir, {
-          type: "query_briefing",
-        });
-        if (result?.data) {
-          briefing = result.data;
-        }
-      }
-
-      if (!briefing) {
-        const snapshot = collectContext(ctx.projectRoot, ctx.shitennoDir);
-        const inputHash = computeInputHash({
-          fingerprintHash: snapshot.fingerprint.hash,
-          riskMapHash: snapshot.riskMap.generatedAt,
-          contextRuleCount: snapshot.contextRules.length,
-          dynamicRuleCount: snapshot.dynamicRules.length,
-          maturityScore: snapshot.maturityProfile?.overallScore ?? null,
-        });
-        const cached = getCachedBriefing(ctx.shitennoDir, inputHash);
-        briefing = cached?.briefing ?? snapshot.briefing;
-      }
-
-      output(chalk.bold("  📋 Pre-Session Briefing:"));
-      output(chalk.gray(`    Domain: ${briefing.project.domain} | Scale: ${briefing.project.scale} | Risk: ${briefing.risks.overall}`));
-      if (briefing.risks.criticalAreas.length > 0) {
-        output(chalk.red(`    ⚠ Critical areas: ${briefing.risks.criticalAreas.join(", ")}`));
-      }
-      if (briefing.tests.areasWithoutTests.length > 0) {
-        output(chalk.yellow(`    🧪 Areas without tests: ${briefing.tests.areasWithoutTests.length}`));
-      }
-      for (const rec of briefing.recommendations.slice(0, 2)) {
-        output(chalk.cyan(`    → ${rec}`));
-      }
-      outputBlank();
-    } catch (error) {
-      logger.debug("status", "Suppressed error", { error });
-    }
-
-    // Display daemon health + challenges (if daemon is running)
-    if (isDaemonRunning(ctx.shitennoDir)) {
-      try {
-        const health = await queryDaemon<{
-          type: string;
-          score: number | null;
-          trend: string;
-          uptimeSeconds: number;
-          pid: number;
-          activeSessions: number;
-          lastCommand: string | null;
-        }>(ctx.shitennoDir, { type: "query_health" });
-        if (health) {
-          const icon = health.trend === "degrading" ? "🟡" : "🟢";
-          output(chalk.bold("  🔍 Daemon Health:"));
-          output(`    ${icon} Score: ${health.score ?? "N/A"}/100  Trend: ${health.trend}`);
-          output(chalk.gray(`    Uptime: ${Math.round((health.uptimeSeconds ?? 0) / 60)}min | PID: ${health.pid} | Sessions: ${health.activeSessions}`));
-          if (health.lastCommand) {
-            output(chalk.gray(`    Last command: ${health.lastCommand}`));
-          }
-          outputBlank();
-        }
-
-        const challenges = await queryDaemon<{
-          type: string;
-          challenges: Array<{ type: string; severity: string; message: string }>;
-        }>(ctx.shitennoDir, { type: "query_challenges" });
-        if (challenges?.challenges?.length) {
-          output(chalk.bold("  🎯 Pending Challenges:"));
-          for (const c of challenges.challenges.slice(0, 5)) {
-            const sev = c.severity === "high" ? "🔴" : c.severity === "medium" ? "🟡" : "🔵";
-            output(`    ${sev} ${c.message}`);
-          }
-          outputBlank();
-        }
-      } catch {
-        // Daemon query failed — skip silently
-      }
-    }
-
-    // Display capability engine summary
-    try {
-      const { evaluateCapabilities } = await import("../capability-engine.js");
-      const { subscribeToEngineeringState } = await import("../engineering-state/index.js");
-      const { getState, unsubscribe } = subscribeToEngineeringState(ctx.projectRoot, ctx.shitennoDir);
-      const state = getState();
-      unsubscribe();
-      const engineResult = evaluateCapabilities(state, ctx.shitennoDir);
-
-      output(chalk.bold("  ⚙ Capability Engine:"));
-      output(chalk.gray(`    Overall: ${engineResult.overallScore}% | Installed: ${engineResult.byMaturity.installed.length + engineResult.byMaturity.configured.length + engineResult.byMaturity.active.length + engineResult.byMaturity.optimized.length} | Dormant: ${engineResult.byMaturity.dormant.length}`));
-
-      const activeCaps = [...engineResult.byMaturity.active, ...engineResult.byMaturity.optimized];
-      if (activeCaps.length > 0) {
-        output(chalk.green(`    Active: ${activeCaps.join(", ")}`));
-      }
-      outputBlank();
-    } catch (error) {
-      logger.debug("status", "Suppressed error", { error });
-    }
-
-    // Growth profile
+    await displayFingerprint(ctx.projectRoot, ctx.shitennoDir, analysis, maturityProfile?.overallScore);
+    await displayBriefing(ctx.projectRoot, ctx.shitennoDir);
+    if (isDaemonRunning(ctx.shitennoDir)) await displayDaemonHealth(ctx.shitennoDir);
+    await displayCapabilityEngine(ctx.projectRoot, ctx.shitennoDir);
     output(formatGrowthProgress(growthProfile));
     outputBlank();
-
-    if (cacheHit) {
-      output(chalk.gray("  📦 Used cached results"));
-      outputBlank();
-    }
-
-    if (reportFile) {
-      output(chalk.gray(`  📄 Report saved: shitenno/reports/${reportFile}`));
-      outputBlank();
-    }
-
-    // Publish event
-    getEventBus().publish("analysis.complete", {
-      projectId: ctx.projectRoot,
-      maturityScore: maturityProfile?.overallScore ?? complexity.score,
-      dimensions: maturityProfile?.dimensions ?? {},
-      recommendations: complexity.suggestions,
-    });
+    displayFooter({ cacheHit, reportFile: reportFile ?? undefined, projectRoot: ctx.projectRoot, maturityProfile, complexity });
   });
+
+function displayHeader(isJson: boolean): void {
+  if (isJson) muteLogs();
+  if (!isJson) { outputBlank(); banner("shugo status", "Health Check"); outputBlank(); }
+}
+
+function displayProjectRootText(projectRoot: string): void {
+  output(chalk.bold("  Project root:"));
+  output(chalk.gray(`    ${projectRoot}`));
+  outputBlank();
+}
+
+async function resolveComplexity(
+  options: { cache?: boolean },
+  projectRoot: string,
+  shitennoDir: string,
+  analysis: ProjectAnalysis
+): Promise<{ complexity: ComplexityReport; cacheHit: boolean }> {
+  let complexity: ComplexityReport;
+  let cacheHit = false;
+  if (options.cache !== false) {      const cached = getCached<ComplexityReport>({ projectRoot, key: "complexity",
+      computeChecksumsFn: () => computeKeyChecksums(projectRoot, shitennoDir) });
+    if (cached) {
+      complexity = cached;
+      cacheHit = true;
+    } else {
+      complexity = await calculateComplexityScore(projectRoot, shitennoDir, analysis);
+      setCache({ projectRoot, shitennoDir, key: "complexity", data: complexity,
+        checksums: computeKeyChecksums(projectRoot, shitennoDir) });
+    }
+  } else {
+    complexity = await calculateComplexityScore(projectRoot, shitennoDir, analysis);
+  }
+  return { complexity, cacheHit };
+}
+
+function displayJsonOutput(data: StatusOutputData): void {
+  outputJson({
+    projectRoot: data.ctx.projectRoot,
+    checks: data.checks.map((c) => ({ name: c.name, status: c.status, message: c.message })),
+    complexity: {
+      score: data.complexity.score,
+      level: data.complexity.level,
+      staticScore: data.complexity.staticScore,
+      behaviorScore: data.complexity.behaviorScore,
+      reasons: data.complexity.reasons,
+      suggestions: data.complexity.suggestions,
+      areaScores: data.complexity.areaScores,
+    },
+    maturity: data.maturityProfile ? {
+      overallScore: data.maturityProfile.overallScore,
+      dimensions: data.maturityProfile.dimensions,
+      installedCapabilities: data.maturityProfile.installedCapabilities,
+      recommendedCapabilities: data.maturityProfile.recommendedCapabilities,
+    } : null,
+    installedCapabilities: data.installedCapabilities,
+    analysis: {
+      packageCount: data.analysis.packageCount,
+      appCount: data.analysis.appCount,
+      sourceFileCount: data.analysis.sourceFileCount,
+      dependencyCount: data.analysis.dependencyCount,
+      monorepo: data.analysis.monorepo,
+      hasTypeScript: data.analysis.hasTypeScript,
+      hasTests: data.analysis.hasTests,
+    },
+    cacheHit: data.cacheHit,
+    reportFile: data.reportFile || null,
+    computedAt: data.complexity.computedAt,
+    growthProfile: {
+      growthCapacity: data.growthProfile.growthCapacity,
+      challengeLevel: data.growthProfile.challengeLevel,
+      pattern: data.growthProfile.patterns[0]?.type || "balanced",
+      totalChoices: data.growthProfile.pathHistory.length,
+    },
+  });
+}
+
+function displayFixMode(checks: StatusCheck[], isJson: boolean): void {
+  const failCount = checks.filter((c) => c.status === "fail").length;
+  const warnCount = checks.filter((c) => c.status === "warn").length;
+  if (!isJson) {
+    output(chalk.bold("  🔧 Auto-fix Mode:"));
+    outputBlank();
+    if (failCount > 0) {
+      output(chalk.gray("  Attempting fixes for failed checks..."));
+      output(chalk.gray("  → Run 'shugo init' to fix failed governance checks"));
+      output(chalk.gray("  → Run 'shugo upgrade --accept-recommended' to add missing capabilities"));
+    }
+    if (warnCount > 0) {
+      output(chalk.gray("  Attempting fixes for warnings..."));
+      output(chalk.gray("  → Run 'shugo upgrade' to add optional components"));
+      output(chalk.gray("  → Run 'shugo sync' to synchronize documentation"));
+    }
+    if (failCount === 0 && warnCount === 0) {
+      output(chalk.green("  ✔ No fixes needed — governance is healthy!"));
+    }
+    outputBlank();
+  }
+}
+
+async function displayFingerprint(
+  projectRoot: string,
+  shitennoDir: string,
+  analysis: ProjectAnalysis,
+  overallScore: number | undefined
+): Promise<void> {
+  const { loadFingerprint, isFingerprintStale, generateProjectFingerprint, saveFingerprint } = await import("../project-fingerprint.js");
+  const staleFingerprint = isFingerprintStale(shitennoDir);
+  let fingerprint = loadFingerprint(shitennoDir);
+  if (!fingerprint || staleFingerprint) {
+    fingerprint = generateProjectFingerprint(projectRoot, analysis, overallScore);
+    saveFingerprint(shitennoDir, fingerprint);
+  }
+  if (fingerprint) {
+    output(chalk.bold("  🔍 Project Fingerprint:"));
+    output(chalk.gray(`    Domain:    ${fingerprint.domain}`));
+    output(chalk.gray(`    Scale:     ${fingerprint.scale}`));
+    output(chalk.gray(`    Stack:     ${fingerprint.stack.slice(0, 5).join(", ")}${fingerprint.stack.length > 5 ? ` (+${fingerprint.stack.length - 5})` : ""}`));
+    output(chalk.gray(`    Hash:      ${fingerprint.hash}`));
+    outputBlank();
+  }
+}
+
+async function displayBriefing(projectRoot: string, shitennoDir: string): Promise<void> {
+  try {
+    const { collectContext } = await import("../context-collector.js");
+    const { computeInputHash, getCachedBriefing } = await import("../briefing-cache.js");
+    let briefing;
+    if (isDaemonRunning(shitennoDir)) {
+      const result = await queryDaemon<{ type: string; data: typeof briefing }>(shitennoDir, {
+        type: "query_briefing",
+      });
+      if (result?.data) {
+        briefing = result.data;
+      }
+    }
+    if (!briefing) {
+      const snapshot = collectContext(projectRoot, shitennoDir);
+      const inputHash = computeInputHash({
+        fingerprintHash: snapshot.fingerprint.hash,
+        riskMapHash: snapshot.riskMap.generatedAt,
+        contextRuleCount: snapshot.contextRules.length,
+        dynamicRuleCount: snapshot.dynamicRules.length,
+        maturityScore: snapshot.maturityProfile?.overallScore ?? null,
+      });
+      const cached = getCachedBriefing(shitennoDir, inputHash);
+      briefing = cached?.briefing ?? snapshot.briefing;
+    }
+    output(chalk.bold("  📋 Pre-Session Briefing:"));
+    output(chalk.gray(`    Domain: ${briefing.project.domain} | Scale: ${briefing.project.scale} | Risk: ${briefing.risks.overall}`));
+    if (briefing.risks.criticalAreas.length > 0) {
+      output(chalk.red(`    ⚠ Critical areas: ${briefing.risks.criticalAreas.join(", ")}`));
+    }
+    if (briefing.tests.areasWithoutTests.length > 0) {
+      output(chalk.yellow(`    🧪 Areas without tests: ${briefing.tests.areasWithoutTests.length}`));
+    }
+    for (const rec of briefing.recommendations.slice(0, 2)) {
+      output(chalk.cyan(`    → ${rec}`));
+    }
+    outputBlank();
+  } catch (error) {
+    logger.debug("status", "Suppressed error", { error });
+  }
+}
+
+async function displayDaemonHealth(shitennoDir: string): Promise<void> {
+  try {
+    const health = await queryDaemon<{
+      type: string;
+      score: number | null;
+      trend: string;
+      uptimeSeconds: number;
+      pid: number;
+      activeSessions: number;
+      lastCommand: string | null;
+    }>(shitennoDir, { type: "query_health" });
+    if (health) {
+      const icon = health.trend === "degrading" ? "🟡" : "🟢";
+      output(chalk.bold("  🔍 Daemon Health:"));
+      output(`    ${icon} Score: ${health.score ?? "N/A"}/100  Trend: ${health.trend}`);
+      output(chalk.gray(`    Uptime: ${Math.round((health.uptimeSeconds ?? 0) / 60)}min | PID: ${health.pid} | Sessions: ${health.activeSessions}`));
+      if (health.lastCommand) {
+        output(chalk.gray(`    Last command: ${health.lastCommand}`));
+      }
+      outputBlank();
+    }
+    const challenges = await queryDaemon<{
+      type: string;
+      challenges: Array<{ type: string; severity: string; message: string }>;
+    }>(shitennoDir, { type: "query_challenges" });
+    if (challenges?.challenges?.length) {
+      output(chalk.bold("  🎯 Pending Challenges:"));
+      for (const c of challenges.challenges.slice(0, 5)) {
+        const sev = c.severity === "high" ? "🔴" : c.severity === "medium" ? "🟡" : "🔵";
+        output(`    ${sev} ${c.message}`);
+      }
+      outputBlank();
+    }
+  } catch {
+  }
+}
+
+async function displayCapabilityEngine(projectRoot: string, shitennoDir: string): Promise<void> {
+  try {
+    const { evaluateCapabilities } = await import("../capability-engine.js");
+    const { subscribeToEngineeringState } = await import("../engineering-state/index.js");
+    const { getState, unsubscribe } = subscribeToEngineeringState(projectRoot, shitennoDir);
+    const state = getState();
+    unsubscribe();
+    const engineResult = evaluateCapabilities(state, shitennoDir);
+    output(chalk.bold("  ⚙ Capability Engine:"));
+    output(chalk.gray(`    Overall: ${engineResult.overallScore}% | Installed: ${engineResult.byMaturity.installed.length + engineResult.byMaturity.configured.length + engineResult.byMaturity.active.length + engineResult.byMaturity.optimized.length} | Dormant: ${engineResult.byMaturity.dormant.length}`));
+    const activeCaps = [...engineResult.byMaturity.active, ...engineResult.byMaturity.optimized];
+    if (activeCaps.length > 0) {
+      output(chalk.green(`    Active: ${activeCaps.join(", ")}`));
+    }
+    outputBlank();
+  } catch (error) {
+    logger.debug("status", "Suppressed error", { error });
+  }
+}
+
+function displayFooter(data: FooterData): void {
+  if (data.cacheHit) {
+    output(chalk.gray("  📦 Used cached results"));
+    outputBlank();
+  }
+  if (data.reportFile) {
+    output(chalk.gray(`  📄 Report saved: shitenno/reports/${data.reportFile}`));
+    outputBlank();
+  }
+  getEventBus().publish("analysis.complete", {
+    projectId: data.projectRoot,
+    maturityScore: data.maturityProfile?.overallScore ?? data.complexity.score,
+    dimensions: data.maturityProfile?.dimensions ?? {},
+    recommendations: data.complexity.suggestions,
+  });
+}
 
 function runHealthChecks(projectRoot: string, shitennoDir: string): StatusCheck[] {
   const checks: StatusCheck[] = [];
@@ -521,19 +539,24 @@ function displayMaturityProfile(
 ): void {
   output(chalk.bold("  🎯 Maturity Profile:"));
   outputBlank();
-
   if (!profile) {
     output(chalk.gray("    No maturity profile found. Run 'shugo init' to create one."));
     outputBlank();
     return;
   }
+  displayMaturityScore(profile);
+  displayMaturityDimensions(profile);
+  displayInstalledCapabilities(installedCapabilities);
+  displayRecommendedCapabilities(profile);
+}
 
-  // Overall score
+function displayMaturityScore(profile: MaturityProfile): void {
   const color = profile.overallScore >= 65 ? chalk.green : profile.overallScore >= 35 ? chalk.yellow : chalk.red;
   output(`    Overall Score: ${color(String(profile.overallScore))}/100 ${healthBar(profile.overallScore, 100)}`);
   outputBlank();
+}
 
-  // Dimensions
+function displayMaturityDimensions(profile: MaturityProfile): void {
   const dimLabels: Record<string, string> = {
     architecture: "Arquitetura",
     governance: "Governança",
@@ -543,7 +566,6 @@ function displayMaturityProfile(
     documentation: "Documentação",
     observability: "Observabilidade",
   };
-
   const barWidth = 16;
   for (const [key, label] of Object.entries(dimLabels)) {
     const value = profile.dimensions[key as keyof typeof profile.dimensions];
@@ -554,16 +576,18 @@ function displayMaturityProfile(
     output(`    ${label.padEnd(16)} ${bar} ${String(value).padStart(3)}%`);
   }
   outputBlank();
+}
 
-  // Capabilities
+function displayInstalledCapabilities(installedCapabilities: string[]): void {
   output(chalk.bold("    Installed Capabilities:"));
   for (const cap of installedCapabilities) {
     const info = CAPABILITIES.find((c) => c.id === cap);
     output(chalk.green(`      ✓ ${info?.name || cap}`));
   }
   outputBlank();
+}
 
-  // Recommendations
+function displayRecommendedCapabilities(profile: MaturityProfile): void {
   if (profile.recommendedCapabilities.length > 0) {
     output(chalk.bold("    🎯 Recommended:"));
     for (const cap of profile.recommendedCapabilities) {
@@ -588,11 +612,18 @@ function displayComplexityReport(
     pleno: "Moderate",
     senior: "Advanced",
   };
-
   const color = levelColors[complexity.level] || chalk.gray;
-
   output(chalk.bold("  📊 Complexity Analysis:"));
   outputBlank();
+  displayProjectMetrics(analysis);
+  displayScoreBreakdown(complexity, color, levelNames);
+  displayFactors(complexity);
+  if (complexity.areaScores.length > 0) displayAreaBreakdown(complexity, levelColors);
+  displaySuggestions(complexity);
+  outputBlank();
+}
+
+function displayProjectMetrics(analysis: ProjectAnalysis): void {
   output(chalk.gray("    Project Metrics:"));
   output(chalk.gray(`      Packages:      ${analysis.packageCount}`));
   output(chalk.gray(`      Apps:          ${analysis.appCount}`));
@@ -600,6 +631,13 @@ function displayComplexityReport(
   output(chalk.gray(`      Dependencies:  ${analysis.dependencyCount}`));
   output(chalk.gray(`      Monorepo:      ${analysis.monorepo ? "yes" : "no"}`));
   outputBlank();
+}
+
+function displayScoreBreakdown(
+  complexity: ComplexityReport,
+  color: typeof chalk.green,
+  levelNames: Record<string, string>
+): void {
   output(chalk.gray("    Score Breakdown:"));
   output(chalk.gray(`      Static score:  ${complexity.staticScore}`));
   output(chalk.gray(`      Behavior score: ${complexity.behaviorScore}`));
@@ -609,36 +647,41 @@ function displayComplexityReport(
   output(color(`      ${levelNames[complexity.level] || complexity.level}`));
   outputBlank();
   output(chalk.gray("    Factors:"));
+}
 
+function displayFactors(complexity: ComplexityReport): void {
   for (const reason of complexity.reasons) {
     output(chalk.gray(`      • ${reason}`));
   }
+}
 
-  // Per-area breakdown
-  if (complexity.areaScores.length > 0) {
-    outputBlank();
-    output(chalk.bold("    📍 Area Breakdown:"));
-    outputBlank();
-    output(chalk.gray("      Area                    Score  Bar      Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
-    output(chalk.gray("      ─────────────────────── ────── ──────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
-
-    for (const area of complexity.areaScores.sort((a, b) => b.score - a.score)) {
-      const areaColor = levelColors[area.level] || chalk.gray;
-      const areaName = area.area.padEnd(23);
-      const score = String(area.score).padStart(5);
-      const level = (area.level).padEnd(7);
-      const files = String(area.fileCount).padStart(4);
-      const churn = String(area.churn).padStart(4);
-      const sensitive = String(area.sensitiveSurface).padStart(5);
-      const violations = String(area.violations).padStart(4);
-      const deps = String(area.dependencyDepth).padStart(4);
-      const age = String(area.incidentFreeAge).padStart(4);
-      const ctx = String(area.contextPressure).padStart(4);
-
-      output(`      ${areaColor(areaName)} ${chalk.bold(score)} ${miniBar(area.score)} ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
-    }
+function displayAreaBreakdown(
+  complexity: ComplexityReport,
+  levelColors: Record<string, typeof chalk.green>
+): void {
+  outputBlank();
+  output(chalk.bold("    📍 Area Breakdown:"));
+  outputBlank();
+  output(chalk.gray("      Area                    Score  Bar      Lvl     Files Churn Snsve  Viol  Deps  Age   Ctx"));
+  output(chalk.gray("      ─────────────────────── ────── ──────── ─────── ───── ───── ────── ───── ───── ───── ─────"));
+  for (const area of complexity.areaScores.sort((a, b) => b.score - a.score)) {
+    const areaColor = levelColors[area.level] || chalk.gray;
+    const areaName = area.area.padEnd(23);
+    const score = String(area.score).padStart(5);
+    const level = (area.level).padEnd(7);
+    const files = String(area.fileCount).padStart(4);
+    const churn = String(area.churn).padStart(4);
+    const sensitive = String(area.sensitiveSurface).padStart(5);
+    const violations = String(area.violations).padStart(4);
+    const deps = String(area.dependencyDepth).padStart(4);
+    const age = String(area.incidentFreeAge).padStart(4);
+    const ctx = String(area.contextPressure).padStart(4);
+    output(`      ${areaColor(areaName)} ${chalk.bold(score)} ${miniBar(area.score)} ${areaColor(level)} ${chalk.gray(files)} ${chalk.gray(churn)} ${chalk.gray(sensitive)} ${chalk.gray(violations)} ${chalk.gray(deps)} ${chalk.gray(age)} ${chalk.gray(ctx)}`);
   }
+  outputBlank();
+}
 
+function displaySuggestions(complexity: ComplexityReport): void {
   if (complexity.suggestions.length > 0) {
     outputBlank();
     output(chalk.bold("    💡 Suggestions:"));
@@ -646,6 +689,4 @@ function displayComplexityReport(
       output(chalk.cyan(`      → ${suggestion}`));
     }
   }
-
-  outputBlank();
 }

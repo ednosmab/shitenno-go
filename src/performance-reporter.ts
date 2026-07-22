@@ -16,6 +16,8 @@ import {
   detectFeedbackPatterns,
   type PerformanceMetric,
   type DimensionSummary,
+  type FeedbackRecord,
+  type FeedbackPattern,
   METRIC_LABELS,
 } from "./feedback-loops.js";
 import {
@@ -73,6 +75,70 @@ export interface PerformanceReport {
   summary: string;
 }
 
+interface TelemetryTrend {
+  current: number;
+  previous: number;
+  delta: number;
+}
+
+interface FeedbackMetrics {
+  totalInteractions: number;
+  accepted: number;
+  rejected: number;
+  challenging: number;
+  totalPathChoices: number;
+}
+
+interface DimensionReportResult {
+  dimensions: Record<PerformanceMetric, DimensionReport>;
+  dominantDim: PerformanceMetric | null;
+  weakestDim: PerformanceMetric | null;
+}
+
+interface DimensionExtremes {
+  strongest: PerformanceMetric | null;
+  weakest: PerformanceMetric | null;
+  maxScore: number;
+  minScore: number;
+  allTied: boolean;
+}
+
+interface InsightContext {
+  dimensions: Record<PerformanceMetric, DimensionReport>;
+  sessionMetrics: SessionMetrics;
+  growthProfile: GrowthProfile;
+  debtTrend: TelemetryTrend;
+  maturityTrend: TelemetryTrend;
+}
+
+interface SummaryContext {
+  dimensions: Record<PerformanceMetric, DimensionReport>;
+  sessionMetrics: SessionMetrics;
+  totalInteractions: number;
+  accepted: number;
+  rejected: number;
+  growthProfile: GrowthProfile;
+}
+
+interface ReportData {
+  periodStart: Date;
+  now: Date;
+  days: number;
+  dominantDim: PerformanceMetric | null;
+  weakestDim: PerformanceMetric | null;
+  dimensions: Record<PerformanceMetric, DimensionReport>;
+  sessionMetrics: SessionMetrics;
+  dayFrequency: Record<string, number>;
+  feedbackMetrics: FeedbackMetrics;
+  patterns: FeedbackPattern[];
+  debtTrend: TelemetryTrend;
+  maturityTrend: TelemetryTrend;
+  growthProfile: GrowthProfile;
+  insights: Insight[];
+  nextSteps: string[];
+  summary: string;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getLatestTelemetryFile(shitennoDir: string, prefix: string, rank = 0): string {
@@ -120,39 +186,31 @@ function detectTrend(current: number, previous: number): "improving" | "stable" 
   return "stable";
 }
 
-// ── Main Function ────────────────────────────────────────────────────────────
-
-/** Generate a full performance report for the user. */
-export function generatePerformanceReport(
-  _projectRoot: string,
+function readTelemetryValue(
   shitennoDir: string,
-  options?: { days?: number }
-): PerformanceReport {
-  const days = options?.days || 30;
-  const now = new Date();
-  const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  prefix: string,
+  extract: (data: TelemetrySnapshot) => number | undefined,
+  options?: { rank?: number; fallback?: number }
+): number {
+  const rank = options?.rank ?? 0;
+  const fallback = options?.fallback ?? 0;
+  const file = getLatestTelemetryFile(shitennoDir, prefix, rank);
+  const data = file ? readJsonFile<TelemetrySnapshot>(file, {}) : {};
+  return extract(data) ?? fallback;
+}
 
-  // Gather data from all sources
-  const dimensionSummaries = getAllDimensionSummaries(shitennoDir);
-  const sessionMetrics = getSessionMetrics(shitennoDir, days);
-  const growthProfile = loadGrowthProfile(shitennoDir);
-  const feedbackRecords = getFeedbackRecords(shitennoDir);
-  const patterns = detectFeedbackPatterns(shitennoDir);
-
-  // Filter records to period
-  const periodRecords = feedbackRecords.filter(
-    (r) => new Date(r.timestamp) >= periodStart
-  );
-
-  // Calculate dimension scores
+function buildDimensionReports(
+  dimensionSummaries: Record<string, DimensionSummary>,
+  feedbackRecords: FeedbackRecord[],
+  periodStart: Date,
+  days: number
+): DimensionReportResult {
   const dimensions = {} as Record<PerformanceMetric, DimensionReport>;
   let maxScore = -1;
   let minScore = 101;
   let dominantDim: PerformanceMetric | null = null;
   let weakestDim: PerformanceMetric | null = null;
-  let allTied = false;
 
-  // Calculate previous period's scores for trend comparison
   const previousPeriodStart = new Date(periodStart.getTime() - days * 24 * 60 * 60 * 1000);
   const previousPeriodRecords = feedbackRecords.filter(
     (r) => new Date(r.timestamp) >= previousPeriodStart && new Date(r.timestamp) < periodStart
@@ -184,21 +242,25 @@ export function generatePerformanceReport(
     if (score < minScore) { minScore = score; weakestDim = d; }
   }
 
-  // Check if all dimensions are tied
-  allTied = maxScore === minScore && maxScore >= 0;
-  if (allTied) {
+  if (maxScore === minScore && maxScore >= 0) {
     dominantDim = null;
     weakestDim = null;
   }
 
-  // Calculate aggregate feedback metrics
-  const totalInteractions = periodRecords.length;
-  const accepted = periodRecords.filter((r) => r.action === "accepted").length;
-  const rejected = periodRecords.filter((r) => r.action === "rejected").length;
-  const challenging = periodRecords.filter((r) => r.pathChoice === "challenging").length;
-  const totalPathChoices = periodRecords.filter((r) => r.pathChoice).length;
+  return { dimensions, dominantDim, weakestDim };
+}
 
-  // Determine most active day from feedback records
+function computeFeedbackMetrics(periodRecords: FeedbackRecord[]): FeedbackMetrics {
+  return {
+    totalInteractions: periodRecords.length,
+    accepted: periodRecords.filter((r) => r.action === "accepted").length,
+    rejected: periodRecords.filter((r) => r.action === "rejected").length,
+    challenging: periodRecords.filter((r) => r.pathChoice === "challenging").length,
+    totalPathChoices: periodRecords.filter((r) => r.pathChoice).length,
+  };
+}
+
+function computeDayFrequency(feedbackRecords: FeedbackRecord[]): Record<string, number> {
   const dayFrequency: Record<string, number> = {};
   for (const record of feedbackRecords) {
     const day = record.timestamp.split("T")[0];
@@ -206,99 +268,99 @@ export function generatePerformanceReport(
       dayFrequency[day] = (dayFrequency[day] || 0) + 1;
     }
   }
+  return dayFrequency;
+}
 
-  // Debt and maturity trends (from telemetry snapshots)
-  const currentMaturityFile = getLatestTelemetryFile(shitennoDir, "maturity");
-  const currentMaturityData = currentMaturityFile ? readJsonFile<TelemetrySnapshot>(currentMaturityFile, {}) : {};
-  const currentMaturity = currentMaturityData.overallScore ?? 0;
-  const previousMaturityFile = getLatestTelemetryFile(shitennoDir, "maturity", 1);
-  const previousMaturityData = previousMaturityFile ? readJsonFile<TelemetrySnapshot>(previousMaturityFile, {}) : {};
-  const previousMaturity = previousMaturityData.overallScore ?? currentMaturity;
-
-  const currentDebtFile = getLatestTelemetryFile(shitennoDir, "knowledge-debt");
-  const currentDebtData = currentDebtFile ? readJsonFile<TelemetrySnapshot>(currentDebtFile, {}) : {};
-  const currentDebt = currentDebtData.healthScore != null ? 100 - currentDebtData.healthScore : 100;
-  const previousDebtFile = getLatestTelemetryFile(shitennoDir, "knowledge-debt", 1);
-  const previousDebtData = previousDebtFile ? readJsonFile<TelemetrySnapshot>(previousDebtFile, {}) : {};
-  const previousDebt = previousDebtData.healthScore != null ? 100 - previousDebtData.healthScore : currentDebt;
-
-  // Generate insights
-  const insights = generateInsights(
-    dimensions,
-    sessionMetrics,
-    growthProfile,
-    { current: currentDebt, previous: previousDebt, delta: currentDebt - previousDebt },
-    { current: currentMaturity, previous: previousMaturity, delta: currentMaturity - previousMaturity }
-  );
-
-  // Generate next steps
-  const nextSteps = generateNextSteps(insights, growthProfile);
-
-  // Generate summary
-  const summary = generateSummary(
-    dimensions,
-    sessionMetrics,
-    totalInteractions,
-    accepted,
-    rejected,
-    growthProfile
-  );
-
+function assembleReport(data: ReportData): PerformanceReport {
   return {
     period: {
-      from: periodStart.toISOString().slice(0, 10),
-      to: now.toISOString().slice(0, 10),
-      days,
+      from: data.periodStart.toISOString().slice(0, 10),
+      to: data.now.toISOString().slice(0, 10),
+      days: data.days,
     },
     profile: {
-      dominantDimension: dominantDim,
-      weakestDimension: weakestDim,
-      growthPattern: growthProfile.patterns[0]?.type || "balanced",
-      growthCapacity: growthProfile.growthCapacity,
-      challengeLevel: growthProfile.challengeLevel,
+      dominantDimension: data.dominantDim,
+      weakestDimension: data.weakestDim,
+      growthPattern: data.growthProfile.patterns[0]?.type || "balanced",
+      growthCapacity: data.growthProfile.growthCapacity,
+      challengeLevel: data.growthProfile.challengeLevel,
     },
-    dimensions,
+    dimensions: data.dimensions,
     sessions: {
-      total: sessionMetrics.totalSessions,
-      avgDuration: sessionMetrics.avgDuration,
-      mostActiveDay: Object.entries(dayFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A",
-      commandFrequency: sessionMetrics.commandFrequency,
+      total: data.sessionMetrics.totalSessions,
+      avgDuration: data.sessionMetrics.avgDuration,
+      mostActiveDay: Object.entries(data.dayFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A",
+      commandFrequency: data.sessionMetrics.commandFrequency,
     },
     feedback: {
-      totalInteractions,
-      acceptanceRate: totalInteractions > 0 ? Math.round((accepted / totalInteractions) * 100) : 0,
-      challengingRatio: totalPathChoices > 0 ? Math.round((challenging / totalPathChoices) * 100) : 50,
-      patterns: patterns.map((p) => p.description),
-      suppressedCount: patterns.filter((p) => p.type === "always_rejects").length,
+      totalInteractions: data.feedbackMetrics.totalInteractions,
+      acceptanceRate: data.feedbackMetrics.totalInteractions > 0
+        ? Math.round((data.feedbackMetrics.accepted / data.feedbackMetrics.totalInteractions) * 100)
+        : 0,
+      challengingRatio: data.feedbackMetrics.totalPathChoices > 0
+        ? Math.round((data.feedbackMetrics.challenging / data.feedbackMetrics.totalPathChoices) * 100)
+        : 50,
+      patterns: data.patterns.map((p) => p.description),
+      suppressedCount: data.patterns.filter((p) => p.type === "always_rejects").length,
     },
-    debtTrend: {
-      current: currentDebt,
-      previous: previousDebt,
-      delta: currentDebt - previousDebt,
-    },
-    maturityTrend: {
-      current: currentMaturity,
-      previous: previousMaturity,
-      delta: currentMaturity - previousMaturity,
-    },
-    insights,
-    nextSteps,
-    summary,
+    debtTrend: data.debtTrend,
+    maturityTrend: data.maturityTrend,
+    insights: data.insights,
+    nextSteps: data.nextSteps,
+    summary: data.summary,
   };
+}
+
+// ── Main Function ────────────────────────────────────────────────────────────
+
+/** Generate a full performance report for the user. */
+export function generatePerformanceReport(
+  _projectRoot: string,
+  shitennoDir: string,
+  options?: { days?: number }
+): PerformanceReport {
+  const days = options?.days || 30;
+  const now = new Date();
+  const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const dimensionSummaries = getAllDimensionSummaries(shitennoDir);
+  const sessionMetrics = getSessionMetrics(shitennoDir, days);
+  const growthProfile = loadGrowthProfile(shitennoDir);
+  const feedbackRecords = getFeedbackRecords(shitennoDir);
+  const patterns = detectFeedbackPatterns(shitennoDir);
+
+  const periodRecords = feedbackRecords.filter(
+    (r) => new Date(r.timestamp) >= periodStart
+  );
+
+  const { dimensions, dominantDim, weakestDim } = buildDimensionReports(
+    dimensionSummaries, feedbackRecords, periodStart, days
+  );
+  const feedbackMetrics = computeFeedbackMetrics(periodRecords);
+  const dayFrequency = computeDayFrequency(feedbackRecords);
+
+  const currentMaturity = readTelemetryValue(shitennoDir, "maturity", (d) => d.overallScore, { fallback: 0 });
+  const previousMaturity = readTelemetryValue(shitennoDir, "maturity", (d) => d.overallScore, { rank: 1, fallback: currentMaturity });
+  const currentDebt = readTelemetryValue(shitennoDir, "knowledge-debt", (d) => d.healthScore != null ? 100 - d.healthScore : undefined, { fallback: 100 });
+  const previousDebt = readTelemetryValue(shitennoDir, "knowledge-debt", (d) => d.healthScore != null ? 100 - d.healthScore : undefined, { rank: 1, fallback: currentDebt });
+
+  const debtTrend: TelemetryTrend = { current: currentDebt, previous: previousDebt, delta: currentDebt - previousDebt };
+  const maturityTrend: TelemetryTrend = { current: currentMaturity, previous: previousMaturity, delta: currentMaturity - previousMaturity };
+
+  const insights = generateInsights({ dimensions, sessionMetrics, growthProfile, debtTrend, maturityTrend });
+  const nextSteps = generateNextSteps(insights, growthProfile);
+  const summary = generateSummary({ dimensions, sessionMetrics, totalInteractions: feedbackMetrics.totalInteractions, accepted: feedbackMetrics.accepted, rejected: feedbackMetrics.rejected, growthProfile });
+
+  return assembleReport({
+    periodStart, now, days, dominantDim, weakestDim, dimensions,
+    sessionMetrics, dayFrequency, feedbackMetrics, patterns,
+    debtTrend, maturityTrend, growthProfile, insights, nextSteps, summary,
+  });
 }
 
 // ── Insight Generation ───────────────────────────────────────────────────────
 
-function generateInsights(
-  dimensions: Record<PerformanceMetric, DimensionReport>,
-  sessionMetrics: SessionMetrics,
-  growthProfile: GrowthProfile,
-  debtTrend: { current: number; previous: number; delta: number },
-  maturityTrend: { current: number; previous: number; delta: number }
-): Insight[] {
-  const insights: Insight[] = [];
-
-  // Find strongest and weakest dimensions
+function findDimensionExtremes(dimensions: Record<PerformanceMetric, DimensionReport>): DimensionExtremes {
   let maxScore = -1;
   let minScore = 101;
   let strongest: PerformanceMetric | null = null;
@@ -310,35 +372,40 @@ function generateInsights(
     if (report.score < minScore) { minScore = report.score; weakest = d; }
   }
 
-  // Check if all dimensions are tied
   const allTied = maxScore === minScore && maxScore >= 0;
   if (allTied) {
     strongest = null;
     weakest = null;
   }
 
-  // Strength
-  if (strongest) {
+  return { strongest, weakest, maxScore, minScore, allTied };
+}
+
+function addDimensionInsights(
+  insights: Insight[],
+  dimensions: Record<PerformanceMetric, DimensionReport>,
+  extremes: DimensionExtremes
+): void {
+  if (extremes.strongest) {
     insights.push({
       type: "strength",
-      dimension: strongest,
-      text: `Sua força está em ${METRIC_LABELS[strongest]}. Score: ${maxScore}/100.`,
-      evidence: dimensions[strongest].evidence[0],
+      dimension: extremes.strongest,
+      text: `Sua força está em ${METRIC_LABELS[extremes.strongest]}. Score: ${extremes.maxScore}/100.`,
+      evidence: dimensions[extremes.strongest].evidence[0],
     });
   } else {
     insights.push({
       type: "strength",
       dimension: null,
-      text: `Todas as dimensões estão equilibradas com score ${maxScore}/100.`,
+      text: `Todas as dimensões estão equilibradas com score ${extremes.maxScore}/100.`,
     });
   }
 
-  // Improvement area
-  if (weakest) {
+  if (extremes.weakest) {
     insights.push({
       type: "improvement",
-      dimension: weakest,
-      text: `Área com mais potencial de melhoria: ${METRIC_LABELS[weakest]}. Score: ${minScore}/100.`,
+      dimension: extremes.weakest,
+      text: `Área com mais potencial de melhoria: ${METRIC_LABELS[extremes.weakest]}. Score: ${extremes.minScore}/100.`,
     });
   } else {
     insights.push({
@@ -347,8 +414,9 @@ function generateInsights(
       text: "Nenhuma dimensão se destaca como área de melhoria — todas equilibradas.",
     });
   }
+}
 
-  // Growth pattern insight
+function addGrowthPatternInsight(insights: Insight[], growthProfile: GrowthProfile): void {
   const pattern = growthProfile.patterns[0];
   if (pattern?.type === "prefers_comfort") {
     insights.push({
@@ -363,8 +431,9 @@ function generateInsights(
       text: "Excelente — você busca desafio. Isso acelera aprendizado, mas garanta que não está se sobrecarregando.",
     });
   }
+}
 
-  // Debt trend
+function addTrendInsights(insights: Insight[], debtTrend: TelemetryTrend, maturityTrend: TelemetryTrend): void {
   if (debtTrend.delta > 10) {
     insights.push({
       type: "improvement",
@@ -379,7 +448,6 @@ function generateInsights(
     });
   }
 
-  // Maturity trend
   if (maturityTrend.delta > 5) {
     insights.push({
       type: "strength",
@@ -387,8 +455,13 @@ function generateInsights(
       text: `Maturidade subiu ${maturityTrend.delta} pontos. Seu projeto está evoluindo bem.`,
     });
   }
+}
 
-  // Session duration
+function addSessionQualityInsights(
+  insights: Insight[],
+  sessionMetrics: SessionMetrics,
+  dimensions: Record<PerformanceMetric, DimensionReport>
+): void {
   if (sessionMetrics.avgDuration > 180) {
     insights.push({
       type: "suggestion",
@@ -397,7 +470,6 @@ function generateInsights(
     });
   }
 
-  // Low prompt quality
   const promptScore = dimensions.prompt_quality?.score || 50;
   if (promptScore < 40) {
     insights.push({
@@ -406,7 +478,15 @@ function generateInsights(
       text: "Suas descrições de tarefa podem ser mais claras. Tente: contexto + o que quer + restrições.",
     });
   }
+}
 
+function generateInsights(ctx: InsightContext): Insight[] {
+  const insights: Insight[] = [];
+  const extremes = findDimensionExtremes(ctx.dimensions);
+  addDimensionInsights(insights, ctx.dimensions, extremes);
+  addGrowthPatternInsight(insights, ctx.growthProfile);
+  addTrendInsights(insights, ctx.debtTrend, ctx.maturityTrend);
+  addSessionQualityInsights(insights, ctx.sessionMetrics, ctx.dimensions);
   return insights;
 }
 
@@ -442,25 +522,18 @@ function generateNextSteps(
   return steps.slice(0, 5);
 }
 
-function generateSummary(
-  dimensions: Record<PerformanceMetric, DimensionReport>,
-  sessionMetrics: SessionMetrics,
-  totalInteractions: number,
-  accepted: number,
-  rejected: number,
-  growthProfile: GrowthProfile
-): string {
+function generateSummary(ctx: SummaryContext): string {
   const parts: string[] = [];
 
-  const dimScores = Object.values(dimensions).map((d) => d.score);
+  const dimScores = Object.values(ctx.dimensions).map((d) => d.score);
   const avgScore = dimScores.length > 0
     ? Math.round(dimScores.reduce((a, b) => a + b, 0) / dimScores.length)
     : 0;
 
   parts.push(`Score médio: ${avgScore}/100.`);
-  parts.push(`${sessionMetrics.totalSessions} sessões.`);
-  parts.push(`${totalInteractions} interações (${accepted} aceites, ${rejected} rejeitadas).`);
-  parts.push(`Capacidade de crescimento: ${Math.round(growthProfile.growthCapacity * 100)}%.`);
+  parts.push(`${ctx.sessionMetrics.totalSessions} sessões.`);
+  parts.push(`${ctx.totalInteractions} interações (${ctx.accepted} aceites, ${ctx.rejected} rejeitadas).`);
+  parts.push(`Capacidade de crescimento: ${Math.round(ctx.growthProfile.growthCapacity * 100)}%.`);
 
   return parts.join(" ");
 }

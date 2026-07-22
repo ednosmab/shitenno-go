@@ -10,7 +10,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { analyseProject } from "../analyser.js";
+import { analyseProject, type ProjectAnalysis } from "../analyser.js";
 import { detectComplexity } from "../complexity-detector.js";
 import { getActiveRules } from "../rule-loader.js";
 import { askQuestions } from "../prompts.js";
@@ -132,7 +132,7 @@ function displayComplexity(projectRoot: string, shitennoDir: string, isJson: boo
 
 interface AssessContext { projectRoot: string; shitennoDir: string; isJson: boolean; }
 
-function buildSyntheticAnswersFromProfile(previousProfile: MaturityProfile, analysis: ProjectAnalysis) {
+function buildSyntheticAnswersFromProfile(previousProfile: MaturityProfile, _analysis: ProjectAnalysis) {
   return {
     usedShitennoBefore: previousProfile.installedCapabilities.length > 1,
     isFirstProject: false,
@@ -154,7 +154,7 @@ function buildSyntheticAnswersFromProfile(previousProfile: MaturityProfile, anal
   };
 }
 
-function buildDefaultSyntheticAnswers(_analysis: ProjectAnalysis) {
+function buildDefaultSyntheticAnswers(analysis: ProjectAnalysis) {
   return {
     usedShitennoBefore: false,
     isFirstProject: false,
@@ -176,7 +176,7 @@ function buildDefaultSyntheticAnswers(_analysis: ProjectAnalysis) {
   };
 }
 
-async function calculateProfileInJsonMode(actx: AssessContext, previousProfile: MaturityProfile | null, analysis: ProjectAnalysis): Promise<MaturityProfile> {
+function calculateProfileInJsonMode(actx: AssessContext, previousProfile: MaturityProfile | null, analysis: ProjectAnalysis): MaturityProfile {
   const calcSpinner = ora("Calculating maturity profile...").start();
   const answers = previousProfile ? buildSyntheticAnswersFromProfile(previousProfile, analysis) : buildDefaultSyntheticAnswers(analysis);
   const profile = calculateMaturityProfile(answers, analysis, actx.shitennoDir);
@@ -229,6 +229,39 @@ function recordFeedbackForProfile(shitennoDir: string, newProfile: MaturityProfi
   }
 }
 
+function displayCapabilities(newProfile: MaturityProfile): void {
+  output(chalk.bold("  Installed Capabilities:"));
+  for (const cap of newProfile.installedCapabilities) output(chalk.green(`    ✓ ${cap}`));
+  outputBlank();
+  if (newProfile.recommendedCapabilities.length > 0) {
+    output(chalk.bold("  🎯 Recommended Capabilities:"));
+    for (const cap of newProfile.recommendedCapabilities) output(chalk.cyan(`    → ${cap} — install with: shugo upgrade --capability ${cap}`));
+    outputBlank();
+  }
+  if (newProfile.futureCapabilities.length > 0) {
+    output(chalk.bold("  Future Capabilities:"));
+    for (const cap of newProfile.futureCapabilities) output(chalk.gray(`    □ ${cap}`));
+    outputBlank();
+  }
+}
+
+function displayAssessmentSummary(newProfile: MaturityProfile): void {
+  if (newProfile.recommendedCapabilities.length > 0) {
+    output(chalk.bold("  📝 Summary:"));
+    output(chalk.gray(`    ${newProfile.recommendedCapabilities.length} capability(ies) recommended.`));
+    outputBlank();
+    output(chalk.bold.cyan("  🎯 Next step:"));
+    output(chalk.cyan("    shugo upgrade --accept-recommended"));
+    output(chalk.gray("    This will install all recommended capabilities for your maturity level."));
+    outputBlank();
+    output(chalk.gray("    Or install individually:"));
+    for (const cap of newProfile.recommendedCapabilities) output(chalk.gray(`      shugo upgrade --capability ${cap}`));
+  } else {
+    output(chalk.green("  ✔ Your project is well-equipped! No new capabilities recommended."));
+  }
+  outputBlank();
+}
+
 function displayAssessmentResults(_actx: AssessContext, previousProfile: MaturityProfile | null, newProfile: MaturityProfile, scoreDelta: number | undefined): void {
   outputBlank();
   output(chalk.bold.green("  ═══ Maturity Assessment Results ═══"));
@@ -255,35 +288,10 @@ function displayAssessmentResults(_actx: AssessContext, previousProfile: Maturit
     displayDimensionBar(label, newProfile.dimensions[key as keyof typeof newProfile.dimensions], prevDim);
   }
   outputBlank();
-  output(chalk.bold("  Installed Capabilities:"));
-  for (const cap of newProfile.installedCapabilities) output(chalk.green(`    ✓ ${cap}`));
-  outputBlank();
-  if (newProfile.recommendedCapabilities.length > 0) {
-    output(chalk.bold("  🎯 Recommended Capabilities:"));
-    for (const cap of newProfile.recommendedCapabilities) output(chalk.cyan(`    → ${cap} — install with: shugo upgrade --capability ${cap}`));
-    outputBlank();
-  }
-  if (newProfile.futureCapabilities.length > 0) {
-    output(chalk.bold("  Future Capabilities:"));
-    for (const cap of newProfile.futureCapabilities) output(chalk.gray(`    □ ${cap}`));
-    outputBlank();
-  }
+  displayCapabilities(newProfile);
   const history = readMaturityHistory(_actx.shitennoDir);
   displayEvolution(history);
-  if (newProfile.recommendedCapabilities.length > 0) {
-    output(chalk.bold("  📝 Summary:"));
-    output(chalk.gray(`    ${newProfile.recommendedCapabilities.length} capability(ies) recommended.`));
-    outputBlank();
-    output(chalk.bold.cyan("  🎯 Next step:"));
-    output(chalk.cyan("    shugo upgrade --accept-recommended"));
-    output(chalk.gray("    This will install all recommended capabilities for your maturity level."));
-    outputBlank();
-    output(chalk.gray("    Or install individually:"));
-    for (const cap of newProfile.recommendedCapabilities) output(chalk.gray(`      shugo upgrade --capability ${cap}`));
-  } else {
-    output(chalk.green("  ✔ Your project is well-equipped! No new capabilities recommended."));
-  }
-  outputBlank();
+  displayAssessmentSummary(newProfile);
 }
 
 export const assessCommand = new Command("assess")
@@ -313,7 +321,7 @@ export const assessCommand = new Command("assess")
     const actx = { projectRoot: ctx.projectRoot, shitennoDir: ctx.shitennoDir, isJson };
     let newProfile: MaturityProfile;
     if (isJson) {
-      newProfile = await calculateProfileInJsonMode(actx, previousProfile, analysis);
+      newProfile = calculateProfileInJsonMode(actx, previousProfile, analysis);
     } else {
       try { newProfile = await calculateProfileInteractively(actx, options, analysis); }
       catch (e) { if ((e as Error).message === "exit") return; throw e; }

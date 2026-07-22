@@ -2,22 +2,22 @@ import type { SessionFeedbackRecord, SessionOutcome } from "../../session-feedba
 import type { UserProfile, FeedbackTone, FeedbackItem, LeadershipMetrics, PersonalizedFeedback } from "./profile.js";
 import { calibrateTone } from "./profile.js";
 
-export function generatePersonalizedFeedback(
-  record: SessionFeedbackRecord,
-  profile: UserProfile,
-  agentActions: { whatAgentDid: string[]; whatAgentMissed: string[] } = {
-    whatAgentDid: [],
-    whatAgentMissed: [],
-  }
-): PersonalizedFeedback {
-  const tone = calibrateTone(profile, record.outcome, profile.architecture);
+function computeSessionDateTime(record: SessionFeedbackRecord): { date: string; sessionTime: string } {
   const dateParts = new Date(record.timestamp).toISOString().split("T");
   const date = dateParts[0] || new Date().toISOString().split("T")[0] || "2026-07-01";
   const sessionTime = new Date(record.timestamp).toLocaleTimeString("pt-PT", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  return { date, sessionTime };
+}
 
+function buildFeedbackItems(
+  record: SessionFeedbackRecord,
+  profile: UserProfile,
+  tone: FeedbackTone,
+  agentActions: { whatAgentDid: string[]; whatAgentMissed: string[] }
+): { strengths: FeedbackItem[]; improvements: FeedbackItem[] } {
   const strengths: FeedbackItem[] = [];
   const improvements: FeedbackItem[] = [];
 
@@ -47,6 +47,20 @@ export function generatePersonalizedFeedback(
     });
   }
 
+  return { strengths, improvements };
+}
+
+export function generatePersonalizedFeedback(
+  record: SessionFeedbackRecord,
+  profile: UserProfile,
+  agentActions: { whatAgentDid: string[]; whatAgentMissed: string[] } = {
+    whatAgentDid: [],
+    whatAgentMissed: [],
+  }
+): PersonalizedFeedback {
+  const tone = calibrateTone(profile, record.outcome, profile.architecture);
+  const { date, sessionTime } = computeSessionDateTime(record);
+  const { strengths, improvements } = buildFeedbackItems(record, profile, tone, agentActions);
   const nextLevel = generateNextLevelGuidance(record.outcome, profile, tone);
   const metrics = generateLeadershipMetrics(record, profile, tone);
 

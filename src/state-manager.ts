@@ -115,113 +115,91 @@ export interface ShitennoState {
 
 // ── Knowledge Reader ────────────────────────────────────────────────────────
 
-/** Lê estado de conhecimento do projecto. */
-export function readKnowledgeState(shitennoDir: string): KnowledgeState {
-  const state: KnowledgeState = {
-    adrs: [],
-    skills: [],
-    contracts: [],
-    governanceDocs: [],
-    scripts: [],
-    runbooks: [],
-  };
-
-  // ADRs
+function readAdrs(shitennoDir: string): KnowledgeState["adrs"] {
   const adrDir = join(shitennoDir, "docs", "adrs");
-  if (existsSync(adrDir)) {
-    const files = readdirSync(adrDir).filter(
-      (f) => f.endsWith(".md") && !f.startsWith("ADR-TEMPLATE")
-    );
-    for (const file of files) {
-      const content = readFileSync(join(adrDir, file), "utf-8");
-      const titleMatch = content.match(/^#\s+(.+)/m);
-      const statusMatch = content.match(/Estado:\s*(\w+)/i) || content.match(/Status:\s*(\w+)/i);
-      state.adrs.push({
-        id: file.replace(".md", ""),
-        title: titleMatch?.[1] ?? file.replace(".md", ""),
-        status: statusMatch?.[1] ?? "unknown",
-        path: `docs/adrs/${file}`,
-      });
-    }
-  }
+  if (!existsSync(adrDir)) return [];
+  const files = readdirSync(adrDir).filter((f) => f.endsWith(".md") && !f.startsWith("ADR-TEMPLATE"));
+  return files.map((file) => {
+    const content = readFileSync(join(adrDir, file), "utf-8");
+    const titleMatch = content.match(/^#\s+(.+)/m);
+    const statusMatch = content.match(/Estado:\s*(\w+)/i) || content.match(/Status:\s*(\w+)/i);
+    return {
+      id: file.replace(".md", ""),
+      title: titleMatch?.[1] ?? file.replace(".md", ""),
+      status: statusMatch?.[1] ?? "unknown",
+      path: `docs/adrs/${file}`,
+    };
+  });
+}
 
-  // Skills
+function readSkills(shitennoDir: string): KnowledgeState["skills"] {
   const skillsDir = join(shitennoDir, "docs", "skills");
-  if (existsSync(skillsDir)) {
-    const files = readdirSync(skillsDir).filter((f) => f.endsWith(".md"));
-    for (const file of files) {
-      state.skills.push({
-        id: file.replace(".md", ""),
-        name: file.replace(".md", "").replace(/_/g, " "),
-        path: `docs/skills/${file}`,
-      });
-    }
-  }
+  if (!existsSync(skillsDir)) return [];
+  return readdirSync(skillsDir).filter((f) => f.endsWith(".md")).map((file) => ({
+    id: file.replace(".md", ""),
+    name: file.replace(".md", "").replace(/_/g, " "),
+    path: `docs/skills/${file}`,
+  }));
+}
 
-  // Contracts
+function readContracts(shitennoDir: string): KnowledgeState["contracts"] {
   const contractsDir = join(shitennoDir, "governance", "agents");
-  if (existsSync(contractsDir)) {
-    const files = readdirSync(contractsDir).filter(
-      (f) => f.endsWith(".yaml") || f.endsWith(".yml")
-    );
-    for (const file of files) {
-      const content = readFileSync(join(contractsDir, file), "utf-8");
-      const nameMatch = content.match(/name:\s*(.+)/);
-      const roleMatch = content.match(/agent:\s*(.+)/);
-      state.contracts.push({
-        id: file.replace(/\.(yaml|yml)$/, ""),
-        name: nameMatch?.[1]?.trim() ?? file,
-        role: roleMatch?.[1]?.trim() ?? "unknown",
-        path: `governance/agents/${file}`,
-      });
-    }
-  }
+  if (!existsSync(contractsDir)) return [];
+  const files = readdirSync(contractsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
+  return files.map((file) => {
+    const content = readFileSync(join(contractsDir, file), "utf-8");
+    const nameMatch = content.match(/name:\s*(.+)/);
+    const roleMatch = content.match(/agent:\s*(.+)/);
+    return {
+      id: file.replace(/\.(yaml|yml)$/, ""),
+      name: nameMatch?.[1]?.trim() ?? file,
+      role: roleMatch?.[1]?.trim() ?? "unknown",
+      path: `governance/agents/${file}`,
+    };
+  });
+}
 
-  // Governance docs — criticality depends on installed capabilities
-  const maturityPathForDocs = join(shitennoDir, "maturity-profile.json");
-  let capsForDocs: string[] = [];
-  if (existsSync(maturityPathForDocs)) {
+function readGovernanceDocs(shitennoDir: string): KnowledgeState["governanceDocs"] {
+  const maturityPath = join(shitennoDir, "maturity-profile.json");
+  let caps: string[] = [];
+  if (existsSync(maturityPath)) {
     try {
-      const profileContent = JSON.parse(readFileSync(maturityPathForDocs, "utf-8"));
-      capsForDocs = profileContent.installedCapabilities || [];
+      const profile = JSON.parse(readFileSync(maturityPath, "utf-8"));
+      caps = profile.installedCapabilities || [];
     } catch { /* ignore */ }
   }
-  const expectedDocs = buildExpectedDocs(capsForDocs);
-  for (const doc of expectedDocs) {
-    if (existsSync(join(shitennoDir, doc.path))) {
-      state.governanceDocs.push(doc);
-    }
-  }
+  return buildExpectedDocs(caps).filter((doc) => existsSync(join(shitennoDir, doc.path)));
+}
 
-  // Scripts
+function readScripts(shitennoDir: string): KnowledgeState["scripts"] {
   const scriptsDir = join(shitennoDir, "scripts");
-  if (existsSync(scriptsDir)) {
-    const files = readdirSync(scriptsDir).filter(
-      (f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f)
-    );
-    for (const file of files) {
-      state.scripts.push({
-        id: file.replace(/\.(ts|js)$/, ""),
-        name: file.replace(/\.(ts|js)$/, "").replace(/-/g, " "),
-        path: `scripts/${file}`,
-      });
-    }
-  }
+  if (!existsSync(scriptsDir)) return [];
+  return readdirSync(scriptsDir).filter((f) => /\.(ts|tsx|js|jsx|vue|svelte)$/.test(f)).map((file) => ({
+    id: file.replace(/\.(ts|js)$/, ""),
+    name: file.replace(/\.(ts|js)$/, "").replace(/-/g, " "),
+    path: `scripts/${file}`,
+  }));
+}
 
-  // Runbooks
+function readRunbooks(shitennoDir: string): KnowledgeState["runbooks"] {
   const runbooksDir = join(shitennoDir, "docs", "runbooks");
-  if (existsSync(runbooksDir)) {
-    const files = readdirSync(runbooksDir).filter((f) => f.endsWith(".md"));
-    for (const file of files) {
-      state.runbooks.push({
-        id: file.replace(".md", ""),
-        name: file.replace(".md", "").replace(/-/g, " "),
-        path: `docs/runbooks/${file}`,
-      });
-    }
-  }
+  if (!existsSync(runbooksDir)) return [];
+  return readdirSync(runbooksDir).filter((f) => f.endsWith(".md")).map((file) => ({
+    id: file.replace(".md", ""),
+    name: file.replace(".md", "").replace(/-/g, " "),
+    path: `docs/runbooks/${file}`,
+  }));
+}
 
-  return state;
+export function readKnowledgeState(shitennoDir: string): KnowledgeState {
+  return {
+    adrs: readAdrs(shitennoDir),
+    skills: readSkills(shitennoDir),
+    contracts: readContracts(shitennoDir),
+    governanceDocs: readGovernanceDocs(shitennoDir),
+    scripts: readScripts(shitennoDir),
+    runbooks: readRunbooks(shitennoDir),
+  };
 }
 
 // ── Project State Reader ────────────────────────────────────────────────────
@@ -240,74 +218,46 @@ function buildExpectedDocs(installedCapabilities: string[]) {
   ];
 }
 
-/** Lê estado do projecto. */
-export function readProjectState(
-  projectRoot: string,
-  shitennoDir: string
-): ProjectState {
-  const state: ProjectState = {
-    maturity: null,
-    installedCapabilities: [],
-    recommendedCapabilities: [],
-    knowledgeDebt: null,
-    complexity: null,
-    projectInfo: {
-      name: "",
-      stack: [],
-      hasGit: false,
-      hasCI: false,
-      hasTests: false,
-      hasTypeScript: false,
-      packageCount: 0,
-      sourceFileCount: 0,
-    },
-  };
-
-  // Maturity profile
+function loadMaturity(shitennoDir: string): Pick<ProjectState, "maturity" | "installedCapabilities" | "recommendedCapabilities"> {
   const maturityPath = join(shitennoDir, "maturity-profile.json");
-  if (existsSync(maturityPath)) {
-    try {
-      const content = JSON.parse(readFileSync(maturityPath, "utf-8"));
-      state.maturity = {
-        overallScore: content.overallScore,
-        dimensions: content.dimensions,
-        computedAt: content.computedAt,
-      };
-      state.installedCapabilities = content.installedCapabilities || [];
-      state.recommendedCapabilities = content.recommendedCapabilities || [];
-    } catch {
-      logger.debug("state-manager", "Failed to parse maturity profile");
-    }
+  if (!existsSync(maturityPath)) {
+    return { maturity: null, installedCapabilities: [], recommendedCapabilities: [] };
   }
+  try {
+    const content = JSON.parse(readFileSync(maturityPath, "utf-8"));
+    return {
+      maturity: { overallScore: content.overallScore, dimensions: content.dimensions, computedAt: content.computedAt },
+      installedCapabilities: content.installedCapabilities || [],
+      recommendedCapabilities: content.recommendedCapabilities || [],
+    };
+  } catch {
+    logger.debug("state-manager", "Failed to parse maturity profile");
+    return { maturity: null, installedCapabilities: [], recommendedCapabilities: [] };
+  }
+}
 
-  // Knowledge debt
+function loadKnowledgeDebt(shitennoDir: string): ProjectState["knowledgeDebt"] {
   const reportsDir = join(shitennoDir, "reports");
-  if (existsSync(reportsDir)) {
-    const debtFiles = readdirSync(reportsDir)
-      .filter((f) => f.startsWith("knowledge-debt-") && f.endsWith(".json"))
-      .sort()
-      .slice(-1);
-    if (debtFiles.length > 0) {
-      const debtFile = debtFiles[0];
-      if (debtFile) {
-        try {
-          const content = JSON.parse(readFileSync(join(reportsDir, debtFile), "utf-8"));
-          state.knowledgeDebt = {
-            totalGaps: content.totalGaps,
-            healthScore: content.healthScore,
-            detectedAt: content.generatedAt,
-          };
-        } catch {
-          logger.debug("state-manager", "Failed to parse knowledge debt report:", debtFile);
-        }
-      }
-    }
+  if (!existsSync(reportsDir)) return null;
+  const debtFiles = readdirSync(reportsDir)
+    .filter((f) => f.startsWith("knowledge-debt-") && f.endsWith(".json"))
+    .sort().slice(-1);
+  if (debtFiles.length === 0) return null;
+  const debtFile = debtFiles[0];
+  if (!debtFile) return null;
+  try {
+    const content = JSON.parse(readFileSync(join(reportsDir, debtFile), "utf-8"));
+    return { totalGaps: content.totalGaps, healthScore: content.healthScore, detectedAt: content.generatedAt };
+  } catch {
+    logger.debug("state-manager", "Failed to parse knowledge debt report:", debtFile);
+    return null;
   }
+}
 
-  // Project info from analyser
+function loadProjectInfo(projectRoot: string): ProjectState["projectInfo"] {
   try {
     const analysis = analyseProject(projectRoot);
-    state.projectInfo = {
+    return {
       name: projectRoot.split("/").pop() || "",
       stack: analysis.stack,
       hasGit: analysis.hasGit,
@@ -319,77 +269,82 @@ export function readProjectState(
     };
   } catch {
     logger.debug("state-manager", "Project analysis unavailable");
+    return { name: "", stack: [], hasGit: false, hasCI: false, hasTests: false, hasTypeScript: false, packageCount: 0, sourceFileCount: 0 };
   }
+}
 
-  return state;
+export function readProjectState(
+  projectRoot: string,
+  shitennoDir: string
+): ProjectState {
+  const maturityData = loadMaturity(shitennoDir);
+  return {
+    ...maturityData,
+    knowledgeDebt: loadKnowledgeDebt(shitennoDir),
+    complexity: null,
+    projectInfo: loadProjectInfo(projectRoot),
+  };
 }
 
 // ── Session Memory Reader ───────────────────────────────────────────────────
 
-/** Lê memória da sessão do context buffer. */
-export function readSessionMemory(shitennoDir: string): SessionMemory {
-  const memory: SessionMemory = {
-    sessionId: null,
-    branch: null,
-    operationType: null,
-    currentTask: { id: null, type: null, description: null, status: null },
-    quickBoard: { emCurso: null, parado: [], proximo: [] },
-    reminders: [],
-    nextSteps: [],
-    blockers: [],
-    documentsLoaded: [],
-  };
-
-  const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
-  if (!existsSync(bufferPath)) return memory;
-
+function parseContextBuffer(bufferPath: string): Record<string, unknown> | null {
+  if (!existsSync(bufferPath)) return null;
   try {
     const content = readFileSync(bufferPath, "utf-8");
     const parsed = YAML.parse(content);
-
-    if (parsed && typeof parsed === "object") {
-      // Session
-      if (parsed.session && typeof parsed.session === "object") {
-        memory.sessionId = parsed.session.id || null;
-        memory.branch = parsed.session.branch || null;
-        memory.operationType = parsed.session.operation_type || null;
-      }
-
-      // Current task
-      if (parsed.current_task && typeof parsed.current_task === "object") {
-        memory.currentTask = {
-          id: parsed.current_task.id || null,
-          type: parsed.current_task.type || null,
-          description: parsed.current_task.description || null,
-          status: parsed.current_task.status || null,
-        };
-      }
-
-      // Reminders
-      if (Array.isArray(parsed.reminders)) {
-        memory.reminders = parsed.reminders.map(String);
-      }
-
-      // Next steps
-      if (Array.isArray(parsed.next_steps)) {
-        memory.nextSteps = parsed.next_steps.map(String);
-      }
-
-      // Blockers
-      if (Array.isArray(parsed.blockers)) {
-        memory.blockers = parsed.blockers.map(String);
-      }
-
-      // Documents loaded
-      if (Array.isArray(parsed.documents_loaded)) {
-        memory.documentsLoaded = parsed.documents_loaded.map(String);
-      }
-    }
+    return (parsed && typeof parsed === "object") ? parsed : null;
   } catch {
     logger.debug("state-manager", "Failed to read session memory");
+    return null;
+  }
+}
+
+function extractStringArray(parsed: Record<string, unknown>, key: string): string[] {
+  return Array.isArray(parsed[key]) ? (parsed[key] as unknown[]).map(String) : [];
+}
+
+function extractSession(parsed: Record<string, unknown>): Pick<SessionMemory, "sessionId" | "branch" | "operationType"> {
+  const session = (parsed.session && typeof parsed.session === "object") ? parsed.session as Record<string, unknown> : {};
+  return {
+    sessionId: (session.id as string) || null,
+    branch: (session.branch as string) || null,
+    operationType: (session.operation_type as string) || null,
+  };
+}
+
+function extractCurrentTask(parsed: Record<string, unknown>): SessionMemory["currentTask"] {
+  const task = (parsed.current_task && typeof parsed.current_task === "object") ? parsed.current_task as Record<string, unknown> : {};
+  return {
+    id: (task.id as string) || null,
+    type: (task.type as string) || null,
+    description: (task.description as string) || null,
+    status: (task.status as string) || null,
+  };
+}
+
+export function readSessionMemory(shitennoDir: string): SessionMemory {
+  const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
+  const parsed = parseContextBuffer(bufferPath);
+  if (!parsed) {
+    return {
+      sessionId: null, branch: null, operationType: null,
+      currentTask: { id: null, type: null, description: null, status: null },
+      quickBoard: { emCurso: null, parado: [], proximo: [] },
+      reminders: [], nextSteps: [], blockers: [], documentsLoaded: [],
+    };
   }
 
-  return memory;
+  const session = extractSession(parsed);
+  return {
+    ...session,
+    currentTask: extractCurrentTask(parsed),
+    quickBoard: { emCurso: null, parado: [], proximo: [] },
+    reminders: extractStringArray(parsed, "reminders"),
+    nextSteps: extractStringArray(parsed, "next_steps"),
+    blockers: extractStringArray(parsed, "blockers"),
+    documentsLoaded: extractStringArray(parsed, "documents_loaded"),
+  };
 }
 
 // ── Consolidation ───────────────────────────────────────────────────────────

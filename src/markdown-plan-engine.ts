@@ -356,64 +356,47 @@ export class MarkdownPlanEngine {
     return null;
   }
 
-  /**
-   * Update plan status.
-   * If new status is "done", move plan to done/ directory.
-   */
-  updateStatus(id: string, newStatus: MarkdownPlanStatus): MarkdownPlan {
-    const plan = this.getById(id);
-    if (!plan) {
-      throw new Error(`Plan not found: ${id}`);
-    }
-
-    // Read current content
-    let content = readFileSync(plan.filePath, "utf-8");
-
+  private updateYamlStatus(content: string, newStatus: MarkdownPlanStatus): { content: string; updated: boolean } {
     const yamlMatch = content.match(YAML_BLOCK_RE);
-    let wroteYaml = false;
+    if (!yamlMatch || !yamlMatch[1]) return { content, updated: false };
 
-    if (yamlMatch && yamlMatch[1]) {
-      try {
-        const parsed = (parseYaml(yamlMatch[1]) as Record<string, unknown>) ?? {};
-        parsed.status = newStatus;
-        parsed.updated_at = new Date().toISOString();
-        const newBlock = `---\n${stringifyYaml(parsed).trimEnd()}\n---\n`;
-        content = content.slice(0, yamlMatch.index) + newBlock + content.slice((yamlMatch.index ?? 0) + yamlMatch[0].length);
-        wroteYaml = true;
-      } catch {
-        logger.debug("markdown-plan-engine", "Malformed YAML block — falling through to legacy path");
+    try {
+      const parsed = (parseYaml(yamlMatch[1]) as Record<string, unknown>) ?? {};
+      parsed.status = newStatus;
+      parsed.updated_at = new Date().toISOString();
+      const newBlock = `---\n${stringifyYaml(parsed).trimEnd()}\n---\n`;
+      const updated = content.slice(0, yamlMatch.index) + newBlock + content.slice((yamlMatch.index ?? 0) + yamlMatch[0].length);
+      return { content: updated, updated: true };
+    } catch {
+      logger.debug("markdown-plan-engine", "Malformed YAML block — falling through to legacy path");
+      return { content, updated: false };
+    }
+  }
+
+  private updateLegacyStatus(content: string, newStatus: MarkdownPlanStatus): string {
+    const statusRegex = /(\*\*Status:\*\*\s*)(.+)/;
+    const statusMatch = content.match(statusRegex);
+
+    if (statusMatch) {
+      content = content.replace(statusRegex, `$1${statusDisplayText(newStatus)}`);
+    } else {
+      const lines = content.split("\n");
+      const titleIndex = lines.findIndex((l) => l.startsWith("# "));
+      if (titleIndex !== -1) {
+        lines.splice(titleIndex + 2, 0, "", `**Status:** ${statusDisplayText(newStatus)}`);
+        content = lines.join("\n");
       }
     }
 
-    if (!wroteYaml) {
-      // Update status in frontmatter
-      const statusRegex = /(\*\*Status:\*\*\s*)(.+)/;
-      const statusMatch = content.match(statusRegex);
-
-      if (statusMatch) {
-        // Update existing status
-        content = content.replace(statusRegex, `$1${statusDisplayText(newStatus)}`);
-      } else {
-        // Add status after title
-        const lines = content.split("\n");
-        const titleIndex = lines.findIndex((l) => l.startsWith("# "));
-        if (titleIndex !== -1) {
-          lines.splice(titleIndex + 2, 0, "", `**Status:** ${statusDisplayText(newStatus)}`);
-          content = lines.join("\n");
-        }
-      }
-
-      // Update updated_at if exists
-      const updatedAtRegex = /(\*\*Updated_at:\*\*\s*)(.+)/;
-      if (content.match(updatedAtRegex)) {
-        content = content.replace(updatedAtRegex, `$1${new Date().toISOString()}`);
-      }
+    const updatedAtRegex = /(\*\*Updated_at:\*\*\s*)(.+)/;
+    if (content.match(updatedAtRegex)) {
+      content = content.replace(updatedAtRegex, `$1${new Date().toISOString()}`);
     }
 
-    // Write updated content
-    writeFileSync(plan.filePath, content, "utf-8");
+    return content;
+  }
 
-    // Publish plan.status_changed whenever status actually changes
+  private publishStatusEvents(id: string, plan: MarkdownPlan, newStatus: MarkdownPlanStatus): void {
     if (plan.status !== newStatus) {
       const bus = getEventBus();
       bus.publish("plan.status_changed", {
@@ -424,11 +407,8 @@ export class MarkdownPlanEngine {
       });
     }
 
-    // If status is a completion status, move to done/ and publish event
     if (isCompletionStatus(newStatus)) {
       this.moveToDone(id);
-
-      // Publish plan.archived event for reactive chain
       const bus = getEventBus();
       bus.publish("plan.archived", {
         planId: id,
@@ -437,8 +417,25 @@ export class MarkdownPlanEngine {
         finalStatus: "done",
       });
     }
+  }
 
-    // Return updated plan
+  updateStatus(id: string, newStatus: MarkdownPlanStatus): MarkdownPlan {
+    const plan = this.getById(id);
+    if (!plan) {
+      throw new Error(`Plan not found: ${id}`);
+    }
+
+    let content = readFileSync(plan.filePath, "utf-8");
+    const yamlResult = this.updateYamlStatus(content, newStatus);
+
+    if (!yamlResult.updated) {
+      content = this.updateLegacyStatus(content, newStatus);
+    } else {
+      content = yamlResult.content;
+    }
+
+    writeFileSync(plan.filePath, content, "utf-8");
+    this.publishStatusEvents(id, plan, newStatus);
     return this.getById(id)!;
   }
 

@@ -115,6 +115,77 @@ export interface PolicyFilter {
 
 // ── Condition Evaluator ────────────────────────────────────────────────────
 
+function evalEquality(fieldValue: unknown, targetValue: unknown, operator: ComparisonOperator): boolean | null {
+  switch (operator) {
+    case "equals": return fieldValue === targetValue;
+    case "not_equals": return fieldValue !== targetValue;
+    default: return null;
+  }
+}
+
+function evalComparison(fieldValue: unknown, targetValue: unknown, operator: ComparisonOperator): boolean | null {
+  switch (operator) {
+    case "greater_than": return Number(fieldValue) > Number(targetValue);
+    case "less_than": return Number(fieldValue) < Number(targetValue);
+    case "greater_or_equal": return Number(fieldValue) >= Number(targetValue);
+    case "less_or_equal": return Number(fieldValue) <= Number(targetValue);
+    default: return null;
+  }
+}
+
+function evalStringOps(fieldValue: unknown, targetValue: unknown, operator: ComparisonOperator): boolean | null {
+  if (typeof fieldValue !== "string") {
+    if (Array.isArray(fieldValue)) return null;
+    return operator === "not_contains" ? true : null;
+  }
+  switch (operator) {
+    case "contains": return fieldValue.includes(String(targetValue));
+    case "not_contains": return !fieldValue.includes(String(targetValue));
+    case "starts_with": return fieldValue.startsWith(String(targetValue));
+    case "ends_with": return fieldValue.endsWith(String(targetValue));
+    default: return null;
+  }
+}
+
+function evalRegex(fieldValue: unknown, targetValue: unknown): boolean {
+  if (typeof fieldValue !== "string") return false;
+  try { return new RegExp(String(targetValue)).test(fieldValue); } catch { return false; }
+}
+
+function evalMembership(fieldValue: unknown, targetValue: unknown, operator: "in" | "not_in"): boolean {
+  if (Array.isArray(targetValue)) {
+    return operator === "in"
+      ? targetValue.includes(fieldValue)
+      : !targetValue.includes(fieldValue);
+  }
+  return operator === "not_in";
+}
+
+function evalExistence(fieldValue: unknown, operator: "exists" | "not_exists"): boolean {
+  return operator === "exists"
+    ? fieldValue !== undefined && fieldValue !== null
+    : fieldValue === undefined || fieldValue === null;
+}
+
+function evalCollectionOps(fieldValue: unknown, targetValue: unknown, operator: ComparisonOperator): boolean | null {
+  switch (operator) {
+    case "contains":
+      return Array.isArray(fieldValue) ? fieldValue.includes(targetValue) : null;
+    case "not_contains":
+      return Array.isArray(fieldValue) ? !fieldValue.includes(targetValue) : null;
+    case "matches_regex":
+      return evalRegex(fieldValue, targetValue);
+    case "in":
+    case "not_in":
+      return evalMembership(fieldValue, targetValue, operator);
+    case "exists":
+    case "not_exists":
+      return evalExistence(fieldValue, operator);
+    default:
+      return null;
+  }
+}
+
 /**
  * Evaluates a single condition against a context object.
  * Supports dot-notation field access (e.g., "eventData.count").
@@ -125,67 +196,13 @@ export function evaluateCondition(
 ): boolean {
   const fieldValue = getFieldValue(condition.field, context);
   const targetValue = condition.value;
+  const op = condition.operator;
 
-  switch (condition.operator) {
-    case "equals":
-      return fieldValue === targetValue;
-
-    case "not_equals":
-      return fieldValue !== targetValue;
-
-    case "greater_than":
-      return Number(fieldValue) > Number(targetValue);
-
-    case "less_than":
-      return Number(fieldValue) < Number(targetValue);
-
-    case "greater_or_equal":
-      return Number(fieldValue) >= Number(targetValue);
-
-    case "less_or_equal":
-      return Number(fieldValue) <= Number(targetValue);
-
-    case "contains":
-      if (Array.isArray(fieldValue)) return fieldValue.includes(targetValue);
-      if (typeof fieldValue === "string") return fieldValue.includes(String(targetValue));
-      return false;
-
-    case "not_contains":
-      if (Array.isArray(fieldValue)) return !fieldValue.includes(targetValue);
-      if (typeof fieldValue === "string") return !fieldValue.includes(String(targetValue));
-      return true;
-
-    case "starts_with":
-      return typeof fieldValue === "string" && fieldValue.startsWith(String(targetValue));
-
-    case "ends_with":
-      return typeof fieldValue === "string" && fieldValue.endsWith(String(targetValue));
-
-    case "matches_regex":
-      if (typeof fieldValue !== "string") return false;
-      try {
-        return new RegExp(String(targetValue)).test(fieldValue);
-      } catch {
-        return false;
-      }
-
-    case "in":
-      if (Array.isArray(targetValue)) return targetValue.includes(fieldValue);
-      return false;
-
-    case "not_in":
-      if (Array.isArray(targetValue)) return !targetValue.includes(fieldValue);
-      return true;
-
-    case "exists":
-      return fieldValue !== undefined && fieldValue !== null;
-
-    case "not_exists":
-      return fieldValue === undefined || fieldValue === null;
-
-    default:
-      return false;
-  }
+  return evalEquality(fieldValue, targetValue, op)
+    ?? evalComparison(fieldValue, targetValue, op)
+    ?? evalStringOps(fieldValue, targetValue, op)
+    ?? evalCollectionOps(fieldValue, targetValue, op)
+    ?? false;
 }
 
 /** Get a value from a nested object using dot notation. */
@@ -283,6 +300,42 @@ export class FilePolicyRepository implements PolicyRepository {
 
 // ── Engine ─────────────────────────────────────────────────────────────────
 
+function evaluateSinglePolicy(policy: Policy, context: Record<string, unknown>): PolicyResult {
+  const allConditionsMet = policy.conditions.every((cond) => evaluateCondition(cond, context));
+
+  if (!allConditionsMet) {
+    return {
+      policyId: policy.id, policyName: policy.name,
+      matched: false, violated: false, mode: policy.mode,
+      message: "Conditions not met", actionsTriggered: [],
+    };
+  }
+
+  const violated = policy.effect === "deny";
+  const actionsTriggered = policy.actions.map((a) => a.type);
+  const action = violated && policy.mode === "enforce" ? "violated" : violated ? "advisory" : "enforced";
+
+  getEventBus().publish("governance.policy_applied", {
+    policyId: policy.id, policyName: policy.name, action,
+    details: violated ? policy.description : undefined,
+    timestamp: new Date().toISOString(),
+  });
+
+  return {
+    policyId: policy.id, policyName: policy.name,
+    matched: true, violated, mode: policy.mode,
+    message: violated ? `Policy violated: ${policy.description}` : `Policy matched: ${policy.description}`,
+    actionsTriggered,
+  };
+}
+
+function updateCounters(policy: Policy, result: PolicyResult, counters: { matched: number; violations: number; warnings: number }): void {
+  counters.matched++;
+  if (result.violated && policy.mode === "enforce") counters.violations++;
+  else if (result.violated && policy.mode === "advisory") counters.warnings++;
+  else if (policy.effect === "require") counters.warnings++;
+}
+
 export class PolicyEngine {
   constructor(private repo: PolicyRepository) {}
 
@@ -293,70 +346,18 @@ export class PolicyEngine {
   ): PolicyEvaluation {
     const policies = this.repo.findAll({ ...filter, enabled: true });
     const results: PolicyResult[] = [];
-    let matched = 0;
-    let violations = 0;
-    let warnings = 0;
+    const counters = { matched: 0, violations: 0, warnings: 0 };
 
     for (const policy of policies) {
-      const allConditionsMet = policy.conditions.every((cond) =>
-        evaluateCondition(cond, context)
-      );
-
-      if (!allConditionsMet) {
-        results.push({
-          policyId: policy.id,
-          policyName: policy.name,
-          matched: false,
-          violated: false,
-          mode: policy.mode,
-          message: "Conditions not met",
-          actionsTriggered: [],
-        });
-        continue;
-      }
-
-      matched++;
-      const violated = policy.effect === "deny";
-      const actionsTriggered = policy.actions.map((a) => a.type);
-
-      if (violated && policy.mode === "enforce") {
-        violations++;
-      } else if (violated && policy.mode === "advisory") {
-        warnings++;
-      } else if (policy.effect === "require") {
-        warnings++;
-      }
-
-      results.push({
-        policyId: policy.id,
-        policyName: policy.name,
-        matched: true,
-        violated,
-        mode: policy.mode,
-        message: violated
-          ? `Policy violated: ${policy.description}`
-          : `Policy matched: ${policy.description}`,
-        actionsTriggered,
-      });
-
-      // Publish governance.policy_applied
-      const action = violated && policy.mode === "enforce" ? "violated" : violated ? "advisory" : "enforced";
-      getEventBus().publish("governance.policy_applied", {
-        policyId: policy.id,
-        policyName: policy.name,
-        action,
-        details: violated ? policy.description : undefined,
-        timestamp: new Date().toISOString(),
-      });
+      const result = evaluateSinglePolicy(policy, context);
+      results.push(result);
+      if (result.matched) updateCounters(policy, result, counters);
     }
 
     return {
-      results,
-      evaluated: policies.length,
-      matched,
-      violations,
-      warnings,
-      compliant: violations === 0,
+      results, evaluated: policies.length,
+      matched: counters.matched, violations: counters.violations,
+      warnings: counters.warnings, compliant: counters.violations === 0,
     };
   }
 

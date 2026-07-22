@@ -44,6 +44,14 @@ interface UpdateOptions {
   json?: boolean;
 }
 
+interface UpdateData {
+  currentManifest: Manifest;
+  currentCliVersion: string;
+  diff: ManifestDiff;
+  hasChanges: boolean;
+  versionMismatch: boolean;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getTemplatesDir(): string {
@@ -151,6 +159,125 @@ function applyUpdates(
   outputSuccess(`  ✔ Updated ${filesUpdated} file(s)`);
 }
 
+function processUpdate(ctx: { shitennoDir: string }, currentManifest: Manifest): UpdateData {
+  const packageJsonPath = join(__dirname, "..", "package.json");
+  let currentCliVersion = "unknown";
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    currentCliVersion = pkg.version || "unknown";
+  } catch {}
+
+  const spinner = ora("Scanning templates for changes...").start();
+  const newHashes = scanTemplateHashes(ctx.shitennoDir);
+  spinner.succeed("Scan complete");
+
+  const newManifest: Manifest = {
+    ...currentManifest,
+    templateHashes: newHashes,
+  };
+
+  const diff = diffManifests(currentManifest, newManifest);
+  const hasChanges =
+    diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0;
+  const versionMismatch = currentManifest.cliVersion !== currentCliVersion;
+
+  return { currentManifest, currentCliVersion, diff, hasChanges, versionMismatch };
+}
+
+function outputNoManifest(isJson: boolean): void {
+  if (isJson) {
+    outputJson({ error: "no_manifest", message: "No manifest found. Run 'shugo init' or 'shugo upgrade' first." });
+  } else {
+    outputWarning("  ⚠ No manifest found.");
+    output(chalk.gray("  Run 'shugo init' or 'shugo upgrade' to create a manifest."));
+    outputBlank();
+  }
+}
+
+function outputUpToDate(data: UpdateData, isJson: boolean): void {
+  if (isJson) {
+    outputJson({
+      status: "up_to_date",
+      cliVersion: data.currentCliVersion,
+      installedVersion: data.currentManifest.cliVersion,
+      installedAt: data.currentManifest.installedAt,
+    });
+  } else {
+    outputSuccess("  ✔ Everything is up to date!");
+    output(chalk.gray(`  CLI version: ${data.currentCliVersion}`));
+    output(chalk.gray(`  Last updated: ${data.currentManifest.installedAt}`));
+    outputBlank();
+  }
+}
+
+function outputDryRun(data: UpdateData, isJson: boolean): void {
+  if (isJson) {
+    outputJson({ dryRun: true, diff: data.diff });
+  } else {
+    output(chalk.gray("  Dry run — no changes applied."));
+    outputBlank();
+  }
+}
+
+function outputChangesSummary(data: UpdateData, isJson: boolean): void {
+  if (isJson) {
+    outputJson({
+      status: "changes_detected",
+      diff: data.diff,
+      hint: "Run 'shugo update --apply' to apply changes",
+    });
+  } else {
+    output(chalk.gray("  Run 'shugo update --apply' to apply these changes."));
+    output(chalk.gray("  Run 'shugo update --dry-run' to preview without applying."));
+    outputBlank();
+  }
+}
+
+function applyUpdatesAndReport(
+  targetDir: string,
+  data: UpdateData,
+  ctx: { shitennoDir: string },
+  options: UpdateOptions
+): void {
+  const isJson = options.json === true;
+  const applySpinner = ora("Applying updates...").start();
+  try {
+    applyUpdates(targetDir, data.diff, options);
+
+    const updatedManifest = updateManifest(
+      data.currentManifest,
+      { cliVersion: data.currentCliVersion, shitennoDir: ctx.shitennoDir, capabilities: data.currentManifest.capabilities, maturityScore: data.currentManifest.maturityScore }
+    );
+    writeManifest(ctx.shitennoDir, updatedManifest);
+
+    getEventBus().publish("system.updated", {
+      filesChanged: data.diff.changed.length + data.diff.added.length + data.diff.removed.length,
+      cliVersion: data.currentCliVersion,
+    });
+
+    applySpinner.succeed("Updates applied successfully!");
+
+    if (isJson) {
+      outputJson({
+        status: "updated",
+        cliVersion: data.currentCliVersion,
+        filesChanged: data.diff.changed.length + data.diff.added.length + data.diff.removed.length,
+      });
+    } else {
+      output(chalk.gray(`  CLI version: ${data.currentCliVersion}`));
+      output(chalk.gray(`  Last updated: ${updatedManifest.installedAt}`));
+      outputBlank();
+    }
+  } catch (error) {
+    applySpinner.fail("Failed to apply updates");
+    if (isJson) {
+      outputJson({ error: "apply_failed", message: String(error) });
+    } else {
+      logger.error("update", `Error: ${error}`);
+    }
+  }
+}
+
 // ── Command ──────────────────────────────────────────────────────────────────
 
 export const updateCommand = new Command("update")
@@ -176,144 +303,35 @@ export const updateCommand = new Command("update")
 
     if (!checkLifecycleGate("update", ctx.projectRoot, ctx.shitennoDir, isJson)) return;
 
-    // Read current manifest
     const currentManifest = readManifest(ctx.shitennoDir);
-
     if (!currentManifest) {
-      if (isJson) {
-        outputJson({ error: "no_manifest", message: "No manifest found. Run 'shugo init' or 'shugo upgrade' first." });
-      } else {
-        outputWarning("  ⚠ No manifest found.");
-        output(chalk.gray("  Run 'shugo init' or 'shugo upgrade' to create a manifest."));
-        outputBlank();
-      }
+      outputNoManifest(isJson);
       return;
     }
 
-    // Get current CLI version
-    const packageJsonPath = join(__dirname, "..", "package.json");
-    let currentCliVersion = "unknown";
-    try {
-      const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-      currentCliVersion = pkg.version || "unknown";
-    } catch {
-      // Skip
-    }
+    const data = processUpdate(ctx, currentManifest);
 
-    // Scan current templates
-    const spinner = ora("Scanning templates for changes...").start();
-    const newHashes = scanTemplateHashes(ctx.shitennoDir);
-    spinner.succeed("Scan complete");
-
-    // Create a "new" manifest with current hashes for comparison
-    const newManifest: Manifest = {
-      ...currentManifest,
-      templateHashes: newHashes,
-    };
-
-    // Compare
-    const diff = diffManifests(currentManifest, newManifest);
-
-    const hasChanges =
-      diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0;
-
-    const versionMismatch = currentManifest.cliVersion !== currentCliVersion;
-
-    // Display results
-    if (!hasChanges && !versionMismatch) {
-      if (isJson) {
-        outputJson({
-          status: "up_to_date",
-          cliVersion: currentCliVersion,
-          installedVersion: currentManifest.cliVersion,
-          installedAt: currentManifest.installedAt,
-        });
-      } else {
-        outputSuccess("  ✔ Everything is up to date!");
-        output(chalk.gray(`  CLI version: ${currentCliVersion}`));
-        output(chalk.gray(`  Last updated: ${currentManifest.installedAt}`));
-        outputBlank();
-      }
+    if (!data.hasChanges && !data.versionMismatch) {
+      outputUpToDate(data, isJson);
       return;
     }
 
-    // Show version info
     if (!isJson) {
-      if (versionMismatch) {
-        outputInfo(`  ℹ CLI version changed: ${currentManifest.cliVersion} → ${currentCliVersion}`);
+      if (data.versionMismatch) {
+        outputInfo(`  ℹ CLI version changed: ${data.currentManifest.cliVersion} → ${data.currentCliVersion}`);
         outputBlank();
       }
-
-      displayDiff(diff, false);
+      displayDiff(data.diff, false);
     }
 
-    // Apply if requested
     if (options.apply || options.dryRun) {
       if (options.dryRun) {
-        if (isJson) {
-          outputJson({ dryRun: true, diff });
-        } else {
-          output(chalk.gray("  Dry run — no changes applied."));
-          outputBlank();
-        }
+        outputDryRun(data, isJson);
         return;
       }
 
-      // Apply updates
-      const applySpinner = ora("Applying updates...").start();
-      try {
-        applyUpdates(targetDir, diff, options);
-
-        // Update manifest
-        const updatedManifest = updateManifest(
-          currentManifest,
-          currentCliVersion,
-          ctx.shitennoDir,
-          currentManifest.capabilities,
-          currentManifest.maturityScore
-        );
-        writeManifest(ctx.shitennoDir, updatedManifest);
-
-        // Publish event
-        getEventBus().publish("system.updated", {
-          filesChanged: diff.changed.length + diff.added.length + diff.removed.length,
-          cliVersion: currentCliVersion,
-        });
-
-        applySpinner.succeed("Updates applied successfully!");
-
-        if (isJson) {
-          outputJson({
-            status: "updated",
-            cliVersion: currentCliVersion,
-            filesChanged: diff.changed.length + diff.added.length + diff.removed.length,
-          });
-        } else {
-          output(chalk.gray(`  CLI version: ${currentCliVersion}`));
-          output(chalk.gray(`  Last updated: ${updatedManifest.installedAt}`));
-          outputBlank();
-        }
-      } catch (error) {
-        applySpinner.fail("Failed to apply updates");
-        if (isJson) {
-          outputJson({ error: "apply_failed", message: String(error) });
-        } else {
-          logger.error("update", `Error: ${error}`);
-        }
-        return;
-      }
+      applyUpdatesAndReport(targetDir, data, ctx, options);
     } else {
-      // Just show the diff and suggest --apply
-      if (isJson) {
-        outputJson({
-          status: "changes_detected",
-          diff,
-          hint: "Run 'shugo update --apply' to apply changes",
-        });
-      } else {
-        output(chalk.gray("  Run 'shugo update --apply' to apply these changes."));
-        output(chalk.gray("  Run 'shugo update --dry-run' to preview without applying."));
-        outputBlank();
-      }
+      outputChangesSummary(data, isJson);
     }
   });

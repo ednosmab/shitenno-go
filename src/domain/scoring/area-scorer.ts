@@ -16,6 +16,68 @@ export interface AreaMetrics {
   dependencyDepth: number;
 }
 
+function fileMatchesArea(trimmed: string, area: string): boolean {
+  return trimmed.startsWith(area + "/") || trimmed.includes("/" + area + "/");
+}
+
+function addToAreaFileSet(
+  fileSetByArea: Map<string, Set<string>>,
+  areas: string[],
+  trimmed: string
+): void {
+  for (const a of areas) {
+    if (fileMatchesArea(trimmed, a)) {
+      fileSetByArea.get(a)?.add(trimmed);
+    }
+  }
+}
+
+interface HistoryScanCtx {
+  areas: string[];
+  violationKeywords: string[];
+  violationsByArea: Map<string, number>;
+  lastViolationIdx: Map<string, number>;
+}
+
+function scanHistoryFile(content: string, fileIndex: number, ctx: HistoryScanCtx): void {
+  const lower = content.toLowerCase();
+  for (const a of ctx.areas) {
+    if (!lower.includes(a.toLowerCase())) continue;
+    if (!ctx.violationKeywords.some((kw) => lower.includes(kw))) continue;
+    ctx.violationsByArea.set(a, (ctx.violationsByArea.get(a) || 0) + 1);
+    ctx.lastViolationIdx.set(a, fileIndex);
+  }
+}
+
+function buildThresholdMetric(
+  metric: string,
+  value: number,
+  thresholds: { min: number; score: number; evidence: string }[]
+): StaticMetric {
+  for (const t of thresholds) {
+    if (value >= t.min) {
+      return { metric, value, score: t.score, evidence: t.evidence };
+    }
+  }
+  return { metric, value, score: 0, evidence: `${value} ${metric} — minimal` };
+}
+
+function pushConditionalMetric(
+  metrics: BehavioralMetric[],
+  signal: string,
+  value: number,
+  conditions: { min: number; score: number; evidence: string; suggestion?: string }[]
+): void {
+  for (const c of conditions) {
+    if (value >= c.min) {
+      const m: BehavioralMetric = { signal, value, score: c.score, evidence: c.evidence };
+      if (c.suggestion) m.suggestion = c.suggestion;
+      metrics.push(m);
+      return;
+    }
+  }
+}
+
 export function batchScoreArea(
   areaPath: string,
   allAreas: string[],
@@ -92,13 +154,7 @@ export function batchGitChurn(
 
     for (const line of output.split("\n")) {
       const trimmed = line.trim();
-      if (!trimmed) continue;
-      for (const a of areas) {
-        if (trimmed.startsWith(a + "/") || trimmed.includes("/" + a + "/")) {
-          const fileSet = fileSetByArea.get(a);
-          if (fileSet) fileSet.add(trimmed);
-        }
-      }
+      if (trimmed) addToAreaFileSet(fileSetByArea, areas, trimmed);
     }
 
     for (const [a, files] of fileSetByArea) {
@@ -147,20 +203,18 @@ export function preReadHistory(
   const lastViolationIdx = new Map<string, number>();
   for (const a of areas) lastViolationIdx.set(a, -1);
 
+  const ctx: HistoryScanCtx = {
+    areas,
+    violationKeywords,
+    violationsByArea: result.violationsByArea,
+    lastViolationIdx,
+  };
+
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     if (!file) continue;
     try {
-      const content = readFileSync(join(historyDir, file), "utf-8").toLowerCase();
-      for (const a of areas) {
-        if (content.includes(a.toLowerCase())) {
-          const hasViolation = violationKeywords.some((kw) => content.includes(kw));
-          if (hasViolation) {
-            result.violationsByArea.set(a, (result.violationsByArea.get(a) || 0) + 1);
-            lastViolationIdx.set(a, i);
-          }
-        }
-      }
+      scanHistoryFile(readFileSync(join(historyDir, file), "utf-8"), i, ctx);
     } catch {
       // skip
     }
@@ -203,110 +257,32 @@ export function countContextPressure(projectRoot: string, area: string): number 
 // ── Static Metrics ──────────────────────────────────────────────────────────
 
 export function collectStaticMetrics(analysis: ProjectAnalysis): StaticMetric[] {
-  const metrics: StaticMetric[] = [];
+  const pc = analysis.packageCount;
+  const ac = analysis.appCount;
+  const fc = analysis.sourceFileCount;
+  const dc = analysis.dependencyCount;
 
-  if (analysis.packageCount >= 5) {
-    metrics.push({
-      metric: "packages",
-      value: analysis.packageCount,
-      score: 2,
-      evidence: `${analysis.packageCount} packages detected — monorepo with multiple modules`,
-    });
-  } else if (analysis.packageCount >= 3) {
-    metrics.push({
-      metric: "packages",
-      value: analysis.packageCount,
-      score: 1,
-      evidence: `${analysis.packageCount} packages detected — growing monorepo`,
-    });
-  } else {
-    metrics.push({
-      metric: "packages",
-      value: analysis.packageCount,
-      score: 0,
-      evidence: `${analysis.packageCount} packages — simple structure`,
-    });
-  }
-
-  if (analysis.appCount >= 3) {
-    metrics.push({
-      metric: "apps",
-      value: analysis.appCount,
-      score: 3,
-      evidence: `${analysis.appCount} apps detected — multi-app project needs coordination`,
-    });
-  } else if (analysis.appCount >= 2) {
-    metrics.push({
-      metric: "apps",
-      value: analysis.appCount,
-      score: 2,
-      evidence: `${analysis.appCount} apps detected — multi-app project`,
-    });
-  } else {
-    metrics.push({
-      metric: "apps",
-      value: analysis.appCount,
-      score: 0,
-      evidence: `${analysis.appCount} apps — single app or no apps`,
-    });
-  }
-
-  if (analysis.sourceFileCount >= 300) {
-    metrics.push({
-      metric: "files",
-      value: analysis.sourceFileCount,
-      score: 2,
-      evidence: `${analysis.sourceFileCount} source files — large codebase`,
-    });
-  } else if (analysis.sourceFileCount >= 150) {
-    metrics.push({
-      metric: "files",
-      value: analysis.sourceFileCount,
-      score: 1,
-      evidence: `${analysis.sourceFileCount} source files — medium codebase`,
-    });
-  } else {
-    metrics.push({
-      metric: "files",
-      value: analysis.sourceFileCount,
-      score: 0,
-      evidence: `${analysis.sourceFileCount} source files — small codebase`,
-    });
-  }
-
-  if (analysis.dependencyCount >= 100) {
-    metrics.push({
-      metric: "dependencies",
-      value: analysis.dependencyCount,
-      score: 2,
-      evidence: `${analysis.dependencyCount} dependencies — complex dependency tree`,
-    });
-  } else if (analysis.dependencyCount >= 50) {
-    metrics.push({
-      metric: "dependencies",
-      value: analysis.dependencyCount,
-      score: 1,
-      evidence: `${analysis.dependencyCount} dependencies — moderate dependency count`,
-    });
-  } else {
-    metrics.push({
-      metric: "dependencies",
-      value: analysis.dependencyCount,
-      score: 0,
-      evidence: `${analysis.dependencyCount} dependencies — simple dependency tree`,
-    });
-  }
-
-  if (analysis.monorepo) {
-    metrics.push({
-      metric: "monorepo",
-      value: 1,
-      score: 1,
-      evidence: "Monorepo detected — cross-package coordination needed",
-    });
-  }
-
-  return metrics;
+  return [
+    buildThresholdMetric("packages", pc, [
+      { min: 5, score: 2, evidence: `${pc} packages detected — monorepo with multiple modules` },
+      { min: 3, score: 1, evidence: `${pc} packages detected — growing monorepo` },
+    ]),
+    buildThresholdMetric("apps", ac, [
+      { min: 3, score: 3, evidence: `${ac} apps detected — multi-app project needs coordination` },
+      { min: 2, score: 2, evidence: `${ac} apps detected — multi-app project` },
+    ]),
+    buildThresholdMetric("files", fc, [
+      { min: 300, score: 2, evidence: `${fc} source files — large codebase` },
+      { min: 150, score: 1, evidence: `${fc} source files — medium codebase` },
+    ]),
+    buildThresholdMetric("dependencies", dc, [
+      { min: 100, score: 2, evidence: `${dc} dependencies — complex dependency tree` },
+      { min: 50, score: 1, evidence: `${dc} dependencies — moderate dependency count` },
+    ]),
+    ...(analysis.monorepo
+      ? [{ metric: "monorepo" as const, value: 1, score: 1, evidence: "Monorepo detected — cross-package coordination needed" }]
+      : []),
+  ];
 }
 
 // ── Behavioral Metrics ──────────────────────────────────────────────────────
@@ -317,133 +293,51 @@ export function collectBehavioralMetrics(
 ): BehavioralMetric[] {
   const metrics: BehavioralMetric[] = [];
 
-  const validateFailures = countValidateFailures(shitennoDir);
-  if (validateFailures >= 3) {
-    metrics.push({
-      signal: "validate-failures",
-      value: validateFailures,
-      score: 3,
-      evidence: `${validateFailures} validate failures in history — structural gaps`,
-      suggestion: "Run 'shugo upgrade' to add governance components",
-    });
-  } else if (validateFailures >= 1) {
-    metrics.push({
-      signal: "validate-failures",
-      value: validateFailures,
-      score: 1,
-      evidence: `${validateFailures} validate failure(s) detected`,
-    });
-  }
+  const vf = countValidateFailures(shitennoDir);
+  pushConditionalMetric(metrics, "validate-failures", vf, [
+    { min: 3, score: 3, evidence: `${vf} validate failures in history — structural gaps`, suggestion: "Run 'shugo upgrade' to add governance components" },
+    { min: 1, score: 1, evidence: `${vf} validate failure(s) detected` },
+  ]);
 
-  const adrCount = countAdrs(shitennoDir);
-  if (adrCount >= 3) {
-    metrics.push({
-      signal: "adr-count",
-      value: adrCount,
-      score: 3,
-      evidence: `${adrCount} ADRs created — active architectural decisions`,
-      suggestion: "Consider adding governance/agents/ for role separation",
-    });
-  } else if (adrCount >= 1) {
-    metrics.push({
-      signal: "adr-count",
-      value: adrCount,
-      score: 2,
-      evidence: `${adrCount} ADR(s) created`,
-    });
-  }
+  const adr = countAdrs(shitennoDir);
+  pushConditionalMetric(metrics, "adr-count", adr, [
+    { min: 3, score: 3, evidence: `${adr} ADRs created — active architectural decisions`, suggestion: "Consider adding governance/agents/ for role separation" },
+    { min: 1, score: 2, evidence: `${adr} ADR(s) created` },
+  ]);
 
-  const openBranches = countOpenBranches(projectRoot);
-  if (openBranches >= 5) {
-    metrics.push({
-      signal: "open-branches",
-      value: openBranches,
-      score: 2,
-      evidence: `${openBranches} feat branches open — parallel development`,
-      suggestion: "Add governance/context/ for session persistence",
-    });
-  } else if (openBranches >= 3) {
-    metrics.push({
-      signal: "open-branches",
-      value: openBranches,
-      score: 1,
-      evidence: `${openBranches} feat branches open`,
-    });
-  }
+  const ob = countOpenBranches(projectRoot);
+  pushConditionalMetric(metrics, "open-branches", ob, [
+    { min: 5, score: 2, evidence: `${ob} feat branches open — parallel development`, suggestion: "Add governance/context/ for session persistence" },
+    { min: 3, score: 1, evidence: `${ob} feat branches open` },
+  ]);
 
-  const commitsPerWeek = countCommitsPerWeek(projectRoot);
-  if (commitsPerWeek >= 20) {
-    metrics.push({
-      signal: "commits-per-week",
-      value: commitsPerWeek,
-      score: 2,
-      evidence: `${commitsPerWeek} commits/week — high velocity`,
-    });
-  } else if (commitsPerWeek >= 10) {
-    metrics.push({
-      signal: "commits-per-week",
-      value: commitsPerWeek,
-      score: 1,
-      evidence: `${commitsPerWeek} commits/week`,
-    });
-  }
+  const cpw = countCommitsPerWeek(projectRoot);
+  pushConditionalMetric(metrics, "commits-per-week", cpw, [
+    { min: 20, score: 2, evidence: `${cpw} commits/week — high velocity` },
+    { min: 10, score: 1, evidence: `${cpw} commits/week` },
+  ]);
 
-  const sessionsWithoutClose = countSessionsWithoutClose(shitennoDir);
-  if (sessionsWithoutClose >= 2) {
-    metrics.push({
-      signal: "sessions-without-close",
-      value: sessionsWithoutClose,
-      score: 2,
-      evidence: `${sessionsWithoutClose} sessions without close — needs automation`,
-      suggestion: "Add scripts/close-session.ts for session management",
-    });
-  } else if (sessionsWithoutClose >= 1) {
-    metrics.push({
-      signal: "sessions-without-close",
-      value: sessionsWithoutClose,
-      score: 1,
-      evidence: `${sessionsWithoutClose} unclosed session(s)`,
-    });
-  }
+  const swc = countSessionsWithoutClose(shitennoDir);
+  pushConditionalMetric(metrics, "sessions-without-close", swc, [
+    { min: 2, score: 2, evidence: `${swc} sessions without close — needs automation`, suggestion: "Add scripts/close-session.ts for session management" },
+    { min: 1, score: 1, evidence: `${swc} unclosed session(s)` },
+  ]);
 
-  const bugFixes = countBugFixes(projectRoot);
-  if (bugFixes >= 5) {
-    metrics.push({
-      signal: "bug-fixes",
-      value: bugFixes,
-      score: 2,
-      evidence: `${bugFixes} bug fixes — code instability`,
-      suggestion: "Add tests and governance for affected modules",
-    });
-  } else if (bugFixes >= 3) {
-    metrics.push({
-      signal: "bug-fixes",
-      value: bugFixes,
-      score: 1,
-      evidence: `${bugFixes} bug fixes detected`,
-    });
-  }
+  const bf = countBugFixes(projectRoot);
+  pushConditionalMetric(metrics, "bug-fixes", bf, [
+    { min: 5, score: 2, evidence: `${bf} bug fixes — code instability`, suggestion: "Add tests and governance for affected modules" },
+    { min: 3, score: 1, evidence: `${bf} bug fixes detected` },
+  ]);
 
-  const agentCount = countAgents(projectRoot);
-  if (agentCount >= 4) {
-    metrics.push({
-      signal: "agent-count",
-      value: agentCount,
-      score: 2,
-      evidence: `${agentCount} agents configured — needs orchestrator`,
-      suggestion: "Add governance/agents/ with AI contracts",
-    });
-  }
+  const agents = countAgents(projectRoot);
+  pushConditionalMetric(metrics, "agent-count", agents, [
+    { min: 4, score: 2, evidence: `${agents} agents configured — needs orchestrator`, suggestion: "Add governance/agents/ with AI contracts" },
+  ]);
 
-  const skillCount = countSkills(shitennoDir);
-  if (skillCount >= 6) {
-    metrics.push({
-      signal: "skill-count",
-      value: skillCount,
-      score: 1,
-      evidence: `${skillCount} skills installed — multi-domain project`,
-    });
-  }
+  const skills = countSkills(shitennoDir);
+  pushConditionalMetric(metrics, "skill-count", skills, [
+    { min: 6, score: 1, evidence: `${skills} skills installed — multi-domain project` },
+  ]);
 
   return metrics;
 }

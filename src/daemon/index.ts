@@ -39,8 +39,6 @@ import {
   moveCompletedBacklogToDone,
 } from "./startup-scan.js";
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
-
 const __dirname_file = dirname(fileURLToPath(import.meta.url));
 
 function getVersion(): string {
@@ -55,8 +53,6 @@ function getVersion(): string {
 
 const DAEMON_VERSION = getVersion();
 
-// ── Paths ─────────────────────────────────────────────────────────────────────
-
 export function getPaths(shitennoDir: string) {
   const daemonDir = join(shitennoDir, "daemon");
   return {
@@ -69,9 +65,7 @@ export function getPaths(shitennoDir: string) {
   };
 }
 
-// ── Logger ────────────────────────────────────────────────────────────────────
-
-const DEFAULT_MAX_LOG_BYTES = 5 * 1024 * 1024; // 5MB
+const DEFAULT_MAX_LOG_BYTES = 5 * 1024 * 1024;
 const DEFAULT_MAX_ROTATED_FILES = 3;
 
 let currentLogBytes = 0;
@@ -121,107 +115,102 @@ export function daemonLog(logPath: string, level: string, msg: string): void {
   }
 }
 
-// ── Cleanup ───────────────────────────────────────────────────────────────────
-
 function cleanup(pidPath: string, sockPath: string): void {
   for (const p of [pidPath, sockPath]) {
     try { if (existsSync(p)) unlinkSync(p); } catch { logger.debug("daemon", `Failed to clean up ${p}`); }
   }
 }
 
-// ── Daemon ────────────────────────────────────────────────────────────────────
+interface DaemonContext {
+  shitennoDir: string;
+  projectRoot: string;
+  daemonDir: string;
+  pidPath: string;
+  sockPath: string;
+  logPath: string;
+  approvedPath: string;
+  statePath: string;
+  state: ReturnType<typeof createDaemonState>;
+  socket: Server;
+  stopProactive: () => void;
+  stopWatcher: () => void;
+}
 
-export async function runDaemon(shitennoDir: string, projectRoot?: string): Promise<void> {
-  const paths = getPaths(shitennoDir);
-  const { daemonDir, pidPath, sockPath, logPath, approvedPath, statePath } = paths;
-  const resolvedProjectRoot = projectRoot ?? join(shitennoDir, "..");
-
-  if (!existsSync(daemonDir)) {
-    mkdirSync(daemonDir, { recursive: true });
+function ensureDaemonDir(ctx: DaemonContext): void {
+  if (!existsSync(ctx.daemonDir)) {
+    mkdirSync(ctx.daemonDir, { recursive: true });
   }
+  daemonLog(ctx.logPath, "INFO", `Shugo Daemon v${DAEMON_VERSION} starting — shitennoDir: ${ctx.shitennoDir}`);
+  initLogByteCounter(ctx.logPath);
+}
 
-  daemonLog(logPath, "INFO", `Shugo Daemon v${DAEMON_VERSION} starting — shitennoDir: ${shitennoDir}`);
-
-  // ── Initialize log byte counter for rotation ───────────────────────────────
-  initLogByteCounter(logPath);
-
-  // ── Duplicate daemon guard ─────────────────────────────────────────────────
-
-  if (existsSync(pidPath)) {
-    try {
-      const existingPid = parseInt(readFileSync(pidPath, "utf-8").trim(), 10);
-      if (!isNaN(existingPid) && existingPid > 0) {
-        try {
-          process.kill(existingPid, 0); // signal 0 = check if alive
-          // Process is alive — another daemon is already running
-          daemonLog(logPath, "WARN", `Daemon already running (pid ${existingPid}). Exiting.`);
-          process.exit(0);
-        } catch {
-          // Process not found (ESRCH) — stale PID file, safe to continue
-          daemonLog(logPath, "INFO", `Stale PID file (pid ${existingPid} not running). Overwriting.`);
-        }
+function checkDuplicateDaemon(ctx: DaemonContext): void {
+  if (!existsSync(ctx.pidPath)) return;
+  try {
+    const existingPid = parseInt(readFileSync(ctx.pidPath, "utf-8").trim(), 10);
+    if (!isNaN(existingPid) && existingPid > 0) {
+      try {
+        process.kill(existingPid, 0);
+        daemonLog(ctx.logPath, "WARN", `Daemon already running (pid ${existingPid}). Exiting.`);
+        process.exit(0);
+      } catch {
+        daemonLog(ctx.logPath, "INFO", `Stale PID file (pid ${existingPid} not running). Overwriting.`);
       }
-    } catch {
-      // Corrupt PID file — safe to continue
     }
+  } catch {
+    // Corrupt PID file — safe to continue
   }
+}
 
-  // ── Write PID (atomic via tmpfile + rename) ────────────────────────────────
-
-  const tmpPath = `${pidPath}.${process.pid}.tmp`;
+function writePidAtomically(ctx: DaemonContext): void {
+  const tmpPath = `${ctx.pidPath}.${process.pid}.tmp`;
   writeFileSync(tmpPath, String(process.pid), "utf-8");
   try {
-    renameSync(tmpPath, pidPath);
+    renameSync(tmpPath, ctx.pidPath);
   } catch {
-    // If rename fails (race), check who won
     try {
-      const writtenPid = parseInt(readFileSync(pidPath, "utf-8").trim(), 10);
+      const writtenPid = parseInt(readFileSync(ctx.pidPath, "utf-8").trim(), 10);
       if (writtenPid !== process.pid) {
-        daemonLog(logPath, "WARN", `Another daemon (pid ${writtenPid}) took over. Exiting.`);
+        daemonLog(ctx.logPath, "WARN", `Another daemon (pid ${writtenPid}) took over. Exiting.`);
         process.exit(0);
       }
     } catch {
       // PID file corrupted — proceed
     }
   }
-  daemonLog(logPath, "INFO", `PID ${process.pid} written to ${pidPath}`);
+  daemonLog(ctx.logPath, "INFO", `PID ${process.pid} written to ${ctx.pidPath}`);
+}
 
-  // ── Mark as approved (first successful start) ──────────────────────────────
-
-  if (!existsSync(approvedPath)) {
-    writeFileSync(approvedPath, new Date().toISOString(), "utf-8");
-    daemonLog(logPath, "INFO", "Daemon marked as approved for auto-start");
+function markApproved(ctx: DaemonContext): void {
+  if (!existsSync(ctx.approvedPath)) {
+    writeFileSync(ctx.approvedPath, new Date().toISOString(), "utf-8");
+    daemonLog(ctx.logPath, "INFO", "Daemon marked as approved for auto-start");
   }
+}
 
-  // ── Cleanup stale socket ───────────────────────────────────────────────────
-
-  if (existsSync(sockPath)) {
-    try { unlinkSync(sockPath); } catch { logger.debug("daemon", "Failed to remove stale socket"); }
+function cleanupStaleSocket(ctx: DaemonContext): void {
+  if (existsSync(ctx.sockPath)) {
+    try { unlinkSync(ctx.sockPath); } catch { logger.debug("daemon", "Failed to remove stale socket"); }
   }
+}
 
-  // ── Daemon State ──────────────────────────────────────────────────────────
-
-  const state = loadState(statePath) ?? createDaemonState();
-  state.startedAt = new Date().toISOString();
-  daemonLog(logPath, "INFO", `State loaded — ${state.events.length} historical events`);
-
-  // ── IPC Socket Server ──────────────────────────────────────────────────────
-
-  const startedAt = Date.now();
-
-  const server: Server = createServer((socket: Socket) => {
+function setupIpcServer(ctx: DaemonContext, startedAt: number): void {
+  const server = createServer((socket: Socket) => {
     let buffer = "";
 
     socket.on("data", async (chunk: Buffer) => {
       buffer += chunk.toString();
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
-
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
           const msg = JSON.parse(line) as IpcMessage;
-          await handleMessage(msg, socket, shitennoDir, sockPath, startedAt, logPath, state, resolvedProjectRoot, DAEMON_VERSION);
+          await handleMessage({
+            msg, socket, shitennoDir: ctx.shitennoDir, sockPath: ctx.sockPath,
+            startedAt, logPath: ctx.logPath, state: ctx.state,
+            projectRoot: ctx.projectRoot, daemonVersion: DAEMON_VERSION,
+          });
         } catch {
           sendJson(socket, { type: "error", message: "Invalid JSON" });
         }
@@ -231,134 +220,56 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
     socket.on("error", () => socket.destroy());
   });
 
-  server.listen(sockPath, () => {
-    // chmod 0600 — owner-only access
+  server.listen(ctx.sockPath, () => {
     try {
-      chmodSync(sockPath, 0o600);
+      chmodSync(ctx.sockPath, 0o600);
     } catch (err) {
-      daemonLog(logPath, "WARN", `chmod 0600 failed on socket: ${err}`);
+      daemonLog(ctx.logPath, "WARN", `chmod 0600 failed on socket: ${err}`);
     }
-    daemonLog(logPath, "INFO", `IPC socket listening at ${sockPath}`);
+    daemonLog(ctx.logPath, "INFO", `IPC socket listening at ${ctx.sockPath}`);
   });
 
-  // ── File Watcher & Reactive Logic ──────────────────────────────────────────
+  (ctx as { socket: Server }).socket = server;
+}
 
-  const bus = getEventBus();
-  const stopWatcher = startWatching(shitennoDir);
+function runVerificationLoop(
+  shitennoDir: string,
+  resolvedProjectRoot: string,
+  logPath: string,
+): void {
+  const engine = new MarkdownPlanEngine(shitennoDir);
+  const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
 
-  // ── Resource Arbitration: track resources claimed by active CLI sessions ────
-  // TTL is short (5min) so a claim self-expires if the CLI crashes without releasing.
-  const claimedResources = new LRUCache<string, { sessionId: string; claimedAt: string }>(200, 5 * 60_000);
-  const isResourceClaimed = (resourceId: string): boolean => claimedResources.has(resourceId);
-
-  bus.subscribe("resource.claimed", (payload) => {
-    const p = payload as unknown as ResourceClaimedPayload;
-    if (!p?.resourceId) return;
-    claimedResources.set(p.resourceId, { sessionId: p.sessionId, claimedAt: p.timestamp ?? new Date().toISOString() });
-    daemonLog(logPath, "INFO", `Resource claimed by session ${p.sessionId}: ${p.resourceId}`);
-  });
-
-  bus.subscribe("resource.released", (payload) => {
-    const p = payload as unknown as ResourceReleasedPayload;
-    if (!p?.resourceId) return;
-    claimedResources.delete(p.resourceId);
-    daemonLog(logPath, "INFO", `Resource released by session ${p.sessionId}: ${p.resourceId}`);
-  });
-
-  // ── Rule Engine: subscribe to event bus events ──────────────────────────────
-  initializeRuleEngine(resolvedProjectRoot, shitennoDir, isResourceClaimed);
-  daemonLog(logPath, "INFO", "Rule engine initialized — subscribed to event bus");
-
-  // ── Proactive Engine: subscribe to engineering state events ─────────────────
-  const stopProactive = initializeProactiveEngine(resolvedProjectRoot, shitennoDir);
-  daemonLog(logPath, "INFO", "Proactive engine initialized — subscribed to event bus");
-
-  // ── Desktop Notifications: smart rate-limited lifecycle notifications ──────
-  initDesktopNotifier();
-  daemonLog(logPath, "INFO", "Desktop notifier initialized — subscribed to lifecycle events");
-
-  // ── Initial Startup Scan (async — doesn't block daemon readiness) ─────────
-  // Execute proactive functions once on daemon startup via setImmediate
-
-  setImmediate(() => {
-    daemonLog(logPath, "INFO", "Running initial startup scan...");
-    const scanStartTime = Date.now();
-
-    // 1. Archive done plans
+  for (const plan of pendingCheck) {
     try {
-      const archiveResult = checkAndArchiveDonePlans(shitennoDir);
-      if (archiveResult.archived > 0) {
-        daemonLog(logPath, "INFO", `Startup scan: archived ${archiveResult.archived} plan(s): ${archiveResult.archivedIds.join(", ")}`);
-      }
-      recordEvent(state, "startup_scan.archive_plans");
+      const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
+      daemonLog(
+        logPath,
+        record.passed ? "INFO" : "WARN",
+        `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "REFUSED"} — ${
+          record.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.message}`).join("; ")
+        }`
+      );
     } catch (err) {
-      daemonLog(logPath, "ERROR", `Startup scan: checkAndArchiveDonePlans failed: ${err}`);
+      daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
     }
-
-    // 2. Check plan inconsistencies
-    try {
-      const inconsistencies = checkInconsistencies(shitennoDir);
-      if (inconsistencies.inconsistencies > 0) {
-        daemonLog(logPath, "WARN", `Startup scan: found ${inconsistencies.inconsistencies} inconsistent plan(s)`);
-      }
-      recordEvent(state, "startup_scan.check_inconsistencies");
-    } catch (err) {
-      daemonLog(logPath, "ERROR", `Startup scan: checkInconsistencies failed: ${err}`);
-    }
-
-    // 3. Validate reminders
-    try {
-      const reminders = validateReminders(shitennoDir);
-      if (reminders.removed > 0) {
-        daemonLog(logPath, "INFO", `Startup scan: removed ${reminders.removed} stale reminder(s)`);
-      }
-      recordEvent(state, "startup_scan.validate_reminders");
-  } catch (err) {
-    daemonLog(logPath, "ERROR", `Startup scan: validateReminders failed: ${err}`);
   }
 
-  // 4. Move completed backlog items
-  try {
-    const backlog = moveCompletedBacklogToDone(shitennoDir, shitennoDir);
-    if (backlog.moved > 0) {
-      daemonLog(logPath, "INFO", `Startup scan: moved ${backlog.moved} completed backlog item(s)`);
-    }
-    recordEvent(state, "startup_scan.move_backlog");
-  } catch (err) {
-    daemonLog(logPath, "ERROR", `Startup scan: moveCompletedBacklogToDone failed: ${err}`);
+  const archiveResult = checkAndArchiveDonePlans(shitennoDir);
+  if (archiveResult.archived > 0) {
+    daemonLog(logPath, "INFO", `Auto-archived ${archiveResult.archived} plan(s)`);
   }
+}
 
-  // 5. Verify orphaned plans stuck in 'check' (K.2)
-  try {
-    const engine = new MarkdownPlanEngine(shitennoDir);
-    const orphanedCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
-    if (orphanedCheck.length > 0) {
-      daemonLog(logPath, "WARN", `Startup scan: ${orphanedCheck.length} orphaned plan(s) in 'check' — running verification now`);
-      verifyAllPendingPlans().catch((err) => daemonLog(logPath, "ERROR", `Startup scan: orphaned verification promise rejected: ${err}`));
-    }
-    recordEvent(state, "startup_scan.verify_orphaned_check");
-  } catch (err) {
-    daemonLog(logPath, "ERROR", `Startup scan: orphaned plan verification failed: ${err}`);
-  }
-
-  const scanDuration = Date.now() - scanStartTime;
-  daemonLog(logPath, "INFO", `Initial startup scan completed in ${scanDuration}ms`);
-  bus.publish("daemon.ready", { pid: process.pid, uptimeMs: scanDuration });
-  }); // end setImmediate
-
-  // ── Event Subscriptions ─────────────────────────────────────────────────────
-
-  // TIER 1: plan.file_changed — verify 'check' plans, archive done, + audit
-  // Debounce per plan to avoid re-running the full verification suite on rapid saves
-  // (e.g. autosave, format-on-save) — tests can legitimately take minutes.
-  const verificationDebounce = new Map<string, NodeJS.Timeout>();
-  const VERIFICATION_DEBOUNCE_MS = 3000;
-
-  // ── Verification lock (K.1) — prevent concurrent verification between processes ──
+function createVerifyAllPendingPlans(
+  shitennoDir: string,
+  resolvedProjectRoot: string,
+  logPath: string,
+) {
   let verificationInFlight: Promise<void> | null = null;
   let pendingReVerification = false;
 
-  async function verifyAllPendingPlans(): Promise<void> {
+  return async function verifyAllPendingPlans(): Promise<void> {
     if (verificationInFlight) {
       pendingReVerification = true;
       return verificationInFlight;
@@ -374,28 +285,7 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
         do {
           pendingReVerification = false;
           try {
-            const engine = new MarkdownPlanEngine(shitennoDir);
-            const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
-
-            for (const plan of pendingCheck) {
-              try {
-                const record = runAutoVerification(shitennoDir, resolvedProjectRoot, plan.id);
-                daemonLog(
-                  logPath,
-                  record.passed ? "INFO" : "WARN",
-                  `Auto-verification for ${plan.id}: ${record.passed ? "PASSED → done" : "REFUSED"} — ${
-                    record.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.message}`).join("; ")
-                  }`
-                );
-              } catch (err) {
-                daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
-              }
-            }
-
-            const archiveResult = checkAndArchiveDonePlans(shitennoDir);
-            if (archiveResult.archived > 0) {
-              daemonLog(logPath, "INFO", `Auto-archived ${archiveResult.archived} plan(s)`);
-            }
+            runVerificationLoop(shitennoDir, resolvedProjectRoot, logPath);
           } catch (err) {
             daemonLog(logPath, "ERROR", `Verification loop failed: ${err}`);
           }
@@ -407,158 +297,291 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
 
     await verificationInFlight;
     verificationInFlight = null;
+  };
+}
+
+function runStartupScan(
+  ctx: DaemonContext,
+  verifyAllPendingPlans: () => Promise<void>,
+): void {
+  daemonLog(ctx.logPath, "INFO", "Running initial startup scan...");
+  const scanStartTime = Date.now();
+
+  try {
+    const archiveResult = checkAndArchiveDonePlans(ctx.shitennoDir);
+    if (archiveResult.archived > 0) {
+      daemonLog(ctx.logPath, "INFO", `Startup scan: archived ${archiveResult.archived} plan(s): ${archiveResult.archivedIds.join(", ")}`);
+    }
+    recordEvent(ctx.state, "startup_scan.archive_plans");
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Startup scan: checkAndArchiveDonePlans failed: ${err}`);
   }
 
-  bus.subscribe("plan.file_changed", () => {
-    recordEvent(state, "plan.file_changed");
-    state.briefingCache = null;
-    state.riskMapCache = null;
-    try {
-      const engine = new MarkdownPlanEngine(shitennoDir);
-      const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
-
-      for (const plan of pendingCheck) {
-        const existing = verificationDebounce.get(plan.id);
-        if (existing) clearTimeout(existing);
-        verificationDebounce.set(
-          plan.id,
-          setTimeout(() => {
-            verificationDebounce.delete(plan.id);
-            try {
-              verifyAllPendingPlans();
-            } catch (err) {
-              daemonLog(logPath, "ERROR", `Auto-verification for ${plan.id} failed: ${err}`);
-            }
-          }, VERIFICATION_DEBOUNCE_MS)
-        );
-      }
-    } catch (err) {
-      daemonLog(logPath, "ERROR", `checkAndArchiveDonePlans failed: ${err}`);
+  try {
+    const inconsistencies = checkInconsistencies(ctx.shitennoDir);
+    if (inconsistencies.inconsistencies > 0) {
+      daemonLog(ctx.logPath, "WARN", `Startup scan: found ${inconsistencies.inconsistencies} inconsistent plan(s)`);
     }
-    // Trigger standard audit on plan changes (critical governance file)
-    runPeriodicAudit();
+    recordEvent(ctx.state, "startup_scan.check_inconsistencies");
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Startup scan: checkInconsistencies failed: ${err}`);
+  }
+
+  try {
+    const reminders = validateReminders(ctx.shitennoDir);
+    if (reminders.removed > 0) {
+      daemonLog(ctx.logPath, "INFO", `Startup scan: removed ${reminders.removed} stale reminder(s)`);
+    }
+    recordEvent(ctx.state, "startup_scan.validate_reminders");
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Startup scan: validateReminders failed: ${err}`);
+  }
+
+  try {
+    const backlog = moveCompletedBacklogToDone(ctx.shitennoDir, ctx.shitennoDir);
+    if (backlog.moved > 0) {
+      daemonLog(ctx.logPath, "INFO", `Startup scan: moved ${backlog.moved} completed backlog item(s)`);
+    }
+    recordEvent(ctx.state, "startup_scan.move_backlog");
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Startup scan: moveCompletedBacklogToDone failed: ${err}`);
+  }
+
+  finalizeStartupScan(ctx, scanStartTime, verifyAllPendingPlans);
+}
+
+function finalizeStartupScan(
+  ctx: DaemonContext,
+  scanStartTime: number,
+  verifyAllPendingPlans: () => Promise<void>,
+): void {
+  try {
+    const engine = new MarkdownPlanEngine(ctx.shitennoDir);
+    const orphanedCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
+    if (orphanedCheck.length > 0) {
+      daemonLog(ctx.logPath, "WARN", `Startup scan: ${orphanedCheck.length} orphaned plan(s) in 'check' — running verification now`);
+      verifyAllPendingPlans().catch((err) => daemonLog(ctx.logPath, "ERROR", `Startup scan: orphaned verification promise rejected: ${err}`));
+    }
+    recordEvent(ctx.state, "startup_scan.verify_orphaned_check");
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Startup scan: orphaned plan verification failed: ${err}`);
+  }
+
+  const scanDuration = Date.now() - scanStartTime;
+  daemonLog(ctx.logPath, "INFO", `Initial startup scan completed in ${scanDuration}ms`);
+  getEventBus().publish("daemon.ready", { pid: process.pid, uptimeMs: scanDuration });
+}
+
+function setupResourceArbitration(ctx: DaemonContext): (resourceId: string) => boolean {
+  const claimedResources = new LRUCache<string, { sessionId: string; claimedAt: string }>(200, 5 * 60_000);
+  const isResourceClaimed = (resourceId: string): boolean => claimedResources.has(resourceId);
+  const bus = getEventBus();
+
+  bus.subscribe("resource.claimed", (payload) => {
+    const p = payload as unknown as ResourceClaimedPayload;
+    if (!p?.resourceId) return;
+    claimedResources.set(p.resourceId, { sessionId: p.sessionId, claimedAt: p.timestamp ?? new Date().toISOString() });
+    daemonLog(ctx.logPath, "INFO", `Resource claimed by session ${p.sessionId}: ${p.resourceId}`);
   });
 
-  // TIER 1: workdir.large_uncommitted_drift — log drift (passive)
+  bus.subscribe("resource.released", (payload) => {
+    const p = payload as unknown as ResourceReleasedPayload;
+    if (!p?.resourceId) return;
+    claimedResources.delete(p.resourceId);
+    daemonLog(ctx.logPath, "INFO", `Resource released by session ${p.sessionId}: ${p.resourceId}`);
+  });
+
+  return isResourceClaimed;
+}
+
+function initEngines(ctx: DaemonContext): { stopProactive: () => void; isResourceClaimed: (id: string) => boolean } {
+  const isResourceClaimed = setupResourceArbitration(ctx);
+
+  initializeRuleEngine(ctx.projectRoot, ctx.shitennoDir, isResourceClaimed);
+  daemonLog(ctx.logPath, "INFO", "Rule engine initialized — subscribed to event bus");
+
+  const stopProactive = initializeProactiveEngine(ctx.projectRoot, ctx.shitennoDir);
+  daemonLog(ctx.logPath, "INFO", "Proactive engine initialized — subscribed to event bus");
+
+  initDesktopNotifier();
+  daemonLog(ctx.logPath, "INFO", "Desktop notifier initialized — subscribed to lifecycle events");
+
+  return { stopProactive, isResourceClaimed };
+}
+
+function handlePlanVerification(
+  planId: string,
+  verificationDebounce: Map<string, NodeJS.Timeout>,
+  verifyAllPendingPlans: () => Promise<void>,
+  logPath: string,
+): void {
+  const existing = verificationDebounce.get(planId);
+  if (existing) clearTimeout(existing);
+  verificationDebounce.set(
+    planId,
+    setTimeout(() => {
+      verificationDebounce.delete(planId);
+      try {
+        verifyAllPendingPlans();
+      } catch (err) {
+        daemonLog(logPath, "ERROR", `Auto-verification for ${planId} failed: ${err}`);
+      }
+    }, 3000)
+  );
+}
+
+function onPlanFileChanged(
+  ctx: DaemonContext,
+  verifyAllPendingPlans: () => Promise<void>,
+  runPeriodicAuditFn: () => Promise<void>,
+): void {
+  const verificationDebounce = new Map<string, NodeJS.Timeout>();
+
+  recordEvent(ctx.state, "plan.file_changed");
+  ctx.state.briefingCache = null;
+  ctx.state.riskMapCache = null;
+  try {
+    const engine = new MarkdownPlanEngine(ctx.shitennoDir);
+    const pendingCheck = engine.listAll().filter((p) => p.isActive && p.status === "check");
+    for (const plan of pendingCheck) {
+      handlePlanVerification(plan.id, verificationDebounce, verifyAllPendingPlans, ctx.logPath);
+    }
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `checkAndArchiveDonePlans failed: ${err}`);
+  }
+  runPeriodicAuditFn();
+}
+
+function subscribeTier1Events(
+  ctx: DaemonContext,
+  verifyAllPendingPlans: () => Promise<void>,
+  runPeriodicAuditFn: () => Promise<void>,
+): void {
+  const bus = getEventBus();
+
+  bus.subscribe("plan.file_changed", () => {
+    onPlanFileChanged(ctx, verifyAllPendingPlans, runPeriodicAuditFn);
+  });
+
   bus.subscribe("workdir.large_uncommitted_drift", (payload) => {
-    recordEvent(state, "workdir.large_uncommitted_drift");
+    recordEvent(ctx.state, "workdir.large_uncommitted_drift");
     const p = payload as { filesChanged?: number; minutesSinceLastCommit?: number } | undefined;
-    state.drift = {
+    ctx.state.drift = {
       filesChanged: p?.filesChanged ?? 0,
       minutesSinceLastCommit: p?.minutesSinceLastCommit ?? 0,
       detectedAt: new Date().toISOString(),
     };
-    daemonLog(logPath, "WARN", `Drift detected: ${state.drift.filesChanged} files, ${state.drift.minutesSinceLastCommit} min`);
+    daemonLog(ctx.logPath, "WARN", `Drift detected: ${ctx.state.drift.filesChanged} files, ${ctx.state.drift.minutesSinceLastCommit} min`);
   });
 
-  // TIER 1: task.completed — archive + buffer update + trigger quick audit
   bus.subscribe("task.completed", () => {
-    recordEvent(state, "task.completed");
+    recordEvent(ctx.state, "task.completed");
     try {
-      const result = checkAndArchiveDonePlans(shitennoDir);
+      const result = checkAndArchiveDonePlans(ctx.shitennoDir);
       if (result.archived > 0) {
-        daemonLog(logPath, "INFO", `Task completed — auto-archived ${result.archived} plan(s)`);
+        daemonLog(ctx.logPath, "INFO", `Task completed — auto-archived ${result.archived} plan(s)`);
       }
     } catch (err) {
-      daemonLog(logPath, "ERROR", `task.completed handler failed: ${err}`);
+      daemonLog(ctx.logPath, "ERROR", `task.completed handler failed: ${err}`);
     }
-    // Trigger quick audit on task completion
-    runPeriodicAudit();
+    runPeriodicAuditFn();
   });
 
-  // TIER 1: session.start — track session (passive)
+  subscribeSessionAndStateTracking(ctx);
+}
+
+function subscribeSessionAndStateTracking(ctx: DaemonContext): void {
+  const bus = getEventBus();
+
   bus.subscribe("session.start", (payload) => {
-    recordEvent(state, "session.start");
+    recordEvent(ctx.state, "session.start");
     const p = payload as { sessionId?: string } | undefined;
-    state.sessions.push({
+    ctx.state.sessions.push({
       id: p?.sessionId ?? `session-${Date.now()}`,
       startedAt: new Date().toISOString(),
     });
-    if (state.sessions.length > 50) {
-      state.sessions.shift();
+    if (ctx.state.sessions.length > 50) {
+      ctx.state.sessions.shift();
     }
   });
 
-  // TIER 1: session.end — close session (passive)
   bus.subscribe("session.end", (payload) => {
-    recordEvent(state, "session.end");
+    recordEvent(ctx.state, "session.end");
     const p = payload as { sessionId?: string; duration?: number } | undefined;
-    const session = state.sessions.find((s) => !s.endedAt);
+    const session = ctx.state.sessions.find((s) => !s.endedAt);
     if (session) {
       session.endedAt = new Date().toISOString();
       session.duration = p?.duration ?? Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000);
     }
   });
 
-  // TIER 1: command.completed — track last command activity
   bus.subscribe("command.completed", (payload) => {
-    recordEvent(state, "command.completed");
+    recordEvent(ctx.state, "command.completed");
     const p = payload as { command?: string } | undefined;
-    state.lastCommandName = p?.command ?? null;
-    state.lastCommandAt = new Date().toISOString();
+    ctx.state.lastCommandName = p?.command ?? null;
+    ctx.state.lastCommandAt = new Date().toISOString();
   });
 
-  // TIER 1: health.checked — track health (passive)
   bus.subscribe("health.checked", (payload) => {
-    recordEvent(state, "health.checked");
+    recordEvent(ctx.state, "health.checked");
     const p = payload as { score?: number } | undefined;
     if (p?.score !== undefined) {
-      state.health = { score: p.score, checkedAt: new Date().toISOString() };
+      ctx.state.health = { score: p.score, checkedAt: new Date().toISOString() };
     }
   });
+}
 
-  // TIER 2: challenge.generated — queue challenges (passive)
+function subscribeTier2Events(ctx: DaemonContext, runPeriodicAuditFn: () => Promise<void>): void {
+  const bus = getEventBus();
+
   bus.subscribe("challenge.generated", (payload) => {
-    recordEvent(state, "challenge.generated");
+    recordEvent(ctx.state, "challenge.generated");
     const p = payload as { type?: string; severity?: string; message?: string } | undefined;
-    state.challenges.push({
+    ctx.state.challenges.push({
       type: p?.type ?? "unknown",
       severity: p?.severity ?? "medium",
       message: p?.message ?? "",
       generatedAt: new Date().toISOString(),
     });
-    if (state.challenges.length > 20) {
-      state.challenges.shift();
+    if (ctx.state.challenges.length > 20) {
+      ctx.state.challenges.shift();
     }
   });
 
-  // TIER 2: knowledge_debt.detected — track debt (passive)
   bus.subscribe("knowledge_debt.detected", (payload) => {
-    recordEvent(state, "knowledge_debt.detected");
+    recordEvent(ctx.state, "knowledge_debt.detected");
     const p = payload as { gapCount?: number; healthScore?: number } | undefined;
-    state.debt = {
+    ctx.state.debt = {
       gapCount: p?.gapCount ?? 0,
       healthScore: p?.healthScore ?? 100,
       detectedAt: new Date().toISOString(),
     };
   });
 
-  // TIER 2: backlog.updated — move completed items + trigger quick audit
   bus.subscribe("backlog.updated", () => {
-    recordEvent(state, "backlog.updated");
-    state.briefingCache = null;
-    state.riskMapCache = null;
+    recordEvent(ctx.state, "backlog.updated");
+    ctx.state.briefingCache = null;
+    ctx.state.riskMapCache = null;
     try {
-      const backlog = moveCompletedBacklogToDone(shitennoDir, shitennoDir);
+      const backlog = moveCompletedBacklogToDone(ctx.shitennoDir, ctx.shitennoDir);
       if (backlog.moved > 0) {
-        daemonLog(logPath, "INFO", `backlog.updated: moved ${backlog.moved} completed item(s)`);
+        daemonLog(ctx.logPath, "INFO", `backlog.updated: moved ${backlog.moved} completed item(s)`);
       }
     } catch (err) {
-      daemonLog(logPath, "ERROR", `backlog.updated handler failed: ${err}`);
+      daemonLog(ctx.logPath, "ERROR", `backlog.updated handler failed: ${err}`);
     }
-    // Trigger quick audit on backlog changes
-    runPeriodicAudit();
+    runPeriodicAuditFn();
   });
 
-  // TIER 2: plan.inconsistency_detected — log inconsistency (passive)
   bus.subscribe("plan.inconsistency_detected", (payload) => {
-    recordEvent(state, "plan.inconsistency_detected");
+    recordEvent(ctx.state, "plan.inconsistency_detected");
     const p = payload as { planId?: string; message?: string } | undefined;
-    daemonLog(logPath, "WARN", `Plan inconsistency detected: ${p?.planId ?? "unknown"} — ${p?.message ?? ""}`);
+    daemonLog(ctx.logPath, "WARN", `Plan inconsistency detected: ${p?.planId ?? "unknown"} — ${p?.message ?? ""}`);
   });
+}
 
-  // ── Generic event logger — record all event types passing through ─────────
-
+function subscribeGenericLogEvents(ctx: DaemonContext): string[] {
+  const bus = getEventBus();
   const logEvents = [
     "adr.created", "skill.created", "plan.created", "asset.created",
     "asset.updated", "engineering_state.updated", "docs.sync.triggered",
@@ -568,143 +591,192 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
 
   for (const evt of logEvents) {
     bus.subscribe(evt, () => {
-      recordEvent(state, evt);
+      recordEvent(ctx.state, evt);
       if (evt === "asset.updated" || evt === "engineering_state.updated" || evt === "docs.sync.triggered") {
-        state.briefingCache = null;
-        state.riskMapCache = null;
+        ctx.state.briefingCache = null;
+        ctx.state.riskMapCache = null;
       }
     });
   }
 
-  // ── Large Commit Detection — periodic check every 5 minutes ──────────────
+  return [...logEvents];
+}
 
-  const LARGE_COMMIT_THRESHOLD = 50;
+function subscribeAllEvents(
+  ctx: DaemonContext,
+  verifyAllPendingPlans: () => Promise<void>,
+  runPeriodicAuditFn: () => Promise<void>,
+): string[] {
+  subscribeTier1Events(ctx, verifyAllPendingPlans, runPeriodicAuditFn);
+  subscribeTier2Events(ctx, runPeriodicAuditFn);
+  return subscribeGenericLogEvents(ctx);
+}
+
+function setupPeriodicTimers(
+  ctx: DaemonContext,
+  runPeriodicAuditFn: () => Promise<void>,
+): { persistTimer: NodeJS.Timeout; largeCommitTimer: NodeJS.Timeout; auditTimer: NodeJS.Timeout } {
+  const persistTimer = setInterval(() => {
+    persistState(ctx.state, ctx.statePath);
+  }, 30_000);
+
   const largeCommitTimer = setInterval(() => {
     try {
-      if (isLargeCommit(shitennoDir, LARGE_COMMIT_THRESHOLD)) {
-        daemonLog(logPath, "WARN", `Large commit detected (${LARGE_COMMIT_THRESHOLD}+ staged files) — triggering standard audit`);
-        runPeriodicAudit();
+      if (isLargeCommit(ctx.shitennoDir, 50)) {
+        daemonLog(ctx.logPath, "WARN", `Large commit detected (50+ staged files) — triggering standard audit`);
+        runPeriodicAuditFn();
       }
     } catch (err) {
-      daemonLog(logPath, "ERROR", `Large commit check failed: ${err}`);
+      daemonLog(ctx.logPath, "ERROR", `Large commit check failed: ${err}`);
     }
   }, 5 * 60 * 1000);
 
-  // ── State persistence timer ────────────────────────────────────────────────
+  let auditTimer = setInterval(runPeriodicAuditFn, getAuditIntervalMs(ctx));
 
-  const persistTimer = setInterval(() => {
-    persistState(state, statePath);
-  }, 30_000);
-
-  // ── Adaptive Periodic Audit ────────────────────────────────────────────────
-  // Calculates audit interval based on health score:
-  //   > 70 → quick audit every 2 hours
-  //   40-70 → standard audit every 30 minutes
-  //   < 40 → code-review audit every 10 minutes
-
-  function getAuditIntervalMs(): number {
-    const score = state.health?.score ?? 50;
-    if (score > 70) return 6 * 60 * 60 * 1000;   // 6 hours (healthy)
-    return 4 * 60 * 60 * 1000;                     // 4 hours (unhealthy)
-  }
-
-  function getAuditLevel(): "quick" | "standard" | "code-review" {
-    const score = state.health?.score ?? 50;
-    if (score > 70) return "quick";
-    if (score >= 40) return "standard";
-    return "code-review";
-  }
-
-  async function runPeriodicAudit(): Promise<void> {
-    try {
-      const level = getAuditLevel();
-      const report = await auditHealth(shitennoDir, shitennoDir, level);
-
-      // Update state with new health score
-      state.health = {
-        score: report.healthScore,
-        checkedAt: report.auditedAt,
-      };
-
-      recordEvent(state, "health.checked");
-      daemonLog(logPath, "INFO", `Periodic audit (${level}): score=${report.healthScore}/100, ${report.issues.length} issue(s)`);
-    } catch (err) {
-      daemonLog(logPath, "ERROR", `Periodic audit failed: ${err}`);
-    }
-  }
-
-  let auditTimer = setInterval(runPeriodicAudit, getAuditIntervalMs());
-
-  // Recalculate interval when health score changes
-  bus.subscribe("health.checked", () => {
-    const newInterval = getAuditIntervalMs();
+  getEventBus().subscribe("health.checked", () => {
+    const newInterval = getAuditIntervalMs(ctx);
     clearInterval(auditTimer);
-    auditTimer = setInterval(runPeriodicAudit, newInterval);
-    daemonLog(logPath, "DEBUG", `Audit interval recalculated: ${newInterval / 1000}s (score=${state.health?.score ?? "unknown"})`);
+    auditTimer = setInterval(runPeriodicAuditFn, newInterval);
+    daemonLog(ctx.logPath, "DEBUG", `Audit interval recalculated: ${newInterval / 1000}s (score=${ctx.state.health?.score ?? "unknown"})`);
   });
 
-  // ── Check-nag: periodic desktop notification for plans stuck in 'check' ──
+  return { persistTimer, largeCommitTimer, auditTimer };
+}
 
-  const CHECK_NAG_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
-  let checkNagTimer: NodeJS.Timeout;
+function getAuditIntervalMs(ctx: DaemonContext): number {
+  const score = ctx.state.health?.score ?? 50;
+  if (score > 70) return 6 * 60 * 60 * 1000;
+  return 4 * 60 * 60 * 1000;
+}
 
-  function scheduleCheckNag() {
-    checkNagTimer = setTimeout(() => {
-      try {
-        const engine = new MarkdownPlanEngine(shitennoDir);
-        const pending = engine.listAll().filter((p) => p.isActive && p.status === "check");
-        if (pending.length > 0) {
-          // Log only — no desktop notification for nag reminders.
-          // Desktop notifications are reserved for actionable events.
-          // Users can check stuck plans via 'shugo status' or 'shugo plan md list'.
-          daemonLog(logPath, "WARN", `Check-nag: ${pending.length} plan(s) stuck in 'check': ${pending.map((p) => p.id).join(", ")}`);
-        }
-      } catch (err) {
-        daemonLog(logPath, "ERROR", `Check-nag failed: ${err}`);
-      } finally {
-        scheduleCheckNag();
-      }
-    }, CHECK_NAG_INTERVAL_MS);
+function getAuditLevel(ctx: DaemonContext): "quick" | "standard" | "code-review" {
+  const score = ctx.state.health?.score ?? 50;
+  if (score > 70) return "quick";
+  if (score >= 40) return "standard";
+  return "code-review";
+}
+
+async function runPeriodicAudit(ctx: DaemonContext): Promise<void> {
+  try {
+    const level = getAuditLevel(ctx);
+    const report = await auditHealth(ctx.shitennoDir, ctx.shitennoDir, level);
+
+    ctx.state.health = {
+      score: report.healthScore,
+      checkedAt: report.auditedAt,
+    };
+
+    recordEvent(ctx.state, "health.checked");
+    daemonLog(ctx.logPath, "INFO", `Periodic audit (${level}): score=${report.healthScore}/100, ${report.issues.length} issue(s)`);
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Periodic audit failed: ${err}`);
   }
-  scheduleCheckNag();
+}
 
-  // ── Circuit Breaker: Reset after stable uptime ─────────────────────────────
+function scheduleCheckNag(ctx: DaemonContext): NodeJS.Timeout {
+  return setTimeout(() => {
+    try {
+      const engine = new MarkdownPlanEngine(ctx.shitennoDir);
+      const pending = engine.listAll().filter((p) => p.isActive && p.status === "check");
+      if (pending.length > 0) {
+        daemonLog(ctx.logPath, "WARN", `Check-nag: ${pending.length} plan(s) stuck in 'check': ${pending.map((p) => p.id).join(", ")}`);
+      }
+    } catch (err) {
+      daemonLog(ctx.logPath, "ERROR", `Check-nag failed: ${err}`);
+    } finally {
+      scheduleCheckNag(ctx);
+    }
+  }, 30 * 60 * 1000);
+}
 
-  const breaker = new DaemonCircuitBreaker(shitennoDir);
-  const stableTimer = setTimeout(() => {
-    breaker.reset();
-    daemonLog(logPath, "INFO", "Stable uptime reached — circuit breaker reset");
-  }, DaemonCircuitBreaker.stableUptimeMs);
-
-  // ── Graceful Shutdown ──────────────────────────────────────────────────────
-
+function setupShutdown(
+  ctx: DaemonContext,
+  timers: {
+    stableTimer: NodeJS.Timeout;
+    checkNagTimer: NodeJS.Timeout;
+    persistTimer: NodeJS.Timeout;
+    auditTimer: NodeJS.Timeout;
+    largeCommitTimer: NodeJS.Timeout;
+  },
+): void {
   const shutdown = (signal: string) => {
-    daemonLog(logPath, "INFO", `Received ${signal} — shutting down`);
-    clearTimeout(stableTimer);
-    clearTimeout(checkNagTimer);
-    clearInterval(persistTimer);
-    clearInterval(auditTimer);
-    clearInterval(largeCommitTimer);
-    releaseVerificationLock(shitennoDir);
-    persistState(state, statePath);
-    stopProactive();
-    stopWatcher();
-    server.close(() => {
-      cleanup(pidPath, sockPath);
-      daemonLog(logPath, "INFO", "Daemon stopped cleanly");
+    daemonLog(ctx.logPath, "INFO", `Received ${signal} — shutting down`);
+    clearTimeout(timers.stableTimer);
+    clearTimeout(timers.checkNagTimer);
+    clearInterval(timers.persistTimer);
+    clearInterval(timers.auditTimer);
+    clearInterval(timers.largeCommitTimer);
+    releaseVerificationLock(ctx.shitennoDir);
+    persistState(ctx.state, ctx.statePath);
+    ctx.stopProactive();
+    ctx.stopWatcher();
+    ctx.socket.close(() => {
+      cleanup(ctx.pidPath, ctx.sockPath);
+      daemonLog(ctx.logPath, "INFO", "Daemon stopped cleanly");
       process.exit(0);
     });
-    // Force exit after 5s if cleanup hangs
     setTimeout(() => {
-      cleanup(pidPath, sockPath);
+      cleanup(ctx.pidPath, ctx.sockPath);
       process.exit(1);
     }, 5_000).unref();
   };
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
+}
 
-  // ── Keep alive ─────────────────────────────────────────────────────────────
+export async function runDaemon(shitennoDir: string, projectRoot?: string): Promise<void> {
+  const paths = getPaths(shitennoDir);
+  const resolvedProjectRoot = projectRoot ?? join(shitennoDir, "..");
 
-  daemonLog(logPath, "INFO", `Daemon ready — consuming ${logEvents.length + 8} event types`);
+  const state = loadState(paths.statePath) ?? createDaemonState();
+  state.startedAt = new Date().toISOString();
+  daemonLog(paths.logPath, "INFO", `State loaded — ${state.events.length} historical events`);
+
+  const ctx: DaemonContext = {
+    shitennoDir,
+    projectRoot: resolvedProjectRoot,
+    daemonDir: paths.daemonDir,
+    pidPath: paths.pidPath,
+    sockPath: paths.sockPath,
+    logPath: paths.logPath,
+    approvedPath: paths.approvedPath,
+    statePath: paths.statePath,
+    state,
+    socket: null as unknown as Server,
+    stopProactive: () => {},
+    stopWatcher: () => {},
+  };
+
+  ensureDaemonDir(ctx);
+  checkDuplicateDaemon(ctx);
+  writePidAtomically(ctx);
+  markApproved(ctx);
+  cleanupStaleSocket(ctx);
+
+  const startedAt = Date.now();
+  setupIpcServer(ctx, startedAt);
+
+  ctx.stopWatcher = startWatching(shitennoDir);
+  const { stopProactive } = initEngines(ctx);
+  ctx.stopProactive = stopProactive;
+
+  const verifyAllPendingPlans = createVerifyAllPendingPlans(shitennoDir, resolvedProjectRoot, paths.logPath);
+  setImmediate(() => runStartupScan(ctx, verifyAllPendingPlans));
+
+  const runPeriodicAuditFn = () => runPeriodicAudit(ctx);
+  const logEvents = subscribeAllEvents(ctx, verifyAllPendingPlans, runPeriodicAuditFn);
+  const timers = setupPeriodicTimers(ctx, runPeriodicAuditFn);
+
+  const breaker = new DaemonCircuitBreaker(shitennoDir);
+  const stableTimer = setTimeout(() => {
+    breaker.reset();
+    daemonLog(ctx.logPath, "INFO", "Stable uptime reached — circuit breaker reset");
+  }, DaemonCircuitBreaker.stableUptimeMs);
+
+  const checkNagTimer = scheduleCheckNag(ctx);
+
+  setupShutdown(ctx, { stableTimer, checkNagTimer, ...timers });
+
+  daemonLog(ctx.logPath, "INFO", `Daemon ready — consuming ${logEvents.length + 8} event types`);
 }

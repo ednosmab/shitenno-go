@@ -50,6 +50,15 @@ export function isValidTransition(
   return allowed.includes(to);
 }
 
+function matchStatusFromRaw(raw: string): BacklogStatus | null {
+  for (const s of BACKLOG_STATUSES) {
+    if (raw.includes(s)) return s;
+  }
+  if (raw.includes("Done")) return "concluído";
+  if (raw.includes("Backlog")) return "planeado";
+  return null;
+}
+
 export function getCurrentStatus(
   backlogPath: string,
   itemId: string
@@ -73,26 +82,14 @@ export function getCurrentStatus(
       break;
     }
 
-    if (inTargetItem) {
-      const statusMatch = trimmed.match(
-        /^\|?\s*\*\*Status\*\*\s*\|\s*(.+?)\s*\|?\s*$/
-      );
-      if (statusMatch && statusMatch[1]) {
-        const raw = statusMatch[1].trim();
-        for (const s of BACKLOG_STATUSES) {
-          if (raw.includes(s)) {
-            currentStatus = s;
-            break;
-          }
-        }
-        if (!currentStatus && raw.includes("Done")) {
-          currentStatus = "concluído";
-        }
-        if (!currentStatus && raw.includes("Backlog")) {
-          currentStatus = "planeado";
-        }
-        break;
-      }
+    if (!inTargetItem) continue;
+
+    const statusMatch = trimmed.match(
+      /^\|?\s*\*\*Status\*\*\s*\|\s*(.+?)\s*\|?\s*$/
+    );
+    if (statusMatch && statusMatch[1]) {
+      currentStatus = matchStatusFromRaw(statusMatch[1].trim());
+      break;
     }
   }
 

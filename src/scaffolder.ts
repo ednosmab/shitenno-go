@@ -113,75 +113,107 @@ export function scaffoldShitenno(
     filesCreated: [],
     directoriesCreated: [],
     capabilities,
-    level: "custom", // legacy compatibility
+    level: "custom",
   };
 
   const baseDir = join(TEMPLATES_DIR, "base");
+  const { allDirs, allFiles } = collectCapabilityAssets(capabilities);
 
-  // Merge all directories and files from selected capabilities
+  createDirectories(targetDir, allDirs, result);
+  copyAndCustomizeFiles({ targetDir, baseDir, allFiles, answers, capabilities, result });
+  generateOpencodeJson(targetDir, baseDir, answers, result);
+  generateProfile(targetDir, baseDir, result);
+  removeTemplateFile(targetDir);
+  updateGitignore(targetDir);
+  copySkills({ targetDir, baseDir, capabilities, allDirs, result });
+
+  return result;
+}
+
+interface CapabilityAssets {
+  allDirs: Set<string>;
+  allFiles: Array<{ src: string; dest: string; customize?: boolean }>;
+}
+
+function collectCapabilityAssets(capabilities: Capability[]): CapabilityAssets {
   const allDirs = new Set<string>();
   const allFiles: Array<{ src: string; dest: string; customize?: boolean }> = [];
 
   for (const cap of capabilities) {
     const mapping = getCapabilityMapping(cap);
-    for (const dir of mapping.directories) {
-      allDirs.add(dir);
-    }
+    for (const dir of mapping.directories) allDirs.add(dir);
     for (const file of mapping.files) {
-      // Avoid duplicates
-      if (!allFiles.some((f) => f.dest === file.dest)) {
-        allFiles.push(file);
-      }
+      if (!allFiles.some((f) => f.dest === file.dest)) allFiles.push(file);
     }
   }
 
-  // Create directories
+  return { allDirs, allFiles };
+}
+
+function createDirectories(
+  targetDir: string,
+  allDirs: Set<string>,
+  result: ScaffoldResult
+): void {
   for (const dir of allDirs) {
     const fullPath = join(targetDir, dir);
     ensureDirSync(fullPath);
     result.directoriesCreated.push(dir);
   }
+}
 
-  // Copy and customize files
-  for (const file of allFiles) {
-    const srcPath = join(baseDir, file.src);
-    const destPath = join(targetDir, file.dest);
+interface CopyFilesContext {
+  targetDir: string;
+  baseDir: string;
+  allFiles: Array<{ src: string; dest: string; customize?: boolean }>;
+  answers: UserAnswers;
+  capabilities: Capability[];
+  result: ScaffoldResult;
+}
 
+function customizeContent(raw: string, dest: string, ctx: CopyFilesContext): string {
+  let content = fillPlaceholders(raw, ctx.answers);
+  if (dest.includes("AGENTS.md")) content = filterAgentsMdByCapabilities(content, ctx.capabilities);
+  if (dest.includes("SYSTEM_MAP.md")) content = updateSystemMapCapabilityStatus(content, ctx.capabilities);
+  return content;
+}
+
+function copyAndCustomizeFiles(ctx: CopyFilesContext): void {
+  for (const file of ctx.allFiles) {
+    const srcPath = join(ctx.baseDir, file.src);
+    const destPath = join(ctx.targetDir, file.dest);
     ensureDirSync(dirname(destPath));
-
-    if (!existsSync(srcPath)) continue; // skip missing templates
+    if (!existsSync(srcPath)) continue;
 
     if (file.customize) {
-      let content = readFileSync(srcPath, "utf-8");
-      content = fillPlaceholders(content, answers);
-
-      // Filter AGENTS.md based on installed capabilities
-      if (file.dest.includes("AGENTS.md")) {
-        content = filterAgentsMdByCapabilities(content, capabilities);
-      }
-
-      // Update SYSTEM_MAP.md capability status indicators
-      if (file.dest.includes("SYSTEM_MAP.md")) {
-        content = updateSystemMapCapabilityStatus(content, capabilities);
-      }
-
-      writeFileSync(destPath, content, "utf-8");
+      const raw = readFileSync(srcPath, "utf-8");
+      writeFileSync(destPath, customizeContent(raw, file.dest, ctx), "utf-8");
     } else {
       copySync(srcPath, destPath);
     }
-
-    result.filesCreated.push(file.dest);
+    ctx.result.filesCreated.push(file.dest);
   }
+}
 
-  // Generate opencode.json at PROJECT ROOT (always)
+function generateOpencodeJson(
+  targetDir: string,
+  baseDir: string,
+  answers: UserAnswers,
+  result: ScaffoldResult
+): void {
   const opencodeTemplate = readFileSync(join(baseDir, "opencode.json"), "utf-8");
   const opencodeContent = opencodeTemplate
     .replace(/\[modelo-principal\]/g, answers.principalModel.replace(/^opencode\//, ""))
     .replace(/\[modelo-executor\]/g, answers.executorModel.replace(/^opencode\//, ""));
   writeFileSync(join(targetDir, "opencode.json"), opencodeContent, "utf-8");
   result.filesCreated.push("opencode.json");
+}
 
-  // Generate ProjectProfile
+function generateProfile(
+  targetDir: string,
+  baseDir: string,
+  result: ScaffoldResult
+): void {
   const profileTemplate = readFileSync(
     join(baseDir, SHITENNO_DIR_NAME, "profile", "_template.config.ts"), "utf-8"
   );
@@ -195,38 +227,42 @@ export function scaffoldShitenno(
   const profilePath = join(targetDir, SHITENNO_DIR_NAME, "profile", `${projectName}.config.ts`);
   writeFileSync(profilePath, profileContent, "utf-8");
   result.filesCreated.push(`${SHITENNO_DIR_NAME}/profile/${projectName}.config.ts`);
+}
 
-  // Remove template file
+function removeTemplateFile(targetDir: string): void {
   const templatePath = join(targetDir, SHITENNO_DIR_NAME, "profile", "_template.config.ts");
-  if (existsSync(templatePath)) {
-    removeSync(templatePath);
-  }
+  if (existsSync(templatePath)) removeSync(templatePath);
+}
 
-  // Add feedback/ to .gitignore
+function updateGitignore(targetDir: string): void {
   const gitignorePath = join(targetDir, ".gitignore");
   let gitignoreContent = "";
-  if (existsSync(gitignorePath)) {
-    gitignoreContent = readFileSync(gitignorePath, "utf-8");
-  }
+  if (existsSync(gitignorePath)) gitignoreContent = readFileSync(gitignorePath, "utf-8");
   if (!gitignoreContent.includes(`${SHITENNO_DIR_NAME}/docs/feedback`)) {
     const feedbackIgnore = `\n# Shitenno — feedback de sessão (dado privado, não versionado)\n${SHITENNO_DIR_NAME}/docs/feedback/\n`;
     writeFileSync(gitignorePath, gitignoreContent + feedbackIgnore, "utf-8");
   }
+}
 
-  // Copy selected skills (only if knowledge capability is installed)
-  if (capabilities.includes("knowledge") && allDirs.has(`${SHITENNO_DIR_NAME}/docs/skills`)) {
-    const skillsDir = join(baseDir, "docs/skills");
-    const selectedSkills = selectSkills(capabilities);
-    for (const skill of selectedSkills) {
-      const srcPath = join(skillsDir, `${skill}.md`);
-      if (!existsSync(srcPath)) continue;
-      const destPath = join(targetDir, SHITENNO_DIR_NAME, "docs", "skills", `${skill}.md`);
-      copySync(srcPath, destPath);
-      result.filesCreated.push(`${SHITENNO_DIR_NAME}/docs/skills/${skill}.md`);
-    }
+interface CopySkillsContext {
+  targetDir: string;
+  baseDir: string;
+  capabilities: Capability[];
+  allDirs: Set<string>;
+  result: ScaffoldResult;
+}
+
+function copySkills(ctx: CopySkillsContext): void {
+  if (!ctx.capabilities.includes("knowledge") || !ctx.allDirs.has(`${SHITENNO_DIR_NAME}/docs/skills`)) return;
+  const skillsDir = join(ctx.baseDir, "docs/skills");
+  const selectedSkills = selectSkills(ctx.capabilities);
+  for (const skill of selectedSkills) {
+    const srcPath = join(skillsDir, `${skill}.md`);
+    if (!existsSync(srcPath)) continue;
+    const destPath = join(ctx.targetDir, SHITENNO_DIR_NAME, "docs", "skills", `${skill}.md`);
+    copySync(srcPath, destPath);
+    ctx.result.filesCreated.push(`${SHITENNO_DIR_NAME}/docs/skills/${skill}.md`);
   }
-
-  return result;
 }
 
 // ── AGENTS.md Conditional Sections ────────────────────────────────────────────

@@ -81,6 +81,14 @@ export interface RecommendationEngineResult {
   summary: string;
 }
 
+export interface RecommendationEngineOptions {
+  state: EngineeringState;
+  capResult: CapabilityEngineResult;
+  shitennoDir: string;
+  patternReport?: PatternDetectionReport | null;
+  knowledgeDebtReport?: KnowledgeDebtReport | null;
+}
+
 // ── Recommendation Generators ───────────────────────────────────────────────
 
 function generateFromCapabilityEngine(
@@ -319,37 +327,16 @@ function generateFromAssetManagement(
 
 // ── Main Engine ─────────────────────────────────────────────────────────────
 
-/** Run the recommendation engine. */
-export function runRecommendationEngine(
-  state: EngineeringState,
-  capResult: CapabilityEngineResult,
-  shitennoDir: string,
-  patternReport: PatternDetectionReport | null = null,
-  knowledgeDebtReport: KnowledgeDebtReport | null = null
-): RecommendationEngineResult {
-  // Collect recommendations from all sources
-  const allRecommendations: Recommendation[] = [
-    ...generateFromCapabilityEngine(capResult),
-    ...generateFromKnowledgeDebt(knowledgeDebtReport ?? state.knowledgeDebt as KnowledgeDebtReport | null),
-    ...generateFromPatternDetection(patternReport),
-    ...generateFromEntropy(state),
-    ...generateFromAIReadiness(state),
-    ...generateFromAssetManagement(state),
-  ];
-
-  // Apply feedback loop: adjust confidence and suppress frequently rejected recommendations
+function applyFeedbackLoops(
+  recommendations: Recommendation[],
+  shitennoDir: string
+): Recommendation[] {
   const feedbackSummaries = getAllFeedbackSummaries(shitennoDir);
-  const adjustedRecommendations: Recommendation[] = [];
+  const adjusted: Recommendation[] = [];
 
-  for (const rec of allRecommendations) {
+  for (const rec of recommendations) {
     const summary = feedbackSummaries[rec.id];
-
-    // Skip if recommendation should be suppressed
-    if (summary && shouldSuppress(summary)) {
-      continue;
-    }
-
-    // Adjust confidence based on feedback history
+    if (summary && shouldSuppress(summary)) continue;
     if (summary) {
       if (summary.lastAction === "accepted") {
         rec.confidence = adjustConfidence(rec.confidence, "accepted");
@@ -357,17 +344,40 @@ export function runRecommendationEngine(
         rec.confidence = adjustConfidence(rec.confidence, "rejected");
       }
     }
-
-    adjustedRecommendations.push(rec);
+    adjusted.push(rec);
   }
 
-  // Sort by priority
+  return adjusted;
+}
+
+function computeCapacityScore(state: EngineeringState, capResult: CapabilityEngineResult): number {
+  return Math.round(
+    state.healthScores.knowledgeDebt * 0.25 +
+    state.healthScores.knowledgeGraph * 0.2 +
+    (100 - state.entropy.score) * 0.25 +
+    capResult.overallScore * 0.3
+  );
+}
+
+function buildSummary(recommendationCount: number, byPriority: Record<string, number>, capacityScore: number): string {
+  const parts: string[] = [];
+  parts.push(`${recommendationCount} recommendation(s).`);
+  if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
+  if (byPriority.high) parts.push(`${byPriority.high} high.`);
+  parts.push(`Engineering capacity: ${capacityScore}/100.`);
+  return parts.join(" ");
+}
+
+function buildRecommendationResult(
+  recommendations: Recommendation[],
+  state: EngineeringState,
+  capResult: CapabilityEngineResult
+): RecommendationEngineResult {
   const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-  adjustedRecommendations.sort(
+  recommendations.sort(
     (x, y) => priorityOrder[x.priority] - priorityOrder[y.priority]
   );
 
-  // Count by source and priority
   const bySource: Record<RecommendationSource, number> = {
     capability_engine: 0,
     knowledge_debt: 0,
@@ -379,46 +389,48 @@ export function runRecommendationEngine(
   };
   const byPriority: Record<string, number> = {};
 
-  for (const rec of adjustedRecommendations) {
+  for (const rec of recommendations) {
     bySource[rec.source]++;
     byPriority[rec.priority] = (byPriority[rec.priority] || 0) + 1;
   }
 
-  // Top next steps
-  const topNextSteps = adjustedRecommendations
+  const topNextSteps = recommendations
     .filter((r) => r.priority === "urgent" || r.priority === "high")
     .slice(0, 5)
     .map((r) => r.command || r.action);
 
-  // Engineering capacity score
-  const knowledgeDebtScore = state.healthScores.knowledgeDebt;
-  const graphScore = state.healthScores.knowledgeGraph;
-  const entropyInverse = 100 - state.entropy.score;
-  const capScore = capResult.overallScore;
-  const engineeringCapacityScore = Math.round(
-    knowledgeDebtScore * 0.25 +
-    graphScore * 0.2 +
-    entropyInverse * 0.25 +
-    capScore * 0.3
-  );
-
-  // Summary
-  const parts: string[] = [];
-  parts.push(`${adjustedRecommendations.length} recommendation(s).`);
-  if (byPriority.urgent) parts.push(`${byPriority.urgent} urgent.`);
-  if (byPriority.high) parts.push(`${byPriority.high} high.`);
-  parts.push(`Engineering capacity: ${engineeringCapacityScore}/100.`);
+  const engineeringCapacityScore = computeCapacityScore(state, capResult);
 
   return {
     generatedAt: new Date().toISOString(),
-    totalRecommendations: adjustedRecommendations.length,
+    totalRecommendations: recommendations.length,
     bySource,
     byPriority,
-    recommendations: adjustedRecommendations,
+    recommendations,
     topNextSteps,
     engineeringCapacityScore,
-    summary: parts.join(" "),
+    summary: buildSummary(recommendations.length, byPriority, engineeringCapacityScore),
   };
+}
+
+/** Run the recommendation engine. */
+export function runRecommendationEngine(
+  options: RecommendationEngineOptions
+): RecommendationEngineResult {
+  const { state, capResult, shitennoDir, patternReport, knowledgeDebtReport } = options;
+
+  const allRecommendations: Recommendation[] = [
+    ...generateFromCapabilityEngine(capResult),
+    ...generateFromKnowledgeDebt(knowledgeDebtReport ?? state.knowledgeDebt as KnowledgeDebtReport | null),
+    ...generateFromPatternDetection(patternReport ?? null),
+    ...generateFromEntropy(state),
+    ...generateFromAIReadiness(state),
+    ...generateFromAssetManagement(state),
+  ];
+
+  const adjustedRecommendations = applyFeedbackLoops(allRecommendations, shitennoDir);
+
+  return buildRecommendationResult(adjustedRecommendations, state, capResult);
 }
 
 // ── Persistence ────────────────────────────────────────────────────────────

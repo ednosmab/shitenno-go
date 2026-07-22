@@ -45,63 +45,9 @@ interface DoctorReport {
 
 export function analyzeRisks(state: EngineeringState, debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
-
-  // Knowledge debt risks
-  if (debtReport && debtReport.totalGaps > 0) {
-    const critical = debtReport.gaps.filter((g) => g.severity === "critical");
-    if (critical.length > 0) {
-      findings.push({
-        category: "risk",
-        severity: "critical",
-        title: "Knowledge debt critical",
-        description: `${critical.length} critical knowledge gap(s) detected`,
-        impact: "Missing knowledge can lead to repeated mistakes and architectural drift",
-        nextSteps: [
-          "Review knowledge debt report: shugo assess --json",
-          "Address critical gaps first",
-          "Create ADRs for undocumented decisions",
-        ],
-      });
-    }
-  }
-
-  // Maturity risks
-  if (state.maturity) {
-    const dims = state.maturity.dimensions;
-    const lowDims = Object.entries(dims).filter(([, v]) => v < 25);
-    if (lowDims.length > 0) {
-      findings.push({
-        category: "risk",
-        severity: "high",
-        title: "Low maturity dimensions",
-        description: `${lowDims.length} dimension(s) below 25%: ${lowDims.map(([k]) => k).join(", ")}`,
-        impact: "Low maturity areas are more likely to have issues and require manual intervention",
-        nextSteps: [
-          `Focus on improving: ${lowDims.map(([k]) => k).join(", ")}`,
-          "Run 'shugo upgrade --accept-recommended' to install relevant capabilities",
-          "Consider adding governance for low-maturity areas",
-        ],
-      });
-    }
-  }
-
-  // No tests risk
-  if (!state.project.hasTests && state.project.sourceFileCount > 20) {
-    findings.push({
-      category: "risk",
-      severity: "medium",
-      title: "No automated tests",
-      description: "Project has source files but no test framework detected",
-      impact: "Changes may introduce regressions without detection",
-      nextSteps: [
-        "Add a test framework (vitest, jest, or playwright)",
-        "Write tests for critical paths first",
-        "Enable CI testing",
-      ],
-      learnMore: "docs/skills/tdd_workflow.md",
-    });
-  }
-
+  findings.push(...checkKnowledgeDebtRisk(debtReport));
+  findings.push(...checkMaturityRisk(state));
+  findings.push(...checkMissingTestsRisk(state));
   return findings;
 }
 
@@ -201,6 +147,60 @@ export function analyzeTeaching(state: EngineeringState): { findings: DoctorFind
   return { findings, moments };
 }
 
+function checkKnowledgeDebtRisk(debtReport: KnowledgeDebtReport | null): DoctorFinding[] {
+  if (!debtReport || debtReport.totalGaps === 0) return [];
+  const critical = debtReport.gaps.filter((g) => g.severity === "critical");
+  if (critical.length === 0) return [];
+  return [{
+    category: "risk",
+    severity: "critical",
+    title: "Knowledge debt critical",
+    description: `${critical.length} critical knowledge gap(s) detected`,
+    impact: "Missing knowledge can lead to repeated mistakes and architectural drift",
+    nextSteps: [
+      "Review knowledge debt report: shugo assess --json",
+      "Address critical gaps first",
+      "Create ADRs for undocumented decisions",
+    ],
+  }];
+}
+
+function checkMaturityRisk(state: EngineeringState): DoctorFinding[] {
+  if (!state.maturity) return [];
+  const dims = state.maturity.dimensions;
+  const lowDims = Object.entries(dims).filter(([, v]) => v < 25);
+  if (lowDims.length === 0) return [];
+  return [{
+    category: "risk",
+    severity: "high",
+    title: "Low maturity dimensions",
+    description: `${lowDims.length} dimension(s) below 25%: ${lowDims.map(([k]) => k).join(", ")}`,
+    impact: "Low maturity areas are more likely to have issues and require manual intervention",
+    nextSteps: [
+      `Focus on improving: ${lowDims.map(([k]) => k).join(", ")}`,
+      "Run 'shugo upgrade --accept-recommended' to install relevant capabilities",
+      "Consider adding governance for low-maturity areas",
+    ],
+  }];
+}
+
+function checkMissingTestsRisk(state: EngineeringState): DoctorFinding[] {
+  if (state.project.hasTests || state.project.sourceFileCount <= 20) return [];
+  return [{
+    category: "risk",
+    severity: "medium",
+    title: "No automated tests",
+    description: "Project has source files but no test framework detected",
+    impact: "Changes may introduce regressions without detection",
+    nextSteps: [
+      "Add a test framework (vitest, jest, or playwright)",
+      "Write tests for critical paths first",
+      "Enable CI testing",
+    ],
+    learnMore: "docs/skills/tdd_workflow.md",
+  }];
+}
+
 // ── Main Analysis ───────────────────────────────────────────────────────────
 
 export function runDoctorAnalysis(
@@ -251,6 +251,73 @@ export function runDoctorAnalysis(
 
 // ── Command ─────────────────────────────────────────────────────────────────
 
+function displayDoctorHeader(): void {
+  outputBlank();
+  output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
+  output(chalk.bold.cyan("  ║    shugo doctor — Engineering Mentor ║"));
+  output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
+  outputBlank();
+}
+
+function displayHealthStatus(report: DoctorReport): void {
+  const healthColor =
+    report.overallHealth === "healthy" ? chalk.green :
+    report.overallHealth === "attention" ? chalk.yellow :
+    report.overallHealth === "warning" ? chalk.yellow :
+    chalk.red;
+  output(chalk.bold("  Health:"));
+  output(`    ${healthColor(report.overallHealth.toUpperCase())} — ${report.healthScore}/100 ${healthBar(report.healthScore, 100)}`);
+  outputBlank();
+}
+
+function displayFindings(findings: DoctorFinding[], label: string, color: typeof chalk.bold.red): void {
+  if (findings.length === 0) return;
+  output(color(`  ${label}:`));
+  outputBlank();
+  for (const finding of findings) {
+    const sevIcon = finding.severity === "critical" ? "🔴" : finding.severity === "high" ? "🟠" : "🟡";
+    output(`    ${sevIcon} ${chalk.bold(finding.title)}`);
+    output(chalk.gray(`       ${finding.description}`));
+    output(chalk.gray(`       Impact: ${finding.impact}`));
+    output(chalk.cyan("       Next steps:"));
+    for (const step of finding.nextSteps) {
+      output(chalk.cyan(`         → ${step}`));
+    }
+    outputBlank();
+  }
+}
+
+function displayTeachingMoments(moments: string[]): void {
+  if (moments.length === 0) return;
+  output(chalk.bold.cyan("  📚 Learn:"));
+  outputBlank();
+  for (const moment of moments) {
+    output(chalk.gray(`    ${moment}`));
+    outputBlank();
+  }
+}
+
+function publishDoctorEvent(
+  projectRoot: string,
+  report: DoctorReport
+): void {
+  getEventBus().publish("health.checked", {
+    projectRoot,
+    healthScore: report.healthScore,
+    overallHealth: report.overallHealth,
+    findings: report.findings.length,
+  });
+  for (const finding of report.findings) {
+    if (finding.category === "improvement") {
+      recordFeedback(projectRoot, {
+        recommendationId: `doctor-${finding.title}`,
+        action: "deferred",
+        context: { maturityScore: report.healthScore, installedCapabilities: [], knowledgeDebt: 0 },
+      });
+    }
+  }
+}
+
 export const doctorCommand = new Command("doctor")
   .description("Engineering mentor — identify risks, suggest improvements, teach best practices")
   .option("-d, --dir <path>", "Project root directory (default: auto-detect)")
@@ -258,13 +325,7 @@ export const doctorCommand = new Command("doctor")
   .action((options) => {
     const isJson = options.json === true;
 
-    if (!isJson) {
-      outputBlank();
-      output(chalk.bold.cyan("  ╔══════════════════════════════════════╗"));
-      output(chalk.bold.cyan("  ║    shugo doctor — Engineering Mentor ║"));
-      output(chalk.bold.cyan("  ╚══════════════════════════════════════╝"));
-      outputBlank();
-    }
+    if (!isJson) displayDoctorHeader();
 
     const ctx = guardNotInitialized(options, isJson);
     if (!ctx) return;
@@ -289,85 +350,14 @@ export const doctorCommand = new Command("doctor")
         return;
       }
 
-      // Display
-      const healthColor =
-        report.overallHealth === "healthy" ? chalk.green :
-        report.overallHealth === "attention" ? chalk.yellow :
-        report.overallHealth === "warning" ? chalk.yellow :
-        chalk.red;
-
-      output(chalk.bold("  Health:"));
-      output(`    ${healthColor(report.overallHealth.toUpperCase())} — ${report.healthScore}/100 ${healthBar(report.healthScore, 100)}`);
-      outputBlank();
-
-      // Risks
-      const risks = report.findings.filter((f) => f.category === "risk");
-      if (risks.length > 0) {
-        output(chalk.bold.red("  🔍 Risks:"));
-        outputBlank();
-        for (const finding of risks) {
-          const icon = finding.severity === "critical" ? "🔴" : finding.severity === "high" ? "🟠" : "🟡";
-          output(`    ${icon} ${chalk.bold(finding.title)}`);
-          output(chalk.gray(`       ${finding.description}`));
-          output(chalk.gray(`       Impact: ${finding.impact}`));
-          output(chalk.cyan("       Next steps:"));
-          for (const step of finding.nextSteps) {
-            output(chalk.cyan(`         → ${step}`));
-          }
-          outputBlank();
-        }
-      }
-
-      // Improvements
-      const improvements = report.findings.filter((f) => f.category === "improvement");
-      if (improvements.length > 0) {
-        output(chalk.bold.yellow("  💡 Improvements:"));
-        outputBlank();
-        for (const finding of improvements) {
-          output(`    ⚡ ${chalk.bold(finding.title)}`);
-          output(chalk.gray(`       ${finding.description}`));
-          output(chalk.cyan("       Next steps:"));
-          for (const step of finding.nextSteps) {
-            output(chalk.cyan(`         → ${step}`));
-          }
-          outputBlank();
-        }
-      }
-
-      // Teaching moments
-      if (report.teachingMoments.length > 0) {
-        output(chalk.bold.cyan("  📚 Learn:"));
-        outputBlank();
-        for (const moment of report.teachingMoments) {
-          output(chalk.gray(`    ${moment}`));
-          outputBlank();
-        }
-      }
-
-      // Summary
+      displayHealthStatus(report);
+      displayFindings(report.findings.filter((f) => f.category === "risk"), "🔍 Risks", chalk.bold.red);
+      displayFindings(report.findings.filter((f) => f.category === "improvement"), "💡 Improvements", chalk.bold.yellow);
+      displayTeachingMoments(report.teachingMoments);
       output(chalk.bold("  📝 Summary:"));
       output(chalk.gray(`    ${report.summary}`));
       outputBlank();
-
-      // Publish event
-      getEventBus().publish("health.checked", {
-        projectRoot: ctx.projectRoot,
-        healthScore: report.healthScore,
-        overallHealth: report.overallHealth,
-        findings: report.findings.length,
-      });
-
-      // Record feedback for improvement findings
-      for (const finding of report.findings) {
-        if (finding.category === "improvement") {
-          recordFeedback(ctx.shitennoDir, {
-            recommendationId: `doctor-${finding.title}`,
-            action: "deferred",
-            context: { maturityScore: report.healthScore, installedCapabilities: [], knowledgeDebt: 0 },
-          });
-        }
-      }
-
+      publishDoctorEvent(ctx.projectRoot, report);
     } catch (error) {
       spinner.fail("Doctor analysis failed");
       outputError(chalk.red(`  Error: ${error}`));

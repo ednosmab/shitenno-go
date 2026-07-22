@@ -167,7 +167,7 @@ async function ensureHeavyBootstrap(): Promise<void> {
     // Register sync subscribers (watcher started by watch command or other long-running commands)
     initPlanBacklogSync(projectRoot, shitennoDir);
 
-    showBriefingSummary(projectRoot, shitennoDir);
+    await showBriefingSummary(projectRoot, shitennoDir);
   }
 }
 
@@ -175,70 +175,73 @@ async function ensureHeavyBootstrap(): Promise<void> {
  * Show Quick Board in the terminal from context_buffer.yaml.
  * Regenerates BRIEFING.md if stale (> 1 day old) for other consumers.
  */
-function showBriefingSummary(projectRoot: string, shitennoDir: string): void {
-  try {
-    // Auto-regenerate BRIEFING.md if stale (> 1 day old) — feeds audit detectors, opencode.json
-    const briefingPath = join(shitennoDir, "BRIEFING.md");
-    if (existsSync(briefingPath)) {
-      const stat = require("node:fs").statSync(briefingPath);
-      const ageMs = Date.now() - stat.mtimeMs;
-      if (ageMs > 86400000) {
-        try {
-          const { collectContext } = require("../src/context-collector.js");
-          const { briefingToMarkdown } = require("../src/briefing.js");
-          const snapshot = collectContext(projectRoot, shitennoDir);
-          const md = briefingToMarkdown(snapshot.briefing);
-          require("node:fs").writeFileSync(briefingPath, md, "utf-8");
-        } catch {
-          // Regeneration failed — continue with stale file
-        }
-      }
-    }
+async function autoRegenerateBriefing(projectRoot: string, shitennoDir: string): Promise<void> {
+  const briefingPath = join(shitennoDir, "BRIEFING.md");
+  if (!existsSync(briefingPath)) return;
 
-    // Read Quick Board from context_buffer.yaml
+  const { statSync } = await import("node:fs");
+  const stat = statSync(briefingPath);
+  const ageMs = Date.now() - stat.mtimeMs;
+  if (ageMs <= 86400000) return;
+
+  const { collectContext } = await import("../src/context-collector.js");
+  const { briefingToMarkdown } = await import("../src/briefing.js");
+  const { writeFileSync } = await import("node:fs");
+  const snapshot = collectContext(projectRoot, shitennoDir);
+  const md = briefingToMarkdown(snapshot.briefing);
+  writeFileSync(briefingPath, md, "utf-8");
+}
+
+function resolveSessionStatus(data: Record<string, unknown>): string {
+  const status = (data?.session as Record<string, unknown>)?.status;
+  if (status === "completed") return "Concluída";
+  if (status === "in_progress" || status === "active") return "Em curso";
+  return "Desconhecido";
+}
+
+function resolveP1Debts(data: Record<string, unknown>): string {
+  const debts = data?.technical_debt as Array<{ priority?: string; severity?: string; description: string }> | undefined;
+  if (!debts?.length) return "Nenhuma";
+  return debts
+    .filter((d) => d.priority === "P1" || d.severity === "high")
+    .map((d) => d.description)
+    .join(", ") || "Nenhuma";
+}
+
+function resolveNextP0(shitennoDir: string, fallback: string): string {
+  const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
+  if (!existsSync(backlogPath)) return fallback;
+
+  const backlog = readFileSync(backlogPath, "utf-8");
+  const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
+  const p0Items = p0Section.split(/^### /m).slice(1);
+
+  for (const item of p0Items) {
+    const title = item.split("\n")[0]?.trim();
+    if (title && item.includes("| **Status** | In Progress")) return title;
+  }
+  return fallback;
+}
+
+async function showBriefingSummary(projectRoot: string, shitennoDir: string): Promise<void> {
+  try {
+    await autoRegenerateBriefing(projectRoot, shitennoDir);
+
     const bufferPath = join(shitennoDir, "governance", "context", "context_buffer.yaml");
     if (!existsSync(bufferPath)) return;
 
-    const { parse: parseYaml } = require("yaml");
+    const { parse: parseYaml } = await import("yaml");
     const data = parseYaml(readFileSync(bufferPath, "utf-8")) || {};
 
     const currentTask = data?.current_task?.description
       ? `${data.current_task.description} (${data.current_task.status})`
       : "Nenhuma";
 
-    const sessionStatus = data?.session?.status === "completed"
-      ? "Concluída"
-      : data?.session?.status === "in_progress" || data?.session?.status === "active"
-        ? "Em curso"
-        : "Desconhecido";
-
-    let p1Debts = "Nenhuma";
-    try {
-      if (data?.technical_debt?.length > 0) {
-        p1Debts = data.technical_debt
-          .filter((d: { priority?: string; severity?: string }) => d.priority === "P1" || d.severity === "high")
-          .map((d: { description: string }) => d.description)
-          .join(", ") || "Nenhuma";
-      }
-    } catch {
-      // Ignore parse errors
-    }
-
+    const sessionStatus = resolveSessionStatus(data);
+    const p1Debts = resolveP1Debts(data);
     let nextP0 = data?.next_p0 || "Definir";
     try {
-      const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
-      if (existsSync(backlogPath)) {
-        const backlog = readFileSync(backlogPath, "utf-8");
-        const p0Section = backlog.split(/^## P0 /m)?.[1]?.split(/^## P1 /m)?.[0] ?? "";
-        const p0Items = p0Section.split(/^### /m).slice(1);
-        for (const item of p0Items) {
-          const title = item.split("\n")[0]?.trim();
-          if (title && item.includes("| **Status** | In Progress")) {
-            nextP0 = title;
-            break;
-          }
-        }
-      }
+      nextP0 = resolveNextP0(shitennoDir, nextP0);
     } catch {
       // Ignore read errors
     }

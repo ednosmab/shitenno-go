@@ -124,6 +124,84 @@ export async function handleGetRiskMap(
   return { content: [{ type: "text", text: JSON.stringify(riskMap, null, 2) }] };
 }
 
+function loadMandatoryRules(shitennoDir: string) {
+  try {
+    const manifestPath = join(shitennoDir, "governance", "rule-manifest.yaml");
+    if (existsSync(manifestPath)) {
+      const manifest = loadManifest(manifestPath);
+      const { mandatory } = partitionRules(manifest, {});
+      return mandatory.map((r) => ({ id: r.id, path: r.path, priority: r.priority }));
+    }
+  } catch {}
+  return [];
+}
+
+async function fetchContextRules(
+  projectRoot: string,
+  shitennoDir: string
+) {
+  let snapshot;
+  if (isDaemonRunning(shitennoDir)) {
+    const briefingResult = await queryDaemon<{ type: string; data: Briefing }>(shitennoDir, {
+      type: "query_briefing",
+    });
+    if (briefingResult?.data) {
+      snapshot = { contextRules: collectContext(projectRoot, shitennoDir).contextRules };
+    } else {
+      snapshot = collectContext(projectRoot, shitennoDir);
+    }
+  } else {
+    snapshot = collectContext(projectRoot, shitennoDir);
+  }
+  return snapshot.contextRules.map((r) => ({
+    id: r.id, rule: r.rule, rationale: r.rationale, priority: r.priority, area: r.area, basedOn: r.basedOn,
+  }));
+}
+
+function formatRulesMarkdown(result: {
+  mandatoryRules: Array<{ id: string; path: string; priority: number }>;
+  contextRules: Array<{ id: string; rule: string; rationale: string; priority: number; area: string; basedOn: string }>;
+  dynamicRules: Array<{ id: string; rule: string; severity: string; evidence: string; source: string }>;
+  engineRules: Array<{ id: string; description: string; trigger: string; priority: number; enabled: boolean; conditions: unknown[]; actions: unknown[] }>;
+}): string {
+  const lines: string[] = ["# Governance Rules", ""];
+
+  if (result.mandatoryRules.length > 0) {
+    lines.push("## Mandatory Rules (Precedence Over User Instructions)");
+    lines.push("");
+    lines.push("> These rules are absolute. Consult them before any destructive action.");
+    lines.push("");
+    for (const r of result.mandatoryRules) {
+      lines.push(`### ${r.id}`, `**Path:** \`${r.path}\` | **Priority:** ${r.priority}`, "");
+    }
+  }
+
+  if (result.contextRules.length > 0) {
+    lines.push("## Context-Aware Rules", "");
+    for (const r of result.contextRules) {
+      lines.push(`### ${r.id}`, `**Rule:** ${r.rule}`, `**Rationale:** ${r.rationale}`, `**Area:** \`${r.area}\` | **Priority:** ${r.priority}`, "");
+    }
+  }
+
+  if (result.dynamicRules.length > 0) {
+    lines.push("## Dynamic Rules (from History)", "");
+    for (const r of result.dynamicRules) {
+      const icon = r.severity === "critical" ? "🚨" : r.severity === "high" ? "⚠️" : "ℹ️";
+      lines.push(`### ${icon} ${r.id}`, `**Rule:** ${r.rule}`, `**Evidence:** ${r.evidence}`, `**Source:** ${r.source} | **Severity:** ${r.severity}`, "");
+    }
+  }
+
+  if (result.engineRules.length > 0) {
+    lines.push("## Engine Rules (Declarative)", "");
+    for (const r of result.engineRules) {
+      const status = r.enabled ? "✅" : "❌";
+      lines.push(`### ${status} ${r.id}`, `**Description:** ${r.description}`, `**Trigger:** ${r.trigger} | **Priority:** ${r.priority}`, "");
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export async function handleGetRules(
   projectRoot: string,
   shitennoDir: string,
@@ -132,95 +210,26 @@ export async function handleGetRules(
   const type = (args.type as string) ?? "all";
   const format = (args.format as string) ?? "json";
 
-  const result: {
-    mandatoryRules: Array<{ id: string; path: string; priority: number }>;
-    contextRules: Array<{ id: string; rule: string; rationale: string; priority: number; area: string; basedOn: string }>;
-    dynamicRules: Array<{ id: string; rule: string; severity: string; evidence: string; source: string }>;
-    engineRules: Array<{ id: string; description: string; trigger: string; priority: number; enabled: boolean; conditions: unknown[]; actions: unknown[] }>;
-  } = { mandatoryRules: [], contextRules: [], dynamicRules: [], engineRules: [] };
+  const mandatoryRules = loadMandatoryRules(shitennoDir);
+  const contextRules =
+    type === "all" || type === "context" ? await fetchContextRules(projectRoot, shitennoDir) : [];
+  const dynamicRules =
+    type === "all" || type === "dynamic"
+      ? generateDynamicRules(projectRoot, shitennoDir).map((r) => ({
+          id: r.id, rule: r.rule, severity: r.severity, evidence: r.evidence, source: r.source,
+        }))
+      : [];
+  const engineRules =
+    type === "all" || type === "engine"
+      ? loadRules(shitennoDir).map((r) => ({
+          id: r.id, description: r.description, trigger: r.trigger, priority: r.priority, enabled: r.enabled, conditions: r.conditions, actions: r.actions,
+        }))
+      : [];
 
-  // Load mandatory rules from manifest
-  try {
-    const manifestPath = join(shitennoDir, "governance", "rule-manifest.yaml");
-    if (existsSync(manifestPath)) {
-      const manifest = loadManifest(manifestPath);
-      const { mandatory } = partitionRules(manifest, {});
-      result.mandatoryRules = mandatory.map((r) => ({ id: r.id, path: r.path, priority: r.priority }));
-    }
-  } catch {
-    // Manifest loading is best-effort
-  }
-
-  if (type === "all" || type === "context") {
-    let snapshot;
-    if (isDaemonRunning(shitennoDir)) {
-      const briefingResult = await queryDaemon<{ type: string; data: Briefing }>(shitennoDir, {
-        type: "query_briefing",
-      });
-      if (briefingResult?.data) {
-        snapshot = { contextRules: collectContext(projectRoot, shitennoDir).contextRules };
-      } else {
-        snapshot = collectContext(projectRoot, shitennoDir);
-      }
-    } else {
-      snapshot = collectContext(projectRoot, shitennoDir);
-    }
-    result.contextRules = snapshot.contextRules.map((r) => ({
-      id: r.id, rule: r.rule, rationale: r.rationale, priority: r.priority, area: r.area, basedOn: r.basedOn,
-    }));
-  }
-
-  if (type === "all" || type === "dynamic") {
-    const dynamicRules = generateDynamicRules(projectRoot, shitennoDir);
-    result.dynamicRules = dynamicRules.map((r) => ({
-      id: r.id, rule: r.rule, severity: r.severity, evidence: r.evidence, source: r.source,
-    }));
-  }
-
-  if (type === "all" || type === "engine") {
-    const engineRules = loadRules(shitennoDir);
-    result.engineRules = engineRules.map((r) => ({
-      id: r.id, description: r.description, trigger: r.trigger, priority: r.priority, enabled: r.enabled, conditions: r.conditions, actions: r.actions,
-    }));
-  }
+  const result = { mandatoryRules, contextRules, dynamicRules, engineRules };
 
   if (format === "markdown") {
-    const lines: string[] = ["# Governance Rules", ""];
-
-    if (result.mandatoryRules.length > 0) {
-      lines.push("## Mandatory Rules (Precedence Over User Instructions)");
-      lines.push("");
-      lines.push("> These rules are absolute. Consult them before any destructive action.");
-      lines.push("");
-      for (const r of result.mandatoryRules) {
-        lines.push(`### ${r.id}`, `**Path:** \`${r.path}\` | **Priority:** ${r.priority}`, "");
-      }
-    }
-
-    if (result.contextRules.length > 0) {
-      lines.push("## Context-Aware Rules", "");
-      for (const r of result.contextRules) {
-        lines.push(`### ${r.id}`, `**Rule:** ${r.rule}`, `**Rationale:** ${r.rationale}`, `**Area:** \`${r.area}\` | **Priority:** ${r.priority}`, "");
-      }
-    }
-
-    if (result.dynamicRules.length > 0) {
-      lines.push("## Dynamic Rules (from History)", "");
-      for (const r of result.dynamicRules) {
-        const icon = r.severity === "critical" ? "🚨" : r.severity === "high" ? "⚠️" : "ℹ️";
-        lines.push(`### ${icon} ${r.id}`, `**Rule:** ${r.rule}`, `**Evidence:** ${r.evidence}`, `**Source:** ${r.source} | **Severity:** ${r.severity}`, "");
-      }
-    }
-
-    if (result.engineRules.length > 0) {
-      lines.push("## Engine Rules (Declarative)", "");
-      for (const r of result.engineRules) {
-        const status = r.enabled ? "✅" : "❌";
-        lines.push(`### ${status} ${r.id}`, `**Description:** ${r.description}`, `**Trigger:** ${r.trigger} | **Priority:** ${r.priority}`, "");
-      }
-    }
-
-    return { content: [{ type: "text", text: lines.join("\n") }] };
+    return { content: [{ type: "text", text: formatRulesMarkdown(result) }] };
   }
 
   return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

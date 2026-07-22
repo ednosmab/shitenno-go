@@ -66,33 +66,12 @@ export interface ContextOutput {
 /**
  * Generate context output for AI agents.
  */
-export async function generateContext(shitennoDir: string): Promise<ContextOutput | null> {
-  const projectRoot = process.cwd();
-
-  // Daemon-first: try to get engineering state from daemon cache
-  if (isDaemonRunning(shitennoDir)) {
-    const result = await queryDaemon<{ type: string; data: ContextOutput }>(shitennoDir, {
-      type: "query_briefing",
-    });
-    if (result?.data) {
-      return result.data as ContextOutput;
-    }
-  }
-
-  // Fallback: compute from disk
-  let state;
-  try {
-    state = getEngineeringState(projectRoot, shitennoDir);
-  } catch {
-    logger.debug("context", "No engineering state found");
-    return null;
-  }
-
-  const trend = generateForecast(loadHistoricalStates(shitennoDir));
-  const challenges = loadChallenges(state);
-
-  const trendDirection = trend?.trends.find((t) => t.metric === "health")?.direction ?? "unknown";
-
+function buildContextOutput(
+  state: ReturnType<typeof getEngineeringState>,
+  trend: ReturnType<typeof generateForecast>,
+  trendDirection: string,
+  challenges: ContextOutput["challenges"]
+): ContextOutput {
   return {
     version: "1.0.0",
     timestamp: new Date().toISOString(),
@@ -107,9 +86,9 @@ export async function generateContext(shitennoDir: string): Promise<ContextOutpu
       healthScores: state.healthScores,
       entropy: state.entropy,
       maturity: state.maturity ? {
-      score: state.maturity.overallScore,
-      level: "defined",
-    } : null,
+        score: state.maturity.overallScore,
+        level: "defined",
+      } : null,
       capabilities: state.capabilities,
       assets: state.assets.map((a) => ({
         type: a.type,
@@ -125,6 +104,33 @@ export async function generateContext(shitennoDir: string): Promise<ContextOutpu
     } : null,
     challenges,
   };
+}
+
+export async function generateContext(shitennoDir: string): Promise<ContextOutput | null> {
+  const projectRoot = process.cwd();
+
+  if (isDaemonRunning(shitennoDir)) {
+    const result = await queryDaemon<{ type: string; data: ContextOutput }>(shitennoDir, {
+      type: "query_briefing",
+    });
+    if (result?.data) {
+      return result.data as ContextOutput;
+    }
+  }
+
+  let state;
+  try {
+    state = getEngineeringState(projectRoot, shitennoDir);
+  } catch {
+    logger.debug("context", "No engineering state found");
+    return null;
+  }
+
+  const trend = generateForecast(loadHistoricalStates(shitennoDir));
+  const challenges = loadChallenges(state);
+  const trendDirection = trend?.trends.find((t) => t.metric === "health")?.direction ?? "unknown";
+
+  return buildContextOutput(state, trend, trendDirection, challenges);
 }
 
 /**

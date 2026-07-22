@@ -120,69 +120,27 @@ export interface DecisionData {
 
 export function collectConsoleData(projectRoot: string, shitennoDir: string): ConsoleData {
   const timestamp = new Date().toISOString();
-
-  // Lifecycle
   const lifecycle = detectLifecycleState(projectRoot, shitennoDir);
-
-  // Engineering State
   const engineering = consolidateEngineeringState(projectRoot, shitennoDir);
-
-  // Maturity
   const maturity = loadMaturityProfile(shitennoDir);
 
-  // Knowledge Graph
   const artifacts = loadArtifacts(shitennoDir);
   const relations = loadRelations(shitennoDir);
   const graph = analyzeGraph(artifacts, relations);
 
-  // Knowledge Debt
   const debt = detectKnowledgeDebt(projectRoot, shitennoDir);
-
-  // Capabilities
   const capabilities = detectCapabilitySignalsFromFilesystem(shitennoDir);
-
-  // Capability Entities (with full metadata)
   const capabilityResult = evaluateCapabilities(engineering, shitennoDir);
   const capabilityEntities = capabilityResult.capabilities;
 
-  // Goals
   const goals = loadGoals(shitennoDir);
-
-  // Decisions
   const decisions = loadDecisions(shitennoDir);
-
-  // Session Metrics
   const session = getSessionMetrics(shitennoDir);
-
-  // Recent Events (last 20)
   const recentEvents = getEventBus().getHistory().slice(-20);
-
-  // Growth Profile
   const growth = loadGrowthProfile(shitennoDir);
-
-  // Entropy
   const entropy = engineering.entropy;
-
-  // Health Scores
-  const health = {
-    overall: engineering.healthScores.overall,
-    knowledgeDebt: engineering.healthScores.knowledgeDebt,
-    knowledgeGraph: engineering.healthScores.knowledgeGraph,
-    entropy: 100 - entropy.score, // Invert so higher = better
-  };
-
-  // Quick Stats
-  const stats = {
-    totalAssets: engineering.assets.length,
-    totalRules: engineering.activeRules,
-    totalSkills: countByType(artifacts, "skill"),
-    totalAdrs: countByType(artifacts, "adr"),
-    totalContracts: countByType(artifacts, "contract"),
-    totalSessions: session.totalSessions,
-    totalEvents: recentEvents.length,
-    totalGoals: goals.length,
-    totalDecisions: decisions.length,
-  };
+  const health = buildHealth(engineering);
+  const stats = buildStats({ engineering, artifacts, session, recentEvents, goals, decisions });
 
   return {
     timestamp,
@@ -245,6 +203,38 @@ export function clearConsoleDataCache(): void {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+function buildHealth(engineering: EngineeringState): ConsoleData["health"] {
+  return {
+    overall: engineering.healthScores.overall,
+    knowledgeDebt: engineering.healthScores.knowledgeDebt,
+    knowledgeGraph: engineering.healthScores.knowledgeGraph,
+    entropy: 100 - engineering.entropy.score,
+  };
+}
+
+interface BuildStatsOptions {
+  engineering: EngineeringState;
+  artifacts: Array<{ type: string }>;
+  session: SessionMetrics;
+  recentEvents: EventEnvelope[];
+  goals: GoalData[];
+  decisions: DecisionData[];
+}
+
+function buildStats(options: BuildStatsOptions): ConsoleData["stats"] {
+  return {
+    totalAssets: options.engineering.assets.length,
+    totalRules: options.engineering.activeRules,
+    totalSkills: countByType(options.artifacts, "skill"),
+    totalAdrs: countByType(options.artifacts, "adr"),
+    totalContracts: countByType(options.artifacts, "contract"),
+    totalSessions: options.session.totalSessions,
+    totalEvents: options.recentEvents.length,
+    totalGoals: options.goals.length,
+    totalDecisions: options.decisions.length,
+  };
+}
 
 function countByType(artifacts: Array<{ type: string }>, type: string): number {
   return artifacts.filter((a) => a.type === type).length;

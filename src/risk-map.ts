@@ -141,7 +141,52 @@ function detectSensitiveKeywords(filePath: string): boolean {
   }
 }
 
-// ── Area Analysis ──────────────────────────────────────────────────────────
+function evaluateFileRisk(
+  file: string,
+  projectRoot: string,
+  churnData: Map<string, number>
+): { factors: RiskFactor[]; score: number } {
+  const relPath = relative(projectRoot, file);
+  const factors: RiskFactor[] = [];
+  let score = 0;
+
+  if (!hasTestFile(file)) {
+    factors.push({ type: "no-tests", description: `No test file for ${relPath}`, weight: 0.3 });
+    score += 15;
+  }
+
+  const churn = churnData.get(relPath) || 0;
+  if (churn > 10) {
+    factors.push({ type: "high-churn", description: `${relPath} changed ${churn} times in 90 days`, weight: 0.25 });
+    score += 10;
+  }
+
+  const lineCount = getFileLineCount(file);
+  if (lineCount > 300) {
+    factors.push({ type: "large-file", description: `${relPath} has ${lineCount} lines`, weight: 0.2 });
+    score += 8;
+  }
+
+  const importCount = getImportCount(file);
+  if (importCount > 15) {
+    factors.push({ type: "many-imports", description: `${relPath} has ${importCount} imports`, weight: 0.15 });
+    score += 5;
+  }
+
+  if (detectSensitiveKeywords(file)) {
+    factors.push({ type: "sensitive-keyword", description: `${relPath} contains sensitive keywords`, weight: 0.1 });
+    score += 3;
+  }
+
+  return { factors, score };
+}
+
+function determineRiskLevel(score: number): RiskLevel {
+  if (score >= 70) return "critical";
+  if (score >= 40) return "high";
+  if (score >= 15) return "medium";
+  return "low";
+}
 
 function analyzeArea(
   projectRoot: string,
@@ -153,82 +198,19 @@ function analyzeArea(
   const factors: RiskFactor[] = [];
   let totalScore = 0;
 
-  // Check each file for risk factors
   for (const file of files) {
-    const relPath = relative(projectRoot, file);
-
-    // No tests
-    if (!hasTestFile(file)) {
-      factors.push({
-        type: "no-tests",
-        description: `No test file for ${relPath}`,
-        weight: 0.3,
-      });
-      totalScore += 15;
-    }
-
-    // High churn
-    const churn = churnData.get(relPath) || 0;
-    if (churn > 10) {
-      factors.push({
-        type: "high-churn",
-        description: `${relPath} changed ${churn} times in 90 days`,
-        weight: 0.25,
-      });
-      totalScore += 10;
-    }
-
-    // Large file
-    const lineCount = getFileLineCount(file);
-    if (lineCount > 300) {
-      factors.push({
-        type: "large-file",
-        description: `${relPath} has ${lineCount} lines`,
-        weight: 0.2,
-      });
-      totalScore += 8;
-    }
-
-    // Many imports (high coupling)
-    const importCount = getImportCount(file);
-    if (importCount > 15) {
-      factors.push({
-        type: "many-imports",
-        description: `${relPath} has ${importCount} imports`,
-        weight: 0.15,
-      });
-      totalScore += 5;
-    }
-
-    // Sensitive keywords
-    if (detectSensitiveKeywords(file)) {
-      factors.push({
-        type: "sensitive-keyword",
-        description: `${relPath} contains sensitive keywords`,
-        weight: 0.1,
-      });
-      totalScore += 3;
-    }
+    const result = evaluateFileRisk(file, projectRoot, churnData);
+    factors.push(...result.factors);
+    totalScore += result.score;
   }
 
-  // Normalize score to 0-100
   const normalizedScore = Math.min(100, totalScore);
-
-  // Determine risk level
-  let riskLevel: RiskLevel;
-  if (normalizedScore >= 70) riskLevel = "critical";
-  else if (normalizedScore >= 40) riskLevel = "high";
-  else if (normalizedScore >= 15) riskLevel = "medium";
-  else riskLevel = "low";
-
-  // Deduplicate factors
-  const uniqueFactors = factors.slice(0, 10); // Top 10 factors
 
   return {
     path: areaPath,
-    riskLevel,
+    riskLevel: determineRiskLevel(normalizedScore),
     score: normalizedScore,
-    factors: uniqueFactors,
+    factors: factors.slice(0, 10),
     fileCount: files.length,
   };
 }

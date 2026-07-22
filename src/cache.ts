@@ -168,20 +168,14 @@ function writeCache(projectRoot: string, cache: ShitennoCache): void {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
+export type CacheKey = "complexity" | "patterns" | "health";
+
+interface GetCachedInput { projectRoot: string; key: CacheKey; computeChecksumsFn: () => Record<string, string> }
 /**
  * Try to get a cached result. Returns null if cache miss.
- *
- * @param projectRoot - Root directory of the project
- * @param shitennoDir - Path to shitenno/
- * @param key - Which cache entry to check ("complexity" | "patterns" | "health")
- * @param computeChecksumsFn - Function to compute current checksums
  */
-export function getCached<T>(
-  projectRoot: string,
-  _shitennoDir: string,
-  key: "complexity" | "patterns" | "health",
-  computeChecksumsFn: () => Record<string, string>
-): T | null {
+export function getCached<T>(input: GetCachedInput): T | null {
+  const { projectRoot, key, computeChecksumsFn } = input;
   const cache = readCache(projectRoot);
   if (!cache) return null;
 
@@ -197,7 +191,7 @@ export function getCached<T>(
 /**
  * Store a result in the cache.
  */
-interface SetCacheInput<T> { projectRoot: string; _shitennoDir: string; key: "complexity" | "patterns" | "health"; data: T; checksums: Record<string, string>; }
+interface SetCacheInput<T> { projectRoot: string; shitennoDir: string; key: CacheKey; data: T; checksums: Record<string, string> }
 
 export function setCache<T>(input: SetCacheInput<T>): void {
   const { projectRoot, key, data, checksums } = input;
@@ -209,10 +203,9 @@ export function setCache<T>(input: SetCacheInput<T>): void {
 /**
  * Invalidate a specific cache entry or the entire cache.
  */
-export function invalidateCache(
-  projectRoot: string,
-  key?: "complexity" | "patterns" | "health"
-): void {
+interface InvalidateCacheInput { projectRoot: string; key?: CacheKey }
+export function invalidateCache(input: InvalidateCacheInput): void {
+  const { projectRoot, key } = input;
   const cache = readCache(projectRoot);
   if (!cache) return;
 

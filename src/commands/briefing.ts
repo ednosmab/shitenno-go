@@ -21,7 +21,7 @@ import ora from "ora";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
-import { collectContext } from "../context-collector.js";
+import { collectContext, type ContextSnapshot } from "../context-collector.js";
 import { SHITENNO_DIR_NAME } from "../constants.js";
 import { computeInputHash, setCachedBriefing, invalidateBriefingCache, readCache } from "../briefing-cache.js";
 import { briefingToMarkdown, briefingToJson, generateDiff, type Briefing } from "../briefing.js";
@@ -171,191 +171,204 @@ interface BriefingOptions {
   profile?: string;
 }
 
-async function runBriefing(
-  options: BriefingOptions,
-  forcedDepth?: BriefingDepth
-): Promise<void> {
-  const isJson = options.json === true;
+async function collectBriefingData(
+  projectRoot: string,
+  shitennoDir: string
+): Promise<{ briefing: Briefing; snapshot: ReturnType<typeof collectContext> }> {
+  if (isDaemonRunning(shitennoDir)) {
+    const daemonResult = await queryDaemon<{ type: string; data: Briefing }>(shitennoDir, {
+      type: "query_briefing",
+    });
+    if (daemonResult?.data) {
+      const briefing = daemonResult.data;
+      const snapshot = { briefing, contextRules: [], dynamicRules: [], fingerprint: { hash: "" }, riskMap: { generatedAt: "" }, collectedAt: new Date().toISOString(), inputHash: "", maturityProfile: null } as unknown as ContextSnapshot;
+      return { briefing, snapshot };
+    }
+  }
+  const snapshot = collectContext(projectRoot, shitennoDir);
+  return { briefing: snapshot.briefing, snapshot };
+}
 
-  if (!isJson) {
-    output("");
-    outputSection("shugo briefing — Context Pipeline");
-    outputBlank();
+function cacheBriefing(
+  shitennoDir: string,
+  briefing: Briefing,
+  snapshot: ReturnType<typeof collectContext>,
+  invalidate: boolean
+): { briefing: Briefing; cacheHit: boolean; inputHash: string; previousBriefing: Briefing | null } {
+  const newInputHash = computeInputHash({
+    fingerprintHash: snapshot.fingerprint.hash,
+    riskMapHash: snapshot.riskMap.generatedAt,
+    contextRuleCount: snapshot.contextRules.length,
+    dynamicRuleCount: snapshot.dynamicRules.length,
+    maturityScore: snapshot.maturityProfile?.overallScore ?? null,
+  });
+
+  const oldCache = readCache(shitennoDir);
+  const previousBriefing = oldCache?.entry?.briefing ?? null;
+
+  if (invalidate) {
+    invalidateBriefingCache(shitennoDir);
   }
 
-  const ctx = guardNotInitialized(options, isJson);
-  if (!ctx) return;
+  let cacheHit = false;
 
-  if (!checkLifecycleGate("briefing", ctx.projectRoot, ctx.shitennoDir, isJson)) {
+  if (!invalidate && oldCache?.entry && oldCache.entry.inputHash === newInputHash) {
+    briefing = oldCache.entry.briefing;
+    cacheHit = true;
+  }
+
+  if (!cacheHit) {
+    setCachedBriefing(shitennoDir, briefing, newInputHash);
+  }
+
+  return { briefing, cacheHit, inputHash: newInputHash, previousBriefing };
+}
+
+function displayCompactBriefing(
+  previousBriefing: Briefing,
+  briefing: Briefing,
+  isJson: boolean
+): void {
+  const compactDiff = differentialBriefing(previousBriefing, briefing);
+  if (isJson) {
+    outputJson({
+      type: "diff",
+      format: "compact",
+      oldTimestamp: previousBriefing.generatedAt,
+      newTimestamp: briefing.generatedAt,
+      diff: compactDiff,
+    });
+  } else {
+    output(chalk.cyan(`  Compact diff: ${compactDiff}`));
+  }
+}
+
+function handleDiffMode(
+  briefing: Briefing,
+  previousBriefing: Briefing | null,
+  isJson: boolean,
+  compact: boolean
+): boolean {
+  if (!previousBriefing || previousBriefing.generatedAt === briefing.generatedAt) {
+    const msg = "No previous briefing to diff against.";
+    if (isJson) {
+      outputJson({ type: "diff", message: msg });
+    } else {
+      output(chalk.gray(`  ${msg}`));
+    }
+    return true;
+  }
+
+  if (compact) {
+    displayCompactBriefing(previousBriefing, briefing, isJson);
+  } else {
+    const diff = generateDiff(previousBriefing, briefing);
+    if (isJson) {
+      outputJson({
+        type: "diff",
+        oldTimestamp: previousBriefing.generatedAt,
+        newTimestamp: briefing.generatedAt,
+        diff,
+      });
+    } else {
+      output(diff);
+    }
+  }
+  return true;
+}
+
+function handleSummaryMode(
+  briefing: Briefing,
+  isJson: boolean,
+  cacheHit: boolean
+): boolean {
+  const summary = compressedSummary(briefing);
+  if (isJson) {
+    outputJson({ type: "summary", summary, cacheHit });
+  } else {
+    output(summary);
+  }
+  return true;
+}
+
+function determineBriefingDepth(
+  briefing: Briefing,
+  forcedDepth: BriefingDepth | undefined,
+  profile: string | undefined
+): BriefingDepth {
+  if (forcedDepth) {
+    return forcedDepth;
+  }
+  if (profile === "minimal" || profile === "standard" || profile === "full") {
+    return profile;
+  }
+  return suggestDepth(
+    briefing.risks.overall,
+    briefing.risks.criticalAreas.length > 0,
+    briefing.risks.criticalAreas.length + briefing.risks.highAreas.length
+  );
+}
+
+interface DisplayFullBriefingOptions {
+  briefing: Briefing;
+  isJson: boolean;
+  cacheHit: boolean;
+  inputHash: string;
+  depth: BriefingDepth;
+  projectRoot: string;
+  write: boolean;
+}
+
+function displayFullBriefing(options: DisplayFullBriefingOptions): void {
+  const { briefing, isJson, cacheHit, inputHash, depth, projectRoot, write } = options;
+  const hints = generateOptimizationHints(briefing);
+
+  if (isJson) {
+    outputJson({
+      ...briefingToJson(briefing),
+      cacheHit,
+      inputHash,
+      optimization: {
+        depth,
+        suggestedDepth: hints.suggestedDepth,
+        tokenEstimates: hints.tokenEstimates,
+        skipSections: hints.skipSections,
+        compressSections: hints.compressSections,
+      },
+    });
     return;
   }
 
+  if (write) {
+    const filePath = writeBriefingMarkdown(projectRoot, briefing);
+    output(chalk.green(`  Briefing written to ${filePath}`));
+    outputBlank();
+  }
+
+  displayBriefingByDepth(briefing, cacheHit, depth);
+}
+
+async function runBriefing(options: BriefingOptions, forcedDepth?: BriefingDepth): Promise<void> {
+  const isJson = options.json === true;
+  if (!isJson) { output(""); outputSection("shugo briefing — Context Pipeline"); outputBlank(); }
+  const ctx = guardNotInitialized(options, isJson);
+  if (!ctx) return;
+  if (!checkLifecycleGate("briefing", ctx.projectRoot, ctx.shitennoDir, isJson)) return;
   const spinner = ora({ spinner: "dots" }).start(isJson ? "Generating" : "Collecting context...");
-
   try {
-    // ── Stage 1: Collect (daemon-first, disk-fallback) ──────────────
-    let briefing: Briefing;
-    let snapshot;
-
-    if (isDaemonRunning(ctx.shitennoDir)) {
-      const daemonResult = await queryDaemon<{ type: string; data: Briefing }>(ctx.shitennoDir, {
-        type: "query_briefing",
-      });
-      if (daemonResult?.data) {
-        briefing = daemonResult.data;
-        snapshot = { briefing, contextRules: [], dynamicRules: [], fingerprint: { hash: "" }, riskMap: { generatedAt: "" } };
-      } else {
-        snapshot = collectContext(ctx.projectRoot, ctx.shitennoDir);
-        briefing = snapshot.briefing;
-      }
-    } else {
-      snapshot = collectContext(ctx.projectRoot, ctx.shitennoDir);
-      briefing = snapshot.briefing;
-    }
-
-    // ── Stage 2: Cache ───────────────────────────────────────────
-    const newInputHash = computeInputHash({
-      fingerprintHash: snapshot.fingerprint.hash,
-      riskMapHash: snapshot.riskMap.generatedAt,
-      contextRuleCount: snapshot.contextRules.length,
-      dynamicRuleCount: snapshot.dynamicRules.length,
-      maturityScore: snapshot.maturityProfile?.overallScore ?? null,
-    });
-
-    const oldCache = readCache(ctx.shitennoDir);
-    const previousBriefing = oldCache?.entry?.briefing ?? null;
-
-    if (options.invalidate) {
-      invalidateBriefingCache(ctx.shitennoDir);
-      spinner.text = "Cache invalidated, using fresh briefing...";
-    }
-
-    let cacheHit = false;
-
-    if (!options.invalidate && oldCache?.entry && oldCache.entry.inputHash === newInputHash) {
-      briefing = oldCache.entry.briefing;
-      cacheHit = true;
-    }
-
-    if (!cacheHit) {
-      setCachedBriefing(ctx.shitennoDir, briefing, newInputHash);
-    }
-
-    // ── Stage 3: Output ──────────────────────────────────────────
+    const { briefing: initialBriefing, snapshot } = await collectBriefingData(ctx.projectRoot, ctx.shitennoDir);
+    const { briefing, cacheHit, inputHash, previousBriefing } = cacheBriefing(ctx.shitennoDir, initialBriefing, snapshot, options.invalidate === true);
+    if (options.invalidate) spinner.text = "Cache invalidated, using fresh briefing...";
     spinner.stop();
-
-    // Diff mode
-    if (options.diff) {
-      if (previousBriefing && previousBriefing.generatedAt !== briefing.generatedAt) {
-        // Compact mode: use differentialBriefing (~50 tokens vs ~200)
-        if (options.compact) {
-          const compactDiff = differentialBriefing(previousBriefing, briefing);
-          if (isJson) {
-            outputJson({
-              type: "diff",
-              format: "compact",
-              oldTimestamp: previousBriefing.generatedAt,
-              newTimestamp: briefing.generatedAt,
-              diff: compactDiff,
-            });
-          } else {
-            output(chalk.cyan(`  Compact diff: ${compactDiff}`));
-          }
-        } else {
-          const diff = generateDiff(previousBriefing, briefing);
-          if (isJson) {
-            outputJson({
-              type: "diff",
-              oldTimestamp: previousBriefing.generatedAt,
-              newTimestamp: briefing.generatedAt,
-              diff,
-            });
-          } else {
-            output(diff);
-          }
-        }
-      } else {
-        const msg = "No previous briefing to diff against.";
-        if (isJson) {
-          outputJson({ type: "diff", message: msg });
-        } else {
-          output(chalk.gray(`  ${msg}`));
-        }
-      }
-      return;
-    }
-
-    // Summary mode
-    if (options.summary) {
-      const summary = compressedSummary(briefing);
-      if (isJson) {
-        outputJson({ type: "summary", summary, cacheHit });
-      } else {
-        output(summary);
-      }
-      return;
-    }
-
-    // Determine briefing depth: forcedDepth > --profile > auto-detect
-    let depth: BriefingDepth;
-    if (forcedDepth) {
-      depth = forcedDepth;
-    } else {
-      const profile = options.profile as string | undefined;
-      if (profile === "minimal" || profile === "standard" || profile === "full") {
-        depth = profile;
-      } else {
-        depth = suggestDepth(
-          briefing.risks.overall,
-          briefing.risks.criticalAreas.length > 0,
-          briefing.risks.criticalAreas.length + briefing.risks.highAreas.length
-        );
-      }
-    }
-    const hints = generateOptimizationHints(briefing);
-
-    // JSON mode
-    if (isJson) {
-      outputJson({
-        ...briefingToJson(briefing),
-        cacheHit,
-        inputHash: newInputHash,
-        optimization: {
-          depth,
-          suggestedDepth: hints.suggestedDepth,
-          tokenEstimates: hints.tokenEstimates,
-          skipSections: hints.skipSections,
-          compressSections: hints.compressSections,
-        },
-      });
-      return;
-    }
-
-    // Write mode
-    if (options.write) {
-      const filePath = writeBriefingMarkdown(ctx.projectRoot, briefing);
-      output(chalk.green(`  Briefing written to ${filePath}`));
-      outputBlank();
-    }
-
-    // Default: display (depth-aware)
-    displayBriefingByDepth(briefing, cacheHit, depth);
-
-    // ── Event ────────────────────────────────────────────────────
-    getEventBus().publish("analysis.complete", {
-      type: "briefing",
-      cacheHit,
-      risk: briefing.risks.overall,
-      domain: briefing.project.domain,
-    });
-
+    if (options.diff) { handleDiffMode(briefing, previousBriefing, isJson, options.compact === true); return; }
+    if (options.summary) { handleSummaryMode(briefing, isJson, cacheHit); return; }
+    const depth = determineBriefingDepth(briefing, forcedDepth, options.profile as string | undefined);
+    displayFullBriefing({ briefing, isJson, cacheHit, inputHash, depth, projectRoot: ctx.projectRoot, write: options.write === true });
+    getEventBus().publish("analysis.complete", { type: "briefing", cacheHit, risk: briefing.risks.overall, domain: briefing.project.domain });
   } catch (error) {
     spinner.fail("Failed to generate briefing");
-    if (isJson) {
-      outputJson({ error: "briefing_failed", message: String(error) });
-    } else {
-      logger.error("briefing", `Error: ${error}`);
-    }
+    if (isJson) outputJson({ error: "briefing_failed", message: String(error) });
+    else logger.error("briefing", `Error: ${error}`);
   }
 }
 

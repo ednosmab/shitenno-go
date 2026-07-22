@@ -78,90 +78,7 @@ export class Pipeline {
     });
 
     for (const stage of this.stages) {
-      const stageStart = Date.now();
-
-      bus.publish("pipeline.stage.start", {
-        stage: stage.name,
-        description: stage.description,
-      });
-
-      // Execute pre-analysis hooks
-      const hookBus = getHookBus();
-      current = await hookBus.executeHook("pre-analysis", current, (_plugin, ctx) => ctx);
-
-      try {
-        current = await stage.execute(current);
-        const duration = Date.now() - stageStart;
-
-        const skipped = (current as { __lastStageSkipped?: boolean }).__lastStageSkipped === true;
-        current.stageResults.push({
-          stage: stage.name,
-          duration,
-          status: skipped ? "skipped" : "success",
-        });
-
-        // Publish stage-specific events
-        if (stage.name === "pattern_detection" && current.patternReport) {
-          bus.publish("pattern.detected", {
-            patternType: current.patternReport.patterns[0]?.type ?? "unknown",
-            confidence: current.patternReport.patterns.length > 0
-              ? current.patternReport.patterns.reduce((sum, p) => sum + (p.severity / 5), 0) / current.patternReport.patterns.length
-              : 0,
-            patterns: current.patternReport.patterns.map((p) => ({
-              type: p.type,
-              description: p.description,
-              severity: p.severity,
-            })),
-          });
-        }
-
-        if (stage.name === "knowledge_debt" && current.knowledgeDebtReport) {
-          bus.publish("knowledge_debt.detected", {
-            gapCount: current.knowledgeDebtReport.totalGaps,
-            gaps: current.knowledgeDebtReport.gaps.map((g) => ({
-              source: g.location,
-              gap: g.description,
-              severity: g.severity,
-            })),
-          });
-        }
-
-        if (stage.name === "engineering_state" && current.engineeringState) {
-          bus.publish("engineering_state.consolidated", {
-            totalDimensions: 7,
-            changedDimensions: [],
-            overallHealth: current.engineeringState.healthScores.overall,
-          });
-        }
-
-        // Execute post-analysis hooks
-        current = await hookBus.executeHook("post-analysis", current, (_plugin, ctx) => ctx);
-
-        bus.publish("pipeline.stage.complete", {
-          stage: stage.name,
-          duration,
-          success: true,
-        });
-      } catch (error) {
-        const duration = Date.now() - stageStart;
-        const err = error instanceof Error ? error : new Error(String(error));
-
-        current.errors.push({ stage: stage.name, error: err });
-        current.stageResults.push({
-          stage: stage.name,
-          duration,
-          status: "failed",
-        });
-
-        bus.publish("pipeline.stage.complete", {
-          stage: stage.name,
-          duration,
-          success: false,
-          error: err.message,
-        });
-
-        // Continue with other stages
-      }
+      current = await this.runStage(stage, current, bus);
     }
 
     current.completedAt = new Date().toISOString();
@@ -175,6 +92,102 @@ export class Pipeline {
     });
 
     return current;
+  }
+
+  private async runStage(
+    stage: PipelineStage,
+    context: PipelineContext,
+    bus: ReturnType<typeof getEventBus>
+  ): Promise<PipelineContext> {
+    const stageStart = Date.now();
+    const hookBus = getHookBus();
+    let current = await hookBus.executeHook("pre-analysis", context, (_plugin, ctx) => ctx);
+
+    bus.publish("pipeline.stage.start", {
+      stage: stage.name,
+      description: stage.description,
+    });
+
+    try {
+      current = await stage.execute(current);
+      const duration = Date.now() - stageStart;
+      const skipped = (current as { __lastStageSkipped?: boolean }).__lastStageSkipped === true;
+
+      current.stageResults.push({
+        stage: stage.name,
+        duration,
+        status: skipped ? "skipped" : "success",
+      });
+
+      this.publishStageEvents(stage.name, current, bus);
+
+      current = await hookBus.executeHook("post-analysis", current, (_plugin, ctx) => ctx);
+
+      bus.publish("pipeline.stage.complete", {
+        stage: stage.name,
+        duration,
+        success: true,
+      });
+    } catch (error) {
+      const duration = Date.now() - stageStart;
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      current.errors.push({ stage: stage.name, error: err });
+      current.stageResults.push({
+        stage: stage.name,
+        duration,
+        status: "failed",
+      });
+
+      bus.publish("pipeline.stage.complete", {
+        stage: stage.name,
+        duration,
+        success: false,
+        error: err.message,
+      });
+    }
+
+    return current;
+  }
+
+  private publishStageEvents(
+    stageName: string,
+    context: PipelineContext,
+    bus: ReturnType<typeof getEventBus>
+  ): void {
+    if (stageName === "pattern_detection" && context.patternReport) {
+      const patterns = context.patternReport.patterns;
+      bus.publish("pattern.detected", {
+        patternType: patterns[0]?.type ?? "unknown",
+        confidence: patterns.length > 0
+          ? patterns.reduce((sum, p) => sum + (p.severity / 5), 0) / patterns.length
+          : 0,
+        patterns: patterns.map((p) => ({
+          type: p.type,
+          description: p.description,
+          severity: p.severity,
+        })),
+      });
+    }
+
+    if (stageName === "knowledge_debt" && context.knowledgeDebtReport) {
+      bus.publish("knowledge_debt.detected", {
+        gapCount: context.knowledgeDebtReport.totalGaps,
+        gaps: context.knowledgeDebtReport.gaps.map((g) => ({
+          source: g.location,
+          gap: g.description,
+          severity: g.severity,
+        })),
+      });
+    }
+
+    if (stageName === "engineering_state" && context.engineeringState) {
+      bus.publish("engineering_state.consolidated", {
+        totalDimensions: 7,
+        changedDimensions: [],
+        overallHealth: context.engineeringState.healthScores.overall,
+      });
+    }
   }
 }
 
@@ -207,6 +220,97 @@ export function createPipelineContext(
  * 7. Recommendation Engine
  * 8. Evolution Analysis
  */
+function buildCoreStages(
+  analyseProject: (root: string) => ProjectAnalysis,
+  calculateComplexityScore: (root: string, dir: string, analysis: ProjectAnalysis) => Promise<ComplexityReport>,
+  detectPatterns: (root: string, dir: string) => PatternDetectionReport,
+  detectKnowledgeDebt: (root: string, dir: string) => KnowledgeDebtReport,
+): PipelineStage[] {
+  return [
+    {
+      name: "analysis",
+      description: "Detect project structure and stack",
+      execute: async (context) => {
+        const analysis = analyseProject(context.projectRoot);
+        return { ...context, analysis };
+      },
+    },
+    {
+      name: "complexity",
+      description: "Calculate complexity score and area breakdown",
+      execute: async (context) => {
+        if (!context.analysis) return context;
+        const complexityReport = await calculateComplexityScore(context.projectRoot, context.shitennoDir, context.analysis);
+        return { ...context, complexityReport };
+      },
+    },
+    {
+      name: "pattern_detection",
+      description: "Detect recurring patterns in history and reports",
+      execute: async (context) => {
+        const patternReport = detectPatterns(context.projectRoot, context.shitennoDir);
+        return { ...context, patternReport };
+      },
+    },
+    {
+      name: "knowledge_debt",
+      description: "Detect knowledge gaps and debt",
+      execute: async (context) => {
+        const knowledgeDebtReport = detectKnowledgeDebt(context.projectRoot, context.shitennoDir);
+        return { ...context, knowledgeDebtReport };
+      },
+    },
+  ];
+}
+
+function buildEvaluationStages(
+  consolidateEngineeringState: (root: string, dir: string) => EngineeringState,
+  evaluateCapabilities: (state: EngineeringState, dir: string) => CapabilityEngineResult,
+  runRecommendationEngine: (options: { state: EngineeringState; capResult: CapabilityEngineResult; shitennoDir: string }) => RecommendationEngineResult,
+  analyzeEvolution: (root: string, dir: string) => EvolutionReport,
+): PipelineStage[] {
+  return [
+    {
+      name: "capability_engine",
+      description: "Evaluate capabilities and their maturity",
+      execute: async (context) => {
+        const partialState = consolidateEngineeringState(context.projectRoot, context.shitennoDir);
+        const capabilityEngineResult = evaluateCapabilities(partialState, context.shitennoDir);
+        return { ...context, capabilityEngineResult };
+      },
+    },
+    {
+      name: "engineering_state",
+      description: "Consolidate all information into canonical state",
+      execute: async (context) => {
+        const engineeringState = consolidateEngineeringState(context.projectRoot, context.shitennoDir);
+        return { ...context, engineeringState };
+      },
+    },
+    {
+      name: "recommendation_engine",
+      description: "Generate next-best-action recommendations",
+      execute: async (context) => {
+        if (!context.engineeringState || !context.capabilityEngineResult) return context;
+        const recommendationEngineResult = runRecommendationEngine({
+          state: context.engineeringState,
+          capResult: context.capabilityEngineResult,
+          shitennoDir: context.shitennoDir,
+        });
+        return { ...context, recommendationEngineResult };
+      },
+    },
+    {
+      name: "evolution",
+      description: "Analyze evolution opportunities and generate report",
+      execute: async (context) => {
+        const evolutionReport = analyzeEvolution(context.projectRoot, context.shitennoDir);
+        return { ...context, evolutionReport };
+      },
+    },
+  ];
+}
+
 export async function createDefaultPipeline(): Promise<Pipeline> {
   const { analyseProject } = await import("./analyser.js");
   const { calculateComplexityScore } = await import("./scorer.js");
@@ -218,115 +322,9 @@ export async function createDefaultPipeline(): Promise<Pipeline> {
   const { analyzeEvolution } = await import("./auto-evolution.js");
 
   const pipeline = new Pipeline();
-
-  // Stage 1: Project Analysis
-  pipeline.addStage({
-    name: "analysis",
-    description: "Detect project structure and stack",
-    execute: async (context) => {
-      const analysis = analyseProject(context.projectRoot);
-      return { ...context, analysis };
-    },
-  });
-
-  // Stage 2: Complexity Scoring
-  pipeline.addStage({
-    name: "complexity",
-    description: "Calculate complexity score and area breakdown",
-    execute: async (context) => {
-      if (!context.analysis) return context;
-      const complexityReport = await calculateComplexityScore(
-        context.projectRoot,
-        context.shitennoDir,
-        context.analysis
-      );
-      return { ...context, complexityReport };
-    },
-  });
-
-  // Stage 3: Pattern Detection
-  pipeline.addStage({
-    name: "pattern_detection",
-    description: "Detect recurring patterns in history and reports",
-    execute: async (context) => {
-      const patternReport = detectPatterns(context.projectRoot, context.shitennoDir);
-      return { ...context, patternReport };
-    },
-  });
-
-  // Stage 4: Knowledge Debt Detection
-  pipeline.addStage({
-    name: "knowledge_debt",
-    description: "Detect knowledge gaps and debt",
-    execute: async (context) => {
-      const knowledgeDebtReport = detectKnowledgeDebt(
-        context.projectRoot,
-        context.shitennoDir
-      );
-      return { ...context, knowledgeDebtReport };
-    },
-  });
-
-  // Stage 5: Capability Engine
-  pipeline.addStage({
-    name: "capability_engine",
-    description: "Evaluate capabilities and their maturity",
-    execute: async (context) => {
-      // First consolidate partial state for capability evaluation
-      const partialState = consolidateEngineeringState(
-        context.projectRoot,
-        context.shitennoDir
-      );
-      const capabilityEngineResult = evaluateCapabilities(
-        partialState,
-        context.shitennoDir
-      );
-      return { ...context, capabilityEngineResult };
-    },
-  });
-
-  // Stage 6: Engineering State Consolidation
-  pipeline.addStage({
-    name: "engineering_state",
-    description: "Consolidate all information into canonical state",
-    execute: async (context) => {
-      const engineeringState = consolidateEngineeringState(
-        context.projectRoot,
-        context.shitennoDir
-      );
-      return { ...context, engineeringState };
-    },
-  });
-
-  // Stage 7: Recommendation Engine
-  pipeline.addStage({
-    name: "recommendation_engine",
-    description: "Generate next-best-action recommendations",
-    execute: async (context) => {
-      if (!context.engineeringState || !context.capabilityEngineResult) {
-        return context;
-      }
-      const recommendationEngineResult = runRecommendationEngine(
-        context.engineeringState,
-        context.capabilityEngineResult,
-        context.shitennoDir
-      );
-      return { ...context, recommendationEngineResult };
-    },
-  });
-
-  // Stage 8: Evolution Analysis
-  pipeline.addStage({
-    name: "evolution",
-    description: "Analyze evolution opportunities and generate report",
-    execute: async (context) => {
-      const evolutionReport = analyzeEvolution(
-        context.projectRoot,
-        context.shitennoDir
-      );
-      return { ...context, evolutionReport };
-    },
-  });
-
+  buildCoreStages(analyseProject, calculateComplexityScore, detectPatterns, detectKnowledgeDebt)
+    .forEach((s) => pipeline.addStage(s));
+  buildEvaluationStages(consolidateEngineeringState, evaluateCapabilities, runRecommendationEngine, analyzeEvolution)
+    .forEach((s) => pipeline.addStage(s));
   return pipeline;
 }

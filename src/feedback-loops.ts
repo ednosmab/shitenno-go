@@ -347,35 +347,26 @@ export function getAllDimensionSummaries(
 
 // ── Internal Helpers ─────────────────────────────────────────────────────────
 
-function updateSummary(shitennoDir: string, record: FeedbackRecord): void {
-  const summaryPath = getSummaryPath(shitennoDir);
-  const summaries: Record<string, FeedbackSummary> = existsSync(summaryPath)
-    ? JSON.parse(readFileSync(summaryPath, "utf-8"))
-    : {};
+function createEmptySummary(recId: string): FeedbackSummary {
+  return {
+    recommendationId: recId,
+    acceptCount: 0,
+    rejectCount: 0,
+    deferCount: 0,
+    totalInteractions: 0,
+    acceptanceRate: 0,
+    lastAction: null,
+    lastTimestamp: null,
+    pathChoiceStats: {
+      comfortableCount: 0,
+      challengingCount: 0,
+      lastPathChoice: null,
+    },
+  };
+}
 
-  const recId = record.recommendationId;
-  if (!summaries[recId]) {
-    summaries[recId] = {
-      recommendationId: recId,
-      acceptCount: 0,
-      rejectCount: 0,
-      deferCount: 0,
-      totalInteractions: 0,
-      acceptanceRate: 0,
-      lastAction: null,
-      lastTimestamp: null,
-      pathChoiceStats: {
-        comfortableCount: 0,
-        challengingCount: 0,
-        lastPathChoice: null,
-      },
-    };
-  }
-
-  const summary = summaries[recId];
-  summary.totalInteractions++;
-
-  switch (record.action) {
+function updateActionCounts(summary: FeedbackSummary, action: FeedbackRecord["action"]): void {
+  switch (action) {
     case "accepted":
       summary.acceptCount++;
       break;
@@ -386,6 +377,39 @@ function updateSummary(shitennoDir: string, record: FeedbackRecord): void {
       summary.deferCount++;
       break;
   }
+}
+
+function updatePathChoiceStats(summary: FeedbackSummary, pathChoice: "comfortable" | "challenging"): void {
+  if (!summary.pathChoiceStats) {
+    summary.pathChoiceStats = {
+      comfortableCount: 0,
+      challengingCount: 0,
+      lastPathChoice: null,
+    };
+  }
+
+  if (pathChoice === "comfortable") {
+    summary.pathChoiceStats.comfortableCount++;
+  } else {
+    summary.pathChoiceStats.challengingCount++;
+  }
+  summary.pathChoiceStats.lastPathChoice = pathChoice;
+}
+
+function updateSummary(shitennoDir: string, record: FeedbackRecord): void {
+  const summaryPath = getSummaryPath(shitennoDir);
+  const summaries: Record<string, FeedbackSummary> = existsSync(summaryPath)
+    ? JSON.parse(readFileSync(summaryPath, "utf-8"))
+    : {};
+
+  const recId = record.recommendationId;
+  if (!summaries[recId]) {
+    summaries[recId] = createEmptySummary(recId);
+  }
+
+  const summary = summaries[recId];
+  summary.totalInteractions++;
+  updateActionCounts(summary, record.action);
 
   summary.acceptanceRate =
     summary.totalInteractions > 0
@@ -394,22 +418,8 @@ function updateSummary(shitennoDir: string, record: FeedbackRecord): void {
   summary.lastAction = record.action;
   summary.lastTimestamp = record.timestamp;
 
-  // Update path choice statistics
   if (record.pathChoice) {
-    if (!summary.pathChoiceStats) {
-      summary.pathChoiceStats = {
-        comfortableCount: 0,
-        challengingCount: 0,
-        lastPathChoice: null,
-      };
-    }
-
-    if (record.pathChoice === "comfortable") {
-      summary.pathChoiceStats.comfortableCount++;
-    } else {
-      summary.pathChoiceStats.challengingCount++;
-    }
-    summary.pathChoiceStats.lastPathChoice = record.pathChoice;
+    updatePathChoiceStats(summary, record.pathChoice);
   }
 
   writeFileSync(summaryPath, JSON.stringify(summaries, null, 2));

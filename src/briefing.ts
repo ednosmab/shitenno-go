@@ -123,7 +123,7 @@ export interface Briefing {
 
 // ── Briefing Generation ────────────────────────────────────────────────────
 
-interface BriefingOptions {
+export interface BriefingOptions {
   fingerprint: ProjectFingerprint;
   riskMap: RiskMap;
   contextRules: ContextRule[];
@@ -154,20 +154,7 @@ function generateRecommendations(
   return recommendations;
 }
 
-export function generateBriefing(
-  fingerprint: ProjectFingerprint,
-  riskMap: RiskMap,
-  contextRules: ContextRule[],
-  dynamicRules: DynamicRule[],
-  maturityProfile?: MaturityProfile,
-  quickBoard?: BriefingOptions["quickBoard"],
-  reminders?: Reminder[]
-): Briefing {
-  const options: BriefingOptions = { fingerprint, riskMap, contextRules, dynamicRules, maturityProfile, quickBoard, reminders };
-  return generateBriefingFromOptions(options);
-}
-
-function generateBriefingFromOptions(options: BriefingOptions): Briefing {
+export function generateBriefing(options: BriefingOptions): Briefing {
   const { fingerprint, riskMap, contextRules, dynamicRules, maturityProfile, quickBoard, reminders } = options;
 
   const criticalAreas = riskMap.areas.filter((a) => a.riskLevel === "critical").map((a) => a.path);

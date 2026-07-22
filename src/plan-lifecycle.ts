@@ -382,93 +382,87 @@ function printInference(inf: PlanInference): void {
   outputBlank();
 }
 
-function handleAutoMode(
-  inf: { id: string; recommendation: string; reason: string },
-  validation: ValidationResult,
-  options: { dry?: boolean },
-  shitennoDir: string,
-  result: LifecycleResult,
-): boolean {
-  const action = inf.recommendation;
+interface LifecycleActionContext {
+  inf: PlanInference;
+  validation: ValidationResult;
+  options: { dry?: boolean };
+  shitennoDir: string;
+  result: LifecycleResult;
+}
+
+function executePlanAction(
+  action: "archive" | "remove",
+  ctx: LifecycleActionContext,
+): void {
+  if (ctx.options.dry) {
+    output(chalk.dim(`  [DRY RUN] Would ${action}: ${ctx.inf.id} → done/`));
+    return;
+  }
+  try {
+    if (action === "archive") {
+      archivePlan(ctx.shitennoDir, ctx.inf.id, ctx.validation);
+      output(chalk.green(`  ✓ Plan archived: ${ctx.inf.id} → done/`));
+      ctx.result.archived++;
+    } else {
+      removePlan(ctx.shitennoDir, ctx.inf.id, ctx.validation);
+      output(chalk.green(`  ✓ Plan removed: ${ctx.inf.id} → done/`));
+      ctx.result.removed++;
+    }
+  } catch (error) {
+    output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
+    ctx.result.skipped++;
+  }
+}
+
+function handleAutoMode(ctx: LifecycleActionContext): boolean {
+  const action = ctx.inf.recommendation;
   if (action !== "archive" && action !== "remove") {
-    output(chalk.dim(`  Kept: ${inf.id} (${inf.reason})`));
+    output(chalk.dim(`  Kept: ${ctx.inf.id} (${ctx.inf.reason})`));
     outputBlank();
-    result.skipped++;
+    ctx.result.skipped++;
     return true;
   }
 
-  if (options.dry) {
-    output(chalk.dim(`  [DRY RUN] Would ${action}: ${inf.id} → done/`));
+  if (ctx.options.dry) {
+    output(chalk.dim(`  [DRY RUN] Would ${action}: ${ctx.inf.id} → done/`));
     outputBlank();
     return true;
   }
 
   try {
-    archivePlan(shitennoDir, inf.id, validation);
-    output(chalk.green(`  ✓ Plan ${action}d: ${inf.id} → done/`));
+    archivePlan(ctx.shitennoDir, ctx.inf.id, ctx.validation);
+    output(chalk.green(`  ✓ Plan ${action}d: ${ctx.inf.id} → done/`));
     outputBlank();
-    if (action === "archive") result.archived++;
-    else result.removed++;
+    if (action === "archive") ctx.result.archived++;
+    else ctx.result.removed++;
   } catch (error) {
     output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
     outputBlank();
-    result.skipped++;
+    ctx.result.skipped++;
   }
   return true;
 }
 
-async function handleInteractiveMode(
-  inf: { id: string },
-  validation: ValidationResult,
-  options: { dry?: boolean },
-  shitennoDir: string,
-  result: LifecycleResult,
-): Promise<void> {
+async function handleInteractiveMode(ctx: LifecycleActionContext): Promise<void> {
   const answer = await askQuestion(
     `  [A] Archive as done / [S] Skip / [M] Keep active / [R] Remove: `
   );
 
   switch (answer) {
-    case "a": {
-      if (options.dry) {
-        output(chalk.dim(`  [DRY RUN] Would archive: ${inf.id} → done/`));
-        break;
-      }
-      try {
-        archivePlan(shitennoDir, inf.id, validation);
-        output(chalk.green(`  ✓ Plan archived: ${inf.id} → done/`));
-        result.archived++;
-      } catch (error) {
-        output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-        result.skipped++;
-      }
+    case "a":
+      executePlanAction("archive", ctx);
       break;
-    }
-    case "r": {
-      if (options.dry) {
-        output(chalk.dim(`  [DRY RUN] Would remove: ${inf.id} → done/`));
-        break;
-      }
-      try {
-        removePlan(shitennoDir, inf.id, validation);
-        output(chalk.green(`  ✓ Plan removed: ${inf.id} → done/`));
-        result.removed++;
-      } catch (error) {
-        output(chalk.red(`  ✗ Failed: ${error instanceof Error ? error.message : String(error)}`));
-        result.skipped++;
-      }
+    case "r":
+      executePlanAction("remove", ctx);
       break;
-    }
-    case "m": {
-      output(chalk.dim(`  Kept: ${inf.id}`));
-      result.skipped++;
+    case "m":
+      output(chalk.dim(`  Kept: ${ctx.inf.id}`));
+      ctx.result.skipped++;
       break;
-    }
-    default: {
-      output(chalk.dim(`  Skipped: ${inf.id}`));
-      result.skipped++;
+    default:
+      output(chalk.dim(`  Skipped: ${ctx.inf.id}`));
+      ctx.result.skipped++;
       break;
-    }
   }
   outputBlank();
 }
@@ -516,9 +510,9 @@ export async function runLifecycleReview(
     }
 
     if (options.auto) {
-      handleAutoMode(inf, validation, options, shitennoDir, result);
+      handleAutoMode({ inf, validation, options, shitennoDir, result });
     } else {
-      await handleInteractiveMode(inf, validation, options, shitennoDir, result);
+      await handleInteractiveMode({ inf, validation, options, shitennoDir, result });
     }
   }
 

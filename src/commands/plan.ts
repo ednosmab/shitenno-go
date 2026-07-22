@@ -102,6 +102,33 @@ function ensureChecklist(plan: { filePath: string }): PrepareResult {
   } catch (error) { return { step: "checklist", status: "error", detail: String(error) }; }
 }
 
+function buildChecklistSection(checklistItems: Array<{ text: string; checked: boolean; phase: string }>): string[] {
+  const lines: string[] = ["", "#### Passos do Plano"];
+  const seenNumbers = new Set<string>();
+  for (const item of checklistItems) {
+    const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
+    if (numMatch?.[1]) { if (seenNumbers.has(numMatch[1])) continue; seenNumbers.add(numMatch[1]); }
+    lines.push(`- [${item.checked ? "x" : " "}] ${item.text}`);
+  }
+  return lines;
+}
+
+function buildBacklogTable(planIdUpper: string, planTitle: string, planId: string, backlogStatus: string): string[] {
+  return [
+    "", `### ${planIdUpper} — ${planTitle}`, "",
+    "| Campo | Valor |", "|---|---|",
+    `| **Status** | ${backlogStatus} |`,
+    `| **Severidade** | Medio |`,
+    `| **Prioridade** | P1 |`,
+    `| **Owner** | executor |`,
+    `| **Data** | ${new Date().toISOString().slice(0, 10)} |`,
+    `| **Fonte** | shugo plan md prepare |`,
+    `| **Modulos** | governance/plans/ |`,
+    `| **Descricao** | ${planTitle} |`,
+    `| **Correcao** | Verificar checklist no plano \`governance/plans/${planId}.md\` |`,
+  ];
+}
+
 function syncToBacklog(planId: string, plan: { filePath: string; title: string }, shitennoDir: string): PrepareResult {
   try {
     const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
@@ -124,15 +151,9 @@ function syncToBacklog(planId: string, plan: { filePath: string; title: string }
     const p1Index = backlog.indexOf("## P1 —");
     const insertBefore = p2Index !== -1 ? p2Index : p1Index !== -1 ? p1Index : backlog.length;
 
-    const backlogItem = ["", `### ${planIdUpper} — ${plan.title}`, "", "| Campo | Valor |", "|---|---|", `| **Status** | ${backlogStatus} |`, `| **Severidade** | Medio |`, `| **Prioridade** | P1 |`, `| **Owner** | executor |`, `| **Data** | ${new Date().toISOString().slice(0, 10)} |`, `| **Fonte** | shugo plan md prepare |`, `| **Modulos** | governance/plans/ |`, `| **Descricao** | ${plan.title} |`, `| **Correcao** | Verificar checklist no plano \`governance/plans/${planId}.md\` |`];
+    const backlogItem = [...buildBacklogTable(planIdUpper, plan.title, planId, backlogStatus)];
     if (checklistItems.length > 0) {
-      backlogItem.push("", "#### Passos do Plano");
-      const seenNumbers = new Set<string>();
-      for (const item of checklistItems) {
-        const numMatch = item.text.match(/^(?:Passo|Step|Phase)\s+(\d+)/i);
-        if (numMatch?.[1]) { if (seenNumbers.has(numMatch[1])) continue; seenNumbers.add(numMatch[1]); }
-        backlogItem.push(`- [${item.checked ? "x" : " "}] ${item.text}`);
-      }
+      backlogItem.push(...buildChecklistSection(checklistItems));
     }
     backlogItem.push("");
 

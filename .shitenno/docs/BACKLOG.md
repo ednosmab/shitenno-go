@@ -1855,3 +1855,18 @@
 | **Modulos** | governance/plans/ |
 | **Descricao** | PLAN-2026-07-20 — Refatoração de ESLint Warnings (305 → 0) |
 | **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-20-refactor-eslint-warnings.md` |
+
+
+### BACKLOG-PLAN_2026_07_20_BLOCO_O_OTIMIZACAO_SUITE_TESTES — BLOCO O — Otimização da suíte de testes (e do CLI em si)
+
+| Campo | Valor |
+|---|---|
+| **Status** | planeado |
+| **Severidade** | Medio |
+| **Prioridade** | P1 |
+| **Owner** | executor |
+| **Data** | 2026-07-21 |
+| **Fonte** | shugo plan md prepare |
+| **Modulos** | governance/plans/ |
+| **Descricao** | BLOCO O — Otimização da suíte de testes (e do CLI em si) |
+| **Correcao** | Verificar checklist no plano `governance/plans/PLAN-2026-07-20-BLOCO-O-otimizacao-suite-testes.md` |

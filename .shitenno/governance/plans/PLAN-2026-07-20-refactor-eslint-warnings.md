@@ -1,12 +1,12 @@
 # PLAN-2026-07-20 — Refatoração de ESLint Warnings (305 → 0)
 
-**Status:** andamento
-**Updated_at:** 2026-07-20T12:00:00Z
+**Status:** Done
+**Updated_at:** 2026-07-22T00:00:00.000Z
 **Date:** 2026-07-20
 
 ## Context
 
-O codebase acumula 305 warnings ESLint em 122 arquivos. O pre-commit hook exige ≤300 warnings, bloqueando commits. Abordagem em fases para corrigir tudo sem causar regressões.
+O codebase acumulava 305 warnings ESLint em 122 arquivos. O pre-commit hook exigia ≤300 warnings, bloqueando commits. As fases foram implementadas gradualmente ao longo de outras refatorações (split de módulos, type-safety cleanup). Últimos 3 warnings + 5 erros em `bin/shugo.ts` corrigidos em 2026-07-22: refatoração de `showBriefingSummary` com extração de helpers e conversão de `require()` para `import()` dinâmico.
 
 ## Regras ESLint Afetadas
 
@@ -284,10 +284,10 @@ Fase 6  (1h)      → 22 → 0
 
 | Checkpoint | Warnings | Status |
 |------------|----------|--------|
-| Fase 0 completa | ≤300 | pendente |
-| Fase 1 completa | ≤216 | pendente |
-| Fase 2 completa | ≤161 | pendente |
-| Fase 3 completa | ≤119 | pendente |
-| Fase 4 completa | ≤77 | pendente |
-| Fase 5 completa | ≤28 | pendente |
-| Fase 6 completa | 0 | pendente |
+| Fase 0 completa | ≤300 | done |
+| Fase 1 completa | ≤216 | done |
+| Fase 2 completa | ≤161 | done |
+| Fase 3 completa | ≤119 | done |
+| Fase 4 completa | ≤77 | done |
+| Fase 5 completa | ≤28 | done |
+| Fase 6 completa | 0 | done |

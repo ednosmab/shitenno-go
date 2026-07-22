@@ -94,16 +94,14 @@ interface CapabilityBuildInput {
   shitennoDir: string;
   installedCapabilities: Capability[];
   assets: Array<{ type: string; path: string }>;
+  maturityScore?: number;
 }
 
 function buildCapabilityMetrics(score: number, capabilityAssets: number, activePolicies: number) {
   return { assetCount: capabilityAssets, ruleCount: activePolicies, policyCount: activePolicies, healthScore: score, lastUpdated: new Date().toISOString(), referenceCount: 0 };
 }
 
-export function buildCapabilityEntity(capInfo: CapabilityInfo, shitennoDir: string, installedCapabilities: Capability[], assets: Array<{ type: string; path: string }>, _maturityScore: number): CapabilityEntity;
-export function buildCapabilityEntity(input: CapabilityBuildInput): CapabilityEntity;
-export function buildCapabilityEntity(capInfoOrInput: CapabilityInfo | CapabilityBuildInput, shitennoDir?: string, installedCapabilities?: Capability[], assets?: Array<{ type: string; path: string }>, _maturityScore?: number): CapabilityEntity {
-  const input = capInfoOrInput && "capInfo" in capInfoOrInput ? capInfoOrInput : { capInfo: capInfoOrInput!, shitennoDir: shitennoDir!, installedCapabilities: installedCapabilities!, assets: assets! };
+export function buildCapabilityEntity(input: CapabilityBuildInput): CapabilityEntity {
   const { capInfo, shitennoDir: sDir, installedCapabilities: installed, assets: allAssets } = input;
 
   const isInstalled = installed.includes(capInfo.id);

@@ -25,6 +25,6 @@ describe("daemon never triggers the heavy verify:all path", () => {
     // que alguém decidir "acoplar" os dois: se a assinatura de auditHealth()
     // ganhar um 5º parâmetro relacionado a sweep, este teste força revisão
     // explícita de por que o daemon está ou não passando ele.
-    expect(daemonSource).toMatch(/auditHealth\(shitennoDir, shitennoDir, level\)/);
+    expect(daemonSource).toMatch(/auditHealth\(ctx\.shitennoDir, ctx\.shitennoDir, level\)/);
   });
 });
