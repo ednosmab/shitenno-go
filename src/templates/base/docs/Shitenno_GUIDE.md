@@ -1,179 +1,213 @@
-# Shitenno — Guia Completo do Sistema de Governança
+# Shitenno — Guia Completo do Sistema de Governança de Conhecimento
 
 > **Nome público:** Shitenno
 > **Ficheiro guia:** `shitenno/docs/Shitenno_GUIDE.md`
-> **Versão:** 2.0
-> **Data:** 2026-06-24
+> **Versão:** 1.2.0
+> **Data:** 2026-07-18
 
 ---
 
 ## 1. O que é o Shitenno
 
-O **Shitenno** é um framework de governança para desenvolvimento de software assistido por inteligência artificial. Define **como** uma equipa (humana + agentes IA) deve ler, compreender, modificar e validar código num repositório complexo — de forma segura, rastreável e consistente.
+O **Shitenno** é um sistema de governança de conhecimento de engenharia. Observa o teu projecto, mantém um modelo persistente e verificável do que já se sabe sobre ele — decisões, riscos, cobertura de testes, padrões, lacunas de conhecimento — e serve esse estado como contexto fiável para humanos e agentes IA que trabalham no repositório.
 
-### Princípio Fundamental
+### O Problema Que Resolve
 
-> **O sistema mede e sugere. O humano decide.**
+**Knowledge Debt** — conhecimento que existe mas está desconectado, não verificado, ou nunca chega a quem precisa no momento de agir. Sessões de trabalho (humanas ou IA) que começam do zero, sem memória do que já foi decidido, testado ou partilhado antes.
 
-Todo conhecimento tácito (regras, convenções, decisões arquitecturais, padrões de código) é convertido em:
-- **Ficheiros estruturados** (YAML, MD) legíveis por máquinas
-- **Protocolos obrigatórios** (workflows, checklists) que o agente segue sem decidir
-- **Regras vinculantes** (FORBIDDEN_OPERATIONS) que impedem erros antes de acontecerem
+### O Que Não É
 
-### Arquitectura Geral
+- **Não é um framework de documentação** — a documentação é um mecanismo, não o domínio
+- **Não é um framework para IA** — o sistema existe independentemente de IA
+- **Não é uma CLI** — a CLI (Shugo) é o ponto de entrada, não a identidade do sistema
+- **Não é um linter/formatter** — recomenda, não aplica alterações sozinho
+- **Não é um wrapper de IA** — não chama nenhum LLM; é a camada de contexto que um LLM externo consulta
+- **Não é hosted ou multi-tenant** — cada instância é local e isolada por projecto
+
+### Domínio Fundamental
+
+> **«Gestão da Evolução de Produtos através de Conhecimento, Governança e Automação.»**
+
+O Shitenno gere a evolução de um produto ao longo do seu ciclo de vida:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    PROJECTO DO UTILIZADOR                    │
-│                                                             │
-│  opencode.json          ← Configuração (project root)       │
-│  shitenno/          ← Framework de governança           │
-│    ├── docs/            ← Documentação e skills             │
-│    ├── governance/      ← Contratos, contextos, políticas   │
-│    ├── scripts/         ← Scripts de validação              │
-│    ├── cognition/       ← Memória e hierarquia              │
-│    ├── plugins/         ← Plugins do projecto               │
-│    └── profile/         ← Config do projecto                │
-└─────────────────────────────────────────────────────────────┘
-                          ▲
-                          │ shugo init / shugo upgrade
-                          │
-┌─────────────────────────────────────────────────────────────┐
-│                      SHUGO CLI (FERRAMENTA)                  │
-│                                                             │
-│  shugo init          ← Instala framework no projecto        │
-│  shugo status        ← Verifica saúde da governança         │
-│  shugo upgrade       ← Eleva capacidades (knowledge, etc.)  │
-│  shugo validate      ← Valida conformidade                 │
-│  shugo sync          ← Sincroniza templates                 │
-└─────────────────────────────────────────────────────────────┘
-                          ▲
-                          │ templates/base/
-                          │
-┌─────────────────────────────────────────────────────────────┐
-│                    TEMPLATES DO CLI                          │
-│                                                             │
-│  docs/skills/         ← 21 skills de engenharia             │
-│  governance/agents/   ← 4 contratos de papel IA             │
-│  core/complexity/     ← Contratos tipados de scoring        │
-│  scripts/             ← Scripts de sessão                   │
-│  profile/             ← Template de ProjectProfile          │
-└─────────────────────────────────────────────────────────────┘
+Produto
+   │
+   ▼
+Domínio
+   │
+   ▼
+Conhecimento
+   │
+   ▼
+Decisão
+   │
+   ▼
+Governança
+   │
+   ▼
+Execução
+   │
+   ▼
+Evidências
+   │
+   ▼
+Evolução ────────► Produto (ciclo repete)
 ```
+
+### Os Três Componentes
+
+| Componente | O que é |
+|---|---|
+| **Shugo** | O binário/CLI — ponto de entrada único (~38 comandos) |
+| **`.shitenno/`** | Artefacto gerado por projecto pelo `shugo init` — estado, cache, histórico, daemon |
+| **Daemon** | Processo de fundo, um por projecto — observa ficheiros, escuta event bus, acciona verificações |
+
+### Ponte IA
+
+O servidor MCP (`shugo mcp`) expõe o estado do projecto como ferramentas que um agente LLM pode consultar antes e durante o trabalho: `getBriefing`, `getRiskMap`, `getRules`, `getEngineeringState`, `getBacklog`, `getADRs`, `getSkills`. Recebe o resultado de volta via `submitFeedback`, fechando o ciclo entre recomendação e realidade.
 
 ---
 
-## 2. Capacidades do Sistema
+## 2. Ciclo de Vida do Conhecimento
 
-O Shitenno usa uma abordagem modular baseada em **capacidades**. O `shugo init` instala a base, e `shugo upgrade --capability <name>` adiciona capacidades conforme necessário.
+O Shitenno formaliza como o conhecimento nasce, amadurece e se torna automação:
+
+```
+Observação
+   │
+   ▼
+Hipótese
+   │
+   ▼
+Experimento
+   │
+   ▼
+Decisão
+   │
+   ▼
+ADR
+   │
+   ▼
+Skill
+   │
+   ▼
+Contrato
+   │
+   ▼
+Automação
+   │
+   ▼
+CLI
+```
+
+Nem todo conhecimento precisa chegar ao fim. Cada estágio tem critérios claros de avanço. Muitas decisões vivem felizes como ADRs.
+
+### Mapa de Maturidade
+
+| Estágio | Maturidade | Artefacto |
+|---|---|---|
+| Observação | 🟢 Inicial | Nota / Issue |
+| Hipótese | 🟢 Inicial | Afirmação testável |
+| Experimento | 🟡 Em desenvolvimento | Script / Teste |
+| Decisão | 🟡 Em desenvolvimento | Documento |
+| ADR | 🟠 Maduro | `adrs/ADR-*.md` |
+| Skill | 🟠 Maduro | `skills/*.md` |
+| Contrato | 🔴 Estável | `agents/AI-CONTRACT-*.yaml` |
+| Automação | 🔴 Estável | Script / Pipeline |
+| CLI | 🔴 Estável | `shugo <cmd>` |
+
+---
+
+## 3. Capacidades do Sistema
+
+O Shitenno usa uma abordagem modular baseada em **capacidades**. O `shugo init` instala a base (core + knowledge + governance + quality), e `shugo upgrade --capability <name>` adiciona capacidades conforme necessário.
 
 ### Capacidades Disponíveis
 
-| Capacidade | Descrição | Componentes |
+| Capacidade | Descrição | Depende de |
 |---|---|---|
-| **knowledge** | ADRs, skills, runbooks, workflow | Skills de engenharia, documentação |
-| **architecture** | Contratos de agentes, SYSTEM_MAP | Agentes IA, mapeamento de pastas |
-| **governance** | Políticas, FORBIDDEN_OPERATIONS, DESDO | Regras vinculantes, diretrizes |
-| **ai** | Context buffer, cognição, handoffs | Memória de sessão, coordenação |
-| **quality** | TDD, code review, premortem | Scripts de validação, checklists |
-| **metrics** | Complexity scoring, performance | Scoring, métricas de engenharia |
-| **operations** | CI/CD, deploy, monitoring | Pipelines, runbooks operacionais |
-| **compliance** | Audit trails, ADRs, SDRs | Rastreabilidade, decisões |
+| **core** | Fundação básica (sempre instalado) | — |
+| **knowledge** | Skills, documentação, regras de engenharia | core |
+| **governance** | Workflows, context buffer, gestão de sessões | core |
+| **architecture** | Decisões arquitecturais, planos, ADRs | core |
+| **ai** | Contratos de agentes IA, cognition, prompts | governance |
+| **quality** | Scripts de validação, sync-docs | core |
+| **metrics** | Relatórios, histórico, scoring | core |
+| **operations** | Runbooks, sessões, análise de riscos | core |
+| **compliance** | Premortem, reviews, regras vinculantes | core |
 
 ### Como Funciona
 
-1. **`shugo init`** — Instala base completa (knowledge + architecture + governance)
+1. **`shugo init`** — Instala base (core + knowledge + governance + quality)
 2. **`shugo upgrade --capability <name>`** — Adiciona capacidade específica
 3. **`shugo upgrade --accept-recommended`** — Instala todas as recomendadas pelo perfil
 
 ---
 
-## 3. Skills — 21 Competências de Engenharia
+## 4. Skills — 16 Competências de Engenharia
 
 ### Distribuição
 
 | Categoria | # Skills | Descrição |
 |---|---|---|
-| **Core** | 11 | Engenharia fundamental (TDD, SOLID, clean code, etc.) |
-| **Intermediárias** | 7 | Especializadas (CI/CD, DDD, animação, UI/UX, etc.) |
-| **Avançadas** | 3 | Performance, segurança, infraestrutura |
+| **Core** | 12 | Engenharia fundamental (TDD, SOLID, clean code, etc.) |
+| **Intermediárias** | 3 | Especializadas (CI/CD, DDD, operação no Shitenno) |
+| **Avançadas** | 1 | Postura sistémica e enforcements |
 
-### Skills Core (11)
+### Skills Core (12)
 
-| Skill | Tipo | Descrição |
-|---|---|---|
-| `senior-engineer.md` | Genérica pura | Postura operacional de engenheiro senior (15+ anos) |
-| `tdd-agent.md` | Genérica pura | Agente TDD — ciclo Red-Green-Refactor rigoroso |
-| `tdd_workflow.md` | Mista | Workflow de testes com Vitest/Jest |
-| `clean_code_standards.md` | Mista | Padrões de código limpo |
-| `solid_principles.md` | Mista | Princípios SOLID aplicados |
-| `architectural_integrity.md` | Genérica pura | Integridade arquitectural e padrões |
-| `design_patterns.md` | Mista | Padrões de design (Factory, Strategy, etc.) |
-| `error_handling_observability.md` | Mista | Tratamento de erros e observabilidade |
-| `pnpm_management.md` | Genérica pura | Gestão de pacotes com pnpm |
-| `optimistic_ui.md` | Mista | UI optimista para respostas imediatas |
-| `codebase_hygiene_git.md` | Genérica pura | Higiene de código e workflow Git |
+| Skill | Descrição |
+|---|---|
+| `senior-engineer.md` | Postura operacional de engenheiro sénior (15+ anos) |
+| `tdd-agent.md` | Agente TDD — ciclo Red-Green-Refactor rigoroso |
+| `tdd_workflow.md` | Workflow de testes com Vitest/Jest |
+| `clean_code_standards.md` | Padrões de código limpo |
+| `solid_principles.md` | Princípios SOLID aplicados |
+| `architectural_integrity.md` | Integridade arquitectural e padrões |
+| `design_patterns.md` | Padrões de design (Factory, Strategy, etc.) |
+| `error_handling_observability.md` | Tratamento de erros e observabilidade |
+| `pnpm_management.md` | Gestão de pacotes com pnpm |
+| `optimistic_ui.md` | UI optimista para respostas imediatas |
+| `codebase_hygiene_git.md` | Higiene de código e workflow Git |
+| `quick-board-enforcement.md` | Enforçamento do Quick Board de aviso |
 
-### Skills Intermediárias (+7)
+### Skills Intermediárias (3)
 
-| Skill | Tipo | Descrição |
-|---|---|---|
-| `animation_protocol.md` | Mista | Protocolo de animação e transição (UX premium) |
-| `ci_cd_pipeline.md` | Mista | CI/CD com GitHub Actions |
-| `ddd_patterns.md` | Mista | Domain-Driven Design patterns |
-| `responsividade.md` | Mista | Responsividade cross-platform |
-| `state_management_protocol.md` | Mista | Gestão de estado (Server vs Client) |
-| `ui_ux_principles.md` | Mista | Princípios de UI e UX visual |
-| `operacao_no_shitenno.md` | Meta-skill | Como agir dentro da estrutura de pastas do Shugo |
+| Skill | Descrição |
+|---|---|
+| `ci_cd_pipeline.md` | CI/CD com GitHub Actions |
+| `domain_driven_design_(ddd).md` | Domain-Driven Design patterns |
+| `operacao_no_shitenno.md` | Como agir dentro da estrutura de pastas do Shugo |
 
-### Skills Avançadas (+3)
+### Skills Avançadas (1)
 
-| Skill | Tipo | Descrição |
-|---|---|---|
-| `nextjs_performance_seo.md` | Mista | Next.js performance e SEO |
-| `postgresql_performance.md` | Mista | PostgreSQL performance e optimização |
-| `security_xss_prevention.md` | Mista | Segurança e prevenção de XSS |
+| Skill | Descrição |
+|---|---|
+| `system-first.md` | Postura sistémica: problema antes da solução, visão holística |
 
-### Classificação das Skills
+### Skills por Capacidade
 
-- **Genéricas puras (5):** Corpo inteiro é metodologia, sem menção a path, produto ou stack específica
-- **Mistas (15):** Princípio central é genérico, mas a skill original tinha seções específicas que foram generalizadas
-- **Meta-skill (1):** `operacao_no_shitenno.md` — descreve como operar dentro da estrutura de pastas
+Certas skills são instaladas apenas por capacidades específicas (ex: `security_xss_prevention.md` via `shugo upgrade` conforme o perfil do projecto).
 
 ---
 
-## 4. Os 4 Papéis de Agente IA
+## 5. Os 4 Papéis de Agente IA (Contratos)
 
-Cada agente IA num projecto Shugo tem um contrato definido:
+Cada agente IA num projecto Shitenno tem um contrato definido em `governance/agents/`:
 
-### Planner (Planeador)
-- **Ficheiro:** `AI-CONTRACT-planner-v1.yaml`
-- **Função:** Lê contexto do projecto e produz planos atómicos
-- **Permissões:** Leitura ampla, escrita apenas em `governance/plans/`
+| Papel | Ficheiro | Função |
+|---|---|---|
+| **Planner** | `AI-CONTRACT-planner-v1.yaml` | Lê contexto e produz planos atómicos |
+| **Executor** | `AI-CONTRACT-executor-v1.yaml` | Executa o plano step-by-step, exactamente como aprovado |
+| **Reviewer** | `AI-CONTRACT-reviewer-v1.yaml` | Audita código, valida contra o plano |
+| **Orchestrator** | `AI-CONTRACT-orchestrator-v1.yaml` | Coordena os 3 agentes, gere handoffs |
 
-### Executor (Construtor)
-- **Ficheiro:** `AI-CONTRACT-executor-v1.yaml`
-- **Função:** Executa o plano step-by-step, exactamente como aprovado
-- **Restrições:** Sem refactors oportunistas, sem melhorias não planeadas
-- **Excepções:** Fixes mínimos (<5 linhas) para fazer o step actual passar
-
-### Reviewer (Auditor)
-- **Ficheiro:** `AI-CONTRACT-reviewer-v1.yaml`
-- **Função:** Audita código produzido, valida contra o plano
-- **Permissões:** Apenas leitura em código de produção, pode correr testes/lint
-
-### Orchestrator (Orquestrador)
-- **Ficheiro:** `AI-CONTRACT-orchestrator-v1.yaml`
-- **Função:** Coordena os 3 agentes, gere handoffs e transições
-- **Restrições:** Sem commit sem autorização, sem alterar regras sem aprovação
-
-### Princípio Comum a Todos
-
-> **O humano decide. O agente executa. Nenhum commit sem autorização explícita.**
+> **Nota:** Em configurações de agente único, os 3 papéis são consolidados num arquiteto sénior full-stack com autonomia total.
 
 ---
 
-## 5. Arquitectura de Memória (RAM/ROM)
+## 6. Arquitectura de Memória (RAM/ROM)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -205,37 +239,39 @@ Cada agente IA num projecto Shugo tem um contrato definido:
 
 ---
 
-## 6. Hierarquia de Contexto (P0→P4)
+## 7. Hierarquia de Contexto (P0→P4)
 
 ```
-[Nível 0: P0] docs/AGENTS.md              ← Regras Globais (SEMPRE)
+[Nível 0: P0] AGENTS.md, FORBIDDEN_OPERATIONS.md, DESDO.md  ← Regras Globais (SEMPRE)
        │
        ▼
-[Nível 1: P1] governance/context/
-             context_buffer.yaml           ← Estado Actual
+[Nível 1: P1] governance/context/context_buffer.yaml        ← Estado Actual
        │
        ▼
-[Nível 2: P2] Código e configuração       ← Escrita Cirúrgica
+[Nível 2: P2] Planos da camada                              ← Por tarefa
        │
        ▼
-[Nível 3: P3] docs/skills/                ← Competências operacionais
+[Nível 3: P3] Código e configuração                         ← Escrita Cirúrgica
        │
        ▼
-[Nível 4: P4] docs/history/               ← Auditoria (Sob Demanda)
+[Nível 4: P4] docs/skills/                                  ← Competências operacionais
+       │
+       ▼
+[Nível 5: P5] docs/history/                                 ← Auditoria (Sob Demanda)
 ```
 
-**Regra:** O agente nunca decide o que ler. A hierarquia P0→P4 determina a ordem.
+**Regra:** O agente nunca decide o que ler. A hierarquia P0→P5 determina a ordem.
 
 ---
 
-## 7. Workflow Operacional (4 Passos)
+## 8. Workflow Operacional (4 Passos)
 
 ```
 PASSO 1: DIAGNÓSTICO E LEITURA PREGUIÇOSA
   │  → Ler WORKFLOW.md
   │  → Ler context_buffer.yaml
   │  → Ler AGENTS.md (P0)
-  │  → Identificar tipo: FEATURE | BUG | REFACTOR
+  │  → Identificar tipo: FEATURE | BUG | REFACTOR | DOCUMENTATION | PLANNING
   ▼
 PASSO 2: ACTUALIZAÇÃO DA MEMÓRIA RAM
   │  → Actualizar context_buffer.yaml
@@ -249,23 +285,25 @@ PASSO 3: EXECUÇÃO CIRÚRGICA
 PASSO 4: CONSOLIDAÇÃO E PURGA
      → Marcar [x] no plano
      → Limpar impedimentos do buffer
-     → Gerar histórico (ROM)
+     → Executar validate-session
+     → Executar close-session (quando autorizado)
 ```
 
 ---
 
-## 8. Fluxo por Tipo de Operação
+## 9. Fluxo por Tipo de Operação
 
 ### Nova Feature
 1. Ler WORKFLOW.md → Determinar tipo
 2. Ler context_buffer.yaml → Estado actual
-3. Executar PREMORTEM → O que pode quebrar?
-4. Criar plano em governance/plans/
+3. Executar `premortem-check` → O que pode quebrar?
+4. Criar plano em `governance/plans/`
 5. Actualizar buffer com tarefa em execução
 6. Implementar código cirurgicamente
 7. Executar testes e lint
-8. Executar validate-session
-9. Executar close-session
+8. Executar `pnpm run validate:session`
+9. Aguardar autorização para commit
+10. Executar `pnpm run close:session`
 
 ### Bug Report
 1. Ler WORKFLOW.md → Identificar como BUG
@@ -279,14 +317,28 @@ PASSO 4: CONSOLIDAÇÃO E PURGA
 ### Refactor
 1. Ler WORKFLOW.md → Identificar como REFACTOR
 2. Ler ADRs relacionadas
-3. Executar premortem:check → Verificar impacto
+3. Executar `premortem-check` → Verificar impacto
 4. Executar refactoração conforme plano
 5. Executar testes e lint
 6. Validar e encerrar
 
+### Documentation
+1. Ler WORKFLOW.md → Identificar como DOCUMENTATION
+2. Ler documentos afectados
+3. Escrever/actualizar documentação
+4. Verificar referências cruzadas
+5. Validar e encerrar
+
+### Planning
+1. Ler WORKFLOW.md → Identificar como PLANNING
+2. Ler contexto completo (P0 + P1)
+3. Gerar plano atómico em `governance/plans/`
+4. Apresentar ao utilizador para aprovação
+5. Aguardar autorização antes de executar
+
 ---
 
-## 9. Complexidade e Scoring
+## 10. Complexidade e Scoring
 
 O Shitenno calcula complexidade do projecto usando dois eixos:
 
@@ -305,77 +357,166 @@ O Shitenno calcula complexidade do projecto usando dois eixos:
 - **Score 4-6:** Média complexidade — projecto em crescimento
 - **Score 7-10:** Alta complexidade — projecto complexo, multi-app, muitas dependências
 
+O perfil de maturidade é calculado por capacidade e consolidado num score 0-100.
+
 ---
 
-## 10. Directórios do Projecto
+## 11. Directórios do Projecto
 
 ### Estrutura após `shugo init`
 
 ```
 projecto/
-├── opencode.json                    ← Configuração (project root)
+├── opencode.json                         ← Configuração
 └── shitenno/
+    ├── cognition/                        ← Arquitectura mental (capability: ai)
+    │   ├── context/
+    │   │   └── CONTEXT_HIERARCHY.md      ← Hierarquia P0-P5
+    │   ├── memory/
+    │   │   └── MEM-operational-state-v1.json
+    │   └── prompts/                      ← Prompts por agente
+    │       ├── executor/README.md
+    │       ├── planner/README.md
+    │       └── reviewer/README.md
+    ├── core/
+    │   └── complexity/
+    │       └── types.ts                  ← Contratos tipados de scoring
     ├── docs/
-    │   ├── AGENTS.md                ← Regras do time (P0)
-    │   ├── Shitenno_GUIDE.md    ← Este ficheiro
-    │   ├── opencode-context.md      ← Contexto para o agente
-    │   ├── feedback/                ← Feedback de sessões
+    │   ├── AGENTS.md                     ← Regras do time (P0)
+    │   ├── CONCEPTUAL_MODEL.md           ← Modelo conceitual canónico
+    │   ├── DESDO.md                      ← Diretrizes de engenharia (P0)
+    │   ├── FORBIDDEN_OPERATIONS.md       ← Regras vinculantes (P0)
+    │   ├── INDEX.md                      ← Índice de documentos
+    │   ├── KNOWLEDGE_LIFECYCLE.md        ← Ciclo de vida do conhecimento
+    │   ├── Shitenno_GUIDE.md             ← Este ficheiro
+    │   ├── capabilities.md               ← Mapeamento capacidade→regras
+    │   ├── opencode-context.md           ← Contexto para o agente
+    │   ├── session-template.md           ← Template de sessão
+    │   ├── adrs/                         ← Architecture Decision Records
+    │   │   ├── ADR-000-exemplo.md
+    │   │   └── ADR-TEMPLATE.md
+    │   ├── backlog/                      ← Backlog do projecto
+    │   │   ├── ACTIVE.md
+    │   │   └── DONE.md
+    │   ├── feedback/                     ← Feedback de sessões (privado)
     │   │   └── README.md
-    │   └── skills/                  ← Skills de engenharia
+    │   ├── reports/                      ← Relatórios
+    │   │   └── README.md
+    │   ├── rules/                        ← Regras modulares
+    │   │   ├── agent-modes.md
+    │   │   ├── branch-policy.md
+    │   │   ├── context-algorithm.md
+    │   │   ├── dependency-graph.md
+    │   │   ├── feedback-protocol.md
+    │   │   └── lazy-loading.md
+    │   ├── runbooks/                     ← Runbooks operacionais
+    │   │   └── merge.md
+    │   ├── sdr/                          ← Solution Decision Records
+    │   │   └── SDR-TEMPLATE.md
+    │   └── skills/                       ← Competências operacionais
     │       ├── senior-engineer.md
     │       ├── tdd-agent.md
-    │       └── ... (11-21 skills)
+    │       ├── tdd_workflow.md
+    │       ├── clean_code_standards.md
+    │       ├── solid_principles.md
+    │       ├── architectural_integrity.md
+    │       ├── design_patterns.md
+    │       ├── error_handling_observability.md
+    │       ├── pnpm_management.md
+    │       ├── optimistic_ui.md
+    │       ├── codebase_hygiene_git.md
+    │       ├── quick-board-enforcement.md
+    │       ├── ci_cd_pipeline.md
+    │       ├── domain_driven_design_(ddd).md
+    │       ├── operacao_no_shitenno.md
+    │       └── system-first.md
     ├── governance/
-    │   ├── agents/                  ← Contratos de agente
+    │   ├── SYSTEM_MAP.md                 ← Mapa centralizado do sistema
+    │   ├── WORKFLOW.md                   ← Fluxo de sessão (entrada única)
+    │   ├── skill-manifest.yaml           ← Manifesto de skills
+    │   ├── agents/                       ← Contratos de agente
     │   │   ├── AI-CONTRACT-planner-v1.yaml
     │   │   ├── AI-CONTRACT-executor-v1.yaml
     │   │   ├── AI-CONTRACT-reviewer-v1.yaml
     │   │   └── AI-CONTRACT-orchestrator-v1.yaml
-    │   └── context/                 ← RAM (live session state)
-    │       └── context_buffer.yaml
-    ├── core/
-    │   └── complexity/
-    │       └── types.ts             ← Contratos tipados
-    ├── scripts/
-    │   ├── validate-session.ts
-    │   ├── close-session.ts
-    │   └── premortem-check.ts
-    └── cognition/                   ← capability: ai
-        ├── context/
-        │   └── CONTEXT_HIERARCHY.md
-        └── memory/
-            └── MEM-operational-state-v1.json
+    │   ├── context/                      ← RAM (live session state)
+    │   │   └── context_buffer.yaml
+    │   ├── contracts/                    ← Índice de contratos
+    │   │   └── CONTRACTS_INDEX.md
+    │   ├── handoffs/                     ← Protocolos de transição
+    │   │   └── TEMPLATE.md
+    │   ├── knowledge-graph/              ← Grafo de conhecimento
+    │   │   ├── artifacts.json
+    │   │   ├── artifacts.jsonl
+    │   │   ├── relations.json
+    │   │   └── relations.jsonl
+    │   ├── plans/                        ← Planos de execução
+    │   │   └── TEMPLATE.md
+    │   ├── policies/                     ← Políticas operacionais
+    │   │   ├── BRANCH-POLICY.md
+    │   │   ├── COMMIT-POLICY.md
+    │   │   ├── POLICY-TEMPLATE.md
+    │   │   └── REVIEW-POLICY.md
+    │   ├── premortem/                    ← Análise de riscos
+    │   │   └── PREMORTEM.md
+    │   ├── reviews/                      ← Reviews de sessão
+    │   │   └── SESSION_REVIEW.md
+    │   └── rules/                        ← Regras do rule engine
+    │       ├── RULE-011.json
+    │       ├── RULE-012.json
+    │       ├── RULE-013.json
+    │       ├── RULE-014.json
+    │       ├── RULE-015.json
+    │       ├── RULE-016.json
+    │       ├── RULE-017.json
+    │       ├── RULE-018.json
+    │       ├── RULE-019.json
+    │       ├── RULE-020.json
+    │       └── RULE-TEMPLATE.json
+    ├── plugins/                          ← Plugins (capability: operations)
+    │   ├── README.md
+    │   ├── event-logger/plugin.js
+    │   ├── health-check/plugin.js
+    │   ├── health-check/plugin.ts
+    │   └── health-monitor/plugin.js
+    └── scripts/                          ← Scripts de sessão
+        ├── validate-session.ts
+        ├── close-session.ts
+        ├── premortem-check.ts
+        ├── backlog.ts
+        ├── sync-docs.ts
+        └── generate-changelog.ts
 ```
 
 ### O que muda por capacidade
 
-| Directório | Base (init) | + knowledge | + architecture | + governance | + ai | + quality | + metrics | + operations | + compliance |
+| Directório | Init | +knowledge | +architecture | +governance | +ai | +quality | +metrics | +operations | +compliance |
 |---|---|---|---|---|---|---|---|---|---|
 | `docs/skills/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `governance/agents/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `governance/context/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `governance/context/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `governance/contracts/` | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `governance/handoffs/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `governance/knowledge-graph/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `governance/policies/` | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `governance/premortem/` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| `governance/reviews/` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| `governance/premortem/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `governance/reviews/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `governance/rules/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `cognition/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | `docs/adrs/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `docs/feedback/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs/backlog/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `docs/history/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs/rules/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs/runbooks/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| `docs/sdr/` | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `governance/plans/` | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `docs/sdr/` | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `reports/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| `session-feedback/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `telemetry/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | `plugins/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| `profile/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `daemon/` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `history/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| `reports/` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `scripts/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
-## 11. ProjectProfile
+## 12. ProjectProfile
 
 O `shitenno/profile/<project-name>.config.ts` define o perfil do projecto:
 
@@ -403,19 +544,24 @@ export const profile: ProjectProfile = {
 
 ---
 
-## 12. Regras Vinculantes (Resumo)
+## 13. Regras Vinculantes (Resumo)
 
 ### Proibições Absolutas
 
 | # | Regra |
 |---|---|
 | G-01 | Nenhum `git commit` sem autorização explícita do utilizador |
+| G-05 | Respeitar modelo do step em planos de execução |
 | F-01 | Nenhuma lógica de domínio em componentes UI |
 | F-03 | Nenhum import cruzado entre apps |
 | F-04 | Nenhum schema de validação fora da camada de contratos |
 | S-01 | Nenhum HTML dinâmico sem sanitização |
 | S-02 | Nenhuma tabela sem RLS configurado |
 | DB-01 | Nenhuma mutação JSONB sem validação |
+| ENV-01 | Nenhuma flag de teste em configuração de produção |
+| DT-01 | Adiamentos requerem data de revisit |
+| DT-02 | Sessão não concluída sem ritual de fecho |
+| CONFID-01 | Proibição de mencionar nomes de alvos/parceiros em artefactos versionados |
 
 ### Princípios de Código
 
@@ -429,64 +575,118 @@ export const profile: ProjectProfile = {
 
 ---
 
-## 13. Glossário
+## 14. Glossário
 
 | Termo | Definição |
 |---|---|
-| **Shitenno** | Framework de governança para dev assistido por IA |
-| **RAM** | Memória de curto prazo (context_buffer.yaml) — mutável |
-| **ROM** | Memória de longo prazo (docs/history/) — imutável |
-| **P0-P4** | Níveis de hierarquia de contexto |
+| **Shitenno** | Sistema de governança de conhecimento de engenharia |
+| **Knowledge Debt** | Conhecimento que existe mas está desconectado ou não chega a quem precisa |
+| **Shugo** | CLI do Shitenno (~38 comandos) |
+| **Daemon** | Processo de fundo que observa o projecto |
+| **RAM** | Memória de curto prazo (`context_buffer.yaml`) — mutável |
+| **ROM** | Memória de longo prazo (`docs/history/`) — imutável |
+| **P0-P5** | Níveis de hierarquia de contexto |
 | **Premortem** | Análise de riscos prévia à implementação |
 | **ADR** | Architecture Decision Record — registo de decisão arquitectural |
+| **SDR** | Solution Decision Record — registo de decisão de solução |
 | **FORBIDDEN_OPERATIONS** | Regras vinculantes que nenhum agente pode violar |
 | **ProjectProfile** | Perfil do projecto (áreas, keywords, weights) |
 | **Scoring** | Cálculo de complexidade (static + behavioral metrics) |
 | **Handoff** | Transição controlada entre agentes |
 | **Context Buffer** | Estado activo da sessão (RAM) |
+| **MCP** | Model Context Protocol — ponte entre Shitenno e agentes IA |
+| **Capacidade** | Módulo funcional instalável via `shugo upgrade` |
 
 ---
 
-## 14. Comandos CLI
+## 15. Comandos CLI (38)
+
+### Core Commands
 
 | Comando | Função |
 |---|---|
-| `shugo init` | Instala framework no projecto (detecta stack, gera profile) |
-| `shugo init --answers-file <path>` | Instala com respostas pré-definidas (JSON, sem prompts interactivos) |
-| `shugo status` | Verifica saúde da governança (auto-detecta projecto) |
-| `shugo upgrade --capability <name>` | Adiciona uma capacidade (knowledge, architecture, governance, ai, quality, metrics, operations, compliance) |
-| `shugo upgrade --list` | Mostra capacidades disponíveis e seu estado |
-| `shugo upgrade --accept-recommended` | Instala todas as capacidades recomendadas pelo perfil |
-| `shugo validate` | Valida conformidade do projecto |
-| `shugo detect` | Detecta padrões no histórico de commits |
-| `shugo audit` | Auto-avaliação: regras mortas, hotspots de violação |
-| `shugo evolve` | Recomendações adaptativas baseadas na maturidade |
+| `shugo init` | Inicializa governança no projecto |
+| `shugo status` | Health check + complexity scoring |
 | `shugo run` | Pipeline completo de 5 estágios |
+| `shugo upgrade` | Adicionar capacidades de governança |
+| `shugo validate` | Verificação de integridade de sessão |
+
+### Analysis Commands
+
+| Comando | Função |
+|---|---|
+| `shugo detect` | Detecção de padrões do histórico |
+| `shugo audit` | Auto-avaliação: regras mortas, hotspots |
+| `shugo evolve` | Recomendações adaptativas |
 | `shugo assess` | Re-avaliação do perfil de maturidade |
 | `shugo doctor` | Diagnósticos de saúde do sistema |
-| `shugo report` | Gera relatórios |
-| `shugo clean` | Limpa cache e ficheiros temporários |
+| `shugo scheduled-check` | Verificação de alterações não commitadas |
+
+### Governance Commands
+
+| Comando | Função |
+|---|---|
+| `shugo plan` | Gerar planos de execução |
+| `shugo goal` | Definir e tracking de objectivos |
+| `shugo decide` | Registo e gestão de decisões |
+| `shugo policy` | Gestão de políticas de governança |
+| `shugo act` | Execução de acções de agente |
+
+### Context Commands
+
+| Comando | Função |
+|---|---|
+| `shugo context` | Contexto completo do projecto para IA |
+| `shugo briefing` | Briefing pré-sessão |
+| `shugo digest` | Sumários de estado |
+| `shugo feedback` | Registo de resultado de sessão |
+| `shugo history` | Histórico de engineering state |
+| `shugo handbook` | Manual de referência do Shugo |
+| `shugo backlog` | Gestão de backlog com estados e prioridades |
+
+### Utility Commands
+
+| Comando | Função |
+|---|---|
+| `shugo sync` | Sincronizar governança |
+| `shugo clean` | Limpar cache e ficheiros temporários |
+| `shugo report` | Gerar relatórios |
+| `shugo bench` | Benchmarks de performance |
+| `shugo console` | Consola interactiva de governança |
+| `shugo dashboard` | Dashboard visual do projecto |
+| `shugo profile` | Perfil de maturidade detalhado |
+| `shugo reminders` | Tracking de tarefas pendentes |
+| `shugo mcp` | Servidor MCP para integração IA |
+| `shugo update` | Actualizar templates do Shitenno |
+| `shugo shell-init` | Configuração de shell completions |
+| `shugo docs-audit` | Auditoria de sincronização de docs |
+| `shugo events` | Trace de execução do rule engine |
+| `shugo hooks` | Gestão de Git hooks |
 
 ---
 
-## 15. Referências
+## 16. Referências
 
 | Documento | Caminho | Propósito |
 |---|---|---|
 | WORKFLOW | `governance/WORKFLOW.md` | Fluxo de sessão (entrada única) |
 | SYSTEM_MAP | `governance/SYSTEM_MAP.md` | Mapa centralizado do sistema |
-| CONTEXT_HIERARCHY | `cognition/context/CONTEXT_HIERARCHY.md` | Hierarquia de leitura P0-P4 |
+| CONTEXT_HIERARCHY | `cognition/context/CONTEXT_HIERARCHY.md` | Hierarquia de leitura P0-P5 |
 | AGENTS.md | `docs/AGENTS.md` | Regras do time de engenharia |
 | FORBIDDEN_OPERATIONS | `docs/FORBIDDEN_OPERATIONS.md` | Regras vinculantes |
 | DESDO | `docs/DESDO.md` | Diretrizes de engenharia |
-| ROADMAP | `docs/ROADMAP.md` | Roadmap de evolução do framework |
+| CONCEPTUAL_MODEL | `docs/CONCEPTUAL_MODEL.md` | Modelo conceitual canónico |
+| KNOWLEDGE_LIFECYCLE | `docs/KNOWLEDGE_LIFECYCLE.md` | Ciclo de vida do conhecimento |
 | context_buffer | `governance/context/context_buffer.yaml` | Estado activo (RAM) |
+| capabilities | `docs/capabilities.md` | Mapeamento capacidade→regras→arquivos |
+| INDEX | `docs/INDEX.md` | Índice de documentos |
 
 ---
 
-## 16. Changelog
+## 17. Changelog
 
 | Versão | Data | Alteração |
 |---|---|---|
+| 1.2.0 | 2026-07-18 | Reescrita completa da identidade (sistema de governança de conhecimento), actualização de skills (16), directórios (94 ficheiros), comandos (38), ciclos conceptual e de conhecimento |
 | 2.0 | 2026-06-24 | Reescrita completa: 3 níveis, 21 skills, 4 agentes, scoring, profiles |
 | 1.0 | — | Criação inicial do guia |
