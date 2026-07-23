@@ -50,7 +50,6 @@ describe("task-completion", () => {
         shitennoDir: process.cwd(),
         taskId: "TEST-005",
       });
-      console.log("Gates:", result.gates.map(g => ({ name: g.name, passed: g.passed, message: g.message })));
       expect(result.passed).toBe(true);
     });
 

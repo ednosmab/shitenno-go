@@ -55,7 +55,7 @@ export function findBacklogItem(
 export function transitionTask(
   shitennoDir: string,
   taskId: string,
-  _fromState: BacklogState,
+  fromState: BacklogState,
   toState: BacklogState,
 ): TransitionResult {
   const { active: backlogPath } = resolveBacklogPaths(shitennoDir);
@@ -64,6 +64,13 @@ export function transitionTask(
 
   if (!item) {
     return { success: false, message: `Task ${taskId} not found in backlog` };
+  }
+
+  if (item.state !== fromState) {
+    return {
+      success: false,
+      message: `Task ${taskId} is in state "${item.state}", expected "${fromState}"`,
+    };
   }
 
   const result = transitionItem(backlogPath, taskId, toState);

@@ -15,7 +15,6 @@ export {
   handleGetRiskMap,
   handleGetRules,
   handleGetEngineeringState,
-  handleGetBacklog,
   handleGetPlans,
   handleSubmitFeedback,
   handleGetADRs,
@@ -27,13 +26,13 @@ import {
   handleGetRiskMap,
   handleGetRules,
   handleGetEngineeringState,
-  handleGetBacklog,
   handleGetPlans,
   handleSubmitFeedback,
   handleGetADRs,
   handleGetSkills,
 } from "./mcp-server-handlers.js";
 import {
+  handleGetBacklog,
   handleAddBacklogItem,
   handleTransitionBacklogItem,
   handleDeleteBacklogItem,

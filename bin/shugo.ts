@@ -20,6 +20,7 @@ import { stopWatching } from "../src/infrastructure/persistence/file-watcher.js"
 import { COMMAND_CATEGORIES, findCommand } from "../src/help-data.js";
 import { SHITENNO_DIR_NAME } from "../src/constants.js";
 import { initDesktopNotifier } from "../src/desktop-notifier.js";
+import { resolveBacklogPaths } from "../src/backlog-core.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -209,7 +210,7 @@ function resolveP1Debts(data: Record<string, unknown>): string {
 }
 
 function resolveNextP0(shitennoDir: string, fallback: string): string {
-  const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
+  const { active: backlogPath } = resolveBacklogPaths(shitennoDir);
   if (!existsSync(backlogPath)) return fallback;
 
   const backlog = readFileSync(backlogPath, "utf-8");
@@ -396,7 +397,6 @@ program.addCommand((await import("../src/commands/events.js")).eventsCommand);
 program.addCommand((await import("../src/commands/context.js")).contextCommand);
 program.addCommand((await import("../src/commands/handbook.js")).handbookCommand);
 program.addCommand((await import("../src/commands/hooks.js")).hooksCommand);
-program.addCommand((await import("../src/commands/backlog.js")).backlogCommand);
 program.addCommand((await import("../src/commands/backlog.js")).backlogCommand);
 program.addCommand((await import("../src/commands/daemon.js")).daemonCommand());
 program.addCommand((await import("../src/commands/scheduled-check.js")).internalScheduledCheckCommand);

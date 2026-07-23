@@ -9,7 +9,6 @@ import {
 import { loadRules } from "./rule-engine.js";
 import { generateDynamicRules } from "./dynamic-rules.js";
 import { getEngineeringState } from "./engineering-state/index.js";
-import { parseBacklog } from "./backlog-parser.js";
 import { readCache } from "./briefing-cache.js";
 import { recordOutcome, createFileStorage } from "./session-feedback.js";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
@@ -308,22 +307,6 @@ export async function handleGetEngineeringState(
   }
 }
 
-export function handleGetBacklog(
-  _projectRoot: string,
-  shitennoDir: string,
-  args: Record<string, unknown>
-): ToolResponse {
-  const backlogPath = join(shitennoDir, "docs", "backlog", "ACTIVE.md");
-  const donePath = join(shitennoDir, "docs", "backlog", "DONE.md");
-  let items = [...parseBacklog(backlogPath), ...parseBacklog(donePath)];
-
-  if (args.state && typeof args.state === "string") {
-    const stateFilter = args.state.toLowerCase();
-    items = items.filter(item => item.state.toLowerCase() === stateFilter);
-  }
-
-  return { content: [{ type: "text", text: JSON.stringify(items, null, 2) }] };
-}
 
 export function handleGetPlans(
   _projectRoot: string,
