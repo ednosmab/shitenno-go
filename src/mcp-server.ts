@@ -33,6 +33,14 @@ import {
   handleGetADRs,
   handleGetSkills,
 } from "./mcp-server-handlers.js";
+import {
+  handleAddBacklogItem,
+  handleTransitionBacklogItem,
+  handleDeleteBacklogItem,
+  BACKLOG_MCP_TOOLS,
+} from "./backlog-mcp-tools.js";
+
+type ToolResponse = { content: Array<{ type: string; text: string }>; isError?: boolean };
 
 const TOOLS = [
   {
@@ -44,33 +52,18 @@ const TOOLS = [
     inputSchema: {
       type: "object" as const,
       properties: {
-        format: {
-          type: "string" as const,
-          enum: ["json", "markdown", "summary"],
-          description: "Output format.",
-        },
-        depth: {
-          type: "string" as const,
-          enum: ["minimal", "standard", "full"],
-          description: "Briefing depth.",
-        },
-        task: {
-          type: "string" as const,
-          description: "e.g. implementation, refactor, audit, infra — used to resolve mandatory skills.",
-        },
+        format: { type: "string" as const, enum: ["json", "markdown", "summary"], description: "Output format." },
+        depth: { type: "string" as const, enum: ["minimal", "standard", "full"], description: "Briefing depth." },
+        task: { type: "string" as const, description: "e.g. implementation, refactor, audit, infra — used to resolve mandatory skills." },
       },
     },
   },
   {
     name: "getRiskMap",
-    description:
-      "Generate a risk map of the project. Analyses test coverage, code churn, " +
-      "file sizes, import complexity, and sensitive keywords.",
+    description: "Generate a risk map of the project. Analyses test coverage, code churn, file sizes, import complexity, and sensitive keywords.",
     inputSchema: {
       type: "object" as const,
-      properties: {
-        format: { type: "string" as const, enum: ["json", "summary"], description: "Output format." },
-      },
+      properties: { format: { type: "string" as const, enum: ["json", "summary"], description: "Output format." } },
     },
   },
   {
@@ -91,11 +84,14 @@ const TOOLS = [
   },
   {
     name: "getBacklog",
-    description: "Get the current active tasks and backlog items.",
+    description: "Get the current active tasks and backlog items. Supports filtering by state and priority. Returns summary stats.",
     inputSchema: {
       type: "object" as const,
       properties: {
         state: { type: "string" as const, description: "Optional filter by state." },
+        priority: { type: "string" as const, description: "Optional filter by priority (P0, P1, P2, P3)." },
+        includeDone: { type: "boolean" as const, description: "Include done items." },
+        format: { type: "string" as const, enum: ["json", "summary"], description: "Output format." },
       },
     },
   },
@@ -104,9 +100,7 @@ const TOOLS = [
     description: "List active architectural plans or read a specific plan.",
     inputSchema: {
       type: "object" as const,
-      properties: {
-        planName: { type: "string" as const, description: "Optional plan filename." },
-      },
+      properties: { planName: { type: "string" as const, description: "Optional plan filename." } },
     },
   },
   {
@@ -126,9 +120,7 @@ const TOOLS = [
     description: "List Architecture Decision Records, or get the full content of one by id (e.g. 'ADR-008')",
     inputSchema: {
       type: "object" as const,
-      properties: {
-        id: { type: "string" as const, description: "Optional ADR id (e.g. 'ADR-008'). If omitted, lists all ADRs." },
-      },
+      properties: { id: { type: "string" as const, description: "Optional ADR id (e.g. 'ADR-008'). If omitted, lists all ADRs." } },
     },
   },
   {
@@ -148,7 +140,47 @@ const TOOLS = [
       },
     },
   },
+  ...BACKLOG_MCP_TOOLS,
 ];
+
+async function dispatchTool(
+  name: string,
+  projectRoot: string,
+  shitennoDir: string,
+  toolArgs: Record<string, unknown>
+): Promise<ToolResponse> {
+  switch (name) {
+    case "getBriefing":
+      return await handleGetBriefing(projectRoot, shitennoDir, toolArgs);
+    case "getRiskMap":
+      return await handleGetRiskMap(projectRoot, shitennoDir, toolArgs);
+    case "getRules":
+      return await handleGetRules(projectRoot, shitennoDir, toolArgs);
+    case "getEngineeringState":
+      return await handleGetEngineeringState(projectRoot, shitennoDir, toolArgs);
+    case "getBacklog":
+      return handleGetBacklog(projectRoot, shitennoDir, toolArgs);
+    case "getPlans":
+      return handleGetPlans(projectRoot, shitennoDir, toolArgs);
+    case "submitFeedback":
+      return handleSubmitFeedback(projectRoot, shitennoDir, toolArgs);
+    case "getADRs":
+      return await handleGetADRs(projectRoot, shitennoDir, toolArgs);
+    case "getSkills":
+      return await handleGetSkills(projectRoot, shitennoDir, toolArgs);
+    case "addBacklogItem":
+      return handleAddBacklogItem(projectRoot, shitennoDir, toolArgs);
+    case "transitionBacklogItem":
+      return handleTransitionBacklogItem(projectRoot, shitennoDir, toolArgs);
+    case "deleteBacklogItem":
+      return handleDeleteBacklogItem(projectRoot, shitennoDir, toolArgs);
+    default:
+      return {
+        content: [{ type: "text", text: `Unknown tool: ${name}. Available: ${TOOLS.map((t) => t.name).join(", ")}` }],
+        isError: true,
+      };
+  }
+}
 
 export function createMcpServer(projectRoot: string, shitennoDir?: string): Server {
   const resolvedShitennoDir = shitennoDir ?? `${projectRoot}/shitenno`;
@@ -163,33 +195,8 @@ export function createMcpServer(projectRoot: string, shitennoDir?: string): Serv
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     const toolArgs = (args ?? {}) as Record<string, unknown>;
-
     try {
-      switch (name) {
-        case "getBriefing":
-          return await handleGetBriefing(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getRiskMap":
-          return await handleGetRiskMap(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getRules":
-          return await handleGetRules(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getEngineeringState":
-          return await handleGetEngineeringState(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getBacklog":
-          return handleGetBacklog(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getPlans":
-          return handleGetPlans(projectRoot, resolvedShitennoDir, toolArgs);
-        case "submitFeedback":
-          return handleSubmitFeedback(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getADRs":
-          return await handleGetADRs(projectRoot, resolvedShitennoDir, toolArgs);
-        case "getSkills":
-          return await handleGetSkills(projectRoot, resolvedShitennoDir, toolArgs);
-        default:
-          return {
-            content: [{ type: "text", text: `Unknown tool: ${name}. Available: ${TOOLS.map((t) => t.name).join(", ")}` }],
-            isError: true,
-          };
-      }
+      return await dispatchTool(name, projectRoot, resolvedShitennoDir, toolArgs);
     } catch (error) {
       return {
         content: [{ type: "text", text: `Error executing ${name}: ${error instanceof Error ? error.message : String(error)}` }],

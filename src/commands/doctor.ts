@@ -18,7 +18,7 @@ import { detectKnowledgeDebt, type KnowledgeDebtReport } from "../knowledge-debt
 import { healthBar, outputJson, calculateHealthPenalty } from "../formatting.js";
 import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
-import { recordFeedback } from "../feedback-loops.js";
+
 import { output, outputBlank, outputError } from "../output.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -307,15 +307,7 @@ function publishDoctorEvent(
     overallHealth: report.overallHealth,
     findings: report.findings.length,
   });
-  for (const finding of report.findings) {
-    if (finding.category === "improvement") {
-      recordFeedback(projectRoot, {
-        recommendationId: `doctor-${finding.title}`,
-        action: "deferred",
-        context: { maturityScore: report.healthScore, installedCapabilities: [], knowledgeDebt: 0 },
-      });
-    }
-  }
+  // Findings should only be recorded when the user explicitly accepts/rejects them
 }
 
 export const doctorCommand = new Command("doctor")

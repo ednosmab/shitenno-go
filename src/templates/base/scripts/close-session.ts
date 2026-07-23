@@ -87,16 +87,19 @@ function checkBuffer() {
 
 // ── 4. Backlog updated? ───────────────────────────────────────────────────
 function checkBacklog() {
-  const backlogPath = resolve(ROOT, '.shitenno', 'docs', 'BACKLOG.md');
+  const modularPath = resolve(ROOT, '.shitenno', 'docs', 'backlog', 'ACTIVE.md');
+  const legacyPath = resolve(ROOT, '.shitenno', 'docs', 'BACKLOG.md');
+  const backlogPath = existsSync(modularPath) ? modularPath : legacyPath;
+
   if (!existsSync(backlogPath)) {
-    warn('BACKLOG', 'BACKLOG.md not found');
+    warn('BACKLOG', 'Backlog not found');
     return;
   }
   const content = readFileSync(backlogPath, 'utf-8');
   if (content.includes('Concluído') || content.includes('Done') || content.includes('In Progress')) {
-    pass('BACKLOG', 'BACKLOG.md has tracked items');
+    pass('BACKLOG', 'Backlog has tracked items');
   } else {
-    warn('BACKLOG', 'BACKLOG.md may need updating');
+    warn('BACKLOG', 'Backlog may need updating');
   }
 }
 

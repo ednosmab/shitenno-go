@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
-import { SHITENNO_DIR_NAME } from "./constants.js";
 import { matchesTaskId } from "./id-matcher.js";
 import { checkTests, checkLint } from "./plan-lifecycle.js";
+import { resolveBacklogPaths } from "./backlog-core.js";
 
 export interface CompletionGate {
   name: string;
@@ -107,41 +107,42 @@ function checkDocumentationUpdated(
 }
 
 function checkBacklogUpdated(shitennoDir: string, taskId: string): CompletionGate {
-  const backlogPaths = [
-    join(shitennoDir, "docs", "BACKLOG.md"),
-    join(shitennoDir, "..", SHITENNO_DIR_NAME, "docs", "BACKLOG.md"),
-  ];
+  const { active: backlogPath } = resolveBacklogPaths(shitennoDir);
 
-  for (const path of backlogPaths) {
-    if (existsSync(path)) {
-      const content = readFileSync(path, "utf-8");
-      const pattern = `### ${taskId}`;
-      const idx = content.indexOf(pattern);
-      if (idx === -1) continue;
-
-      const nextHeadingIdx = content.indexOf("\n### ", idx + pattern.length);
-      const section = nextHeadingIdx === -1
-        ? content.slice(idx)
-        : content.slice(idx, nextHeadingIdx);
-      if (section.includes("Done") || section.includes("concluído") || section.includes("concluido")) {
-        return {
-          name: "backlog",
-          passed: true,
-          message: `Task ${taskId} marked as Done in BACKLOG.md`,
-        };
-      }
+  if (existsSync(backlogPath)) {
+    const content = readFileSync(backlogPath, "utf-8");
+    const pattern = `### ${taskId}`;
+    const idx = content.indexOf(pattern);
+    if (idx === -1) {
       return {
         name: "backlog",
         passed: false,
-        message: `Task ${taskId} found but not marked as Done in BACKLOG.md`,
+        message: `Task ${taskId} not found in backlog`,
       };
     }
+
+    const nextHeadingIdx = content.indexOf("\n### ", idx + pattern.length);
+    const section = nextHeadingIdx === -1
+      ? content.slice(idx)
+      : content.slice(idx, nextHeadingIdx);
+    if (section.includes("Done") || section.includes("concluído") || section.includes("concluido")) {
+      return {
+        name: "backlog",
+        passed: true,
+        message: `Task ${taskId} marked as Done in backlog`,
+      };
+    }
+    return {
+      name: "backlog",
+      passed: false,
+      message: `Task ${taskId} found but not marked as Done in backlog`,
+    };
   }
 
   return {
     name: "backlog",
     passed: true,
-    message: "No BACKLOG.md found — skipping",
+    message: "No backlog found — skipping",
   };
 }
 

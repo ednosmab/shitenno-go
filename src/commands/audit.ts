@@ -12,6 +12,7 @@ import { getHookBus } from "../plugin-system.js";
 import { printDaemonBanner } from "../daemon-context-banner.js";
 import { discoverArtifacts, discoverRelations, analyzeGraph } from "../knowledge-graph.js";
 import { appendBacklogSection, issueToBacklogItem, type BacklogItem } from "../backlog-writer.js";
+import { resolveBacklogPaths } from "../backlog-core.js";
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { generateFixSuggestions, prioritizeSuggestions } from "../audit/suggestion-engine.js";
@@ -163,7 +164,7 @@ function handleAutoBacklog(
   }
 
   if (backlogItems.length === 0) return;
-  const backlogPath = join(ctx.shitennoDir, "docs", "BACKLOG.md");
+  const { active: backlogPath } = resolveBacklogPaths(ctx.shitennoDir);
   const result = appendBacklogSection(backlogPath, backlogItems, today);
   if (!isJson) {
     output(chalk.bold("  📋 Auto-backlog:"));

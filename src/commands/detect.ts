@@ -223,14 +223,10 @@ function publishDetectionEvent(report: PatternDetectionReport): void {
   });
 }
 
-function recordCandidateRuleFeedback(report: PatternDetectionReport, shitennoDir: string): void {
-  for (const rule of report.candidateRules) {
-    recordFeedback(shitennoDir, {
-      recommendationId: `rule-${rule.id}`,
-      action: "deferred",
-      context: { maturityScore: 0, installedCapabilities: [], knowledgeDebt: 0 },
-    });
-  }
+function recordCandidateRuleFeedback(_report: PatternDetectionReport, _shitennoDir: string): void {
+  // Don't record automatic deferred feedback for candidate rules
+  // Rules should only be recorded when the user explicitly approves/rejects them
+  // via `shugo detect --approve <ruleId>` or `shugo detect --reject <ruleId>`
 }
 
 function handleAutoPlanArchiving(shitennoDir: string): void {

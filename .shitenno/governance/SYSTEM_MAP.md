@@ -53,7 +53,6 @@
 │   daemon/daemon.sock
 │   docs/
 │   docs/AGENTS.md
-│   docs/BACKLOG.md
 │   docs/CONCEPTUAL_MODEL.md
 │   docs/DESDO.md
 │   docs/ENTERPRISE_AUDIT_PLAN_V2.md
@@ -238,6 +237,7 @@
 │   feedback/records/2026-07-22-FB-1784698054577-72yks6.json
 │   feedback/records/2026-07-22-FB-1784698165668-al0r9a.json
 │   feedback/records/2026-07-22-FB-1784700488277-mia6bx.json
+│   feedback/records/2026-07-22-FB-1784726378313-u7scbc.json
 │   feedback/summary.json
 │   fingerprint.json
 │   governance/
@@ -250,15 +250,6 @@
 │   governance/agents/AI-CONTRACT-reviewer-v1.yaml
 │   governance/context/
 │   governance/context/checkpoints/
-│   governance/context/checkpoints/2026-07-21T13-01-00-649Z.yaml
-│   governance/context/checkpoints/2026-07-21T13-03-47-025Z.yaml
-│   governance/context/checkpoints/2026-07-21T13-13-41-351Z.yaml
-│   governance/context/checkpoints/2026-07-21T13-17-46-700Z.yaml
-│   governance/context/checkpoints/2026-07-21T14-01-48-376Z.yaml
-│   governance/context/checkpoints/2026-07-21T15-11-10-678Z.yaml
-│   governance/context/checkpoints/2026-07-21T15-11-10-964Z.yaml
-│   governance/context/checkpoints/2026-07-21T15-11-11-179Z.yaml
-│   governance/context/checkpoints/2026-07-21T15-19-31-402Z.yaml
 │   governance/context/checkpoints/2026-07-21T15-20-17-481Z.yaml
 │   governance/context/checkpoints/2026-07-21T19-18-56-734Z.yaml
 │   governance/context/checkpoints/2026-07-21T23-18-56-727Z.yaml
@@ -300,6 +291,15 @@
 │   governance/context/checkpoints/2026-07-22T13-05-53-736Z.yaml
 │   governance/context/checkpoints/2026-07-22T13-09-20-950Z.yaml
 │   governance/context/checkpoints/2026-07-22T13-11-09-050Z.yaml
+│   governance/context/checkpoints/2026-07-22T13-37-19-942Z.yaml
+│   governance/context/checkpoints/2026-07-22T13-42-30-343Z.yaml
+│   governance/context/checkpoints/2026-07-22T13-51-16-272Z.yaml
+│   governance/context/checkpoints/2026-07-22T13-53-18-695Z.yaml
+│   governance/context/checkpoints/2026-07-22T13-53-27-882Z.yaml
+│   governance/context/checkpoints/2026-07-22T14-21-49-663Z.yaml
+│   governance/context/checkpoints/2026-07-22T14-22-44-968Z.yaml
+│   governance/context/checkpoints/2026-07-23T03-23-37-607Z.yaml
+│   governance/context/checkpoints/2026-07-23T03-26-27-337Z.yaml
 │   governance/context/context_buffer.yaml
 │   governance/contracts/
 │   governance/contracts/CONTRACTS_INDEX.md
@@ -1374,6 +1374,7 @@
 │   governance/knowledge-graph/relations.jsonl
 │   governance/last-verify.json
 │   governance/plans/
+│   governance/plans/PLAN-2026-07-22-BLOCO-R-correcao-dano-real.md
 │   governance/plans/README.md
 │   governance/plans/TEMPLATE.md
 │   governance/plans/done/
@@ -1645,6 +1646,7 @@
 │   reports/doc-sync-2026-07-20.json
 │   reports/doc-sync-2026-07-21.json
 │   reports/doc-sync-2026-07-22.json
+│   reports/doc-sync-2026-07-23.json
 │   reports/evolution-2026-07-18.json
 │   reports/health-2026-07-16.json
 │   reports/health-2026-07-18.json

@@ -50,6 +50,7 @@ describe("task-completion", () => {
         shitennoDir: process.cwd(),
         taskId: "TEST-005",
       });
+      console.log("Gates:", result.gates.map(g => ({ name: g.name, passed: g.passed, message: g.message })));
       expect(result.passed).toBe(true);
     });
 
@@ -86,7 +87,7 @@ describe("task-completion", () => {
       const backlogGate = result.gates[3]!;
       expect(backlogGate.name).toBe("backlog");
       expect(backlogGate.passed).toBe(true);
-      expect(backlogGate.message).toContain("No BACKLOG.md found");
+      expect(backlogGate.message).toContain("No backlog found");
     });
 
     it("detects missing backlog update for existing item", () => {

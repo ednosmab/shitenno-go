@@ -316,7 +316,11 @@ function handleBacklogChange(
   shitennoDir: string,
   bus: ReturnType<typeof getEventBus>,
 ): void {
-  if (basename(filePath) !== "BACKLOG.md") return;
+  const fileName = basename(filePath);
+  const isBacklogFile = fileName === "BACKLOG.md" ||
+    (filePath.includes("/backlog/") && (fileName === "ACTIVE.md" || fileName === "DONE.md"));
+
+  if (!isBacklogFile) return;
   import("../../plan-backlog-sync.js").then(({ syncBacklogToPlan }) => {
     const sectionRegex = /### (BACKLOG-[A-Z_0-9]+)(?:\s*—\s*(.+))?/g;
     let match;

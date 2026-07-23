@@ -8,11 +8,11 @@
 
 import { Command } from "commander";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { MarkdownPlanEngine } from "../markdown-plan-engine.js";
 import { validatePlanFormat, extractChecklistItems, extractStepHeadings } from "../plan-format-validator.js";
 import { getEventBus } from "../event-bus.js";
 import { sendDesktopNotification } from "../notify.js";
+import { resolveBacklogPaths } from "../backlog-core.js";
 
 // ── Sub-command imports ────────────────────────────────────────────────────
 
@@ -131,15 +131,15 @@ function buildBacklogTable(planIdUpper: string, planTitle: string, planId: strin
 
 function syncToBacklog(planId: string, plan: { filePath: string; title: string }, shitennoDir: string): PrepareResult {
   try {
-    const backlogPath = join(shitennoDir, "docs", "BACKLOG.md");
-    if (!existsSync(backlogPath)) return { step: "backlog_sync", status: "skip", detail: "BACKLOG.md not found" };
+    const { active: backlogPath } = resolveBacklogPaths(shitennoDir);
+    if (!existsSync(backlogPath)) return { step: "backlog_sync", status: "skip", detail: "Backlog not found" };
 
     let backlog = readFileSync(backlogPath, "utf-8");
     const planIdUpper = `BACKLOG-${planId.toUpperCase().replace(/-/g, "_")}`;
     const planContent = readFileSync(plan.filePath, "utf-8");
 
     if (backlog.includes(planIdUpper)) {
-      return { step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in BACKLOG.md` };
+      return { step: "backlog_sync", status: "skip", detail: `Item ${planIdUpper} already in backlog` };
     }
 
     const statusMatch = planContent.match(/\*\*Status:\*\*\s*(.+)/);

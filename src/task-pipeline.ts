@@ -1,11 +1,10 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { SHITENNO_DIR_NAME } from "./constants.js";
 import { getEventBus, type ShitennoEventType } from "./event-bus.js";
 import { validateCompletionGate } from "./task-completion.js";
 import { transitionBacklogStatus, type BacklogStatus } from "./backlog-transitions.js";
 import { updateCurrentTask, updateSession } from "./context-buffer-writer.js";
 import { logger } from "./logger.js";
+import { resolveBacklogPaths } from "./backlog-core.js";
 
 export interface TaskPipelineConfig {
   projectRoot: string;
@@ -81,21 +80,15 @@ export function initializeTaskPipeline(config: TaskPipelineConfig): () => void {
 }
 
 function updateBacklogStatus(shitennoDir: string, taskId: string): void {
-  const backlogPaths = [
-    join(shitennoDir, "docs", "BACKLOG.md"),
-    join(shitennoDir, "..", SHITENNO_DIR_NAME, "docs", "BACKLOG.md"),
-  ];
+  const { active: backlogPath } = resolveBacklogPaths(shitennoDir);
 
-  for (const path of backlogPaths) {
-    if (!existsSync(path)) continue;
+  if (!existsSync(backlogPath)) return;
 
-    const result = transitionBacklogStatus(path, taskId, "concluído" as BacklogStatus, {
-      date: new Date().toISOString().slice(0, 10),
-    });
+  const result = transitionBacklogStatus(backlogPath, taskId, "concluído" as BacklogStatus, {
+    date: new Date().toISOString().slice(0, 10),
+  });
 
-    if (result.success) {
-      logger.info("task-pipeline", `Updated BACKLOG.md: ${result.message}`);
-      return;
-    }
+  if (result.success) {
+    logger.info("task-pipeline", `Updated backlog: ${result.message}`);
   }
 }

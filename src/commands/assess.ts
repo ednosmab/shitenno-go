@@ -27,7 +27,7 @@ import { output, outputBlank } from "../output.js";
 import { guardNotInitialized, guardInteractive, checkLifecycleGate } from "../shared.js";
 import { getEventBus } from "../event-bus.js";
 import { printDaemonBanner } from "../daemon-context-banner.js";
-import { recordFeedback, recordDimensionFeedback, type PerformanceMetric } from "../feedback-loops.js";
+import { recordDimensionFeedback, type PerformanceMetric } from "../feedback-loops.js";
 
 function displayDimensionBar(label: string, value: number, prev?: number): void {
   const barWidth = 20;
@@ -210,10 +210,9 @@ async function calculateProfileInteractively(actx: AssessContext, options: { ans
 }
 
 function recordFeedbackForProfile(shitennoDir: string, newProfile: MaturityProfile): void {
-  for (const cap of newProfile.recommendedCapabilities) {
-    recordFeedback(shitennoDir, { recommendationId: `cap-${cap}`, action: "deferred",
-      context: { maturityScore: newProfile.overallScore, installedCapabilities: newProfile.installedCapabilities, knowledgeDebt: 0 } });
-  }
+  // Only record dimension feedback, not automatic deferred for capabilities
+  // Capabilities are recommendations, not decisions — they should only be recorded
+  // when the user actually accepts/rejects them via `shugo upgrade`
   const dimensionToMetric: Record<string, PerformanceMetric> = {
     architecture: "architectural_vision", governance: "decision_making", quality: "technical_communication",
     automation: "sustainable_velocity", ai: "prompt_quality", documentation: "scope_management", observability: "risk_management",

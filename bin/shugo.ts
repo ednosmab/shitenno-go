@@ -396,6 +396,8 @@ program.addCommand((await import("../src/commands/events.js")).eventsCommand);
 program.addCommand((await import("../src/commands/context.js")).contextCommand);
 program.addCommand((await import("../src/commands/handbook.js")).handbookCommand);
 program.addCommand((await import("../src/commands/hooks.js")).hooksCommand);
+program.addCommand((await import("../src/commands/backlog.js")).backlogCommand);
+program.addCommand((await import("../src/commands/backlog.js")).backlogCommand);
 program.addCommand((await import("../src/commands/daemon.js")).daemonCommand());
 program.addCommand((await import("../src/commands/scheduled-check.js")).internalScheduledCheckCommand);
 
