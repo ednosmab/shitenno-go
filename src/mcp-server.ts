@@ -148,36 +148,43 @@ export async function dispatchTool(
   shitennoDir: string,
   toolArgs: Record<string, unknown>
 ): Promise<ToolResponse> {
-  switch (name) {
-    case "getBriefing":
-      return await handleGetBriefing(projectRoot, shitennoDir, toolArgs);
-    case "getRiskMap":
-      return await handleGetRiskMap(projectRoot, shitennoDir, toolArgs);
-    case "getRules":
-      return await handleGetRules(projectRoot, shitennoDir, toolArgs);
-    case "getEngineeringState":
-      return await handleGetEngineeringState(projectRoot, shitennoDir, toolArgs);
-    case "getBacklog":
-      return handleGetBacklog(projectRoot, shitennoDir, toolArgs);
-    case "getPlans":
-      return handleGetPlans(projectRoot, shitennoDir, toolArgs);
-    case "submitFeedback":
-      return handleSubmitFeedback(projectRoot, shitennoDir, toolArgs);
-    case "getADRs":
-      return await handleGetADRs(projectRoot, shitennoDir, toolArgs);
-    case "getSkills":
-      return await handleGetSkills(projectRoot, shitennoDir, toolArgs);
-    case "addBacklogItem":
-      return handleAddBacklogItem(projectRoot, shitennoDir, toolArgs);
-    case "transitionBacklogItem":
-      return handleTransitionBacklogItem(projectRoot, shitennoDir, toolArgs);
-    case "deleteBacklogItem":
-      return handleDeleteBacklogItem(projectRoot, shitennoDir, toolArgs);
-    default:
-      return {
-        content: [{ type: "text", text: `Unknown tool: ${name}. Available: ${TOOLS.map((t) => t.name).join(", ")}` }],
-        isError: true,
-      };
+  try {
+    switch (name) {
+      case "getBriefing":
+        return await handleGetBriefing(projectRoot, shitennoDir, toolArgs);
+      case "getRiskMap":
+        return await handleGetRiskMap(projectRoot, shitennoDir, toolArgs);
+      case "getRules":
+        return await handleGetRules(projectRoot, shitennoDir, toolArgs);
+      case "getEngineeringState":
+        return await handleGetEngineeringState(projectRoot, shitennoDir, toolArgs);
+      case "getBacklog":
+        return handleGetBacklog(projectRoot, shitennoDir, toolArgs);
+      case "getPlans":
+        return handleGetPlans(projectRoot, shitennoDir, toolArgs);
+      case "submitFeedback":
+        return handleSubmitFeedback(projectRoot, shitennoDir, toolArgs);
+      case "getADRs":
+        return await handleGetADRs(projectRoot, shitennoDir, toolArgs);
+      case "getSkills":
+        return await handleGetSkills(projectRoot, shitennoDir, toolArgs);
+      case "addBacklogItem":
+        return handleAddBacklogItem(projectRoot, shitennoDir, toolArgs);
+      case "transitionBacklogItem":
+        return handleTransitionBacklogItem(projectRoot, shitennoDir, toolArgs);
+      case "deleteBacklogItem":
+        return handleDeleteBacklogItem(projectRoot, shitennoDir, toolArgs);
+      default:
+        return {
+          content: [{ type: "text", text: `Unknown tool: ${name}. Available: ${TOOLS.map((t) => t.name).join(", ")}` }],
+          isError: true,
+        };
+    }
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+      isError: true,
+    };
   }
 }
 

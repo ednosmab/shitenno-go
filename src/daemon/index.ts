@@ -31,6 +31,8 @@ import { classifyEvent } from "../semantic/signal-classifier.js";
 import { getChangeJournal, resetChangeJournal } from "../semantic/change-journal.js";
 import { getPatternMatcher, resetPatternMatcher } from "../semantic/pattern-matcher.js";
 import { loadSemanticGrowthProfile } from "../semantic/growth-profile.js";
+import { generateInsights, resetSemanticReasoner } from "../semantic/reasoner.js";
+import { detectCorrelations, resetSemanticCorrelator } from "../semantic/correlator.js";
 import {
   createDaemonState,
   recordEvent,
@@ -718,6 +720,27 @@ function setupPeriodicTimers(
           // Log semantic growth profile state
           const profile = loadSemanticGrowthProfile(ctx.shitennoDir);
           daemonLog(ctx.logPath, "DEBUG", `Semantic growth: capacity=${Math.round(profile.growthCapacity * 100)}%, challenge=${Math.round(profile.challengeLevel * 100)}%, patterns=${profile.semanticChoices.length}`);
+
+          // Run reasoner for higher-level insights
+          const insights = generateInsights(ctx.shitennoDir, ctx.projectRoot, patterns, journal);
+          if (insights.length > 0) {
+            daemonLog(ctx.logPath, "INFO", `Semantic reasoner: ${insights.length} insight(s) generated`);
+            for (const insight of insights) {
+              getEventBus().publish("semantic.insight_detected", {
+                insightId: insight.id,
+                insightType: insight.type,
+                domains: insight.domains,
+                priority: insight.priority,
+                confidence: insight.confidence,
+              });
+            }
+          }
+
+          // Run correlator for cross-system correlations
+          const correlations = detectCorrelations(ctx.shitennoDir, ctx.projectRoot, journal);
+          if (correlations.length > 0) {
+            daemonLog(ctx.logPath, "INFO", `Semantic correlator: ${correlations.length} correlation(s) detected`);
+          }
         }
       } catch (err) {
         daemonLog(ctx.logPath, "ERROR", `Semantic pattern matcher failed: ${err}`);
@@ -812,6 +835,8 @@ function setupShutdown(
     try {
       resetChangeJournal();
       resetPatternMatcher();
+      resetSemanticReasoner();
+      resetSemanticCorrelator();
     } catch {
       // Cleanup failure should not prevent shutdown
     }

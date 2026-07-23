@@ -135,6 +135,7 @@ const EVENT_VERSIONS: Record<ShitennoEventType, EventVersion> = {
   "git.branch_changed": 1,
   "git.ref_updated": 1,
   "semantic.pattern_detected": 1,
+  "semantic.insight_detected": 1,
 };
 
 /** Migrate a payload from one version to another. */

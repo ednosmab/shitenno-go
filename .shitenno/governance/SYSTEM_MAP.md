@@ -51,6 +51,7 @@
 │   daemon/daemon.log
 │   daemon/daemon.pid
 │   daemon/daemon.sock
+│   daemon/proactive-digest.md
 │   docs/
 │   docs/AGENTS.md
 │   docs/CONCEPTUAL_MODEL.md
@@ -253,8 +254,6 @@
 │   governance/agents/AI-CONTRACT-reviewer-v1.yaml
 │   governance/context/
 │   governance/context/checkpoints/
-│   governance/context/checkpoints/2026-07-22T03-57-28-586Z.yaml
-│   governance/context/checkpoints/2026-07-22T04-08-34-181Z.yaml
 │   governance/context/checkpoints/2026-07-22T04-11-16-629Z.yaml
 │   governance/context/checkpoints/2026-07-22T04-15-35-242Z.yaml
 │   governance/context/checkpoints/2026-07-22T04-18-34-703Z.yaml
@@ -303,6 +302,8 @@
 │   governance/context/checkpoints/2026-07-23T05-38-43-790Z.yaml
 │   governance/context/checkpoints/2026-07-23T05-43-53-754Z.yaml
 │   governance/context/checkpoints/2026-07-23T05-45-16-840Z.yaml
+│   governance/context/checkpoints/2026-07-23T05-58-00-232Z.yaml
+│   governance/context/checkpoints/2026-07-23T05-59-15-594Z.yaml
 │   governance/context/context_buffer.yaml
 │   governance/contracts/
 │   governance/contracts/CONTRACTS_INDEX.md

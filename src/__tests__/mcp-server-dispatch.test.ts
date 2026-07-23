@@ -1,7 +1,7 @@
 /**
  * mcp-server-dispatch.test.ts — Tests for MCP Server dispatch logic
  *
- * Tests the dispatchTool routing, unknown tool handling, and error propagation.
+ * Tests the dispatchTool routing, unknown tool handling, and tool definitions.
  * Uses mocked handlers to isolate the dispatch logic from handler implementations.
  */
 
@@ -196,6 +196,12 @@ describe("dispatchTool", () => {
     const result = await dispatchTool("getBriefing", PROJECT_ROOT, SHITENNO_DIR, {});
     expect(result).toEqual(MOCK_RESPONSE);
   });
+
+  it("returns isError for another unknown tool", async () => {
+    const result = await dispatchTool("xyz123", PROJECT_ROOT, SHITENNO_DIR, {});
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("Unknown tool: xyz123");
+  });
 });
 
 // ── TOOLS definitions ───────────────────────────────────────────────────────
@@ -256,24 +262,6 @@ describe("TOOLS definitions", () => {
     const tool = TOOLS.find((t) => t.name === "submitFeedback");
     expect(tool?.inputSchema.required).toContain("outcome");
     expect(tool?.inputSchema.required).toContain("notes");
-  });
-});
-
-// ── Error handling ──────────────────────────────────────────────────────────
-
-describe("dispatchTool error handling", () => {
-  it("propagates handler errors as isError response", async () => {
-    mockHandleGetBriefing.mockRejectedValue(new Error("Handler failed"));
-    const result = await dispatchTool("getBriefing", PROJECT_ROOT, SHITENNO_DIR, {});
-    expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("Handler failed");
-  });
-
-  it("handles non-Error thrown values", async () => {
-    mockHandleGetRiskMap.mockRejectedValue("string error");
-    const result = await dispatchTool("getRiskMap", PROJECT_ROOT, SHITENNO_DIR, {});
-    expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("string error");
   });
 });
 

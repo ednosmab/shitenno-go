@@ -87,6 +87,32 @@ export {
 } from "./dual-path-presenter.js";
 
 export type {
+  InsightType,
+  SemanticInsight,
+  Evidence,
+  ReasonerContext,
+} from "./reasoner.js";
+
+export {
+  getSemanticReasoner,
+  resetSemanticReasoner,
+  generateInsights,
+} from "./reasoner.js";
+
+export type {
+  Correlation,
+  CorrelationType,
+  CorrelationSignal,
+  CorrelatorContext,
+} from "./correlator.js";
+
+export {
+  getSemanticCorrelator,
+  resetSemanticCorrelator,
+  detectCorrelations,
+} from "./correlator.js";
+
+export type {
   SignalClassifier,
   ClassifierStats,
 } from "./signal-classifier.js";

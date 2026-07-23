@@ -77,7 +77,8 @@ export type ShitennoEventType =
   | "source.changed"
   | "git.branch_changed"
   | "git.ref_updated"
-  | "semantic.pattern_detected";
+  | "semantic.pattern_detected"
+  | "semantic.insight_detected";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 
