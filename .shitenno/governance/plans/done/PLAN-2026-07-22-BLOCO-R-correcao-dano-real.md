@@ -1,8 +1,8 @@
 # BLOCO R — Correção de Dano Real (NEW-001, NEW-002, NEW-003)
 
-**Status:** Refused
+**Status:** Done
 **Date:** 2026-07-22
-**Updated_at:** 2026-07-23T05:59:14.957Z
+**Updated_at:** 2026-07-23T06:24:10.523Z
 
 **Contexto:** Três itens do backlog causam dano real ao estado atual do projeto:
 

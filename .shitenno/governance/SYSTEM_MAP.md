@@ -49,8 +49,7 @@
 │   daemon/daemon-state.json
 │   daemon/daemon.approved
 │   daemon/daemon.log
-│   daemon/daemon.pid
-│   daemon/daemon.sock
+│   daemon/notifications.jsonl
 │   daemon/proactive-digest.md
 │   docs/
 │   docs/AGENTS.md
@@ -118,6 +117,7 @@
 │   docs/history/2026-07-22-rule-plan_archived.md
 │   docs/history/2026-07-22-rule-session_close.md
 │   docs/history/2026-07-22-rule-session_end_plans.md
+│   docs/history/2026-07-23-rule-plan_archived.md
 │   docs/history/2026-07-23-rule-session_close.md
 │   docs/history/2026-07-23-rule-session_end_plans.md
 │   docs/opencode-context.md
@@ -321,6 +321,7 @@
 │   governance/executions/EXE-1112716D.json
 │   governance/executions/EXE-12474B37.json
 │   governance/executions/EXE-124B50F5.json
+│   governance/executions/EXE-12A8DE1B.json
 │   governance/executions/EXE-13192A1A.json
 │   governance/executions/EXE-13712A05.json
 │   governance/executions/EXE-13C5C638.json
@@ -442,6 +443,7 @@
 │   governance/executions/EXE-32D8ACB7.json
 │   governance/executions/EXE-32FE070F.json
 │   governance/executions/EXE-334A3EBC.json
+│   governance/executions/EXE-33556FB5.json
 │   governance/executions/EXE-335C232C.json
 │   governance/executions/EXE-33860A5C.json
 │   governance/executions/EXE-33D387BE.json
@@ -725,6 +727,7 @@
 │   governance/executions/EXE-70F7AFA5.json
 │   governance/executions/EXE-710825EA.json
 │   governance/executions/EXE-71532FB4.json
+│   governance/executions/EXE-71DAA95D.json
 │   governance/executions/EXE-72210EE2.json
 │   governance/executions/EXE-72637184.json
 │   governance/executions/EXE-7270171F.json
@@ -858,6 +861,7 @@
 │   governance/executions/EXE-8F986AB2.json
 │   governance/executions/EXE-90538E5B.json
 │   governance/executions/EXE-9057165A.json
+│   governance/executions/EXE-90BB6054.json
 │   governance/executions/EXE-90C19687.json
 │   governance/executions/EXE-90F359BD.json
 │   governance/executions/EXE-9124EF62.json
@@ -1351,7 +1355,6 @@
 │   governance/knowledge-graph/relations.jsonl
 │   governance/last-verify.json
 │   governance/plans/
-│   governance/plans/PLAN-2026-07-22-BLOCO-R-correcao-dano-real.md
 │   governance/plans/README.md
 │   governance/plans/TEMPLATE.md
 │   governance/plans/done/
@@ -1473,6 +1476,8 @@
 │   governance/plans/done/PLAN-2026-07-21-BLOCO-P-gate-done-refused-suite-pesada.verification.json
 │   governance/plans/done/PLAN-2026-07-21-BLOCO-Q-hardening-mecanismo-de-done.md
 │   governance/plans/done/PLAN-2026-07-21-BLOCO-Q-hardening-mecanismo-de-done.verification.json
+│   governance/plans/done/PLAN-2026-07-22-BLOCO-R-correcao-dano-real.md
+│   governance/plans/done/PLAN-2026-07-22-BLOCO-R-correcao-dano-real.verification.json
 │   governance/plans/done/PLAN-DYNAMIC-RULE-ADAPTATION.md
 │   governance/plans/done/PLAN-DYNAMIC-RULE-ADAPTATION.verification.json
 │   governance/plans/done/PLAN-HANDBOOK-SYNC.md
