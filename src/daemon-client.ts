@@ -194,6 +194,8 @@ export interface DaemonStatusResponse {
   health: { score: number; checkedAt: string } | null;
   challengesQueued: number;
   debt: { gapCount: number; healthScore: number; detectedAt: string } | null;
+  proactiveEngine: { lastCheck: string | null; challengesTriggered: number; cooldownUntil: string | null } | null;
+  audit: { lastAuditTime: string | null; auditCount: number; notificationsSent: number } | null;
 }
 
 /**

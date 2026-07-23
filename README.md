@@ -139,6 +139,7 @@ That's it. Your project now has governed context for you and your AI agents.
 | `shugo feedback` | Submit session feedback | Record session outcomes |
 | `shugo history` | View engineering state history | Review past snapshots |
 | `shugo handbook` | Reference handbook for Shugo | Quick reference lookup |
+| `shugo backlog` | Manage backlog items with states and priorities | Track work items and tasks |
 
 ### Utility Commands
 

@@ -79,6 +79,8 @@ function handleStatus(opts: HandleMessageOptions): void {
     health: state.health,
     challengesQueued: state.challenges.length,
     debt: state.debt,
+    proactiveEngine: state.proactiveEngine ?? null,
+    audit: state.audit ?? null,
   });
 }
 

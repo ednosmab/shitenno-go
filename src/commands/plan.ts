@@ -67,7 +67,7 @@ function ensureFormatHeader(plan: { filePath: string }): PrepareResult {
   } catch (error) { return { step: "format_header", status: "error", detail: String(error) }; }
 }
 
-function validateFormat(planId: string, plan: { filePath: string }): PrepareResult[] {
+function validateFormat(shitennoDir: string, planId: string, plan: { filePath: string }): PrepareResult[] {
   const results: PrepareResult[] = [];
   try {
     const content = readFileSync(plan.filePath, "utf-8");
@@ -76,7 +76,7 @@ function validateFormat(planId: string, plan: { filePath: string }): PrepareResu
     for (const warn of validation.warnings) results.push({ step: "format_validation", status: "warn", detail: warn.message });
     if (validation.errors.length > 0 || validation.warnings.length > 0) {
       getEventBus().publish("plan.format_warning", { planId, path: plan.filePath, errors: validation.errors, warnings: validation.warnings });
-      if (validation.errors.length > 0) sendDesktopNotification("Shugo Plan", `Formato inválido: ${validation.errors.map((e) => e.message).join("; ")}`);
+      if (validation.errors.length > 0) sendDesktopNotification(shitennoDir, "Shugo Plan", `Formato inválido: ${validation.errors.map((e) => e.message).join("; ")}`);
     }
   } catch (error) { results.push({ step: "format_validation", status: "error", detail: String(error) }); }
   return results;
@@ -176,12 +176,12 @@ export async function runPrepare(
   if (!plan) return [{ step: "prepare", status: "error", detail: `Plan not found: ${planId}` }];
 
   results.push(ensureFormatHeader(plan));
-  results.push(...validateFormat(planId, plan));
+  results.push(...validateFormat(shitennoDir, planId, plan));
   results.push(ensureChecklist(plan));
   results.push(syncToBacklog(planId, plan, shitennoDir));
 
   try {
-    sendDesktopNotification("Shugo Plan", `Plan prepared: ${plan.title}`);
+    sendDesktopNotification(shitennoDir, "Shugo Plan", `Plan prepared: ${plan.title}`);
     results.push({ step: "notify", status: "done", detail: "Desktop notification sent" });
   } catch { results.push({ step: "notify", status: "skip", detail: "Notification failed" }); }
 

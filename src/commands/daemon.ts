@@ -166,6 +166,25 @@ function displayRunningDaemonStatus(status: DaemonStatusResponse): void {
       : chalk.red;
     output(`    Health:   ${debtColor(String(status.debt.healthScore))}/100`);
   }
+
+  // E.1: Proactive engine state
+  if (status.proactiveEngine) {
+    outputBlank();
+    output(chalk.bold("  Proactive Engine:"));
+    output(`    Last check:     ${chalk.gray(status.proactiveEngine.lastCheck ?? "Never")}`);
+    output(`    Challenges:     ${chalk.yellow(String(status.proactiveEngine.challengesTriggered))} triggered`);
+    if (status.proactiveEngine.cooldownUntil) {
+      output(`    Cooldown until: ${chalk.gray(status.proactiveEngine.cooldownUntil)}`);
+    }
+  }
+
+  // E.1: Audit info
+  if (status.audit) {
+    outputBlank();
+    output(chalk.bold("  Audit:"));
+    output(`    Last audit:     ${chalk.gray(status.audit.lastAuditTime ?? "Never")}`);
+    output(`    Total audits:   ${chalk.cyan(String(status.audit.auditCount))}`);
+  }
 }
 
 async function handleStatusAction(opts: Record<string, unknown>): Promise<void> {
@@ -273,6 +292,45 @@ async function handleLogsAction(opts: Record<string, unknown>): Promise<void> {
   await attachToDaemonLog(logPath, numLines);
 }
 
+async function handleNotificationsAction(opts: Record<string, unknown>): Promise<void> {
+  const ctx = guardNotInitialized(opts, false);
+  if (!ctx) return;
+
+  const notificationsPath = join(ctx.shitennoDir, "notifications.jsonl");
+  if (!existsSync(notificationsPath)) {
+    output(chalk.yellow("  No notifications log found. Desktop notifications may not have been sent yet."));
+    return;
+  }
+
+  try {
+    const content = readFileSync(notificationsPath, "utf-8");
+    const lines = content.split("\n").filter(Boolean);
+    const numLines = Number(opts.lines) || 20;
+    const tail = lines.slice(-numLines);
+
+    outputBlank();
+    output(chalk.bold.cyan(`  Recent Notifications (last ${tail.length}):`));
+    outputBlank();
+
+    for (const line of tail) {
+      try {
+        const entry = JSON.parse(line);
+        const time = entry.timestamp ? chalk.gray(new Date(entry.timestamp).toLocaleTimeString()) : "";
+        const type = entry.type ? chalk.cyan(`[${entry.type}]`) : "";
+        const msg = entry.message ?? "";
+        output(`  ${time} ${type} ${msg}`);
+      } catch {
+        output(chalk.gray(`  ${line}`));
+      }
+    }
+
+    outputBlank();
+    output(chalk.gray(`  Total: ${lines.length} notifications recorded`));
+  } catch (err) {
+    output(chalk.red(`  Error reading notifications: ${err}`));
+  }
+}
+
 export function daemonCommand(): Command {
   const cmd = new Command("daemon")
     .description("Manage the Shugo background daemon")
@@ -311,6 +369,11 @@ O daemon é um hub de eventos que monitoriza:
     .description("Attach to the running daemon and stream its log in real time")
     .option("--lines <n>", "Number of historical lines to show before following", "50")
     .action(handleLogsAction);
+
+  cmd.command("notifications")
+    .description("Show recent desktop notifications sent by the daemon")
+    .option("--lines <n>", "Number of recent notifications to show", "20")
+    .action(handleNotificationsAction);
 
   return cmd;
 }

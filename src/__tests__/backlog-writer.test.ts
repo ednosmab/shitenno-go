@@ -35,6 +35,11 @@ const sampleItem: BacklogItem = {
   modules: ["src/test.ts"],
   description: "This is a test issue",
   correction: "Fix the test",
+  state: "planeado",
+  owner: "unassigned",
+  line: 0,
+  filePath: "",
+  format: "modular",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -295,8 +300,8 @@ describe("moveItemToDone", () => {
 `
     );
 
-    const moved = moveItemToDone("BUG-001", activePath, donePath);
-    expect(moved).toBe(true);
+    const moved = moveItemToDone(activePath, donePath, "BUG-001");
+    expect(moved.success).toBe(true);
 
     const active = readFileSync(activePath, "utf-8");
     const done = readFileSync(donePath, "utf-8");
@@ -312,6 +317,6 @@ describe("moveItemToDone", () => {
     writeFileSync(activePath, "## Ativo\n");
     writeFileSync(donePath, "## Done\n");
 
-    expect(moveItemToDone("NOPE", activePath, donePath)).toBe(false);
+    expect(moveItemToDone(activePath, donePath, "NOPE").success).toBe(false);
   });
 });

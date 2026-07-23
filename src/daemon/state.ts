@@ -51,6 +51,8 @@ export interface DaemonState {
   riskMapCache: { computedAt: string; data: unknown } | null;
   lastCommandName: string | null;
   lastCommandAt: string | null;
+  proactiveEngine: { lastCheck: string | null; challengesTriggered: number; cooldownUntil: string | null } | null;
+  audit: { lastAuditTime: string | null; auditCount: number; notificationsSent: number } | null;
 }
 
 export const MAX_EVENTS = 100;
@@ -70,6 +72,8 @@ export function createDaemonState(): DaemonState {
     riskMapCache: null,
     lastCommandName: null,
     lastCommandAt: null,
+    proactiveEngine: null,
+    audit: null,
   };
 }
 

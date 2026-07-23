@@ -160,6 +160,11 @@ function handleAutoBacklog(
       modules: ["shitenno/"],
       description: `${graphAnalysis.orphanArtifacts.length} artifacts no knowledge graph sem relacoes conectando-os.`,
       correction: "Adicionar relacoes entre artifacts orfaos e existentes.",
+      state: "planeado",
+      owner: "unassigned",
+      line: 0,
+      filePath: "",
+      format: "modular",
     });
   }
 

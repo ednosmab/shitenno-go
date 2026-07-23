@@ -42,14 +42,14 @@
   },
 
   "instructions": [
-    "./shitenno/docs/AGENTS.md",
-    "./shitenno/docs/opencode-context.md",
-    "./shitenno/governance/MANDATORY_CONTEXT.md",
-    "./shitenno/governance/**/*.yaml",
-    "./shitenno/governance/context/context_buffer.yaml"
+    "./.shitenno/docs/AGENTS.md",
+    "./.shitenno/docs/opencode-context.md",
+    "./.shitenno/governance/MANDATORY_CONTEXT.md",
+    "./.shitenno/governance/**/*.yaml",
+    "./.shitenno/governance/context/context_buffer.yaml"
   ],
   "skills": {
-    "paths": ["shitenno/docs/skills"]
+    "paths": [".shitenno/docs/skills"]
   },
   "mcp": {
     "local-filesystem": {
@@ -59,6 +59,16 @@
         "-y",
         "@modelcontextprotocol/server-filesystem",
         "."
+      ],
+      "enabled": true
+    },
+    "shitenno": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "shitenno",
+        "mcp"
       ],
       "enabled": true
     }

@@ -243,6 +243,7 @@
 │   feedback/summary.json
 │   fingerprint.json
 │   governance/
+│   governance/MANDATORY_CONTEXT.md
 │   governance/SYSTEM_MAP.md
 │   governance/WORKFLOW.md
 │   governance/agents/
@@ -462,6 +463,7 @@
 │   governance/executions/EXE-2A2530D6.json
 │   governance/executions/EXE-2A268A88.json
 │   governance/executions/EXE-2A3B0CBE.json
+│   governance/executions/EXE-2B61EA2A.json
 │   governance/executions/EXE-2BC9EB6B.json
 │   governance/executions/EXE-2C5D242B.json
 │   governance/executions/EXE-2CD60175.json
@@ -564,6 +566,7 @@
 │   governance/executions/EXE-4583169D.json
 │   governance/executions/EXE-45A68429.json
 │   governance/executions/EXE-45CB3A0C.json
+│   governance/executions/EXE-461AC9D2.json
 │   governance/executions/EXE-461E9399.json
 │   governance/executions/EXE-4633370B.json
 │   governance/executions/EXE-4682F66E.json
@@ -978,6 +981,7 @@
 │   governance/executions/EXE-9DCFF917.json
 │   governance/executions/EXE-9E10B7AA.json
 │   governance/executions/EXE-9E11C430.json
+│   governance/executions/EXE-9E64E4A3.json
 │   governance/executions/EXE-9F43BD14.json
 │   governance/executions/EXE-9F4FA85F.json
 │   governance/executions/EXE-9F6F6FEC.json
@@ -1122,6 +1126,7 @@
 │   governance/executions/EXE-C1E32172.json
 │   governance/executions/EXE-C1F8BA58.json
 │   governance/executions/EXE-C2292800.json
+│   governance/executions/EXE-C2A62F81.json
 │   governance/executions/EXE-C2B48C0D.json
 │   governance/executions/EXE-C30531E3.json
 │   governance/executions/EXE-C3160B7B.json
@@ -1255,6 +1260,7 @@
 │   governance/executions/EXE-E02A91AC.json
 │   governance/executions/EXE-E088375B.json
 │   governance/executions/EXE-E0F1AD17.json
+│   governance/executions/EXE-E0F2133E.json
 │   governance/executions/EXE-E12EEA4A.json
 │   governance/executions/EXE-E17D0E0E.json
 │   governance/executions/EXE-E185CB30.json
@@ -1333,6 +1339,7 @@
 │   governance/executions/EXE-F637780D.json
 │   governance/executions/EXE-F6EF4314.json
 │   governance/executions/EXE-F7206DDE.json
+│   governance/executions/EXE-F743663F.json
 │   governance/executions/EXE-F743F4C8.json
 │   governance/executions/EXE-F75A211F.json
 │   governance/executions/EXE-F783C73E.json

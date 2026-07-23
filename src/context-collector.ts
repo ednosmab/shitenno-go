@@ -146,6 +146,7 @@ function buildSnapshot(
     contextRules,
     dynamicRules,
     maturityProfile: maturityProfile ?? undefined,
+    projectRoot,
     quickBoard: {
       currentTask: quickBoard.currentTask,
       nextP0: quickBoard.nextP0,

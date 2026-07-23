@@ -60,7 +60,7 @@ if (isInitialized) {
   setSessionContext(session.id, session.startedAt);
 
   // Desktop notifications for lifecycle events (session end, task completed, etc.)
-  initDesktopNotifier();
+  initDesktopNotifier(shitennoDir);
 }
 
 // Commands whose execution actually depends on the initialized engines

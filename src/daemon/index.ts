@@ -25,6 +25,8 @@ import { logger } from "../logger.js";
 import { initializeRuleEngine } from "../rule-engine/engine.js";
 import { initializeProactiveEngine } from "../prioritization/triggers.js";
 import { initDesktopNotifier } from "../desktop-notifier.js";
+import { initAutoBriefing } from "../auto-briefing.js";
+import { initProactiveDigest } from "../proactive-digest.js";
 import {
   createDaemonState,
   recordEvent,
@@ -403,10 +405,16 @@ function initEngines(ctx: DaemonContext): { stopProactive: () => void; isResourc
   const stopProactive = initializeProactiveEngine(ctx.projectRoot, ctx.shitennoDir);
   daemonLog(ctx.logPath, "INFO", "Proactive engine initialized — subscribed to event bus");
 
-  initDesktopNotifier();
+  initDesktopNotifier(ctx.shitennoDir);
   daemonLog(ctx.logPath, "INFO", "Desktop notifier initialized — subscribed to lifecycle events");
 
-  return { stopProactive, isResourceClaimed };
+  initAutoBriefing(ctx.projectRoot, ctx.shitennoDir);
+  daemonLog(ctx.logPath, "INFO", "Auto-briefing initialized — will generate BRIEFING.md on session start");
+
+  const stopDigest = initProactiveDigest(ctx.shitennoDir);
+  daemonLog(ctx.logPath, "INFO", "Proactive digest initialized — periodic summary every 30min");
+
+  return { stopProactive: () => { stopProactive(); stopDigest(); }, isResourceClaimed };
 }
 
 function handlePlanVerification(
@@ -609,13 +617,37 @@ function subscribeAllEvents(
 ): string[] {
   subscribeTier1Events(ctx, verifyAllPendingPlans, runPeriodicAuditFn);
   subscribeTier2Events(ctx, runPeriodicAuditFn);
-  return subscribeGenericLogEvents(ctx);
+  subscribeGenericLogEvents(ctx);
+
+  // E.1: Track proactive engine and audit state
+  const bus = getEventBus();
+  bus.subscribe("challenge.generated", () => {
+    if (!ctx.state.proactiveEngine) {
+      ctx.state.proactiveEngine = { lastCheck: null, challengesTriggered: 0, cooldownUntil: null };
+    }
+    ctx.state.proactiveEngine.challengesTriggered++;
+  });
+  bus.subscribe("health.checked", () => {
+    if (!ctx.state.proactiveEngine) {
+      ctx.state.proactiveEngine = { lastCheck: null, challengesTriggered: 0, cooldownUntil: null };
+    }
+    ctx.state.proactiveEngine.lastCheck = new Date().toISOString();
+  });
+  bus.subscribe("audit.standard", () => {
+    if (!ctx.state.audit) {
+      ctx.state.audit = { lastAuditTime: null, auditCount: 0, notificationsSent: 0 };
+    }
+    ctx.state.audit.lastAuditTime = new Date().toISOString();
+    ctx.state.audit.auditCount++;
+  });
+
+  return [];
 }
 
 function setupPeriodicTimers(
   ctx: DaemonContext,
   runPeriodicAuditFn: () => Promise<void>,
-): { persistTimer: NodeJS.Timeout; largeCommitTimer: NodeJS.Timeout; auditTimer: NodeJS.Timeout } {
+): { persistTimer: NodeJS.Timeout; largeCommitTimer: NodeJS.Timeout; auditTimer: NodeJS.Timeout; consolidationTimer: NodeJS.Timeout } {
   const persistTimer = setInterval(() => {
     persistState(ctx.state, ctx.statePath);
   }, 30_000);
@@ -631,6 +663,16 @@ function setupPeriodicTimers(
     }
   }, 5 * 60 * 1000);
 
+  // A.3: Periodic engineering state consolidation (every 15 min)
+  // Keeps the proactive engine active between audits
+  const consolidationTimer = setInterval(() => {
+    try {
+      getEventBus().publish("engineering_state.consolidated", {});
+    } catch (err) {
+      daemonLog(ctx.logPath, "ERROR", `Engineering state consolidation failed: ${err}`);
+    }
+  }, 15 * 60 * 1000);
+
   let auditTimer = setInterval(runPeriodicAuditFn, getAuditIntervalMs(ctx));
 
   getEventBus().subscribe("health.checked", () => {
@@ -640,7 +682,7 @@ function setupPeriodicTimers(
     daemonLog(ctx.logPath, "DEBUG", `Audit interval recalculated: ${newInterval / 1000}s (score=${ctx.state.health?.score ?? "unknown"})`);
   });
 
-  return { persistTimer, largeCommitTimer, auditTimer };
+  return { persistTimer, largeCommitTimer, auditTimer, consolidationTimer };
 }
 
 function getAuditIntervalMs(ctx: DaemonContext): number {
@@ -697,6 +739,7 @@ function setupShutdown(
     persistTimer: NodeJS.Timeout;
     auditTimer: NodeJS.Timeout;
     largeCommitTimer: NodeJS.Timeout;
+    consolidationTimer: NodeJS.Timeout;
   },
 ): void {
   const shutdown = (signal: string) => {
@@ -706,6 +749,7 @@ function setupShutdown(
     clearInterval(timers.persistTimer);
     clearInterval(timers.auditTimer);
     clearInterval(timers.largeCommitTimer);
+    clearInterval(timers.consolidationTimer);
     releaseVerificationLock(ctx.shitennoDir);
     persistState(ctx.state, ctx.statePath);
     ctx.stopProactive();
@@ -757,7 +801,9 @@ export async function runDaemon(shitennoDir: string, projectRoot?: string): Prom
   const startedAt = Date.now();
   setupIpcServer(ctx, startedAt);
 
-  ctx.stopWatcher = startWatching(shitennoDir);
+  ctx.stopWatcher = startWatching(shitennoDir, {
+    extraPaths: [join(resolvedProjectRoot, "src", "commands")],
+  });
   const { stopProactive } = initEngines(ctx);
   ctx.stopProactive = stopProactive;
 

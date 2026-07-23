@@ -233,7 +233,7 @@ async function handleAddReminder(message: string, opts: Record<string, unknown>)
   saveReminders(ctx.projectRoot, reminders);
 
   if (opts.notify) {
-    sendDesktopNotification("Shugo Reminder Added", message, priority);
+    sendDesktopNotification(ctx.shitennoDir, "Shugo Reminder Added", message, priority);
   }
 
   if (isJson) {

@@ -168,6 +168,16 @@ export function checkBuild(projectRoot: string): CompletionCheck {
   }
 }
 
+function isDocSyncFailure(detail: string): boolean {
+  return (
+    detail.includes("Command implemented but not documented") ||
+    detail.includes("Directory exists but not documented") ||
+    detail.includes("Documentation sync failed") ||
+    detail.includes("checkCLICommands") ||
+    detail.includes("checkUndocumentedDirectories")
+  );
+}
+
 export function checkTests(projectRoot: string): CompletionCheck {
   const pkg = readPackageJsonSafe(projectRoot);
   // O gate de "done" usa test:unit, não test — a suíte completa inclui
@@ -193,7 +203,15 @@ export function checkTests(projectRoot: string): CompletionCheck {
     return { name: "TESTS", passed: true, message: "Tests passed" };
   } catch (err) {
     const detail = extractExecError(err);
-    return { name: "TESTS", passed: false, message: `Tests failed: ${String(detail).slice(0, 300)}` };
+    const detailStr = String(detail);
+    if (isDocSyncFailure(detailStr)) {
+      return {
+        name: "TESTS",
+        passed: false,
+        message: `Documentation sync failed (detected via test suite): ${detailStr.slice(0, 280)}`,
+      };
+    }
+    return { name: "TESTS", passed: false, message: `Tests failed: ${detailStr.slice(0, 300)}` };
   }
 }
 
@@ -236,6 +254,26 @@ export function checkGateIntegrity(projectRoot: string): CompletionCheck {
   }
 }
 
+export function checkDocumentation(projectRoot: string): CompletionCheck {
+  const pkg = readPackageJsonSafe(projectRoot);
+  if (!pkg?.scripts?.["sync:docs"]) {
+    return { name: "DOCS", passed: true, message: "No sync:docs script — skipped" };
+  }
+  const { run } = resolveRunner(projectRoot);
+  try {
+    execSync(`${run("sync:docs")} --quiet`, {
+      encoding: "utf-8",
+      cwd: projectRoot,
+      timeout: 60000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { name: "DOCS", passed: true, message: "Documentation in sync" };
+  } catch (err) {
+    const detail = extractExecError(err);
+    return { name: "DOCS", passed: false, message: `Documentation sync failed: ${String(detail).slice(0, 300)}` };
+  }
+}
+
 // ── Verification Record ────────────────────────────────────────────────────
 
 export interface VerificationRecord {
@@ -269,7 +307,13 @@ export function runAutoVerification(
   projectRoot: string,
   planId: string
 ): VerificationRecord {
-  const checks = [checkBuild(projectRoot), checkTests(projectRoot), checkLint(projectRoot), checkGateIntegrity(projectRoot)];
+  const checks = [
+    checkBuild(projectRoot),
+    checkTests(projectRoot),
+    checkLint(projectRoot),
+    checkGateIntegrity(projectRoot),
+    checkDocumentation(projectRoot),
+  ];
   const passed = checks.every((c) => c.passed);
   let baseCommit = "unknown";
   try {

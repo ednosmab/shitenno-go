@@ -17,6 +17,9 @@ import type { ContextRule } from "./context-rules.js";
 import type { DynamicRule } from "./dynamic-rules.js";
 import type { MaturityProfile } from "./maturity-profile.js";
 import { partitionRules, type RuleManifestEntry, type TaskMetadata } from "./rule-manifest.js";
+import { join } from "path";
+import { existsSync, readFileSync } from "fs";
+import { SHITENNO_DIR_NAME } from "./constants.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +122,20 @@ export interface Briefing {
     adrs: Array<{ id: string; title: string; status: string }>;
     skills: Array<{ name: string; description: string }>;
   };
+  /** Proactive alerts from daemon challenges (A.2) */
+  proactiveAlerts?: {
+    pendingChallenges: string[];
+    unresolvedHealthDips: string[];
+    pendingDebts: string[];
+  };
+  /** Daemon heartbeat status (E.3) */
+  daemonHeartbeat?: {
+    running: boolean;
+    uptime: string;
+    lastAudit: string;
+    auditCount: number;
+    notificationsSent: number;
+  };
 }
 
 // ── Briefing Generation ────────────────────────────────────────────────────
@@ -129,6 +146,7 @@ export interface BriefingOptions {
   contextRules: ContextRule[];
   dynamicRules: DynamicRule[];
   maturityProfile?: MaturityProfile;
+  projectRoot?: string;
   quickBoard?: {
     currentTask: string;
     nextP0: string;
@@ -155,7 +173,9 @@ function generateRecommendations(
 }
 
 export function generateBriefing(options: BriefingOptions): Briefing {
-  const { fingerprint, riskMap, contextRules, dynamicRules, maturityProfile, quickBoard, reminders } = options;
+  const { fingerprint, riskMap, contextRules, dynamicRules, maturityProfile, quickBoard } = options;
+  const reminders = options.reminders ?? [];
+  const shitennoDir = options.projectRoot ? join(options.projectRoot, SHITENNO_DIR_NAME) : undefined;
 
   const criticalAreas = riskMap.areas.filter((a) => a.riskLevel === "critical").map((a) => a.path);
   const highAreas = riskMap.areas.filter((a) => a.riskLevel === "high").map((a) => a.path);
@@ -167,6 +187,48 @@ export function generateBriefing(options: BriefingOptions): Briefing {
 
   const recommendations = generateRecommendations(criticalAreas, areasWithoutTests, maturityProfile);
   const estimatedTokensSaved = 8000 + (contextRules.length * 400) + (dynamicRules.length * 400);
+
+  // A.2 + E.3: Read proactive alerts and daemon heartbeat from daemon state
+  let proactiveAlerts: Briefing["proactiveAlerts"] | undefined;
+  let daemonHeartbeat: Briefing["daemonHeartbeat"] | undefined;
+  if (shitennoDir) {
+    try {
+      const statePath = join(shitennoDir, "daemon", "state.json");
+      if (existsSync(statePath)) {
+        const stateRaw = readFileSync(statePath, "utf-8");
+        const state = JSON.parse(stateRaw);
+        // A.2: Proactive alerts
+        if (state.challenges && Array.isArray(state.challenges)) {
+          proactiveAlerts = {
+            pendingChallenges: state.challenges
+              .filter((c: { resolved?: boolean }) => !c.resolved)
+              .slice(0, 5)
+              .map((c: { message?: string; id?: string }) => c.message ?? c.id ?? "Unknown challenge"),
+            unresolvedHealthDips: state.health?.recentDips ?? [],
+            pendingDebts: (state.engineeringState?.debts ?? [])
+              .filter((d: { resolved?: boolean }) => !d.resolved)
+              .slice(0, 3)
+              .map((d: { description?: string }) => d.description ?? "Unknown debt"),
+          };
+        }
+        // E.3: Daemon heartbeat
+        const uptimeMs = state.startedAt ? Date.now() - new Date(state.startedAt).getTime() : 0;
+        const uptimeH = Math.floor(uptimeMs / 3600000);
+        const uptimeM = Math.floor((uptimeMs % 3600000) / 60000);
+        daemonHeartbeat = {
+          running: true,
+          uptime: `${uptimeH}h ${uptimeM}m`,
+          lastAudit: state.lastAuditTime ?? "Never",
+          auditCount: state.auditCount ?? 0,
+          notificationsSent: state.notificationsSent ?? 0,
+        };
+      } else {
+        daemonHeartbeat = { running: false, uptime: "N/A", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 };
+      }
+    } catch {
+      daemonHeartbeat = { running: false, uptime: "Error reading state", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 };
+    }
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -188,7 +250,9 @@ export function generateBriefing(options: BriefingOptions): Briefing {
     recommendations,
     tokenEconomy: { estimatedTokensSaved, cacheHit: false, contextRuleCount: contextRules.length, dynamicRuleCount: dynamicRules.length },
     quickBoard: quickBoard ?? { currentTask: "Nenhuma", nextP0: "Definir novo P0 no BACKLOG.md", p1Debts: "Nenhuma", impediments: "Nenhum", lastSessionStatus: "Desconhecido" },
-    reminders: reminders ?? [],
+    reminders,
+    proactiveAlerts,
+    daemonHeartbeat,
   };
 }
 
@@ -457,7 +521,31 @@ export function briefingToMarkdown(briefing: Briefing): string {
 
   lines.push(...markdownRules(briefing));
 
-  lines.push("## Recommended Next Steps");
+  // A.2: Proactive alerts from daemon challenges
+  if (briefing.proactiveAlerts) {
+    const pa = briefing.proactiveAlerts;
+    if (pa.pendingChallenges.length > 0 || pa.unresolvedHealthDips.length > 0 || pa.pendingDebts.length > 0) {
+      lines.push("", "## Proactive Alerts", "*");
+      for (const c of pa.pendingChallenges) lines.push(`- **Challenge:** ${c}`);
+      for (const h of pa.unresolvedHealthDips) lines.push(`- **Health Dip:** ${h}`);
+      for (const d of pa.pendingDebts) lines.push(`- **Pending Debt:** ${d}`);
+    }
+  }
+
+  // E.3: Daemon heartbeat status
+  if (briefing.daemonHeartbeat) {
+    const dh = briefing.daemonHeartbeat;
+    lines.push("", "## Daemon Status");
+    lines.push(`- **Running:** ${dh.running ? "Yes" : "No"}`);
+    if (dh.running) {
+      lines.push(`- **Uptime:** ${dh.uptime}`);
+      lines.push(`- **Last Audit:** ${dh.lastAudit}`);
+      lines.push(`- **Audit Count:** ${dh.auditCount}`);
+      lines.push(`- **Notifications Sent:** ${dh.notificationsSent}`);
+    }
+  }
+
+  lines.push("", "## Recommended Next Steps");
   for (const rec of briefing.recommendations) lines.push(`1. ${rec}`);
 
   lines.push("", "## Token Economy");

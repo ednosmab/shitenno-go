@@ -17,6 +17,7 @@ import { loadPlugins, getHookBus } from "./plugin-system.js";
 import { isDaemonRunning, startDaemon, shouldSkipDaemon, getApprovedPath } from "./daemon-client.js";
 import { DaemonCircuitBreaker } from "./daemon-circuit-breaker.js";
 import { createFileStorage, recordOutcome } from "./session-feedback.js";
+import { initAutoBriefing } from "./auto-briefing.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,10 @@ function handlePreAction(ctx: MiddlewareContext, resolvedSessionId: string, sess
     if (!sessionStartedRef.value) {
       sessionStartedRef.value = true;
       getEventBus().publish("session.start", { sessionId: resolvedSessionId, projectRoot: ctx.projectRoot });
+      // Auto-briefing fallback: generate BRIEFING.md if daemon is not running
+      if (!isDaemonRunning(ctx.shitennoDir)) {
+        try { initAutoBriefing(ctx.projectRoot, ctx.shitennoDir); } catch {}
+      }
     }
     await ensurePluginsLoaded(ctx.projectRoot);
     if (isSensitiveCommand(commandName, thisCommand.args)) {

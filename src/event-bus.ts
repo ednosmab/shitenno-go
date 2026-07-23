@@ -69,8 +69,11 @@ export type ShitennoEventType =
   | "context.tier_mismatch"
   | "watcher.error"
   | "daemon.ready"
+  | "briefing.generated"
+  | "proactive.digest_ready"
   | "action.pre_sensitive"
-  | "pipeline.partial_failure";
+  | "pipeline.partial_failure"
+  | "audit.standard";
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 

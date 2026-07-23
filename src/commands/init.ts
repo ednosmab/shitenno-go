@@ -394,7 +394,7 @@ async function generateFingerprintAndBriefing(
     const { generateRiskMap } = await import("../risk-map.js");
     const { generateBriefing, briefingToMarkdown } = await import("../briefing.js");
     const riskMap = generateRiskMap(targetDir, shitennoDir);
-    const briefing = generateBriefing({ fingerprint, riskMap, contextRules: [], dynamicRules: [], maturityProfile: profile });
+    const briefing = generateBriefing({ fingerprint, riskMap, contextRules: [], dynamicRules: [], maturityProfile: profile, projectRoot: targetDir });
     const briefingPath = join(shitennoDir, "BRIEFING.md");
     writeFileSync(briefingPath, briefingToMarkdown(briefing), "utf-8");
   } catch (error) {

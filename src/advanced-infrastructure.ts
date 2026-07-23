@@ -124,10 +124,13 @@ const EVENT_VERSIONS: Record<ShitennoEventType, EventVersion> = {
   "context.tier_mismatch": 1,
   "watcher.error": 1,
   "daemon.ready": 1,
+  "briefing.generated": 1,
+  "proactive.digest_ready": 1,
   "action.pre_sensitive": 1,
   "resource.claimed": 1,
   "resource.released": 1,
   "pipeline.partial_failure": 1,
+  "audit.standard": 1,
 };
 
 /** Migrate a payload from one version to another. */

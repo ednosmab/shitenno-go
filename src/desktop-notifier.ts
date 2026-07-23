@@ -5,8 +5,9 @@
  * with intelligent rate limiting:
  *
  * 1. GLOBAL COOLDOWN: 60s between ANY notification (not per-key)
- * 2. RESTRICTED SCOPE: Only task.completed and session.end events
- * 3. IMMEDIATE DISPATCH: No batching — notifications fire instantly
+ * 2. PRIORITY BY SEVERITY: high/critical bypass cooldown, low never notifies
+ * 3. BROAD SCOPE: Covers challenges, drift, task completion, session end
+ * 4. PERSISTENT LOG: All notifications logged to notifications.jsonl
  *
  * PRINCIPLE: Notifications inform, never interrupt.
  */
@@ -19,12 +20,12 @@ import { logger } from "./logger.js";
 
 const GLOBAL_COOLDOWN_MS = 60_000;    // 60s between ANY notification
 const MIN_SESSION_DURATION_MS = 60_000; // Ignore sessions shorter than 60s
-                                         // (shell hooks create ~5-15s sessions on every prompt)
 
 // ── State ────────────────────────────────────────────────────────────────
 
-let lastGlobalNotification = 0;        // Global cooldown tracker
+let lastGlobalNotification = 0;
 let initialized = false;
+let sharedShitennoDir = "";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -33,21 +34,31 @@ function canNotify(): boolean {
   return now - lastGlobalNotification >= GLOBAL_COOLDOWN_MS;
 }
 
-function getCooldownRemaining(): number {
-  const now = Date.now();
-  const elapsed = now - lastGlobalNotification;
-  return Math.max(0, GLOBAL_COOLDOWN_MS - elapsed);
-}
+function throttledNotify(
+  key: string,
+  title: string,
+  message: string,
+  priority: "high" | "medium" | "low" = "medium",
+): void {
+  // Low priority never notifies via desktop
+  if (priority === "low") {
+    if (sharedShitennoDir) {
+      sendDesktopNotification(sharedShitennoDir, title, message, "low");
+    }
+    return;
+  }
 
-function throttledNotify(key: string, title: string, message: string, bypassCooldown = false): void {
-  if (!bypassCooldown && !canNotify()) {
-    const remaining = Math.round(getCooldownRemaining() / 1000);
+  // High/critical bypass cooldown
+  if (priority !== "high" && !canNotify()) {
+    const remaining = Math.round(((lastGlobalNotification + GLOBAL_COOLDOWN_MS) - Date.now()) / 1000);
     logger.debug("desktop-notifier", `Throttled: ${key} (${remaining}s remaining)`);
     return;
   }
 
   lastGlobalNotification = Date.now();
-  sendDesktopNotification(title, message);
+  if (sharedShitennoDir) {
+    sendDesktopNotification(sharedShitennoDir, title, message, priority);
+  }
 }
 
 // ── Event Handlers ───────────────────────────────────────────────────────
@@ -61,21 +72,20 @@ function handleTaskCompleted(payload: Record<string, unknown>): void {
       ? gatesPassed.length
       : "?";
 
-  // Task completion is important — send immediately
   throttledNotify(
     `task:${taskId}:${Date.now()}`,
     "✅ Tarefa Concluída",
-    `Tarefa ${taskId} finalizada com sucesso (${count} verificações OK)`
+    `Tarefa ${taskId} finalizada com sucesso (${count} verificações OK)`,
+    "high",
   );
 }
 
 function handleSessionEnd(payload: Record<string, unknown>): void {
   const outcome = String(payload.outcome ?? "unknown");
-  const durationMs = Number(payload.duration ?? 0); // already in ms from cli-middleware
+  const durationMs = Number(payload.duration ?? 0);
 
-  // Filter out short sessions (shell hooks create ~5-15s sessions on every prompt)
   if (durationMs > 0 && durationMs < MIN_SESSION_DURATION_MS) {
-    logger.debug("desktop-notifier", `Ignored short session: ${Math.round(durationMs / 1000)}s (< ${MIN_SESSION_DURATION_MS / 1000}s threshold)`);
+    logger.debug("desktop-notifier", `Ignored short session: ${Math.round(durationMs / 1000)}s`);
     return;
   }
 
@@ -89,21 +99,80 @@ function handleSessionEnd(payload: Record<string, unknown>): void {
   };
   const title = statusMap[outcome] ?? "⚠️ Sessão encerrada";
 
-  throttledNotify(`session:${outcome}:${Date.now()}`, title, `Duração: ${time}`, true);
+  throttledNotify(`session:${outcome}:${Date.now()}`, title, `Duração: ${time}`, "high");
+}
+
+function handleChallengeGenerated(payload: Record<string, unknown>): void {
+  const type = String(payload.type ?? "unknown");
+  const severity = String(payload.severity ?? "medium");
+  const description = String(payload.description ?? "");
+
+  const sevLabel: Record<string, string> = {
+    high: "🔴",
+    medium: "🟡",
+    low: "🔵",
+  };
+  const icon = sevLabel[severity] ?? "⚪";
+
+  throttledNotify(
+    `challenge:${type}:${Date.now()}`,
+    `${icon} Proactive Alert`,
+    description,
+    severity as "high" | "medium" | "low",
+  );
+}
+
+function handleDriftDetected(payload: Record<string, unknown>): void {
+  const filesChanged = Number(payload.filesChanged ?? 0);
+  const minutes = Number(payload.minutesSinceLastCommit ?? 0);
+
+  throttledNotify(
+    `drift:${Date.now()}`,
+    "⚠️ Drift Detected",
+    `${filesChanged} files changed, ${minutes} min since last commit`,
+    "medium",
+  );
+}
+
+function handlePlanInconsistency(payload: Record<string, unknown>): void {
+  const planId = String(payload.planId ?? "unknown");
+  const message = String(payload.message ?? "Plan has inconsistent status");
+
+  throttledNotify(
+    `plan:${planId}:${Date.now()}`,
+    "⚠️ Plan Inconsistency",
+    `${planId}: ${message}`,
+    "medium",
+  );
+}
+
+function handleBriefingGenerated(): void {
+  throttledNotify(
+    `briefing:${Date.now()}`,
+    "📋 Briefing Updated",
+    "BRIEFING.md regenerated with fresh project context",
+    "low",
+  );
 }
 
 // ── Initialization ───────────────────────────────────────────────────────
 
-export function initDesktopNotifier(): void {
+export function initDesktopNotifier(shitennoDir: string): void {
   if (initialized) return;
   initialized = true;
+  sharedShitennoDir = shitennoDir;
 
   const bus = getEventBus();
 
-  // Only subscribe to task completion and session end
-  // Plan status changes and validation completed are too noisy
+  // Core lifecycle events
   bus.subscribe("task.completed", handleTaskCompleted);
   bus.subscribe("session.end", handleSessionEnd);
 
-  logger.debug("desktop-notifier", "Initialized — subscribed to task.completed, session.end");
+  // Proactive events
+  bus.subscribe("challenge.generated", handleChallengeGenerated);
+  bus.subscribe("workdir.large_uncommitted_drift", handleDriftDetected);
+  bus.subscribe("plan.inconsistency_detected", handlePlanInconsistency);
+  bus.subscribe("briefing.generated", handleBriefingGenerated);
+
+  logger.info("desktop-notifier", "Initialized — subscribed to task.completed, session.end, challenge.generated, drift, plan.inconsistency, briefing.generated");
 }
