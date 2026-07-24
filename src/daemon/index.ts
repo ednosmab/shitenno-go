@@ -480,11 +480,10 @@ function handlePlanVerification(
 
 function onPlanFileChanged(
   ctx: DaemonContext,
+  verificationDebounce: Map<string, NodeJS.Timeout>,
   verifyAllPendingPlans: () => Promise<void>,
   runPeriodicAuditFn: () => Promise<void>,
 ): void {
-  const verificationDebounce = new Map<string, NodeJS.Timeout>();
-
   recordEvent(ctx.state, "plan.file_changed");
   ctx.state.briefingCache = null;
   ctx.state.riskMapCache = null;
@@ -507,8 +506,10 @@ function subscribeTier1Events(
 ): void {
   const bus = getEventBus();
 
+  const verificationDebounce = new Map<string, NodeJS.Timeout>();
+
   bus.subscribe("plan.file_changed", () => {
-    onPlanFileChanged(ctx, verifyAllPendingPlans, runPeriodicAuditFn);
+    onPlanFileChanged(ctx, verificationDebounce, verifyAllPendingPlans, runPeriodicAuditFn);
   });
 
   bus.subscribe("workdir.large_uncommitted_drift", (payload) => {
@@ -684,10 +685,67 @@ function subscribeAllEvents(
   return [];
 }
 
+function runSemanticCycle(ctx: DaemonContext): void {
+  try {
+    const journal = getChangeJournal(ctx.shitennoDir, ctx.state.startedAt);
+    const matcher = getPatternMatcher(journal);
+    const patterns = matcher.detect();
+    if (patterns.length === 0) return;
+
+    daemonLog(ctx.logPath, "INFO", `Semantic pattern matcher: ${patterns.length} pattern(s) detected`);
+
+    const profile = loadSemanticGrowthProfile(ctx.shitennoDir);
+    daemonLog(ctx.logPath, "DEBUG", `Semantic growth: capacity=${Math.round(profile.growthCapacity * 100)}%, challenge=${Math.round(profile.challengeLevel * 100)}%, patterns=${profile.semanticChoices.length}`);
+
+    const insights = generateInsights(ctx.shitennoDir, ctx.projectRoot, patterns, journal);
+    if (insights.length > 0) {
+      daemonLog(ctx.logPath, "INFO", `Semantic reasoner: ${insights.length} insight(s) generated`);
+      for (const insight of insights) {
+        getEventBus().publish("semantic.insight_detected", {
+          insightId: insight.id,
+          insightType: insight.type,
+          domains: insight.domains,
+          priority: insight.priority,
+          confidence: insight.confidence,
+        });
+      }
+    }
+
+    const correlations = detectCorrelations(ctx.shitennoDir, ctx.projectRoot, journal);
+    if (correlations.length > 0) {
+      daemonLog(ctx.logPath, "INFO", `Semantic correlator: ${correlations.length} correlation(s) detected`);
+    }
+  } catch (err) {
+    daemonLog(ctx.logPath, "ERROR", `Semantic pattern matcher failed: ${err}`);
+  }
+}
+
+function setupConsolidationTimer(ctx: DaemonContext): NodeJS.Timeout {
+  return setInterval(() => {
+    try {
+      getEventBus().publish("engineering_state.consolidated", {});
+      runSemanticCycle(ctx);
+    } catch (err) {
+      daemonLog(ctx.logPath, "ERROR", `Engineering state consolidation failed: ${err}`);
+    }
+  }, 15 * 60 * 1000);
+}
+
+function setupAuditTimer(ctx: DaemonContext, runPeriodicAuditFn: () => Promise<void>): { timer: NodeJS.Timeout; cleanup: () => void } {
+  let timer = setInterval(runPeriodicAuditFn, getAuditIntervalMs(ctx));
+  const sub = getEventBus().subscribe("health.checked", () => {
+    const newInterval = getAuditIntervalMs(ctx);
+    clearInterval(timer);
+    timer = setInterval(runPeriodicAuditFn, newInterval);
+    daemonLog(ctx.logPath, "DEBUG", `Audit interval recalculated: ${newInterval / 1000}s (score=${ctx.state.health?.score ?? "unknown"})`);
+  });
+  return { timer, cleanup: () => sub() };
+}
+
 function setupPeriodicTimers(
   ctx: DaemonContext,
   runPeriodicAuditFn: () => Promise<void>,
-): { persistTimer: NodeJS.Timeout; largeCommitTimer: NodeJS.Timeout; auditTimer: NodeJS.Timeout; consolidationTimer: NodeJS.Timeout } {
+): { persistTimer: NodeJS.Timeout; largeCommitTimer: NodeJS.Timeout; auditTimer: NodeJS.Timeout; consolidationTimer: NodeJS.Timeout; cleanupAudit: () => void } {
   const persistTimer = setInterval(() => {
     persistState(ctx.state, ctx.statePath);
   }, 30_000);
@@ -703,63 +761,10 @@ function setupPeriodicTimers(
     }
   }, 5 * 60 * 1000);
 
-  // A.3: Periodic engineering state consolidation (every 15 min)
-  // Keeps the proactive engine active between audits
-  const consolidationTimer = setInterval(() => {
-    try {
-      getEventBus().publish("engineering_state.consolidated", {});
+  const consolidationTimer = setupConsolidationTimer(ctx);
+  const { timer: auditTimer, cleanup: cleanupAudit } = setupAuditTimer(ctx, runPeriodicAuditFn);
 
-      // Semantic Layer: Run pattern matcher on journal
-      try {
-        const journal = getChangeJournal(ctx.shitennoDir, ctx.state.startedAt);
-        const matcher = getPatternMatcher(journal);
-        const patterns = matcher.detect();
-        if (patterns.length > 0) {
-          daemonLog(ctx.logPath, "INFO", `Semantic pattern matcher: ${patterns.length} pattern(s) detected`);
-
-          // Log semantic growth profile state
-          const profile = loadSemanticGrowthProfile(ctx.shitennoDir);
-          daemonLog(ctx.logPath, "DEBUG", `Semantic growth: capacity=${Math.round(profile.growthCapacity * 100)}%, challenge=${Math.round(profile.challengeLevel * 100)}%, patterns=${profile.semanticChoices.length}`);
-
-          // Run reasoner for higher-level insights
-          const insights = generateInsights(ctx.shitennoDir, ctx.projectRoot, patterns, journal);
-          if (insights.length > 0) {
-            daemonLog(ctx.logPath, "INFO", `Semantic reasoner: ${insights.length} insight(s) generated`);
-            for (const insight of insights) {
-              getEventBus().publish("semantic.insight_detected", {
-                insightId: insight.id,
-                insightType: insight.type,
-                domains: insight.domains,
-                priority: insight.priority,
-                confidence: insight.confidence,
-              });
-            }
-          }
-
-          // Run correlator for cross-system correlations
-          const correlations = detectCorrelations(ctx.shitennoDir, ctx.projectRoot, journal);
-          if (correlations.length > 0) {
-            daemonLog(ctx.logPath, "INFO", `Semantic correlator: ${correlations.length} correlation(s) detected`);
-          }
-        }
-      } catch (err) {
-        daemonLog(ctx.logPath, "ERROR", `Semantic pattern matcher failed: ${err}`);
-      }
-    } catch (err) {
-      daemonLog(ctx.logPath, "ERROR", `Engineering state consolidation failed: ${err}`);
-    }
-  }, 15 * 60 * 1000);
-
-  let auditTimer = setInterval(runPeriodicAuditFn, getAuditIntervalMs(ctx));
-
-  getEventBus().subscribe("health.checked", () => {
-    const newInterval = getAuditIntervalMs(ctx);
-    clearInterval(auditTimer);
-    auditTimer = setInterval(runPeriodicAuditFn, newInterval);
-    daemonLog(ctx.logPath, "DEBUG", `Audit interval recalculated: ${newInterval / 1000}s (score=${ctx.state.health?.score ?? "unknown"})`);
-  });
-
-  return { persistTimer, largeCommitTimer, auditTimer, consolidationTimer };
+  return { persistTimer, largeCommitTimer, auditTimer, consolidationTimer, cleanupAudit };
 }
 
 function getAuditIntervalMs(ctx: DaemonContext): number {
@@ -817,6 +822,7 @@ function setupShutdown(
     auditTimer: NodeJS.Timeout;
     largeCommitTimer: NodeJS.Timeout;
     consolidationTimer: NodeJS.Timeout;
+    cleanupAudit: () => void;
   },
 ): void {
   const shutdown = (signal: string) => {
@@ -827,6 +833,7 @@ function setupShutdown(
     clearInterval(timers.auditTimer);
     clearInterval(timers.largeCommitTimer);
     clearInterval(timers.consolidationTimer);
+    timers.cleanupAudit();
     releaseVerificationLock(ctx.shitennoDir);
     persistState(ctx.state, ctx.statePath);
     ctx.stopProactive();

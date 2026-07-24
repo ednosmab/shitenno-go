@@ -117,74 +117,73 @@ async function handleRestartAction(opts: Record<string, unknown>): Promise<void>
   }
 }
 
+function displaySessionSection(status: DaemonStatusResponse): void {
+  output(chalk.bold("  Sessions:"));
+  output(`    Active:   ${status.activeSessions}`);
+  if (status.lastSession) {
+    const dur = status.lastSession.duration ? `${status.lastSession.duration}min` : "em curso";
+    output(`    Latest:   ${chalk.gray(`${status.lastSession.id} (${dur})`)}`);
+  }
+}
+
+function displayHealthSection(status: DaemonStatusResponse): void {
+  if (status.drift) {
+    output(chalk.bold("  Drift:"));
+    output(`    Files:    ${chalk.yellow(String(status.drift.filesChanged))} changed`);
+    output(`    Time:     ${chalk.yellow(String(status.drift.minutesSinceLastCommit))} min since last commit`);
+    output(`    Detected: ${chalk.gray(status.drift.detectedAt)}`);
+    outputBlank();
+  }
+  if (status.health) {
+    output(chalk.bold("  Health:"));
+    const scoreColor = status.health.score >= 70 ? chalk.green : status.health.score >= 40 ? chalk.yellow : chalk.red;
+    output(`    Score:    ${scoreColor(String(status.health.score))}/100`);
+    output(`    Checked:  ${chalk.gray(status.health.checkedAt)}`);
+    outputBlank();
+  }
+  if (status.challengesQueued > 0) {
+    output(chalk.bold("  Challenges:"));
+    output(`    Queued:   ${chalk.yellow(String(status.challengesQueued))}`);
+    outputBlank();
+  }
+  if (status.debt) {
+    output(chalk.bold("  Knowledge Debt:"));
+    output(`    Gaps:     ${chalk.yellow(String(status.debt.gapCount))}`);
+    const debtColor = status.debt.healthScore >= 70 ? chalk.green : status.debt.healthScore >= 40 ? chalk.yellow : chalk.red;
+    output(`    Health:   ${debtColor(String(status.debt.healthScore))}/100`);
+    outputBlank();
+  }
+}
+
+function displayAdvancedSection(status: DaemonStatusResponse): void {
+  if (status.proactiveEngine) {
+    output(chalk.bold("  Proactive Engine:"));
+    output(`    Last check:     ${chalk.gray(status.proactiveEngine.lastCheck ?? "Never")}`);
+    output(`    Challenges:     ${chalk.yellow(String(status.proactiveEngine.challengesTriggered))} triggered`);
+    if (status.proactiveEngine.cooldownUntil) output(`    Cooldown until: ${chalk.gray(status.proactiveEngine.cooldownUntil)}`);
+    outputBlank();
+  }
+  if (status.audit) {
+    output(chalk.bold("  Audit:"));
+    output(`    Last audit:     ${chalk.gray(status.audit.lastAuditTime ?? "Never")}`);
+    output(`    Total audits:   ${chalk.cyan(String(status.audit.auditCount))}`);
+  }
+}
+
+function displayDaemonSections(status: DaemonStatusResponse): void {
+  displaySessionSection(status);
+  outputBlank();
+  displayHealthSection(status);
+  displayAdvancedSection(status);
+}
+
 function displayRunningDaemonStatus(status: DaemonStatusResponse): void {
   output(`  PID:        ${chalk.bold(status.pid)}`);
   output(`  Version:    ${status.version}`);
   output(`  Uptime:     ${formatUptime(status.uptimeSeconds)}`);
   output(`  Events:     ${status.eventsRecorded} recorded`);
-
   outputBlank();
-  output(chalk.bold("  Sessions:"));
-  output(`    Active:   ${status.activeSessions}`);
-  if (status.lastSession) {
-    const dur = status.lastSession.duration
-      ? `${status.lastSession.duration}min`
-      : "em curso";
-    output(`    Latest:   ${chalk.gray(`${status.lastSession.id} (${dur})`)}`);
-  }
-
-  if (status.drift) {
-    outputBlank();
-    output(chalk.bold("  Drift:"));
-    output(`    Files:    ${chalk.yellow(String(status.drift.filesChanged))} changed`);
-    output(`    Time:     ${chalk.yellow(String(status.drift.minutesSinceLastCommit))} min since last commit`);
-    output(`    Detected: ${chalk.gray(status.drift.detectedAt)}`);
-  }
-
-  if (status.health) {
-    outputBlank();
-    output(chalk.bold("  Health:"));
-    const scoreColor = status.health.score >= 70 ? chalk.green
-      : status.health.score >= 40 ? chalk.yellow
-      : chalk.red;
-    output(`    Score:    ${scoreColor(String(status.health.score))}/100`);
-    output(`    Checked:  ${chalk.gray(status.health.checkedAt)}`);
-  }
-
-  if (status.challengesQueued > 0) {
-    outputBlank();
-    output(chalk.bold("  Challenges:"));
-    output(`    Queued:   ${chalk.yellow(String(status.challengesQueued))}`);
-  }
-
-  if (status.debt) {
-    outputBlank();
-    output(chalk.bold("  Knowledge Debt:"));
-    output(`    Gaps:     ${chalk.yellow(String(status.debt.gapCount))}`);
-    const debtColor = status.debt.healthScore >= 70 ? chalk.green
-      : status.debt.healthScore >= 40 ? chalk.yellow
-      : chalk.red;
-    output(`    Health:   ${debtColor(String(status.debt.healthScore))}/100`);
-  }
-
-  // E.1: Proactive engine state
-  if (status.proactiveEngine) {
-    outputBlank();
-    output(chalk.bold("  Proactive Engine:"));
-    output(`    Last check:     ${chalk.gray(status.proactiveEngine.lastCheck ?? "Never")}`);
-    output(`    Challenges:     ${chalk.yellow(String(status.proactiveEngine.challengesTriggered))} triggered`);
-    if (status.proactiveEngine.cooldownUntil) {
-      output(`    Cooldown until: ${chalk.gray(status.proactiveEngine.cooldownUntil)}`);
-    }
-  }
-
-  // E.1: Audit info
-  if (status.audit) {
-    outputBlank();
-    output(chalk.bold("  Audit:"));
-    output(`    Last audit:     ${chalk.gray(status.audit.lastAuditTime ?? "Never")}`);
-    output(`    Total audits:   ${chalk.cyan(String(status.audit.auditCount))}`);
-  }
+  displayDaemonSections(status);
 }
 
 async function handleStatusAction(opts: Record<string, unknown>): Promise<void> {

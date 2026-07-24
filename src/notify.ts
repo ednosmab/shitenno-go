@@ -26,50 +26,52 @@ function getLogPath(shitennoDir: string): string {
   return join(shitennoDir, "daemon", "notifications.jsonl");
 }
 
+function rotateSingleLog(logPath: string, i: number): void {
+  const src = `${logPath}.${i}`;
+  const dst = `${logPath}.${i + 1}`;
+  if (!existsSync(src)) return;
+  if (i === MAX_LOG_FILES - 1 && existsSync(dst)) {
+    try { unlinkSync(dst); } catch {}
+  }
+  renameSync(src, dst);
+}
+
 function rotateLogIfNeeded(logPath: string): void {
   try {
     if (!existsSync(logPath)) return;
     const stat = statSync(logPath);
     if (stat.size < MAX_LOG_BYTES) return;
-
-    for (let i = MAX_LOG_FILES - 1; i >= 1; i--) {
-      const src = `${logPath}.${i}`;
-      const dst = `${logPath}.${i + 1}`;
-      if (existsSync(src)) {
-        if (i === MAX_LOG_FILES - 1 && existsSync(dst)) {
-          try { unlinkSync(dst); } catch {}
-        }
-        renameSync(src, dst);
-      }
-    }
+    for (let i = MAX_LOG_FILES - 1; i >= 1; i--) rotateSingleLog(logPath, i);
     renameSync(logPath, `${logPath}.1`);
   } catch {
     // Silent — log rotation failure should not break notifications
   }
 }
 
-export function logNotification(
-  shitennoDir: string,
-  title: string,
-  message: string,
-  severity: string,
-  delivered: boolean,
-  channel: string,
-): void {
+export interface NotificationEntry {
+  shitennoDir: string;
+  title: string;
+  message: string;
+  severity: string;
+  delivered: boolean;
+  channel: string;
+}
+
+export function logNotification(entry: NotificationEntry): void {
   try {
-    const daemonDir = join(shitennoDir, "daemon");
+    const daemonDir = join(entry.shitennoDir, "daemon");
     if (!existsSync(daemonDir)) mkdirSync(daemonDir, { recursive: true });
-    const logPath = getLogPath(shitennoDir);
+    const logPath = getLogPath(entry.shitennoDir);
     rotateLogIfNeeded(logPath);
-    const entry = JSON.stringify({
+    const record = JSON.stringify({
       ts: new Date().toISOString(),
-      title,
-      message,
-      severity,
-      delivered,
-      channel,
+      title: entry.title,
+      message: entry.message,
+      severity: entry.severity,
+      delivered: entry.delivered,
+      channel: entry.channel,
     });
-    appendFileSync(logPath, entry + "\n", "utf-8");
+    appendFileSync(logPath, record + "\n", "utf-8");
   } catch {
     // Silent — logging failure should not break notifications
   }
@@ -139,37 +141,35 @@ function sendWindows(title: string, message: string): boolean {
  * @param priority - Priority level (affects urgency on supported platforms)
  * @returns true if a desktop notification was sent
  */
+export function deliverByPlatform(
+  notifier: PlatformNotifier, title: string, message: string, urgency: string,
+): { delivered: boolean; channel: string } {
+  const map: Partial<Record<PlatformNotifier, { send: () => boolean; channel: string }>> = {
+    linux: { send: () => sendLinux(title, message, urgency), channel: "notify-send" },
+    macos: { send: () => sendMacOS(title, message), channel: "osascript" },
+    windows: { send: () => sendWindows(title, message), channel: "powershell" },
+  };
+  const entry = map[notifier];
+  if (!entry) {
+    if (!warnedUnsupportedPlatform) {
+      logger.debug("notify", `Desktop notifications not available on platform: ${platform()}. Notifications logged to disk.`);
+      warnedUnsupportedPlatform = true;
+    }
+    return { delivered: false, channel: "log" };
+  }
+  const delivered = entry.send();
+  return { delivered, channel: delivered ? entry.channel : "log" };
+}
+
 export function sendDesktopNotification(
   shitennoDir: string,
   title: string,
   message: string,
   priority: ReminderPriority = "medium",
 ): boolean {
-  const notifier = detectPlatform();
   const urgency = priority === "high" ? "critical" : priority === "low" ? "low" : "normal";
-  let delivered = false;
-  let channel = "log";
-
-  if (notifier === "linux") {
-    delivered = sendLinux(title, message, urgency);
-    if (delivered) channel = "notify-send";
-  } else if (notifier === "macos") {
-    delivered = sendMacOS(title, message);
-    if (delivered) channel = "osascript";
-  } else if (notifier === "windows") {
-    delivered = sendWindows(title, message);
-    if (delivered) channel = "powershell";
-  } else if (!warnedUnsupportedPlatform) {
-    logger.debug(
-      "notify",
-      `Desktop notifications not available on platform: ${platform()}. Notifications logged to disk.`,
-    );
-    warnedUnsupportedPlatform = true;
-  }
-
-  // Always log to persistent log for audit
-  logNotification(shitennoDir, title, message, priority, delivered, channel);
-
+  const { delivered, channel } = deliverByPlatform(detectPlatform(), title, message, urgency);
+  logNotification({ shitennoDir, title, message, severity: priority, delivered, channel });
   return delivered;
 }
 

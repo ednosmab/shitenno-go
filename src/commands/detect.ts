@@ -266,15 +266,38 @@ function displayCorrelation(corr: Correlation): void {
   outputBlank();
 }
 
-function outputHumanReadable(
-  report: PatternDetectionReport,
-  cacheHit: boolean,
-  reportFile: string | null,
-  shitennoDir: string,
-  projectRoot: string,
-): void {
-  if (cacheHit) output(chalk.gray("  Used cached results"));
-  output("");
+function displaySemanticSection(projectRoot: string, shitennoDir: string): void {
+  const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+  if (semanticPatterns.length === 0 && insights.length === 0 && correlations.length === 0) return;
+
+  outputSection("Semantic Analysis:");
+  outputBlank();
+
+  if (semanticPatterns.length > 0) {
+    output(chalk.bold.cyan(`    📊 Semantic Patterns Detected (${semanticPatterns.length})`));
+    outputBlank();
+    for (let i = 0; i < Math.min(semanticPatterns.length, 5); i++) {
+      const pattern = semanticPatterns[i];
+      if (pattern) displaySemanticPattern(pattern, i);
+    }
+    if (semanticPatterns.length > 5) {
+      output(chalk.gray(`       ... and ${semanticPatterns.length - 5} more`));
+      outputBlank();
+    }
+    const firstPattern = semanticPatterns[0];
+    if (firstPattern) {
+      output(formatSemanticDualPath(createSemanticDualPath(firstPattern, semanticProfile)));
+    }
+  }
+
+  for (const insight of insights.slice(0, 5)) displayInsight(insight);
+  for (const corr of correlations.slice(0, 5)) displayCorrelation(corr);
+
+  output(chalk.gray(`    Growth: capacity=${Math.round(semanticProfile.growthCapacity * 100)}% | challenge=${Math.round(semanticProfile.challengeLevel * 100)}% | choices=${semanticProfile.semanticChoices.length}`));
+  outputBlank();
+}
+
+function displayDetectionSummary(report: PatternDetectionReport, reportFile: string | null): void {
   outputSection("Detection Results:");
   outputBlank();
   output(chalk.gray(`    History entries analyzed: ${report.historyEntriesAnalyzed}`));
@@ -282,8 +305,10 @@ function outputHumanReadable(
   output(chalk.gray(`    Patterns detected:       ${report.patterns.length}`));
   output(chalk.gray(`    Candidate rules:         ${report.candidateRules.length}`));
   outputBlank();
-  if (report.patterns.length === 0) { outputSuccess("No significant patterns detected. System is healthy."); outputBlank(); }
-  else {
+  if (report.patterns.length === 0) {
+    outputSuccess("No significant patterns detected. System is healthy.");
+    outputBlank();
+  } else {
     outputSection("Patterns Found:");
     outputBlank();
     for (const pattern of report.patterns) displayPattern(pattern);
@@ -294,58 +319,25 @@ function outputHumanReadable(
   outputSection("Summary:");
   output(chalk.gray(`    ${report.summary}`));
   outputBlank();
-  const growthProfile = loadGrowthProfile(shitennoDir);
-  output(formatGrowthProgress(growthProfile));
+}
+
+interface DetectHumanOutput {
+  report: PatternDetectionReport;
+  cacheHit: boolean;
+  reportFile: string | null;
+  shitennoDir: string;
+  projectRoot: string;
+}
+
+function outputHumanReadable(ctx: DetectHumanOutput): void {
+  const { report, cacheHit, reportFile, shitennoDir, projectRoot } = ctx;
+  if (cacheHit) output(chalk.gray("  Used cached results"));
+  output("");
+  displayDetectionSummary(report, reportFile);
+  output(formatGrowthProgress(loadGrowthProfile(shitennoDir)));
   outputBlank();
-
-  // ── Semantic Layer Section ──────────────────────────────────────────────
   try {
-    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
-
-    if (semanticPatterns.length > 0 || insights.length > 0 || correlations.length > 0) {
-      outputSection("Semantic Analysis:");
-      outputBlank();
-
-      if (semanticPatterns.length > 0) {
-        output(chalk.bold.cyan(`    📊 Semantic Patterns Detected (${semanticPatterns.length})`));
-        outputBlank();
-        for (let i = 0; i < Math.min(semanticPatterns.length, 5); i++) {
-          const pattern = semanticPatterns[i];
-          if (pattern) displaySemanticPattern(pattern, i);
-        }
-        if (semanticPatterns.length > 5) {
-          output(chalk.gray(`       ... and ${semanticPatterns.length - 5} more`));
-          outputBlank();
-        }
-
-        // Show dual path for first pattern
-        const firstSemanticPattern = semanticPatterns[0];
-        if (firstSemanticPattern) {
-          const dualPath = createSemanticDualPath(firstSemanticPattern, semanticProfile);
-          output(formatSemanticDualPath(dualPath));
-        }
-      }
-
-      if (insights.length > 0) {
-        output(chalk.bold.magenta(`    🧠 Semantic Insights (${insights.length})`));
-        outputBlank();
-        for (const insight of insights.slice(0, 5)) {
-          displayInsight(insight);
-        }
-      }
-
-      if (correlations.length > 0) {
-        output(chalk.bold.yellow(`    🔗 Cross-System Correlations (${correlations.length})`));
-        outputBlank();
-        for (const corr of correlations.slice(0, 5)) {
-          displayCorrelation(corr);
-        }
-      }
-
-      // Semantic growth profile summary
-      output(chalk.gray(`    Growth: capacity=${Math.round(semanticProfile.growthCapacity * 100)}% | challenge=${Math.round(semanticProfile.challengeLevel * 100)}% | choices=${semanticProfile.semanticChoices.length}`));
-      outputBlank();
-    }
+    displaySemanticSection(projectRoot, shitennoDir);
   } catch (err) {
     logger.warn("detect", `Semantic analysis failed: ${err}`);
   }
@@ -421,7 +413,7 @@ export const detectCommand = new Command("detect")
       if (!isJson && !isAuto) spinner?.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
       if (format === "json") { outputJsonReport(ctx.projectRoot, report, { cacheHit, reportFile }, ctx.shitennoDir); return; }
       if (format === "markdown") { outputMarkdownReport(report); return; }
-      outputHumanReadable(report, cacheHit, reportFile, ctx.shitennoDir, ctx.projectRoot);
+      outputHumanReadable({ report, cacheHit, reportFile, shitennoDir: ctx.shitennoDir, projectRoot: ctx.projectRoot });
       publishDetectionEvent(report);
       recordCandidateRuleFeedback(report, ctx.shitennoDir);
     } catch (error) {

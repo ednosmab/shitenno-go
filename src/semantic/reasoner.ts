@@ -285,85 +285,53 @@ export class SemanticReasoner {
     return insights;
   }
 
+  private collectJsonEvidence(evidence: Evidence[], source: Evidence["source"], relPath: string): void {
+    try {
+      const fullPath = join(this.ctx.shitennoDir, relPath);
+      if (!existsSync(fullPath)) return;
+      const raw = JSON.parse(readFileSync(fullPath, "utf-8")) as Record<string, unknown>;
+      if (source === "risk") {
+        evidence.push({ source, description: `Risk map: ${raw.overallRisk ?? "unknown"} (${raw.overallScore ?? 0})`, data: { level: raw.overallRisk ?? "unknown", score: raw.overallScore ?? 0 } });
+      } else {
+        evidence.push({ source, description: `Health score: ${raw.score ?? "unknown"}`, data: { score: raw.score ?? 0 } });
+      }
+    } catch { /* file may not exist */ }
+  }
+
+  private collectMaturityEvidence(evidence: Evidence[]): void {
+    try {
+      const p = join(this.ctx.shitennoDir, "governance", "maturity-profile.json");
+      if (!existsSync(p)) return;
+      const m = JSON.parse(readFileSync(p, "utf-8")) as { dimensions?: Record<string, { score?: number }> };
+      if (!m.dimensions) return;
+      for (const [domain, dim] of Object.entries(m.dimensions)) {
+        evidence.push({ source: "maturity", description: `Maturity ${domain}: ${dim.score ?? 0}`, data: { domain, score: dim.score ?? 0 } });
+      }
+    } catch { /* file may not exist */ }
+  }
+
+  private collectJournalEvidence(evidence: Evidence[]): void {
+    const entries = this.ctx.journal.query({ limit: 20 });
+    if (entries.length === 0) return;
+    const domainCounts: Record<string, number> = {};
+    for (const e of entries) { domainCounts[e.classification.domain] = (domainCounts[e.classification.domain] ?? 0) + 1; }
+    evidence.push({ source: "journal", description: `${entries.length} entries across ${Object.keys(domainCounts).length} domains`, data: { entryCount: entries.length, domains: domainCounts } });
+  }
+
+  private collectPatternEvidence(evidence: Evidence[]): void {
+    for (const p of this.ctx.patterns) {
+      evidence.push({ source: "pattern", description: `Pattern: ${p.type} in ${p.domain}`, data: { patternType: p.type, domain: p.domain, confidence: p.confidence } });
+    }
+  }
+
   /** Collect evidence from multiple subsystems. */
   private collectEvidence(): Evidence[] {
     const evidence: Evidence[] = [];
-
-    // Pattern evidence
-    for (const pattern of this.ctx.patterns) {
-      evidence.push({
-        source: "pattern",
-        description: `Pattern detected: ${pattern.type} in ${pattern.domain}`,
-        data: { patternType: pattern.type, domain: pattern.domain, confidence: pattern.confidence },
-      });
-    }
-
-    // Journal evidence (recent entries)
-    const recentEntries = this.ctx.journal.query({ limit: 20 });
-    if (recentEntries.length > 0) {
-      const domainCounts: Record<string, number> = {};
-      for (const entry of recentEntries) {
-        domainCounts[entry.classification.domain] = (domainCounts[entry.classification.domain] ?? 0) + 1;
-      }
-      evidence.push({
-        source: "journal",
-        description: `${recentEntries.length} recent journal entries across ${Object.keys(domainCounts).length} domains`,
-        data: { entryCount: recentEntries.length, domains: domainCounts },
-      });
-    }
-
-    // Risk evidence (if available)
-    try {
-      const riskPath = join(this.ctx.shitennoDir, "governance", "risk-map.json");
-      if (existsSync(riskPath)) {
-        const riskData = JSON.parse(readFileSync(riskPath, "utf-8")) as { overallRisk?: string; overallScore?: number };
-        evidence.push({
-          source: "risk",
-          description: `Risk map: ${riskData.overallRisk ?? "unknown"} (${riskData.overallScore ?? 0})`,
-          data: { level: riskData.overallRisk ?? "unknown", score: riskData.overallScore ?? 0 },
-        });
-      }
-    } catch {
-      // Risk map may not exist
-    }
-
-    // Health evidence (if available)
-    try {
-      const healthPath = join(this.ctx.shitennoDir, "governance", "health-score.json");
-      if (existsSync(healthPath)) {
-        const healthData = JSON.parse(readFileSync(healthPath, "utf-8")) as { score?: number };
-        evidence.push({
-          source: "health",
-          description: `Health score: ${healthData.score ?? "unknown"}`,
-          data: { score: healthData.score ?? 0 },
-        });
-      }
-    } catch {
-      // Health score may not exist
-    }
-
-    // Maturity evidence (if available)
-    try {
-      const maturityPath = join(this.ctx.shitennoDir, "governance", "maturity-profile.json");
-      if (existsSync(maturityPath)) {
-        const maturityData = JSON.parse(readFileSync(maturityPath, "utf-8")) as {
-          dimensions?: Record<string, { score?: number }>;
-          overallScore?: number;
-        };
-        if (maturityData.dimensions) {
-          for (const [domain, dim] of Object.entries(maturityData.dimensions)) {
-            evidence.push({
-              source: "maturity",
-              description: `Maturity ${domain}: ${dim.score ?? 0}`,
-              data: { domain, score: dim.score ?? 0 },
-            });
-          }
-        }
-      }
-    } catch {
-      // Maturity profile may not exist
-    }
-
+    this.collectPatternEvidence(evidence);
+    this.collectJournalEvidence(evidence);
+    this.collectJsonEvidence(evidence, "risk", "governance/risk-map.json");
+    this.collectJsonEvidence(evidence, "health", "governance/health-score.json");
+    this.collectMaturityEvidence(evidence);
     return evidence;
   }
 }

@@ -191,115 +191,59 @@ function generateRecommendations(
   return recommendations;
 }
 
+function readDaemonState(shitennoDir: string): { proactiveAlerts?: Briefing["proactiveAlerts"]; daemonHeartbeat?: Briefing["daemonHeartbeat"] } {
+  const statePath = join(shitennoDir, "daemon", "state.json");
+  if (!existsSync(statePath)) return { daemonHeartbeat: { running: false, uptime: "N/A", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 } };
+  const state = JSON.parse(readFileSync(statePath, "utf-8"));
+  const proactiveAlerts = state.challenges && Array.isArray(state.challenges) ? {
+    pendingChallenges: state.challenges.filter((c: { resolved?: boolean }) => !c.resolved).slice(0, 5).map((c: { message?: string; id?: string }) => c.message ?? c.id ?? "Unknown challenge"),
+    unresolvedHealthDips: state.health?.recentDips ?? [],
+    pendingDebts: (state.engineeringState?.debts ?? []).filter((d: { resolved?: boolean }) => !d.resolved).slice(0, 3).map((d: { description?: string }) => d.description ?? "Unknown debt"),
+  } : undefined;
+  const uptimeMs = state.startedAt ? Date.now() - new Date(state.startedAt).getTime() : 0;
+  const daemonHeartbeat = {
+    running: true, uptime: `${Math.floor(uptimeMs / 3600000)}h ${Math.floor((uptimeMs % 3600000) / 60000)}m`,
+    lastAudit: state.lastAuditTime ?? "Never", auditCount: state.auditCount ?? 0, notificationsSent: state.notificationsSent ?? 0,
+  };
+  return { proactiveAlerts, daemonHeartbeat };
+}
+
+function runSemanticBriefing(shitennoDir: string, projectRoot: string): Briefing["semantic"] | undefined {
+  const { profile, patterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+  return {
+    patterns, insights, correlations,
+    growthProfile: { growthCapacity: profile.growthCapacity, challengeLevel: profile.challengeLevel, domainChallengeLevels: profile.domainChallengeLevels, totalChoices: profile.semanticChoices.length },
+  };
+}
+
 export function generateBriefing(options: BriefingOptions): Briefing {
   const { fingerprint, riskMap, contextRules, dynamicRules, maturityProfile, quickBoard } = options;
   const reminders = options.reminders ?? [];
   const shitennoDir = options.projectRoot ? join(options.projectRoot, SHITENNO_DIR_NAME) : undefined;
-
   const criticalAreas = riskMap.areas.filter((a) => a.riskLevel === "critical").map((a) => a.path);
   const highAreas = riskMap.areas.filter((a) => a.riskLevel === "high").map((a) => a.path);
-  const areasWithoutTests = riskMap.areas
-    .flatMap((a) => a.factors)
-    .filter((f) => f.type === "no-tests")
-    .map((f) => f.description)
-    .slice(0, 5);
-
+  const areasWithoutTests = riskMap.areas.flatMap((a) => a.factors).filter((f) => f.type === "no-tests").map((f) => f.description).slice(0, 5);
   const recommendations = generateRecommendations(criticalAreas, areasWithoutTests, maturityProfile);
   const estimatedTokensSaved = 8000 + (contextRules.length * 400) + (dynamicRules.length * 400);
-
-  // A.2 + E.3: Read proactive alerts and daemon heartbeat from daemon state
   let proactiveAlerts: Briefing["proactiveAlerts"] | undefined;
   let daemonHeartbeat: Briefing["daemonHeartbeat"] | undefined;
-  if (shitennoDir) {
-    try {
-      const statePath = join(shitennoDir, "daemon", "state.json");
-      if (existsSync(statePath)) {
-        const stateRaw = readFileSync(statePath, "utf-8");
-        const state = JSON.parse(stateRaw);
-        // A.2: Proactive alerts
-        if (state.challenges && Array.isArray(state.challenges)) {
-          proactiveAlerts = {
-            pendingChallenges: state.challenges
-              .filter((c: { resolved?: boolean }) => !c.resolved)
-              .slice(0, 5)
-              .map((c: { message?: string; id?: string }) => c.message ?? c.id ?? "Unknown challenge"),
-            unresolvedHealthDips: state.health?.recentDips ?? [],
-            pendingDebts: (state.engineeringState?.debts ?? [])
-              .filter((d: { resolved?: boolean }) => !d.resolved)
-              .slice(0, 3)
-              .map((d: { description?: string }) => d.description ?? "Unknown debt"),
-          };
-        }
-        // E.3: Daemon heartbeat
-        const uptimeMs = state.startedAt ? Date.now() - new Date(state.startedAt).getTime() : 0;
-        const uptimeH = Math.floor(uptimeMs / 3600000);
-        const uptimeM = Math.floor((uptimeMs % 3600000) / 60000);
-        daemonHeartbeat = {
-          running: true,
-          uptime: `${uptimeH}h ${uptimeM}m`,
-          lastAudit: state.lastAuditTime ?? "Never",
-          auditCount: state.auditCount ?? 0,
-          notificationsSent: state.notificationsSent ?? 0,
-        };
-      } else {
-        daemonHeartbeat = { running: false, uptime: "N/A", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 };
-      }
-    } catch {
-      daemonHeartbeat = { running: false, uptime: "Error reading state", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 };
-    }
-  }
-
-  // Semantic layer analysis
   let semantic: Briefing["semantic"] | undefined;
   if (shitennoDir) {
-    try {
-      const { profile, patterns, insights, correlations } = runSemanticAnalysis(shitennoDir, options.projectRoot ?? "");
-      semantic = {
-        patterns,
-        insights,
-        correlations,
-        growthProfile: {
-          growthCapacity: profile.growthCapacity,
-          challengeLevel: profile.challengeLevel,
-          domainChallengeLevels: profile.domainChallengeLevels,
-          totalChoices: profile.semanticChoices.length,
-        },
-      };
-    } catch {
-      // Semantic analysis is non-critical — continue without it
-    }
+    try { ({ proactiveAlerts, daemonHeartbeat } = readDaemonState(shitennoDir)); } catch { daemonHeartbeat = { running: false, uptime: "Error reading state", lastAudit: "N/A", auditCount: 0, notificationsSent: 0 }; }
+    try { semantic = runSemanticBriefing(shitennoDir, options.projectRoot ?? ""); } catch { /* non-critical */ }
   }
-
+  const hotAreas = riskMap.areas.filter((a) => a.factors.some((f) => f.type === "high-churn")).map((a) => a.path);
+  const detected = semantic?.patterns.map((p) => ({ type: p.type, description: p.description, occurrences: 1, affectedArea: p.domain, severity: Math.round(p.confidence * 5) })) ?? [];
   return {
     generatedAt: new Date().toISOString(),
-    project: {
-      domain: fingerprint.domain,
-      scale: fingerprint.scale,
-      stack: fingerprint.stack.slice(0, 5),
-      maturityScore: maturityProfile?.overallScore ?? 0,
-    },
+    project: { domain: fingerprint.domain, scale: fingerprint.scale, stack: fingerprint.stack.slice(0, 5), maturityScore: maturityProfile?.overallScore ?? 0 },
     risks: { overall: riskMap.overallRisk, criticalAreas, highAreas },
     tests: { hasTests: fingerprint.tooling.tests, areasWithoutTests },
-    patterns: {
-      recurringErrors: [],
-      hotAreas: riskMap.areas.filter((a) => a.factors.some((f) => f.type === "high-churn")).map((a) => a.path),
-      detected: semantic?.patterns.map((p) => ({
-        type: p.type,
-        description: p.description,
-        occurrences: 1,
-        affectedArea: p.domain,
-        severity: Math.round(p.confidence * 5),
-      })) ?? [],
-    },
-    contextRules: contextRules.slice(0, 5),
-    dynamicRules: dynamicRules.slice(0, 3),
-    recommendations,
+    patterns: { recurringErrors: [], hotAreas, detected },
+    contextRules: contextRules.slice(0, 5), dynamicRules: dynamicRules.slice(0, 3), recommendations,
     tokenEconomy: { estimatedTokensSaved, cacheHit: false, contextRuleCount: contextRules.length, dynamicRuleCount: dynamicRules.length },
     quickBoard: quickBoard ?? { currentTask: "Nenhuma", nextP0: "Definir novo P0 no BACKLOG.md", p1Debts: "Nenhuma", impediments: "Nenhum", lastSessionStatus: "Desconhecido" },
-    reminders,
-    proactiveAlerts,
-    daemonHeartbeat,
-    semantic,
+    reminders, proactiveAlerts, daemonHeartbeat, semantic,
   };
 }
 
@@ -560,33 +504,39 @@ function markdownRules(briefing: Briefing): string[] {
   return lines;
 }
 
-export function briefingToMarkdown(briefing: Briefing): string {
-  const lines: string[] = ["# Pre-Session Briefing", `*Generated: ${briefing.generatedAt}*`, ""];
-
-  lines.push(...markdownQuickBoard(briefing));
-  lines.push(...markdownRecentActivity(briefing));
-  lines.push(...markdownReminders(briefing));
-
-  lines.push("## Project Identity");
-  lines.push(`- **Domain:** ${briefing.project.domain}`);
-  lines.push(`- **Scale:** ${briefing.project.scale}`);
-  lines.push(`- **Stack:** ${briefing.project.stack.join(", ")}`);
-  lines.push(`- **Maturity:** ${briefing.project.maturityScore}/100`, "");
-
-  lines.push("## Risk Status");
-  lines.push(`- **Overall:** ${briefing.risks.overall}`);
-  if (briefing.risks.criticalAreas.length > 0) lines.push(`- **Critical:** ${briefing.risks.criticalAreas.join(", ")}`);
-  if (briefing.risks.highAreas.length > 0) lines.push(`- **High:** ${briefing.risks.highAreas.join(", ")}`);
+function markdownSemanticSection(briefing: Briefing): string[] {
+  const s = briefing.semantic;
+  if (!s || (s.patterns.length === 0 && s.insights.length === 0 && s.correlations.length === 0)) return [];
+  const lines = ["", "## Semantic Analysis"];
+  if (s.patterns.length > 0) {
+    lines.push(`### Patterns (${s.patterns.length})`);
+    for (const p of s.patterns.slice(0, 5)) {
+      lines.push(`- **${p.description}**`);
+      lines.push(`  - Domain: ${p.domain} | Type: ${p.type} | Confidence: ${Math.round(p.confidence * 100)}%`);
+      for (const action of p.suggestedActions.slice(0, 2)) lines.push(`  - → ${action}`);
+    }
+  }
+  if (s.insights.length > 0) {
+    lines.push(`### Insights (${s.insights.length})`);
+    for (const i of s.insights.slice(0, 5)) {
+      lines.push(`- **${i.description}** (${i.priority})`);
+      lines.push(`  - Domains: ${i.domains.join(", ")}`);
+      for (const action of i.suggestedActions.slice(0, 2)) lines.push(`  - → ${action}`);
+    }
+  }
+  if (s.correlations.length > 0) {
+    lines.push(`### Cross-System Correlations (${s.correlations.length})`);
+    for (const c of s.correlations.slice(0, 3)) {
+      lines.push(`- **${c.description}** (${c.strength})`);
+      lines.push(`  - Type: ${c.type} | Confidence: ${Math.round(c.confidence * 100)}%`);
+    }
+  }
   lines.push("");
+  return lines;
+}
 
-  lines.push("## Test Coverage");
-  lines.push(`- **Has Tests:** ${briefing.tests.hasTests ? "Yes" : "No"}`);
-  if (briefing.tests.areasWithoutTests.length > 0) lines.push(`- **Areas Without Tests:** ${briefing.tests.areasWithoutTests.length}`);
-  lines.push("");
-
-  lines.push(...markdownRules(briefing));
-
-  // A.2: Proactive alerts from daemon challenges
+function markdownDaemonSections(briefing: Briefing): string[] {
+  const lines: string[] = [];
   if (briefing.proactiveAlerts) {
     const pa = briefing.proactiveAlerts;
     if (pa.pendingChallenges.length > 0 || pa.unresolvedHealthDips.length > 0 || pa.pendingDebts.length > 0) {
@@ -596,8 +546,6 @@ export function briefingToMarkdown(briefing: Briefing): string {
       for (const d of pa.pendingDebts) lines.push(`- **Pending Debt:** ${d}`);
     }
   }
-
-  // E.3: Daemon heartbeat status
   if (briefing.daemonHeartbeat) {
     const dh = briefing.daemonHeartbeat;
     lines.push("", "## Daemon Status");
@@ -609,68 +557,42 @@ export function briefingToMarkdown(briefing: Briefing): string {
       lines.push(`- **Notifications Sent:** ${dh.notificationsSent}`);
     }
   }
+  return lines;
+}
 
+export function briefingToMarkdown(briefing: Briefing): string {
+  const lines: string[] = ["# Pre-Session Briefing", `*Generated: ${briefing.generatedAt}*`, ""];
+  lines.push(...markdownQuickBoard(briefing));
+  lines.push(...markdownRecentActivity(briefing));
+  lines.push(...markdownReminders(briefing));
+  lines.push("## Project Identity");
+  lines.push(`- **Domain:** ${briefing.project.domain}`);
+  lines.push(`- **Scale:** ${briefing.project.scale}`);
+  lines.push(`- **Stack:** ${briefing.project.stack.join(", ")}`);
+  lines.push(`- **Maturity:** ${briefing.project.maturityScore}/100`, "");
+  lines.push("## Risk Status");
+  lines.push(`- **Overall:** ${briefing.risks.overall}`);
+  if (briefing.risks.criticalAreas.length > 0) lines.push(`- **Critical:** ${briefing.risks.criticalAreas.join(", ")}`);
+  if (briefing.risks.highAreas.length > 0) lines.push(`- **High:** ${briefing.risks.highAreas.join(", ")}`);
+  lines.push("");
+  lines.push("## Test Coverage");
+  lines.push(`- **Has Tests:** ${briefing.tests.hasTests ? "Yes" : "No"}`);
+  if (briefing.tests.areasWithoutTests.length > 0) lines.push(`- **Areas Without Tests:** ${briefing.tests.areasWithoutTests.length}`);
+  lines.push("");
+  lines.push(...markdownRules(briefing));
+  lines.push(...markdownDaemonSections(briefing));
   lines.push("", "## Recommended Next Steps");
   for (const rec of briefing.recommendations) lines.push(`1. ${rec}`);
-
   lines.push("", "## Token Economy");
   lines.push(`- **Estimated tokens saved:** ~${briefing.tokenEconomy.estimatedTokensSaved.toLocaleString()}`);
   lines.push(`- **Context rules:** ${briefing.tokenEconomy.contextRuleCount}`);
   lines.push(`- **Dynamic rules:** ${briefing.tokenEconomy.dynamicRuleCount}`);
   lines.push(`- **Cache hit:** ${briefing.tokenEconomy.cacheHit ? "Yes" : "No"}`);
-
-  // Semantic layer section
-  if (briefing.semantic) {
-    const s = briefing.semantic;
-    if (s.patterns.length > 0 || s.insights.length > 0 || s.correlations.length > 0) {
-      lines.push("", "## Semantic Analysis");
-
-      if (s.patterns.length > 0) {
-        lines.push(`### Patterns (${s.patterns.length})`);
-        for (const p of s.patterns.slice(0, 5)) {
-          const confidence = Math.round(p.confidence * 100);
-          lines.push(`- **${p.description}**`);
-          lines.push(`  - Domain: ${p.domain} | Type: ${p.type} | Confidence: ${confidence}%`);
-          for (const action of p.suggestedActions.slice(0, 2)) {
-            lines.push(`  - → ${action}`);
-          }
-        }
-      }
-
-      if (s.insights.length > 0) {
-        lines.push(`### Insights (${s.insights.length})`);
-        for (const i of s.insights.slice(0, 5)) {
-          lines.push(`- **${i.description}** (${i.priority})`);
-          lines.push(`  - Domains: ${i.domains.join(", ")}`);
-          for (const action of i.suggestedActions.slice(0, 2)) {
-            lines.push(`  - → ${action}`);
-          }
-        }
-      }
-
-      if (s.correlations.length > 0) {
-        lines.push(`### Cross-System Correlations (${s.correlations.length})`);
-        for (const c of s.correlations.slice(0, 3)) {
-          lines.push(`- **${c.description}** (${c.strength})`);
-          lines.push(`  - Type: ${c.type} | Confidence: ${Math.round(c.confidence * 100)}%`);
-        }
-      }
-
-      lines.push("");
-    }
+  lines.push(...markdownSemanticSection(briefing));
+  if (briefing.proactiveAlerts?.pendingChallenges.length) {
+    lines.push("", "## ⚠️ Pending Challenges");
+    for (const c of briefing.proactiveAlerts.pendingChallenges) lines.push(`- ${c}`);
+    lines.push("", "Respond: `shugo briefing` (interactive)");
   }
-
-  // Challenges section
-  if (briefing.proactiveAlerts) {
-    const pa = briefing.proactiveAlerts;
-    if (pa.pendingChallenges.length > 0) {
-      lines.push("", "## ⚠️ Pending Challenges");
-      for (let i = 0; i < pa.pendingChallenges.length; i++) {
-        lines.push(`- ${pa.pendingChallenges[i]}`);
-      }
-      lines.push("", "Respond: `shugo briefing` (interactive)");
-    }
-  }
-
   return lines.join("\n");
 }

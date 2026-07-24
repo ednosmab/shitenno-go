@@ -25,50 +25,44 @@ interface DigestData {
 }
 
 function formatDigest(data: DigestData): string {
-  const lines = [
-    "# Proactive Digest",
-    `*Generated: ${data.generatedAt}*`,
-    "",
-  ];
-
-  if (data.challenges.length > 0) {
-    lines.push("## Pending Challenges");
-    for (const c of data.challenges) {
-      const icon = c.severity === "high" ? "🔴" : c.severity === "medium" ? "🟡" : "🔵";
-      lines.push(`- ${icon} **${c.type}**: ${c.description}`);
-    }
-    lines.push("");
-  }
-
-  if (data.health) {
-    const scoreColor = data.health.score !== null && data.health.score >= 70 ? "🟢"
-      : data.health.score !== null && data.health.score >= 40 ? "🟡" : "🔴";
-    lines.push("## Health");
-    lines.push(`- Score: ${data.health.score ?? "N/A"}/100 ${scoreColor}`);
-    lines.push(`- Trend: ${data.health.trend}`);
-    lines.push("");
-  }
-
-  if (data.drift) {
-    lines.push("## Drift");
-    lines.push(`- Files changed: ${data.drift.filesChanged}`);
-    lines.push(`- Minutes since last commit: ${data.drift.minutesSinceLastCommit}`);
-    lines.push("");
-  }
-
-  if (data.debt) {
-    lines.push("## Knowledge Debt");
-    lines.push(`- Gaps: ${data.debt.gapCount}`);
-    lines.push(`- Health score: ${data.debt.healthScore}/100`);
-    lines.push("");
-  }
-
-  if (data.challenges.length === 0 && !data.drift && (!data.debt || data.debt.gapCount === 0)) {
-    lines.push("No pending proactive alerts. System is healthy.");
-    lines.push("");
-  }
-
+  const lines: string[] = ["# Proactive Digest", `*Generated: ${data.generatedAt}*`, ""];
+  lines.push(...formatChallenges(data.challenges));
+  lines.push(...formatHealth(data.health));
+  lines.push(...formatDrift(data.drift));
+  lines.push(...formatDebt(data.debt));
+  if (!hasAlerts(data)) lines.push("No pending proactive alerts. System is healthy.", "");
   return lines.join("\n");
+}
+
+function formatChallenges(challenges: DigestData["challenges"]): string[] {
+  if (challenges.length === 0) return [];
+  const lines = ["## Pending Challenges"];
+  for (const c of challenges) {
+    const icon = c.severity === "high" ? "🔴" : c.severity === "medium" ? "🟡" : "🔵";
+    lines.push(`- ${icon} **${c.type}**: ${c.description}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+function formatHealth(health: DigestData["health"]): string[] {
+  if (!health) return [];
+  const scoreColor = health.score !== null && health.score >= 70 ? "🟢" : health.score !== null && health.score >= 40 ? "🟡" : "🔴";
+  return ["## Health", `- Score: ${health.score ?? "N/A"}/100 ${scoreColor}`, `- Trend: ${health.trend}`, ""];
+}
+
+function formatDrift(drift: DigestData["drift"]): string[] {
+  if (!drift) return [];
+  return ["## Drift", `- Files changed: ${drift.filesChanged}`, `- Minutes since last commit: ${drift.minutesSinceLastCommit}`, ""];
+}
+
+function formatDebt(debt: DigestData["debt"]): string[] {
+  if (!debt) return [];
+  return ["## Knowledge Debt", `- Gaps: ${debt.gapCount}`, `- Health score: ${debt.healthScore}/100`, ""];
+}
+
+function hasAlerts(data: DigestData): boolean {
+  return data.challenges.length > 0 || !!data.drift || (!!data.debt && data.debt.gapCount > 0);
 }
 
 function writeDigest(shitennoDir: string, data: DigestData): void {
@@ -80,59 +74,24 @@ function writeDigest(shitennoDir: string, data: DigestData): void {
 }
 
 async function collectDigestData(shitennoDir: string): Promise<DigestData> {
-  const data: DigestData = {
-    generatedAt: new Date().toISOString(),
-    challenges: [],
-    health: null,
-    drift: null,
-    debt: null,
-  };
-
+  const data: DigestData = { generatedAt: new Date().toISOString(), challenges: [], health: null, drift: null, debt: null };
   if (!isDaemonRunning(shitennoDir)) return data;
 
   try {
-    const challenges = await queryDaemon<{
-      type: string;
-      challenges: Array<{ type: string; severity: string; message: string }>;
-    }>(shitennoDir, { type: "query_challenges" });
-    if (challenges?.challenges) {
-      data.challenges = challenges.challenges.map((c) => ({
-        type: c.type,
-        severity: c.severity,
-        description: c.message,
-      }));
-    }
+    const ch = await queryDaemon<{ type: string; challenges: Array<{ type: string; severity: string; message: string }> }>(shitennoDir, { type: "query_challenges" });
+    if (ch?.challenges) data.challenges = ch.challenges.map((c) => ({ type: c.type, severity: c.severity, description: c.message }));
   } catch {}
-
   try {
-    const health = await queryDaemon<{
-      type: string;
-      score: number | null;
-      trend: string;
-    }>(shitennoDir, { type: "query_health" });
-    if (health) {
-      data.health = { score: health.score, trend: health.trend };
-    }
+    const h = await queryDaemon<{ type: string; score: number | null; trend: string }>(shitennoDir, { type: "query_health" });
+    if (h) data.health = { score: h.score, trend: h.trend };
   } catch {}
-
   try {
-    const drift = await queryDaemon<{
-      type: string;
-      drift: { filesChanged: number; minutesSinceLastCommit: number } | null;
-    }>(shitennoDir, { type: "query_drift" });
-    if (drift?.drift) {
-      data.drift = drift.drift;
-    }
+    const d = await queryDaemon<{ type: string; drift: DigestData["drift"] }>(shitennoDir, { type: "query_drift" });
+    if (d?.drift) data.drift = d.drift;
   } catch {}
-
   try {
-    const debt = await queryDaemon<{
-      type: string;
-      debt: { gapCount: number; healthScore: number } | null;
-    }>(shitennoDir, { type: "query_debt" });
-    if (debt?.debt) {
-      data.debt = debt.debt;
-    }
+    const debt = await queryDaemon<{ type: string; debt: DigestData["debt"] }>(shitennoDir, { type: "query_debt" });
+    if (debt?.debt) data.debt = debt.debt;
   } catch {}
 
   return data;
