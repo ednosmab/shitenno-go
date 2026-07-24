@@ -31,7 +31,9 @@ function rotateSingleLog(logPath: string, i: number): void {
   const dst = `${logPath}.${i + 1}`;
   if (!existsSync(src)) return;
   if (i === MAX_LOG_FILES - 1 && existsSync(dst)) {
-    try { unlinkSync(dst); } catch {}
+    try { unlinkSync(dst); } catch (err) {
+      logger.debug("notify", `Failed to unlink old log file: ${err}`);
+    }
   }
   renameSync(src, dst);
 }
@@ -57,7 +59,7 @@ export interface NotificationEntry {
   channel: string;
 }
 
-export function logNotification(entry: NotificationEntry): void {
+function logNotification(entry: NotificationEntry): void {
   try {
     const daemonDir = join(entry.shitennoDir, "daemon");
     if (!existsSync(daemonDir)) mkdirSync(daemonDir, { recursive: true });
@@ -141,7 +143,7 @@ function sendWindows(title: string, message: string): boolean {
  * @param priority - Priority level (affects urgency on supported platforms)
  * @returns true if a desktop notification was sent
  */
-export function deliverByPlatform(
+function deliverByPlatform(
   notifier: PlatformNotifier, title: string, message: string, urgency: string,
 ): { delivered: boolean; channel: string } {
   const map: Partial<Record<PlatformNotifier, { send: () => boolean; channel: string }>> = {

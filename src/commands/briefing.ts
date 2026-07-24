@@ -217,7 +217,9 @@ function findLastResolvedChallenge(shitennoDir: string): number {
     const state = JSON.parse(stateRaw) as Record<string, unknown>;
     const chs = state.challenges as Array<Record<string, unknown>>;
     for (let i = chs.length - 1; i >= 0; i--) { if (chs[i]?.resolved === true) return i; }
-  } catch {}
+  } catch (err) {
+    logger.debug("briefing", `Failed to read daemon state for challenge count: ${err}`);
+  }
   return -1;
 }
 

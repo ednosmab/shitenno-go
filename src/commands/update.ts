@@ -165,7 +165,9 @@ function processUpdate(ctx: { shitennoDir: string }, currentManifest: Manifest):
   try {
     const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
     currentCliVersion = pkg.version || "unknown";
-  } catch {}
+  } catch (err) {
+    logger.debug("update", `Failed to read package.json: ${err}`);
+  }
 
   const spinner = ora("Scanning templates for changes...").start();
   const newHashes = scanTemplateHashes(ctx.shitennoDir);

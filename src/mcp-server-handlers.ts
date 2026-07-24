@@ -166,7 +166,9 @@ function loadMandatoryRules(shitennoDir: string) {
       const { mandatory } = partitionRules(manifest, {});
       return mandatory.map((r) => ({ id: r.id, path: r.path, priority: r.priority }));
     }
-  } catch {}
+  } catch (err) {
+    logger.debug("mcp-server-handlers", `Failed to load mandatory rules: ${err}`);
+  }
   return [];
 }
 
@@ -192,7 +194,9 @@ function loadMandatorySkillsForTask(
         .filter((s): s is NonNullable<typeof s> => s !== null);
       return { skills, manifestEntries: mandatory };
     }
-  } catch {}
+  } catch (err) {
+    logger.debug("mcp-server-handlers", `Failed to load mandatory skills: ${err}`);
+  }
   return { skills: [], manifestEntries: [] };
 }
 

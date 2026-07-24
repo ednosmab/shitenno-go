@@ -8,13 +8,6 @@
  *   3. Respect for --quiet flag (suppress informational output)
  *   4. Clean separation: output() = stdout (user-facing),
  *      logger.* = stderr (diagnostic/debug)
- *
- * Usage:
- *   import { output, outputLine, outputTable, outputKV } from "../output.js";
- *   output("Hello, world!");          // stdout
- *   outputLine("Section title");      // stdout + newline
- *   outputTable(rows);                // formatted table
- *   outputKV({ key: "value" });       // key-value pairs
  */
 
 import chalk from "chalk";
@@ -75,55 +68,6 @@ export function outputSection(title: string, opts?: { quiet?: boolean }): void {
 }
 
 /**
- * Output key-value pairs.
- *
- * @param pairs - Object with key-value pairs to display.
- * @param opts - Options: { quiet: true } suppresses in quiet mode.
- */
-export function outputKV(pairs: Record<string, string | number | boolean | null | undefined>, opts?: { quiet?: boolean }): void {
-  if (opts?.quiet && isQuiet()) return;
-  for (const [key, value] of Object.entries(pairs)) {
-    output(`  ${chalk.cyan(key + ":")} ${value ?? "N/A"}`);
-  }
-}
-
-/**
- * Output a simple table (no borders, aligned columns).
- *
- * @param headers - Column headers.
- * @param rows - Array of row arrays.
- * @param opts - Options: { quiet: true } suppresses in quiet mode.
- */
-export function outputTable(
-  headers: string[],
-  rows: (string | number | boolean | null | undefined)[][],
-  opts?: { quiet?: boolean }
-): void {
-  if (opts?.quiet && isQuiet()) return;
-  if (rows.length === 0) {
-    output(chalk.gray("  (empty)"));
-    return;
-  }
-
-  // Calculate column widths
-  const widths = headers.map((h, i) => {
-    const colValues = rows.map((r) => String(r[i] ?? ""));
-    return Math.max(h.length, ...colValues.map((v) => v.length));
-  });
-
-  // Header
-  const headerLine = headers.map((h, i) => h.padEnd(widths[i]!)).join("  ");
-  output(chalk.bold(headerLine));
-  output(chalk.gray("─".repeat(headerLine.length)));
-
-  // Rows
-  for (const row of rows) {
-    const line = row.map((cell, i) => String(cell ?? "").padEnd(widths[i]!)).join("  ");
-    output(line);
-  }
-}
-
-/**
  * Output a success message (green checkmark).
  *
  * @param msg - The success message.
@@ -163,13 +107,6 @@ export function outputError(msg: string): void {
 export function outputInfo(msg: string, opts?: { quiet?: boolean }): void {
   if (opts?.quiet && isQuiet()) return;
   output(`${chalk.blue("ℹ")} ${msg}`);
-}
-
-/**
- * Output a divider line.
- */
-export function outputDivider(): void {
-  output(chalk.gray("─".repeat(60)));
 }
 
 /**

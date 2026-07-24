@@ -80,19 +80,27 @@ async function collectDigestData(shitennoDir: string): Promise<DigestData> {
   try {
     const ch = await queryDaemon<{ type: string; challenges: Array<{ type: string; severity: string; message: string }> }>(shitennoDir, { type: "query_challenges" });
     if (ch?.challenges) data.challenges = ch.challenges.map((c) => ({ type: c.type, severity: c.severity, description: c.message }));
-  } catch {}
+  } catch (err) {
+    logger.debug("proactive-digest", `Failed to query challenges: ${err}`);
+  }
   try {
     const h = await queryDaemon<{ type: string; score: number | null; trend: string }>(shitennoDir, { type: "query_health" });
     if (h) data.health = { score: h.score, trend: h.trend };
-  } catch {}
+  } catch (err) {
+    logger.debug("proactive-digest", `Failed to query health: ${err}`);
+  }
   try {
     const d = await queryDaemon<{ type: string; drift: DigestData["drift"] }>(shitennoDir, { type: "query_drift" });
     if (d?.drift) data.drift = d.drift;
-  } catch {}
+  } catch (err) {
+    logger.debug("proactive-digest", `Failed to query drift: ${err}`);
+  }
   try {
     const debt = await queryDaemon<{ type: string; debt: DigestData["debt"] }>(shitennoDir, { type: "query_debt" });
     if (debt?.debt) data.debt = debt.debt;
-  } catch {}
+  } catch (err) {
+    logger.debug("proactive-digest", `Failed to query debt: ${err}`);
+  }
 
   return data;
 }
