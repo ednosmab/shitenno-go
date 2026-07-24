@@ -12,6 +12,11 @@ import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { checkAndArchiveDonePlans } from "../plan-lifecycle.js";
 import { output, outputBlank, outputSection, outputSuccess, outputError } from "../output.js";
 import { logger, muteLogs } from "../logger.js";
+// Semantic layer imports
+import { runSemanticAnalysis, createSemanticDualPath, formatSemanticDualPath, formatSemanticDualPathJson } from "../semantic/index.js";
+import type { SemanticInsight } from "../semantic/reasoner.js";
+import type { Correlation } from "../semantic/correlator.js";
+import type { DetectedPattern } from "../semantic/pattern-rules.js";
 
 function handleApproveReject(
   options: { approve?: string; reject?: string },
@@ -84,6 +89,38 @@ function runDetection(projectRoot: string, shitennoDir: string, cacheEnabled: bo
 
 function outputJsonReport(projectRoot: string, report: PatternDetectionReport, detectionResult: { cacheHit: boolean; reportFile: string | null }, shitennoDir: string): void {
   const growthProfile = loadGrowthProfile(shitennoDir);
+
+  // Semantic layer data
+  let semanticData: Record<string, unknown> = {};
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+
+    semanticData = {
+      patterns: semanticPatterns.map((p) => ({
+        id: p.id, type: p.type, domain: p.domain,
+        confidence: p.confidence, description: p.description,
+      })),
+      insights: insights.map((i) => ({
+        id: i.id, type: i.type, priority: i.priority,
+        description: i.description, domains: i.domains,
+      })),
+      correlations: correlations.map((c) => ({
+        id: c.id, type: c.type, strength: c.strength,
+        description: c.description, confidence: c.confidence,
+      })),
+      dualPaths: semanticPatterns.slice(0, 3).map((p) =>
+        formatSemanticDualPathJson(createSemanticDualPath(p as DetectedPattern, semanticProfile))
+      ),
+      growthProfile: {
+        growthCapacity: semanticProfile.growthCapacity,
+        challengeLevel: semanticProfile.challengeLevel,
+        domainChallengeLevels: semanticProfile.domainChallengeLevels,
+      },
+    };
+  } catch (err) {
+    logger.warn("detect", `Semantic analysis failed for JSON: ${err}`);
+  }
+
   outputJson({
     projectRoot,
     historyEntriesAnalyzed: report.historyEntriesAnalyzed,
@@ -100,6 +137,7 @@ function outputJsonReport(projectRoot: string, report: PatternDetectionReport, d
       pattern: growthProfile.patterns[0]?.type || "balanced",
       totalChoices: growthProfile.pathHistory.length,
     },
+    semantic: semanticData,
   });
 }
 
@@ -178,11 +216,62 @@ function displayCandidateRules(rules: PatternDetectionReport["candidateRules"]):
   output(chalk.yellow("  ⚠ These rules are PROPOSALS only. Aprovação manual do Tech Lead necessária."));
 }
 
+function displaySemanticPattern(pattern: DetectedPattern, idx: number): void {
+  const confidence = Math.round(pattern.confidence * 100);
+  const domainColors: Record<string, typeof chalk.green> = {
+    security: chalk.red,
+    authentication: chalk.red,
+    architecture: chalk.cyan,
+    performance: chalk.yellow,
+    governance: chalk.magenta,
+    documentation: chalk.blue,
+  };
+  const colorFn = domainColors[pattern.domain] ?? chalk.gray;
+  const icon = pattern.type === "architectural_shift" ? "🏗️" :
+               pattern.type === "scope_drift" ? "🔄" :
+               pattern.type === "security_degradation" ? "🔒" :
+               pattern.type === "tech_debt_accumulation" ? "📦" :
+               pattern.type === "capability_gap" ? "🧩" :
+               pattern.type === "maturity_regression" ? "📉" : "🔍";
+  output(`    ${icon} ${chalk.bold(pattern.description)}`);
+  output(chalk.gray(`       Domain: ${colorFn(pattern.domain)} | Confidence: ${chalk.cyan(confidence + "%")} | Type: ${pattern.type}`));
+  if (pattern.suggestedActions.length > 0) {
+    for (const action of pattern.suggestedActions.slice(0, 2)) {
+      output(chalk.gray(`         → ${action}`));
+    }
+  }
+  if (idx < 2) outputBlank(); // spacing between first few
+}
+
+function displayInsight(insight: SemanticInsight): void {
+  const icon = insight.priority === "urgent" ? "🚨" :
+               insight.priority === "high" ? "⚠️" :
+               insight.priority === "medium" ? "💡" : "ℹ️";
+  const priorityColor = insight.priority === "urgent" ? chalk.red :
+                        insight.priority === "high" ? chalk.yellow : chalk.gray;
+  output(`    ${icon} ${chalk.bold(insight.description)}`);
+  output(chalk.gray(`       Priority: ${priorityColor(insight.priority)} | Domains: ${insight.domains.join(", ")}`));
+  if (insight.suggestedActions.length > 0) {
+    for (const action of insight.suggestedActions.slice(0, 2)) {
+      output(chalk.gray(`         → ${action}`));
+    }
+  }
+  outputBlank();
+}
+
+function displayCorrelation(corr: Correlation): void {
+  const strengthIcon = corr.strength === "strong" ? "🔴" : corr.strength === "moderate" ? "🟡" : "🟢";
+  output(`    ${strengthIcon} ${chalk.bold(corr.description)}`);
+  output(chalk.gray(`       Type: ${corr.type} | Confidence: ${Math.round(corr.confidence * 100)}% | Strength: ${corr.strength}`));
+  outputBlank();
+}
+
 function outputHumanReadable(
   report: PatternDetectionReport,
   cacheHit: boolean,
   reportFile: string | null,
   shitennoDir: string,
+  projectRoot: string,
 ): void {
   if (cacheHit) output(chalk.gray("  Used cached results"));
   output("");
@@ -193,12 +282,14 @@ function outputHumanReadable(
   output(chalk.gray(`    Patterns detected:       ${report.patterns.length}`));
   output(chalk.gray(`    Candidate rules:         ${report.candidateRules.length}`));
   outputBlank();
-  if (report.patterns.length === 0) { outputSuccess("No significant patterns detected. System is healthy."); outputBlank(); return; }
-  outputSection("Patterns Found:");
-  outputBlank();
-  for (const pattern of report.patterns) displayPattern(pattern);
-  displayCandidateRules(report.candidateRules);
-  outputBlank();
+  if (report.patterns.length === 0) { outputSuccess("No significant patterns detected. System is healthy."); outputBlank(); }
+  else {
+    outputSection("Patterns Found:");
+    outputBlank();
+    for (const pattern of report.patterns) displayPattern(pattern);
+    displayCandidateRules(report.candidateRules);
+    outputBlank();
+  }
   if (reportFile) { output(chalk.gray(`  Report saved: shitenno/reports/${reportFile}`)); outputBlank(); }
   outputSection("Summary:");
   output(chalk.gray(`    ${report.summary}`));
@@ -206,6 +297,58 @@ function outputHumanReadable(
   const growthProfile = loadGrowthProfile(shitennoDir);
   output(formatGrowthProgress(growthProfile));
   outputBlank();
+
+  // ── Semantic Layer Section ──────────────────────────────────────────────
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+
+    if (semanticPatterns.length > 0 || insights.length > 0 || correlations.length > 0) {
+      outputSection("Semantic Analysis:");
+      outputBlank();
+
+      if (semanticPatterns.length > 0) {
+        output(chalk.bold.cyan(`    📊 Semantic Patterns Detected (${semanticPatterns.length})`));
+        outputBlank();
+        for (let i = 0; i < Math.min(semanticPatterns.length, 5); i++) {
+          const pattern = semanticPatterns[i];
+          if (pattern) displaySemanticPattern(pattern, i);
+        }
+        if (semanticPatterns.length > 5) {
+          output(chalk.gray(`       ... and ${semanticPatterns.length - 5} more`));
+          outputBlank();
+        }
+
+        // Show dual path for first pattern
+        const firstSemanticPattern = semanticPatterns[0];
+        if (firstSemanticPattern) {
+          const dualPath = createSemanticDualPath(firstSemanticPattern, semanticProfile);
+          output(formatSemanticDualPath(dualPath));
+        }
+      }
+
+      if (insights.length > 0) {
+        output(chalk.bold.magenta(`    🧠 Semantic Insights (${insights.length})`));
+        outputBlank();
+        for (const insight of insights.slice(0, 5)) {
+          displayInsight(insight);
+        }
+      }
+
+      if (correlations.length > 0) {
+        output(chalk.bold.yellow(`    🔗 Cross-System Correlations (${correlations.length})`));
+        outputBlank();
+        for (const corr of correlations.slice(0, 5)) {
+          displayCorrelation(corr);
+        }
+      }
+
+      // Semantic growth profile summary
+      output(chalk.gray(`    Growth: capacity=${Math.round(semanticProfile.growthCapacity * 100)}% | challenge=${Math.round(semanticProfile.challengeLevel * 100)}% | choices=${semanticProfile.semanticChoices.length}`));
+      outputBlank();
+    }
+  } catch (err) {
+    logger.warn("detect", `Semantic analysis failed: ${err}`);
+  }
 }
 
 function publishDetectionEvent(report: PatternDetectionReport): void {
@@ -278,7 +421,7 @@ export const detectCommand = new Command("detect")
       if (!isJson && !isAuto) spinner?.succeed(`Analyzed ${report.historyEntriesAnalyzed} history entries, ${report.reportsAnalyzed} reports`);
       if (format === "json") { outputJsonReport(ctx.projectRoot, report, { cacheHit, reportFile }, ctx.shitennoDir); return; }
       if (format === "markdown") { outputMarkdownReport(report); return; }
-      outputHumanReadable(report, cacheHit, reportFile, ctx.shitennoDir);
+      outputHumanReadable(report, cacheHit, reportFile, ctx.shitennoDir, ctx.projectRoot);
       publishDetectionEvent(report);
       recordCandidateRuleFeedback(report, ctx.shitennoDir);
     } catch (error) {

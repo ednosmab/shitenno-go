@@ -21,6 +21,8 @@ import { guardNotInitialized, checkLifecycleGate } from "../shared.js";
 import { formatDualPath, formatDualPathJson, formatGrowthProgress } from "../dual-path-presenter.js";
 import { recordPathChoice } from "../growth-profile.js";
 import { printDaemonBanner } from "../daemon-context-banner.js";
+// Semantic layer imports
+import { runSemanticAnalysis, createSemanticDualPath, formatSemanticDualPath, formatSemanticDualPathJson } from "../semantic/index.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +116,37 @@ function outputReportJson(
   totalFeedback: number,
   patterns: ReturnType<typeof detectFeedbackPatterns>,
 ): void {
+  // Semantic layer data
+  let semanticData: Record<string, unknown> = {};
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(ctx.shitennoDir, ctx.projectRoot);
+
+    semanticData = {
+      patterns: semanticPatterns.map((p) => ({
+        id: p.id, type: p.type, domain: p.domain,
+        confidence: p.confidence, description: p.description,
+      })),
+      insights: insights.map((i) => ({
+        id: i.id, type: i.type, priority: i.priority,
+        description: i.description, domains: i.domains,
+      })),
+      correlations: correlations.map((c) => ({
+        id: c.id, type: c.type, strength: c.strength,
+        description: c.description, confidence: c.confidence,
+      })),
+      dualPaths: semanticPatterns.slice(0, 3).map((p) =>
+        formatSemanticDualPathJson(createSemanticDualPath(p, semanticProfile))
+      ),
+      growthProfile: {
+        growthCapacity: semanticProfile.growthCapacity,
+        challengeLevel: semanticProfile.challengeLevel,
+        domainChallengeLevels: semanticProfile.domainChallengeLevels,
+      },
+    };
+  } catch (err) {
+    logger.warn("evolve", `Semantic analysis failed for JSON: ${err}`);
+  }
+
   outputJson({
     projectRoot: ctx.projectRoot,
     analyzedAt: report.analyzedAt,
@@ -136,13 +169,68 @@ function outputReportJson(
       totalInteractions: totalFeedback,
       patterns: patterns,
     },
+    semantic: semanticData,
   });
+}
+
+function displaySemanticEvolution(projectRoot: string, shitennoDir: string): void {
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+
+    if (semanticPatterns.length === 0 && insights.length === 0 && correlations.length === 0) return;
+
+    output(chalk.bold.magenta("  ╔══════════════════════════════════════════════════╗"));
+    output(chalk.bold.magenta("  ║         SEMANTIC EVOLUTION — Deep Analysis       ║"));
+    output(chalk.bold.magenta("  ╚══════════════════════════════════════════════════╝"));
+    outputBlank();
+
+    if (semanticPatterns.length > 0) {
+      output(chalk.bold.cyan(`    📊 Semantic Patterns (${semanticPatterns.length})`));
+      outputBlank();
+      for (const pattern of semanticPatterns.slice(0, 3)) {
+        const confidence = Math.round(pattern.confidence * 100);
+        output(chalk.gray(`    • ${pattern.description}`));
+        output(chalk.gray(`      Domain: ${pattern.domain} | Confidence: ${confidence}%`));
+        const dualPath = createSemanticDualPath(pattern, semanticProfile);
+        output(formatSemanticDualPath(dualPath));
+      }
+    }
+
+    if (insights.length > 0) {
+      output(chalk.bold.magenta(`    🧠 Semantic Insights (${insights.length})`));
+      outputBlank();
+      for (const insight of insights.slice(0, 3)) {
+        const icon = insight.priority === "urgent" ? "🚨" : insight.priority === "high" ? "⚠️" : "💡";
+        output(`    ${icon} ${chalk.bold(insight.description)}`);
+        output(chalk.gray(`      Priority: ${insight.priority} | Domains: ${insight.domains.join(", ")}`));
+        for (const action of insight.suggestedActions.slice(0, 2)) {
+          output(chalk.gray(`        → ${action}`));
+        }
+        outputBlank();
+      }
+    }
+
+    if (correlations.length > 0) {
+      output(chalk.bold.yellow(`    🔗 Cross-System Correlations (${correlations.length})`));
+      outputBlank();
+      for (const corr of correlations.slice(0, 3)) {
+        const strengthIcon = corr.strength === "strong" ? "🔴" : corr.strength === "moderate" ? "🟡" : "🟢";
+        output(`    ${strengthIcon} ${chalk.bold(corr.description)}`);
+        output(chalk.gray(`      Type: ${corr.type} | Confidence: ${Math.round(corr.confidence * 100)}%`));
+        outputBlank();
+      }
+    }
+  } catch (err) {
+    logger.warn("evolve", `Semantic analysis failed: ${err}`);
+  }
 }
 
 function outputReportHuman(
   report: ReturnType<typeof analyzeEvolution>,
   totalFeedback: number,
   patterns: ReturnType<typeof detectFeedbackPatterns>,
+  projectRoot?: string,
+  shitennoDir?: string,
 ): void {
   output(chalk.bold("  Current State:"));
   output(`    Maturity: ${report.currentState.maturityScore}/100`);
@@ -177,6 +265,11 @@ function outputReportHuman(
       output(`    → ${step}`);
     }
     outputBlank();
+  }
+
+  // Semantic evolution analysis
+  if (projectRoot && shitennoDir) {
+    displaySemanticEvolution(projectRoot, shitennoDir);
   }
 
   output(chalk.gray("  Usage:"));
@@ -248,7 +341,7 @@ export const evolveCommand = new Command("evolve")
         return;
       }
 
-      outputReportHuman(report, totalFeedback, patterns);
+      outputReportHuman(report, totalFeedback, patterns, ctx.projectRoot, ctx.shitennoDir);
     } catch (error) {
       if (spinner) spinner.fail("Evolution analysis failed");
       if (isJson) {

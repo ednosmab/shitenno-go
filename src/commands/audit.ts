@@ -16,7 +16,7 @@ import { resolveBacklogPaths } from "../backlog-core.js";
 import { loadGrowthProfile } from "../growth-profile.js";
 import { formatGrowthProgress } from "../dual-path-presenter.js";
 import { generateFixSuggestions, prioritizeSuggestions } from "../audit/suggestion-engine.js";
-import { muteLogs } from "../logger.js";
+import { muteLogs, logger } from "../logger.js";
 import { loadSuppressions, addSuppression } from "../audit/suppression.js";
 import { applyAllFixes, type AutofixReport } from "../audit/autofix-engine.js";
 import { getChangedFiles } from "../audit/changed-files.js";
@@ -26,6 +26,8 @@ import { categorizeIssues, groupByType, formatTypeGroup, groupOptimizationsByAct
 import { checkBuild, checkTests, checkLint } from "../plan-lifecycle.js";
 import { execSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+// Semantic layer imports
+import { runSemanticAnalysis } from "../semantic/index.js";
 
 // ── Subcommand: audit suppress ───────────────────────────────────────────────
 
@@ -403,6 +405,70 @@ function displayAutofixApplication(prioritized: ReturnType<typeof prioritizeSugg
   }
 }
 
+function displaySemanticAudit(projectRoot: string, shitennoDir: string): void {
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+
+    if (semanticPatterns.length === 0 && insights.length === 0 && correlations.length === 0) return;
+
+    output(chalk.bold.magenta("  ╔══════════════════════════════════════════════════╗"));
+    output(chalk.bold.magenta("  ║        SEMANTIC AUDIT — Cross-System Analysis     ║"));
+    output(chalk.bold.magenta("  ╚══════════════════════════════════════════════════╝"));
+    outputBlank();
+
+    if (semanticPatterns.length > 0) {
+      output(chalk.bold.cyan(`    📊 Detected Patterns (${semanticPatterns.length})`));
+      outputBlank();
+      for (const pattern of semanticPatterns.slice(0, 5)) {
+        const confidence = Math.round(pattern.confidence * 100);
+        const icon = pattern.type === "architectural_shift" ? "🏗️" :
+                     pattern.type === "scope_drift" ? "🔄" :
+                     pattern.type === "security_degradation" ? "🔒" :
+                     pattern.type === "tech_debt_accumulation" ? "📦" :
+                     pattern.type === "capability_gap" ? "🧩" :
+                     pattern.type === "maturity_regression" ? "📉" : "🔍";
+        output(`    ${icon} ${chalk.bold(pattern.description)}`);
+        output(chalk.gray(`      Domain: ${pattern.domain} | Confidence: ${confidence}% | Type: ${pattern.type}`));
+        for (const action of pattern.suggestedActions.slice(0, 2)) {
+          output(chalk.gray(`        → ${action}`));
+        }
+        outputBlank();
+      }
+    }
+
+    if (insights.length > 0) {
+      output(chalk.bold.magenta(`    🧠 Semantic Insights (${insights.length})`));
+      outputBlank();
+      for (const insight of insights.slice(0, 5)) {
+        const icon = insight.priority === "urgent" ? "🚨" : insight.priority === "high" ? "⚠️" : "💡";
+        const priorityColor = insight.priority === "urgent" ? chalk.red : insight.priority === "high" ? chalk.yellow : chalk.gray;
+        output(`    ${icon} ${chalk.bold(insight.description)}`);
+        output(chalk.gray(`      Priority: ${priorityColor(insight.priority)} | Domains: ${insight.domains.join(", ")}`));
+        for (const action of insight.suggestedActions.slice(0, 2)) {
+          output(chalk.gray(`        → ${action}`));
+        }
+        outputBlank();
+      }
+    }
+
+    if (correlations.length > 0) {
+      output(chalk.bold.yellow(`    🔗 Cross-System Correlations (${correlations.length})`));
+      outputBlank();
+      for (const corr of correlations.slice(0, 5)) {
+        const strengthIcon = corr.strength === "strong" ? "🔴" : corr.strength === "moderate" ? "🟡" : "🟢";
+        output(`    ${strengthIcon} ${chalk.bold(corr.description)}`);
+        output(chalk.gray(`      Type: ${corr.type} | Confidence: ${Math.round(corr.confidence * 100)}% | Strength: ${corr.strength}`));
+        outputBlank();
+      }
+    }
+
+    output(chalk.gray(`    Growth: capacity=${Math.round(semanticProfile.growthCapacity * 100)}% | challenge=${Math.round(semanticProfile.challengeLevel * 100)}% | choices=${semanticProfile.semanticChoices.length}`));
+    outputBlank();
+  } catch (err) {
+    logger.warn("audit", `Semantic analysis failed: ${err}`);
+  }
+}
+
 function displayWhatWasMeasured(report: HealthAuditReport): void {
   outputBlank();
   output(chalk.bold("  📏 What Was Measured:"));
@@ -429,6 +495,35 @@ interface JsonOutputInput { report: HealthAuditReport; graphAnalysis: { totalArt
   options: { apply?: boolean; dryRun?: boolean }; ctx: AuditActionCtx; cacheHit: boolean; reportFile: string | null;
   growthProfile: { growthCapacity?: number; challengeLevel?: number; patterns: Array<{ type: string }>; pathHistory: unknown[] }; }
 
+function collectSemanticData(projectRoot: string, shitennoDir: string): Record<string, unknown> {
+  try {
+    const { profile: semanticProfile, patterns: semanticPatterns, insights, correlations } = runSemanticAnalysis(shitennoDir, projectRoot);
+
+    return {
+      patterns: semanticPatterns.map((p) => ({
+        id: p.id, type: p.type, domain: p.domain,
+        confidence: p.confidence, description: p.description,
+      })),
+      insights: insights.map((i) => ({
+        id: i.id, type: i.type, priority: i.priority,
+        description: i.description, domains: i.domains,
+      })),
+      correlations: correlations.map((c) => ({
+        id: c.id, type: c.type, strength: c.strength,
+        description: c.description, confidence: c.confidence,
+      })),
+      growthProfile: {
+        growthCapacity: semanticProfile.growthCapacity,
+        challengeLevel: semanticProfile.challengeLevel,
+        domainChallengeLevels: semanticProfile.domainChallengeLevels,
+      },
+    };
+  } catch (err) {
+    logger.warn("audit", `Semantic analysis failed for JSON: ${err}`);
+    return {};
+  }
+}
+
 function handleJsonOutput(input: JsonOutputInput): void {
   const { report, graphAnalysis, options, ctx, cacheHit, reportFile, growthProfile } = input;
   let autofixReportJson: AutofixReport | undefined;
@@ -454,7 +549,8 @@ function handleJsonOutput(input: JsonOutputInput): void {
       hubCount: graphAnalysis.hubArtifacts.length, suggestions: graphAnalysis.suggestions },
     cacheHit, reportFile: reportFile || null, auditedAt: report.auditedAt,
     growthProfile: { growthCapacity: growthProfile.growthCapacity, challengeLevel: growthProfile.challengeLevel,
-      pattern: growthProfile.patterns[0]?.type || "balanced", totalChoices: growthProfile.pathHistory.length } });
+      pattern: growthProfile.patterns[0]?.type || "balanced", totalChoices: growthProfile.pathHistory.length },
+    semantic: collectSemanticData(ctx.projectRoot, ctx.shitennoDir) });
 }
 
 function displaySuppressedIssues(suppressedIssues: HealthAuditReport["suppressedIssues"]): void {
@@ -541,6 +637,7 @@ function displayHumanPostAudit(input: HumanPostAuditInput): Promise<void> {
     }
     output(formatGrowthProgress(growthProfile));
     outputBlank();
+    displaySemanticAudit(ctx.projectRoot, ctx.shitennoDir);
     getEventBus().publish("health.checked", {
       status: resolveHealthStatus(report.healthScore),
       healthScore: report.healthScore,

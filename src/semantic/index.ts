@@ -123,3 +123,45 @@ export {
   classifyEvent,
   classifyEvents,
 } from "./signal-classifier.js";
+
+// ── Semantic Analysis Helper ────────────────────────────────────────────────
+
+import { getChangeJournal } from "./change-journal.js";
+import { detectPatterns as detectSemanticPatterns } from "./pattern-matcher.js";
+import { loadSemanticGrowthProfile } from "./growth-profile.js";
+import { generateInsights } from "./reasoner.js";
+import { detectCorrelations } from "./correlator.js";
+
+/** Complete semantic analysis result — used by detect, briefing, evolve, and audit commands. */
+export interface SemanticAnalysisResult {
+  /** Semantic growth profile */
+  profile: import("./growth-profile.js").SemanticGrowthProfile;
+  /** Detected semantic patterns */
+  patterns: import("./pattern-rules.js").DetectedPattern[];
+  /** Higher-level insights from the reasoner */
+  insights: import("./reasoner.js").SemanticInsight[];
+  /** Cross-system correlations */
+  correlations: import("./correlator.js").Correlation[];
+}
+
+/**
+ * Run the full semantic analysis pipeline: load journal, detect patterns,
+ * generate insights, and detect correlations.
+ *
+ * @param shitennoDir - Path to the .shitenno directory
+ * @param projectRoot - Path to the project root
+ * @returns SemanticAnalysisResult with all analysis outputs
+ */
+export function runSemanticAnalysis(
+  shitennoDir: string,
+  projectRoot: string,
+): SemanticAnalysisResult {
+  const profile = loadSemanticGrowthProfile(shitennoDir);
+  const journal = getChangeJournal(shitennoDir);
+  const patterns = detectSemanticPatterns(journal);
+  const recentEntries = journal.getAll().slice(-30);
+  const reasonerPatterns = recentEntries.length > 0 ? patterns : [];
+  const insights = generateInsights(shitennoDir, projectRoot, reasonerPatterns, journal);
+  const correlations = detectCorrelations(shitennoDir, projectRoot, journal);
+  return { profile, patterns, insights, correlations };
+}

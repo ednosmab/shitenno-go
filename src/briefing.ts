@@ -20,6 +20,9 @@ import { partitionRules, type RuleManifestEntry, type TaskMetadata } from "./rul
 import { join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { SHITENNO_DIR_NAME } from "./constants.js";
+// Semantic layer imports
+import { runSemanticAnalysis, type SemanticInsight, type Correlation } from "./semantic/index.js";
+import type { DetectedPattern } from "./semantic/pattern-rules.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +139,22 @@ export interface Briefing {
     auditCount: number;
     notificationsSent: number;
   };
+  /** Semantic layer analysis */
+  semantic?: {
+    /** Detected semantic patterns (architectural shifts, scope drift, etc.) */
+    patterns: DetectedPattern[];
+    /** Higher-level insights from the reasoner */
+    insights: SemanticInsight[];
+    /** Cross-system correlations */
+    correlations: Correlation[];
+    /** Semantic growth profile snapshot */
+    growthProfile: {
+      growthCapacity: number;
+      challengeLevel: number;
+      domainChallengeLevels: Record<string, number>;
+      totalChoices: number;
+    };
+  };
 }
 
 // ── Briefing Generation ────────────────────────────────────────────────────
@@ -230,6 +249,27 @@ export function generateBriefing(options: BriefingOptions): Briefing {
     }
   }
 
+  // Semantic layer analysis
+  let semantic: Briefing["semantic"] | undefined;
+  if (shitennoDir) {
+    try {
+      const { profile, patterns, insights, correlations } = runSemanticAnalysis(shitennoDir, options.projectRoot ?? "");
+      semantic = {
+        patterns,
+        insights,
+        correlations,
+        growthProfile: {
+          growthCapacity: profile.growthCapacity,
+          challengeLevel: profile.challengeLevel,
+          domainChallengeLevels: profile.domainChallengeLevels,
+          totalChoices: profile.semanticChoices.length,
+        },
+      };
+    } catch {
+      // Semantic analysis is non-critical — continue without it
+    }
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     project: {
@@ -243,7 +283,13 @@ export function generateBriefing(options: BriefingOptions): Briefing {
     patterns: {
       recurringErrors: [],
       hotAreas: riskMap.areas.filter((a) => a.factors.some((f) => f.type === "high-churn")).map((a) => a.path),
-      detected: [],
+      detected: semantic?.patterns.map((p) => ({
+        type: p.type,
+        description: p.description,
+        occurrences: 1,
+        affectedArea: p.domain,
+        severity: Math.round(p.confidence * 5),
+      })) ?? [],
     },
     contextRules: contextRules.slice(0, 5),
     dynamicRules: dynamicRules.slice(0, 3),
@@ -253,6 +299,7 @@ export function generateBriefing(options: BriefingOptions): Briefing {
     reminders,
     proactiveAlerts,
     daemonHeartbeat,
+    semantic,
   };
 }
 
@@ -279,7 +326,7 @@ function getCategoryLabel(category: ReminderCategory): string {
  * Pure function — easy to test.
  */
 export function briefingToJson(briefing: Briefing): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     generatedAt: briefing.generatedAt,
     project: briefing.project,
     risks: briefing.risks,
@@ -298,6 +345,24 @@ export function briefingToJson(briefing: Briefing): Record<string, unknown> {
     })),
     recommendations: briefing.recommendations,
   };
+  if (briefing.semantic) {
+    result.semantic = {
+      patterns: briefing.semantic.patterns.map((p) => ({
+        id: p.id, type: p.type, domain: p.domain,
+        confidence: p.confidence, description: p.description,
+      })),
+      insights: briefing.semantic.insights.map((i) => ({
+        id: i.id, type: i.type, priority: i.priority,
+        description: i.description, domains: i.domains,
+      })),
+      correlations: briefing.semantic.correlations.map((c) => ({
+        id: c.id, type: c.type, strength: c.strength,
+        description: c.description, confidence: c.confidence,
+      })),
+      growthProfile: briefing.semantic.growthProfile,
+    };
+  }
+  return result;
 }
 
 /**
@@ -553,6 +618,59 @@ export function briefingToMarkdown(briefing: Briefing): string {
   lines.push(`- **Context rules:** ${briefing.tokenEconomy.contextRuleCount}`);
   lines.push(`- **Dynamic rules:** ${briefing.tokenEconomy.dynamicRuleCount}`);
   lines.push(`- **Cache hit:** ${briefing.tokenEconomy.cacheHit ? "Yes" : "No"}`);
+
+  // Semantic layer section
+  if (briefing.semantic) {
+    const s = briefing.semantic;
+    if (s.patterns.length > 0 || s.insights.length > 0 || s.correlations.length > 0) {
+      lines.push("", "## Semantic Analysis");
+
+      if (s.patterns.length > 0) {
+        lines.push(`### Patterns (${s.patterns.length})`);
+        for (const p of s.patterns.slice(0, 5)) {
+          const confidence = Math.round(p.confidence * 100);
+          lines.push(`- **${p.description}**`);
+          lines.push(`  - Domain: ${p.domain} | Type: ${p.type} | Confidence: ${confidence}%`);
+          for (const action of p.suggestedActions.slice(0, 2)) {
+            lines.push(`  - → ${action}`);
+          }
+        }
+      }
+
+      if (s.insights.length > 0) {
+        lines.push(`### Insights (${s.insights.length})`);
+        for (const i of s.insights.slice(0, 5)) {
+          lines.push(`- **${i.description}** (${i.priority})`);
+          lines.push(`  - Domains: ${i.domains.join(", ")}`);
+          for (const action of i.suggestedActions.slice(0, 2)) {
+            lines.push(`  - → ${action}`);
+          }
+        }
+      }
+
+      if (s.correlations.length > 0) {
+        lines.push(`### Cross-System Correlations (${s.correlations.length})`);
+        for (const c of s.correlations.slice(0, 3)) {
+          lines.push(`- **${c.description}** (${c.strength})`);
+          lines.push(`  - Type: ${c.type} | Confidence: ${Math.round(c.confidence * 100)}%`);
+        }
+      }
+
+      lines.push("");
+    }
+  }
+
+  // Challenges section
+  if (briefing.proactiveAlerts) {
+    const pa = briefing.proactiveAlerts;
+    if (pa.pendingChallenges.length > 0) {
+      lines.push("", "## ⚠️ Pending Challenges");
+      for (let i = 0; i < pa.pendingChallenges.length; i++) {
+        lines.push(`- ${pa.pendingChallenges[i]}`);
+      }
+      lines.push("", "Respond: `shugo briefing` (interactive)");
+    }
+  }
 
   return lines.join("\n");
 }
